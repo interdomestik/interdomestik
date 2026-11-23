@@ -137,6 +137,35 @@ describe('case authority commands', () => {
   });
 });
 
+describe('deadlock retry', () => {
+  const deadlock = new Error('Query failed', { cause: { code: '40P01' } });
+  const input = { claimId, authorityId: ids.recovery };
+
+  it('runs a revocation once more after a deadlock abort and then succeeds', async () => {
+    const session = caller();
+    db.transaction.mockRejectedValueOnce(deadlock);
+    db.results = [admitted, [{ id: ids.recovery, revokedBy: actorId }]];
+    expect(await revokeCaseAuthority(session, authority, input)).toEqual({
+      ok: true,
+      authorityId: ids.recovery,
+    });
+    expect(db.transaction).toHaveBeenCalledTimes(2);
+  });
+
+  it('rethrows a second deadlock abort instead of retrying without end', async () => {
+    const session = caller();
+    db.transaction.mockRejectedValueOnce(deadlock).mockRejectedValueOnce(deadlock);
+    await expect(revokeCaseAuthority(session, authority, input)).rejects.toBe(deadlock);
+    expect(db.transaction).toHaveBeenCalledTimes(2);
+  });
+
+  it('does not retry an authority grant', async () => {
+    db.transaction.mockRejectedValueOnce(deadlock);
+    await expect(recordCaseAuthority(caller(), authority, grantInput)).rejects.toBe(deadlock);
+    expect(db.transaction).toHaveBeenCalledTimes(1);
+  });
+});
+
 describe('case fields and guard failures', () => {
   it('refuses reassigned staff before writing and treats a lost conditional update as conflict', async () => {
     const session = caller();

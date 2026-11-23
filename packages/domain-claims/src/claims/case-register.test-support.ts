@@ -12,6 +12,8 @@ type Statement = {
   table?: unknown;
   where?: SQL;
   conflictWhere?: SQL;
+  limit?: number;
+  offset?: number;
   lock?: string;
   values?: unknown;
 };
@@ -47,6 +49,8 @@ type Builder = Promise<unknown[]> & {
   set(values: unknown): Builder;
   values(values: unknown): Builder;
   orderBy(): Builder;
+  limit(value: number): Builder;
+  offset(value: number): Builder;
   onConflictDoNothing(): Builder;
   onConflictDoUpdate(config: { setWhere?: SQL }): Builder;
   returning(): Builder;
@@ -79,6 +83,14 @@ function statement(operation: Statement) {
       return query;
     },
     orderBy() {
+      return query;
+    },
+    limit(value: number) {
+      operation.limit = value;
+      return query;
+    },
+    offset(value: number) {
+      operation.offset = value;
       return query;
     },
     onConflictDoNothing() {

@@ -121,11 +121,16 @@
       "followUpUtc": "Correspondence follow-up (UTC)",
       "saveFollowUp": "Save follow-up",
       "answered": "Reply recorded",
-      "overdue": "Follow-up overdue"
+      "overdue": "Follow-up overdue",
+      "pages": "Correspondence register pages",
+      "previous": "Previous page",
+      "next": "Next page",
+      "position": "Page {page} of {pages}"
     },
     "summary": {
       "title": "Correspondence summary",
-      "total": "Correspondence entries • {total}"
+      "total": "Correspondence entries • {total}",
+      "latest": "Showing the latest dates: {shown} of {total}"
     }
   }
 }

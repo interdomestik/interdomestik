@@ -121,11 +121,16 @@
       "followUpUtc": "Praćenje prepiske (UTC)",
       "saveFollowUp": "Sačuvaj rok za praćenje",
       "answered": "Odgovor je evidentiran",
-      "overdue": "Rok za praćenje je istekao"
+      "overdue": "Rok za praćenje je istekao",
+      "pages": "Stranice evidencije prepiske",
+      "previous": "Prethodna stranica",
+      "next": "Sledeća stranica",
+      "position": "Stranica {page} od {pages}"
     },
     "summary": {
       "title": "Pregled prepiske",
-      "total": "Unosi prepiske • {total}"
+      "total": "Unosi prepiske • {total}",
+      "latest": "Prikazani su najnoviji datumi: {shown} od {total}"
     }
   }
 }

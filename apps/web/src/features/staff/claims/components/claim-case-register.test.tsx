@@ -30,6 +30,21 @@ const action = vi.hoisted(() => ({
 
 vi.unmock('next-intl');
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: action.refresh }) }));
+vi.mock('@/i18n/routing', () => ({
+  Link: ({
+    children,
+    href,
+    className,
+  }: {
+    children: ReactNode;
+    href: string;
+    className?: string;
+  }) => (
+    <a href={href} className={className}>
+      {children}
+    </a>
+  ),
+}));
 vi.mock('@/actions/staff-claims/case-authorities', () => ({
   recordCaseAuthority: action.record,
   revokeCaseAuthority: action.revoke,
@@ -296,5 +311,44 @@ describe('correspondence', () => {
     submit(copy.feedback.retry);
     expect(action.refresh).toHaveBeenCalledOnce();
     expect(screen.queryByText(copy.list.empty)).not.toBeInTheDocument();
+  });
+
+  it('pages a long register with previous and next links that keep the case', () => {
+    show(
+      <ClaimCorrespondenceList
+        claimId={claimId}
+        canWrite={false}
+        entries={[outbound]}
+        documents={[]}
+        page={2}
+        perPage={20}
+        total={45}
+      />
+    );
+    const pages = screen.getByRole('navigation', { name: copy.list.pages });
+    expect(within(pages).getByText('Page 2 of 3')).toHaveAttribute('aria-current', 'page');
+    expect(within(pages).getByRole('link', { name: copy.list.previous })).toHaveAttribute(
+      'href',
+      expect.stringContaining(`/staff/claims/${claimId}?correspondencePage=1`)
+    );
+    expect(within(pages).getByRole('link', { name: copy.list.next })).toHaveAttribute(
+      'href',
+      expect.stringContaining(`/staff/claims/${claimId}?correspondencePage=3`)
+    );
+  });
+
+  it('shows no page links when the register fits on one page', () => {
+    show(
+      <ClaimCorrespondenceList
+        claimId={claimId}
+        canWrite={false}
+        entries={[outbound]}
+        documents={[]}
+        page={1}
+        perPage={20}
+        total={1}
+      />
+    );
+    expect(screen.queryByRole('navigation', { name: copy.list.pages })).not.toBeInTheDocument();
   });
 });

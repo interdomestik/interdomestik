@@ -121,11 +121,16 @@
       "followUpUtc": "Ndjekja e korrespondencës (UTC)",
       "saveFollowUp": "Ruaj afatin e ndjekjes",
       "answered": "Përgjigjja u regjistrua",
-      "overdue": "Afati i ndjekjes ka kaluar"
+      "overdue": "Afati i ndjekjes ka kaluar",
+      "pages": "Faqet e regjistrit të korrespondencës",
+      "previous": "Faqja e mëparshme",
+      "next": "Faqja tjetër",
+      "position": "Faqja {page} nga {pages}"
     },
     "summary": {
       "title": "Përmbledhja e korrespondencës",
-      "total": "Zëra të korrespondencës • {total}"
+      "total": "Zëra të korrespondencës • {total}",
+      "latest": "Shfaqen datat më të fundit: {shown} nga {total}"
     }
   }
 }

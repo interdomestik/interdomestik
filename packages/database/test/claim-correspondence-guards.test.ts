@@ -177,111 +177,109 @@ async function proveGuards(t: TestContext, connections: Connection) {
     }
   );
 
-  await t.test(
-    'both citation guards require provenance and matching readable copies and digest',
-    async () => {
-      const claim = await insertClaim(admin);
-      const otherClaim = await insertClaim(admin);
-      const { bases, evidence, otherDocument, badDocs } = await restricted(runtime, async tx => {
-        const evidence = await insertDocument(tx, documentInput(claim));
-        const another = await insertDocument(tx, documentInput(claim));
-        const crossClaim = await insertDocument(tx, documentInput(otherClaim));
-        const labels = [
-          ['wrong assigned claim', (id: string) => assignedPath(otherClaim, id)],
-          ['another member intake', (id: string) => `claims/${foreignActor}/unassigned/${id}.pdf`],
-          ['same member intake', (id: string) => `claims/${homeActor}/unassigned/${id}.pdf`],
-          ['different file id', () => assignedPath(claim, randomUUID())],
-        ] as const;
-        const badDocs: [string, typeof evidence][] = [];
-        for (const [label, path] of labels) {
-          const id = randomUUID();
-          const stored = await insertDocument(tx, documentInput(claim, id, path(id)));
-          badDocs.push([label, stored]);
-        }
-        const wrongBucket = await insertDocument(tx, {
-          ...documentInput(claim),
-          bucket: 'another-bucket',
-        });
-        badDocs.push(['wrong storage bucket', wrongBucket], ['another claim document', crossClaim]);
-        return {
-          bases: await createBases(tx, claim, evidence),
-          evidence,
-          otherDocument: another,
-          badDocs,
-        };
-      });
-
-      async function rejectBoth(
-        label: string,
-        document: typeof evidence,
-        copies = {
-          bucket: document.bucket,
-          file_path: document.file_path,
-          citation_ref: document.citation_ref,
-        }
-      ) {
-        await assert.rejects(
-          restricted(runtime, tx =>
-            insertGrant(tx, {
-              ...grantInput(claim, document, 'signed_assignment'),
-              evidence_bucket: copies.bucket,
-              evidence_file_path: copies.file_path,
-              evidence_citation_ref: copies.citation_ref,
-            })
-          ),
-          invalidDocument,
-          label
-        );
-        await assert.rejects(
-          restricted(runtime, async tx => {
-            const entry = await insertEntry(tx, outboundInput(claim, bases, 1));
-            await insertLink(tx, {
-              ...linkInput(entry, document),
-              document_bucket: copies.bucket,
-              document_file_path: copies.file_path,
-              document_citation_ref: copies.citation_ref,
-            });
-          }),
-          invalidDocument,
-          label
-        );
+  await t.test('both citation guards require provenance and matching readable copies', async () => {
+    const claim = await insertClaim(admin);
+    const otherClaim = await insertClaim(admin);
+    const { bases, evidence, otherDocument, badDocs } = await restricted(runtime, async tx => {
+      const evidence = await insertDocument(tx, documentInput(claim));
+      const another = await insertDocument(tx, documentInput(claim));
+      const crossClaim = await insertDocument(tx, documentInput(otherClaim));
+      const labels = [
+        ['wrong assigned claim', (id: string) => assignedPath(otherClaim, id)],
+        // The uploader's intake shape (storage-path.ts: initial): pii/tenants/{tenant}/claims/
+        // {actor}/unassigned/{fileId}-{safeName}.
+        [
+          'another member intake',
+          (id: string) =>
+            `pii/tenants/${claim.tenant}/claims/${foreignActor}/unassigned/${id}-receipt.pdf`,
+        ],
+        [
+          'same member intake',
+          (id: string) =>
+            `pii/tenants/${claim.tenant}/claims/${homeActor}/unassigned/${id}-receipt.pdf`,
+        ],
+        ['different file id', () => assignedPath(claim, randomUUID())],
+      ] as const;
+      const badDocs: [string, typeof evidence][] = [];
+      for (const [label, path] of labels) {
+        const id = randomUUID();
+        const stored = await insertDocument(tx, documentInput(claim, id, path(id)));
+        badDocs.push([label, stored]);
       }
+      const wrongBucket = await insertDocument(tx, {
+        ...documentInput(claim),
+        bucket: 'another-bucket',
+      });
+      badDocs.push(['wrong storage bucket', wrongBucket], ['another claim document', crossClaim]);
+      return {
+        bases: await createBases(tx, claim, evidence),
+        evidence,
+        otherDocument: another,
+        badDocs,
+      };
+    });
 
-      for (const [label, document] of badDocs) await rejectBoth(label, document);
-      await rejectBoth('readable bucket mismatch', evidence, {
-        ...evidence,
-        bucket: 'mismatched-bucket',
-      });
-      await rejectBoth('readable path mismatch', evidence, {
-        ...evidence,
-        file_path: 'mismatched-path',
-      });
-      await rejectBoth('valid digest of another eligible document', evidence, {
-        ...evidence,
-        citation_ref: otherDocument.citation_ref,
-      });
-
-      await restricted(runtime, async tx => {
-        const grant = await insertGrant(tx, grantInput(claim, evidence, 'signed_assignment'));
-        const entry = await insertEntry(tx, outboundInput(claim, bases, 1));
-        await insertLink(tx, linkInput(entry, otherDocument));
-        const [storedGrant] =
-          await tx`select evidence_bucket, evidence_file_path, evidence_citation_ref
-        from claim_authorities where id = ${grant.id}`;
-        assert.deepEqual(storedGrant, {
-          evidence_bucket: evidence.bucket,
-          evidence_file_path: evidence.file_path,
-          evidence_citation_ref: evidence.citation_ref,
-        });
-        const [storedLink] =
-          await tx`select document_bucket, document_file_path, document_citation_ref
-        from claim_correspondence_documents where correspondence_id = ${entry.id}`;
-        assert.deepEqual(storedLink, {
-          document_bucket: otherDocument.bucket,
-          document_file_path: otherDocument.file_path,
-          document_citation_ref: otherDocument.citation_ref,
-        });
-      });
+    async function rejectBoth(
+      label: string,
+      document: typeof evidence,
+      copies = { bucket: document.bucket, file_path: document.file_path }
+    ) {
+      await assert.rejects(
+        restricted(runtime, tx =>
+          insertGrant(tx, {
+            ...grantInput(claim, document, 'signed_assignment'),
+            evidence_bucket: copies.bucket,
+            evidence_file_path: copies.file_path,
+          })
+        ),
+        invalidDocument,
+        label
+      );
+      await assert.rejects(
+        restricted(runtime, async tx => {
+          const entry = await insertEntry(tx, outboundInput(claim, bases, 1));
+          await insertLink(tx, {
+            ...linkInput(entry, document),
+            document_bucket: copies.bucket,
+            document_file_path: copies.file_path,
+          });
+        }),
+        invalidDocument,
+        label
+      );
     }
-  );
+
+    for (const [label, document] of badDocs) await rejectBoth(label, document);
+    await rejectBoth('readable bucket mismatch', evidence, {
+      ...evidence,
+      bucket: 'mismatched-bucket',
+    });
+    await rejectBoth('readable path mismatch', evidence, {
+      ...evidence,
+      file_path: 'mismatched-path',
+    });
+    // Redirection: the identity of one eligible document with the copies of another.
+    await rejectBoth('readable copies of another eligible document', evidence, {
+      bucket: otherDocument.bucket,
+      file_path: otherDocument.file_path,
+    });
+
+    await restricted(runtime, async tx => {
+      const grant = await insertGrant(tx, grantInput(claim, evidence, 'signed_assignment'));
+      const entry = await insertEntry(tx, outboundInput(claim, bases, 1));
+      await insertLink(tx, linkInput(entry, otherDocument));
+      const [storedGrant] = await tx`select evidence_bucket, evidence_file_path
+        from claim_authorities where id = ${grant.id}`;
+      assert.deepEqual(storedGrant, {
+        evidence_bucket: evidence.bucket,
+        evidence_file_path: evidence.file_path,
+      });
+      const [storedLink] = await tx`select document_bucket, document_file_path
+        from claim_correspondence_documents where correspondence_id = ${entry.id}`;
+      assert.deepEqual(storedLink, {
+        document_bucket: otherDocument.bucket,
+        document_file_path: otherDocument.file_path,
+      });
+    });
+  });
 }

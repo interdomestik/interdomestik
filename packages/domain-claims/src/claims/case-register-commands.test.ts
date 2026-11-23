@@ -281,18 +281,41 @@ describe('correspondence decisions', () => {
     };
     db.results = [
       admitted,
+      [{ total: 3 }],
       [
-        { ...base, answered: true },
-        { ...base, id: ids.recovery, answered: false },
-        { ...base, id: ids.inbound, direction: 'inbound', followUpAt: null, answered: false },
+        base,
+        { ...base, id: ids.recovery },
+        { ...base, id: ids.inbound, direction: 'inbound', followUpAt: null },
       ],
+      [{ inReplyToId: base.id }],
       [],
     ];
-    const result = await listClaimCorrespondence(caller(), authority, { claimId });
+    const result = await listClaimCorrespondence(caller(), authority, {
+      claimId,
+      page: 1,
+      perPage: 20,
+    });
     expect(result.ok && result.entries.map(entry => [entry.answered, entry.overdue])).toEqual([
       [true, false],
       [false, true],
       [false, false],
     ]);
+  });
+
+  it('reads one bounded page of the register and the links of that page only', async () => {
+    const base = { ...recorded, occurredAt: new Date(occurredAt), createdAt: new Date(occurredAt) };
+    db.results = [admitted, [{ total: 45 }], [base], [], []];
+    const result = await listClaimCorrespondence(caller(), authority, {
+      claimId,
+      page: 3,
+      perPage: 20,
+    });
+    expect(result).toMatchObject({ ok: true, page: 3, perPage: 20, total: 45 });
+    expect(db.statements[2]).toMatchObject({ limit: 20, offset: 40 });
+    expect(queryWhere(3).params).toEqual([tenantId, claimId, 'inbound', recorded.id]);
+    expect(queryWhere(4).params).toEqual([tenantId, claimId, recorded.id]);
+    expect(
+      await listClaimCorrespondence(caller(), authority, { claimId, page: 1, perPage: 51 })
+    ).toEqual({ ok: false, code: 'invalid' });
   });
 });

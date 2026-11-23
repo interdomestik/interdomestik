@@ -13,6 +13,7 @@ import {
   resolveRegisterRead,
   resolveRegisterWrite,
   type LockedRegister,
+  normalizeRegisterInput,
 } from './case-register-access';
 import type { ClaimsSession } from './types';
 
@@ -146,7 +147,8 @@ export async function updateGreenCardCaseFields(
     updateGreenCardCaseFieldsInputSchema
   );
   if (!access.ok) return access;
-  const { tenantId, actor, data } = access;
+  const { tenantId, actor } = access;
+  const data = normalizeRegisterInput(access.data);
   try {
     return await withTenantAuthority(access.authority, async tx => {
       if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor))) return registerForbidden;

@@ -198,7 +198,6 @@ async function proveConstraints(t: TestContext, connections: Connection) {
             { ...representation, jurisdiction_attested_by_user_id: foreignActor },
           ],
           ['evidence_document', { ...grantInput(claim, sameTenant.doc, 'signed_assignment') }],
-          ['evidence_citation', { ...recovery, evidence_citation_ref: 'missing' }],
         ] as const) {
           // A different claim has the valid row/key, so an ID-only FK would accept these writes.
           await assert.rejects(
@@ -235,16 +234,6 @@ async function proveConstraints(t: TestContext, connections: Connection) {
           tx.savepoint(one => insertLink(one, linkInput(own.entry, sameTenant.doc))),
           foreignKey('claim_correspondence_documents_document_fk')
         );
-        const anotherDocument = await insertDocument(tx, documentInput(own.claim));
-        await assert.rejects(
-          tx.savepoint(one =>
-            insertLink(one, {
-              ...linkInput(own.entry, anotherDocument),
-              document_citation_ref: 'missing',
-            })
-          ),
-          foreignKey('claim_correspondence_documents_citation_fk')
-        );
       });
     }
   );
@@ -269,7 +258,7 @@ async function proveConstraints(t: TestContext, connections: Connection) {
         restricted(runtime, async tx => {
           await insertLink(tx, own.link);
         }),
-        unique('claim_correspondence_documents_pk')
+        unique('claim_correspondence_documents_entry_uq')
       );
       await restricted(
         runtime,

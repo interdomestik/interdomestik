@@ -121,11 +121,16 @@
       "followUpUtc": "Wiedervorlage zur Korrespondenz (UTC)",
       "saveFollowUp": "Wiedervorlage speichern",
       "answered": "Antwort erfasst",
-      "overdue": "Wiedervorlage überfällig"
+      "overdue": "Wiedervorlage überfällig",
+      "pages": "Seiten des Korrespondenzregisters",
+      "previous": "Vorherige Seite",
+      "next": "Nächste Seite",
+      "position": "Seite {page} von {pages}"
     },
     "summary": {
       "title": "Übersicht der Korrespondenz",
-      "total": "Korrespondenzeinträge • {total}"
+      "total": "Korrespondenzeinträge • {total}",
+      "latest": "Angezeigt werden die neuesten Daten: {shown} von {total}"
     }
   }
 }

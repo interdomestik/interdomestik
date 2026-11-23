@@ -69,8 +69,6 @@ async function proveJournal(t: TestContext, admin: ScratchClient) {
     closedDrafts.push(await insertClaim(admin, { category, lifecycle: 'draft' }));
   }
   const ids = [retail.id, injury.id, draft.id, ...closedDrafts.map(claim => claim.id)];
-  const before =
-    await admin`select to_jsonb(c) as row from claim c where id in ${admin(ids)} order by id`;
   const documents = [
     documentInput(retail),
     documentInput(retail, undefined, randomPath()),
@@ -79,23 +77,28 @@ async function proveJournal(t: TestContext, admin: ScratchClient) {
   for (const document of documents) await admin`insert into claim_documents ${admin(document)}`;
   assert.ok(documents[1].file_path.length > 3_000);
   assert.equal(documents[2].id.length, 2_650);
+  const documentIds = documents.map(document => document.id);
+  // Row values and row versions (xmin): the migration performs no DML on an existing table.
+  const snapshot = async () => ({
+    claims: [
+      ...(await admin`select xmin::text as version, to_jsonb(c) as row
+        from claim c where id in ${admin(ids)} order by id`),
+    ],
+    documents: [
+      ...(await admin`select xmin::text as version, to_jsonb(d) as row
+        from claim_documents d where id in ${admin(documentIds)} order by id`),
+    ],
+  });
+  const before = await snapshot();
+  assert.equal(before.claims.length, ids.length);
+  assert.equal(before.documents.length, documents.length);
 
   await migrateJournal(admin, journalThrough(t, 'register'));
-  const after = await admin`
-    select to_jsonb(c) - array['other_vehicle_country_code', 'insurance_proof_reference',
-      'outside_handling_party', 'coverage_verification_status', 'case_follow_up_at'] as row
-      from claim c where id in ${admin(ids)} order by id`;
-  assert.deepEqual([...after], [...before], 'the migration leaves legacy claims unchanged');
-  const refs = await admin<{ id: string; stored: string; computed: string }[]>`
-    select id, citation_ref as stored,
-      claim_document_citation_ref(tenant_id, claim_id, id, bucket, file_path) as computed
-    from claim_documents where id in ${admin(documents.map(doc => doc.id))}`;
-  assert.equal(refs.length, documents.length);
-  for (const document of documents) {
-    const row = refs.find(row => row.id === document.id);
-    assert.ok(row?.stored);
-    assert.equal(row.stored, row.computed);
-  }
+  assert.deepEqual(
+    await snapshot(),
+    before,
+    'the migration leaves legacy claims and documents untouched'
+  );
   return { retail, injury, draft, closedDrafts };
 }
 

@@ -5,6 +5,7 @@ import { getInformationRequests, getStaffClaimDetail } from '@interdomestik/doma
 import { ClaimInformationRequestForm } from '@/features/staff/claims/components/ClaimInformationRequestForm';
 import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
 import { caseRegister } from '@/features/staff/claims/components/StaffClaimCaseRegister';
+import { clampPage } from '@/lib/pagination';
 import { StaffClaimContext } from '@/features/staff/claims/components/StaffClaimContext';
 import { StaffClaimWorkspaceHeader } from '@/features/staff/claims/components/StaffClaimWorkspaceHeader';
 import {
@@ -40,6 +41,7 @@ interface PageProps {
     locale: string;
     id: string;
   }>;
+  searchParams?: Promise<{ correspondencePage?: string | string[] }>;
 }
 
 function toClaimStatus(value: unknown): ClaimStatus {
@@ -69,8 +71,11 @@ function loadStaffClaimReads(
 
 export default async function StaffClaimDetailsPage({
   params,
+  searchParams,
 }: Readonly<PageProps>): Promise<React.JSX.Element> {
   const { id, locale } = await params;
+  const requestedPage = (await searchParams)?.correspondencePage;
+  const correspondencePage = clampPage(Number(Array.isArray(requestedPage) ? 1 : requestedPage));
   setRequestLocale(locale);
   const tClaims = await getTranslations({ locale, namespace: 'agent-claims.claims' });
   const tStatus = await getTranslations({ locale, namespace: 'claims-tracking.status' });
@@ -160,7 +165,14 @@ export default async function StaffClaimDetailsPage({
     updatedAt: detail.claim.updatedAt,
   });
 
-  const register = await caseRegister(session, authority, detail.claim, assignedDocuments, locale);
+  const register = await caseRegister(
+    session,
+    authority,
+    detail.claim,
+    assignedDocuments,
+    locale,
+    correspondencePage
+  );
   return (
     <div
       className="min-w-0 space-y-6 [&_section]:scroll-mt-80 md:[&_section]:scroll-mt-20"

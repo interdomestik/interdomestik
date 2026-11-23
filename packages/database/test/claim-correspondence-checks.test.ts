@@ -70,7 +70,7 @@ test('WP-12 database CHECK constraints under restricted writes', async t => {
       return { claim, doc, bases, entry };
     });
     await t.test(
-      'every register CHECK and each new claim-field CHECK rejects its own invalid value',
+      'every register CHECK and each case-field CHECK rejects its own invalid value',
       async () => {
         const recovery = grantInput(own.claim, own.doc);
         const representation = grantInput(own.claim, own.doc, 'power_of_attorney');
@@ -137,19 +137,39 @@ test('WP-12 database CHECK constraints under restricted writes', async t => {
           tx => tx`alter table claim_authorities drop constraint claim_authorities_kind_scope_check`
         );
 
-        for (const [column, value] of [
-          ['other_vehicle_country_code', 'xk'],
-          ['insurance_proof_reference', '\t'],
-          ['coverage_verification_status', 'approved'],
+        // Case fields live in claim_case_fields (design v14): each CHECK refuses its own value,
+        // and the same row with a valid value is accepted (positive control).
+        for (const [constraint, column, value] of [
+          ['country', 'other_vehicle_country_code', 'xk'],
+          ['insurance_reference', 'insurance_proof_reference', '\t'],
+          ['coverage', 'coverage_verification_status', 'approved'],
         ]) {
           await assert.rejects(
             restricted(
               runtime,
-              tx => tx`update claim set ${tx({ [column]: value })} where id = ${own.claim.id}`
+              tx =>
+                tx`insert into claim_case_fields ${tx({
+                  tenant_id: homeTenant,
+                  claim_id: own.claim.id,
+                  updated_by_staff_id: own.claim.user,
+                  [column]: value,
+                })}`
             ),
-            check(`claim_${column}_check`)
+            check(`claim_case_fields_${constraint}_check`)
           );
         }
+        await restricted(
+          runtime,
+          tx =>
+            tx`insert into claim_case_fields ${tx({
+              tenant_id: homeTenant,
+              claim_id: own.claim.id,
+              updated_by_staff_id: own.claim.user,
+              other_vehicle_country_code: 'XK',
+              insurance_proof_reference: 'proof-01',
+              coverage_verification_status: 'confirmed_by_party',
+            })}`
+        );
       }
     );
   });

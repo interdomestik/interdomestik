@@ -2,6 +2,8 @@ import {
   and,
   asc,
   claimCorrespondence,
+  desc,
+  inArray,
   claimCorrespondenceDocuments,
   eq,
   type TenantTransaction,
@@ -14,11 +16,12 @@ import {
   lockCaseForRegister,
   registerClaimInput,
   registerForbidden,
+  registerPageInput,
   resolveRegisterRead,
 } from './case-register-access';
 import type { ClaimsSession } from './types';
 
-export const listClaimCorrespondenceInputSchema = registerClaimInput;
+export const listClaimCorrespondenceInputSchema = registerPageInput;
 export const getClaimCorrespondenceSummaryInputSchema = registerClaimInput;
 
 function groupDocumentIds(links: { correspondenceId: string; documentId: string }[]) {
@@ -31,7 +34,17 @@ function groupDocumentIds(links: { correspondenceId: string; documentId: string 
   return byEntry;
 }
 
-async function readCorrespondence(tx: TenantTransaction, tenantId: string, claimId: string) {
+type RegisterPage = { claimId: string; page: number; perPage: number };
+
+/** One page of the register, newest first; links are read for the page's entries only. */
+async function readCorrespondence(tx: TenantTransaction, tenantId: string, input: RegisterPage) {
+  const { claimId, page, perPage } = input;
+  const [{ total }] = await tx
+    .select({ total: sql<number>`count(*)::int` })
+    .from(claimCorrespondence)
+    .where(
+      withTenant(tenantId, claimCorrespondence.tenantId, eq(claimCorrespondence.claimId, claimId))
+    );
   const rows = await tx
     .select({
       id: claimCorrespondence.id,
@@ -53,15 +66,6 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, claim
       decidedAt: claimCorrespondence.decidedAt,
       recordedByStaffId: claimCorrespondence.recordedByStaffId,
       createdAt: claimCorrespondence.createdAt,
-      // Outer columns are written qualified: Drizzle renders an interpolated column of a
-      // single-table select unqualified, which the subquery would resolve to its own table.
-      answered: sql<boolean>`exists (
-        select 1 from "claim_correspondence" as correspondence_reply
-        where correspondence_reply.tenant_id = "claim_correspondence"."tenant_id"
-          and correspondence_reply.claim_id = "claim_correspondence"."claim_id"
-          and correspondence_reply.in_reply_to_id = "claim_correspondence"."id"
-          and correspondence_reply.direction = 'inbound'
-      )`,
     })
     .from(claimCorrespondence)
     .where(
@@ -71,26 +75,59 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, claim
         and(eq(claimCorrespondence.claimId, claimId))
       )
     )
-    .orderBy(asc(claimCorrespondence.occurredAt), asc(claimCorrespondence.id));
-  const links = await tx
-    .select({
-      correspondenceId: claimCorrespondenceDocuments.correspondenceId,
-      documentId: claimCorrespondenceDocuments.claimDocumentId,
-    })
-    .from(claimCorrespondenceDocuments)
-    .where(
-      withTenant(
-        tenantId,
-        claimCorrespondenceDocuments.tenantId,
-        and(eq(claimCorrespondenceDocuments.claimId, claimId))
-      )
-    )
-    .orderBy(asc(claimCorrespondenceDocuments.claimDocumentId));
+    .orderBy(desc(claimCorrespondence.occurredAt), desc(claimCorrespondence.id))
+    .limit(perPage)
+    .offset((page - 1) * perPage);
+  const entryIds = rows.map(row => row.id);
+  // Replies to this page's entries only (claim_correspondence_reply_idx), so the cost follows
+  // the page size, not the size of the tenant's register.
+  const replies =
+    entryIds.length === 0
+      ? []
+      : await tx
+          .select({ inReplyToId: claimCorrespondence.inReplyToId })
+          .from(claimCorrespondence)
+          .where(
+            withTenant(
+              tenantId,
+              claimCorrespondence.tenantId,
+              and(
+                eq(claimCorrespondence.claimId, claimId),
+                eq(claimCorrespondence.direction, 'inbound'),
+                inArray(claimCorrespondence.inReplyToId, entryIds)
+              )
+            )
+          );
+  const answered = new Set(replies.map(reply => reply.inReplyToId));
+  const links =
+    entryIds.length === 0
+      ? []
+      : await tx
+          .select({
+            correspondenceId: claimCorrespondenceDocuments.correspondenceId,
+            documentId: claimCorrespondenceDocuments.claimDocumentId,
+          })
+          .from(claimCorrespondenceDocuments)
+          .where(
+            withTenant(
+              tenantId,
+              claimCorrespondenceDocuments.tenantId,
+              and(
+                eq(claimCorrespondenceDocuments.claimId, claimId),
+                inArray(claimCorrespondenceDocuments.correspondenceId, entryIds)
+              )
+            )
+          )
+          .orderBy(asc(claimCorrespondenceDocuments.claimDocumentId));
   const byEntry = groupDocumentIds(links);
   const now = Date.now();
   return {
+    page,
+    perPage,
+    total,
     entries: rows.map(row => ({
       ...row,
+      answered: answered.has(row.id),
       occurredAt: row.occurredAt.toISOString(),
       followUpAt: row.followUpAt?.toISOString() ?? null,
       decidedAt: row.decidedAt?.toISOString() ?? null,
@@ -99,7 +136,7 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, claim
       sharedDocumentIds: byEntry.get(row.id) ?? [],
       overdue:
         row.direction === 'outbound' &&
-        !row.answered &&
+        !answered.has(row.id) &&
         row.followUpAt !== null &&
         row.followUpAt.getTime() < now,
     })),
@@ -115,30 +152,36 @@ export async function listClaimCorrespondence(
   authority: TenantAuthority | null,
   input: unknown
 ) {
-  const access = resolveRegisterRead(session, authority, input, 'full');
+  const access = resolveRegisterRead(session, authority, input, 'full', registerPageInput);
   if (!access.ok) return access;
   const { tenantId, actor, data } = access;
   return withTenantAuthority(access.authority, async tx => {
     if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor, 'full'))) {
       return registerForbidden;
     }
-    return { ...(await readCorrespondence(tx, tenantId, data.claimId)), ok: true as const };
+    return { ...(await readCorrespondence(tx, tenantId, data)), ok: true as const };
   });
 }
 
+/** The branch summary: the total and the latest dates only (bounded read). */
+export const SUMMARY_DATE_LIMIT = 50;
+
 async function readSummary(tx: TenantTransaction, tenantId: string, claimId: string) {
+  const [{ total }] = await tx
+    .select({ total: sql<number>`count(*)::int` })
+    .from(claimCorrespondence)
+    .where(
+      withTenant(tenantId, claimCorrespondence.tenantId, eq(claimCorrespondence.claimId, claimId))
+    );
   const rows = await tx
     .select({ occurredAt: claimCorrespondence.occurredAt })
     .from(claimCorrespondence)
     .where(
-      withTenant(
-        tenantId,
-        claimCorrespondence.tenantId,
-        and(eq(claimCorrespondence.claimId, claimId))
-      )
+      withTenant(tenantId, claimCorrespondence.tenantId, eq(claimCorrespondence.claimId, claimId))
     )
-    .orderBy(asc(claimCorrespondence.occurredAt));
-  return { summary: { total: rows.length, dates: rows.map(row => row.occurredAt.toISOString()) } };
+    .orderBy(desc(claimCorrespondence.occurredAt))
+    .limit(SUMMARY_DATE_LIMIT);
+  return { summary: { total, dates: rows.map(row => row.occurredAt.toISOString()) } };
 }
 
 export async function getClaimCorrespondenceSummary(

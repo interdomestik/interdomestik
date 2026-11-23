@@ -22,6 +22,7 @@ type RegisterProps = Readonly<{
   canWrite: boolean;
   restricted: boolean;
   documents: readonly RegisterDocument[] | null;
+  correspondencePage: number;
 }>;
 
 async function BranchSummary({ claimId, locale, session, authority }: RegisterProps) {
@@ -41,6 +42,14 @@ async function BranchSummary({ claimId, locale, session, authority }: RegisterPr
       {result.ok ? (
         <>
           <p>{t('total', { total: formatNumber(result.summary.total, locale) ?? '' })}</p>
+          {result.summary.total > result.summary.dates.length && (
+            <p className="text-sm text-muted-foreground">
+              {t('latest', {
+                shown: formatNumber(result.summary.dates.length, locale) ?? '',
+                total: formatNumber(result.summary.total, locale) ?? '',
+              })}
+            </p>
+          )}
           <ul className="ms-5 list-disc">
             {result.summary.dates.map((date, index) => (
               <li key={`${date}-${index}`}>
@@ -56,11 +65,19 @@ async function BranchSummary({ claimId, locale, session, authority }: RegisterPr
   );
 }
 
-async function StaffRegister({ session, authority, claimId, canWrite, documents }: RegisterProps) {
+async function StaffRegister({
+  session,
+  authority,
+  claimId,
+  canWrite,
+  documents,
+  correspondencePage,
+}: RegisterProps) {
   const [caseFields, authorities, correspondence] = await readStaffCaseRegister(
     session,
     authority,
-    claimId
+    claimId,
+    correspondencePage
   );
   const documentOptions = documents ?? [];
 
@@ -86,6 +103,9 @@ async function StaffRegister({ session, authority, claimId, canWrite, documents 
         <ClaimCorrespondenceList
           claimId={claimId}
           entries={correspondence.entries}
+          page={correspondence.page}
+          perPage={correspondence.perPage}
+          total={correspondence.total}
           canWrite={canWrite}
           documents={documentOptions}
         />
@@ -109,7 +129,8 @@ export async function caseRegister(
   authority: NonNullable<RegisterProps['authority']>,
   claim: { id: string; staffId: string | null },
   documents: RegisterProps['documents'],
-  locale: string
+  locale: string,
+  correspondencePage = 1
 ) {
   const t = await getTranslations({ locale, namespace: 'staff-correspondence.feedback' });
   const props: RegisterProps = {
@@ -120,6 +141,7 @@ export async function caseRegister(
     canWrite: session.user.role === 'staff' && claim.staffId === session.user.id,
     restricted: deniesClaimMessageContent(session.user.role),
     documents: documents?.map(({ id, name }) => ({ id, name })) ?? null,
+    correspondencePage,
   };
   return (
     <div className="min-w-0 space-y-4" data-testid="staff-case-register">

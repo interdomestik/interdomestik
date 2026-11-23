@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { createHash, randomBytes } from 'node:crypto';
+import { randomUUID } from 'node:crypto';
 import test, { type TestContext } from 'node:test';
 
 import {
@@ -7,91 +7,31 @@ import {
   isolationLevels,
   restricted,
   type Connection,
-  bucket,
   createBases,
   documentInput,
   foreignTenant,
+  grantInput,
   homeTenant,
   insertClaim,
   insertDocument,
   insertEntry,
+  insertGrant,
   insertLink,
   linkInput,
   outboundInput,
-  type Document,
   withRegisterDb,
 } from './claim-correspondence.fixture';
-const randomPath = () => randomBytes(3_000).toString('base64url');
-const nearLimitId = () => `d${randomPath().slice(0, 2_649)}`;
 
-function citationRef(document: Document) {
-  const fields = [
-    document.tenant_id,
-    document.claim_id,
-    document.id,
-    document.bucket,
-    document.file_path,
-  ];
-  const digests = fields.map(field => createHash('sha256').update(field, 'utf8').digest());
-  return createHash('sha256').update(Buffer.concat(digests)).digest('hex');
-}
+const frozen = { code: 'P1203' };
+const evidenceFk = 'claim_authorities_evidence_document_fk';
+const sentFk = 'claim_correspondence_documents_document_fk';
 
-test('WP-12 document citation keys under runtime access', async t => {
-  await withRegisterDb(t, connections => proveCitationReference(t, connections));
+test('WP-12 cited documents keep their identity and storage coordinates', async t => {
+  await withRegisterDb(t, connections => proveCitations(t, connections));
 });
 
-async function proveCitationReference(t: TestContext, connections: Connection) {
-  const { admin, runtime, peer } = connections;
-  await t.test('old column list works for large uncited paths and near-limit ids', async () => {
-    const claim = await insertClaim(admin);
-    const documents = [
-      documentInput(claim, undefined, randomPath()),
-      documentInput(claim, nearLimitId()),
-    ];
-    for (const document of documents) {
-      const stored = await restricted(runtime, tx => insertDocument(tx, document));
-      assert.equal(stored.citation_ref, citationRef(document));
-    }
-  });
-
-  await t.test(
-    'citation trigger unconditionally replaces supplied values and runs last',
-    async () => {
-      const claim = await insertClaim(admin);
-      const original = await restricted(runtime, tx => insertDocument(tx, documentInput(claim)));
-      for (const supplied of ['incorrect reference', original.citation_ref]) {
-        const document = documentInput(claim);
-        const inserted = await restricted(runtime, tx => insertDocument(tx, document, supplied));
-        assert.equal(inserted.citation_ref, citationRef(document));
-        const [{ citation_ref }] = await restricted(
-          runtime,
-          tx => tx<{ citation_ref: string }[]>`
-        update claim_documents set citation_ref = ${supplied} where id = ${document.id} returning citation_ref`
-        );
-        assert.equal(citation_ref, inserted.citation_ref);
-      }
-      const renamed = await restricted(
-        runtime,
-        tx => tx`
-      update claim_documents set name = 'Recomputed after rename' where id = ${original.id}
-      returning name, citation_ref`
-      );
-      assert.deepEqual(
-        [...renamed],
-        [{ name: 'Recomputed after rename', citation_ref: citationRef(original) }]
-      );
-      const triggers = await admin`
-      select tgname, tgenabled, tgattr::text = '' and (tgtype & 20) = 20 as all_inserts_and_updates
-        from pg_trigger
-      where tgrelid = 'public.claim_documents'::regclass and (tgtype & 3) = 3
-      order by tgname collate "C"`;
-      assert.deepEqual(triggers.at(-1), {
-        tgname: 'zz_claim_documents_citation_ref',
-        tgenabled: 'O',
-        all_inserts_and_updates: true,
-      });
-    }
-  );
+async function proveCitations(t: TestContext, connections: Connection) {
+  const { admin, runtime } = connections;
 
   await t.test('runtime cannot create a trigger or set replication mode', async () => {
     const [acl] = await runtime`select
@@ -101,63 +41,39 @@ async function proveCitationReference(t: TestContext, connections: Connection) {
     await assert.rejects(runtime`set session_replication_role = replica`, { code: '42501' });
   });
 
-  await t.test('temporary text and int4 domains cannot affect a stored reference', async () => {
-    const claim = await insertClaim(admin);
-    const document = documentInput(claim, undefined, randomPath());
-    const [{ clean }] = await peer`select claim_document_citation_ref(
-      ${document.tenant_id}, ${document.claim_id}, ${document.id}, ${document.bucket}, ${document.file_path}
-    ) as clean`;
-    const stored = await restricted(runtime, async tx => {
-      await tx`create domain pg_temp."text" as pg_catalog.text check (value = 'shadow')`;
-      await tx`create domain pg_temp."int4" as pg_catalog.int4 check (value = -1)`;
-      await tx`set local search_path = pg_temp, public, pg_catalog`;
-      const row = await insertDocument(tx, document);
-      await tx`drop domain pg_temp."text", pg_temp."int4"`;
-      return row.citation_ref;
-    });
-    assert.equal(stored, clean);
-    assert.equal(stored, citationRef(document));
+  await t.test('the freeze is an enabled AFTER UPDATE row trigger on claim_documents', async () => {
+    const triggers = await admin`
+      select tgname, tgenabled, (tgtype & 2) = 0 as after_trigger, (tgtype & 1) = 1 as row_trigger,
+        (tgtype & 16) = 16 as on_update
+      from pg_trigger
+      where tgrelid = 'public.claim_documents'::regclass and not tgisinternal`;
+    assert.deepEqual(
+      [...triggers],
+      [
+        {
+          tgname: 'claim_documents_coordinates_frozen',
+          tgenabled: 'O',
+          after_trigger: true,
+          row_trigger: true,
+          on_update: true,
+        },
+      ]
+    );
   });
 
-  await t.test(
-    'fixed vectors pin UTF-8, backslashes, field boundaries and digest order',
-    async () => {
-      const base = documentInput(
-        { id: 'claim', tenant: 'tenant', user: 'user' },
-        'id',
-        'pii/x.pdf'
-      );
-      const vectors = [
-        base,
-        { ...base, file_path: 'pii/ë雪.pdf' },
-        { ...base, file_path: String.raw`\160ii/x.pdf` },
-        { ...base, bucket: `${base.bucket}p`, file_path: base.file_path.slice(1) },
-        { ...base, claim_id: 'claimi', id: 'd' },
-      ];
-      const actual = [];
-      for (const document of vectors) {
-        const [row] = await runtime`select claim_document_citation_ref(
-        ${document.tenant_id}, ${document.claim_id}, ${document.id}, ${document.bucket}, ${document.file_path}
-      ) as reference`;
-        assert.equal(row.reference, citationRef(document));
-        actual.push(row.reference);
-      }
-      assert.equal(new Set(actual).size, vectors.length);
-    }
-  );
-
-  await proveFrozenReferences(t, connections);
+  await proveFreeze(t, connections);
+  await proveRestrictedIdentity(t, connections);
+  await proveFinalCopies(t, connections);
 }
 
-async function proveFrozenReferences(t: TestContext, { admin, runtime }: Connection) {
+async function proveFreeze(t: TestContext, { admin, runtime }: Connection) {
   await t.test(
-    'citation FKs freeze evidence and sent documents across tenant contexts and isolation levels',
+    'storage coordinates are frozen for cited and uncited rows, home and access-tenant writers',
     async () => {
       const claim = await insertClaim(admin);
-      const otherClaim = await insertClaim(admin);
       const { evidence, sent, uncited } = await restricted(runtime, async tx => {
-        const evidence = await insertDocument(tx, documentInput(claim, nearLimitId()));
-        const sent = await insertDocument(tx, documentInput(claim, nearLimitId()));
+        const evidence = await insertDocument(tx, documentInput(claim));
+        const sent = await insertDocument(tx, documentInput(claim));
         const uncited = await insertDocument(tx, documentInput(claim));
         const bases = await createBases(tx, claim, evidence);
         const entry = await insertEntry(tx, outboundInput(claim, bases, 1));
@@ -166,39 +82,13 @@ async function proveFrozenReferences(t: TestContext, { admin, runtime }: Connect
       });
 
       for (const isolation of isolationLevels) {
+        // The r6 B1 shape: an access-tenant writer can reach the home tenant's documents.
         for (const home of [homeTenant, foreignTenant]) {
           const scope = { home, access: homeTenant, isolation };
-          if (home !== homeTenant) {
-            await restricted(
-              runtime,
-              async tx => {
-                const citations =
-                  await tx`select id from claim_authorities where claim_id = ${claim.id}`;
-                const documents =
-                  await tx`select id from claim_documents where id = ${evidence.id}`;
-                assert.equal(citations.length, 0);
-                assert.equal(documents.length, 1);
-              },
-              scope
-            );
-          }
-          for (const [document, citationFk, identityFk] of [
-            [
-              evidence,
-              'claim_authorities_evidence_citation_fk',
-              'claim_authorities_evidence_document_fk',
-            ],
-            [
-              sent,
-              'claim_correspondence_documents_citation_fk',
-              'claim_correspondence_documents_document_fk',
-            ],
-          ] as const) {
-            const path = document.file_path;
+          for (const document of [evidence, sent, uncited]) {
             for (const patch of [
               { bucket: 'other-bucket' },
-              { file_path: `${path}.changed` },
-              { bucket: `${bucket}${path[0]}`, file_path: path.slice(1) },
+              { file_path: `${document.file_path}.changed` },
             ]) {
               await assert.rejects(
                 restricted(
@@ -206,36 +96,168 @@ async function proveFrozenReferences(t: TestContext, { admin, runtime }: Connect
                   tx => tx`update claim_documents set ${tx(patch)} where id = ${document.id}`,
                   scope
                 ),
-                foreignKey(citationFk),
-                `${home}, ${isolation}: cited ${Object.keys(patch).join(' and ')}`
+                frozen,
+                `${home}, ${isolation}: ${Object.keys(patch).join()} of ${document.id}`
               );
             }
-            await assert.rejects(
-              restricted(
-                runtime,
-                tx =>
-                  tx`update claim_documents set claim_id = ${otherClaim.id} where id = ${document.id}`,
-                scope
-              ),
-              (error: unknown) => {
-                const refusal = error as { code?: string; constraint_name?: string };
-                return (
-                  refusal.code === '23503' &&
-                  (refusal.constraint_name === citationFk || refusal.constraint_name === identityFk)
-                );
-              }
-            );
           }
-          const file_path = randomPath();
-          const [changed] = await restricted(
+          // Positive control: a non-coordinate column stays editable on a cited row.
+          const name = `Renamed ${isolation} ${home}`;
+          const renamed = await restricted(
             runtime,
-            tx => tx`
-          update claim_documents set file_path = ${file_path} where id = ${uncited.id} returning citation_ref`,
+            tx => tx`update claim_documents set name = ${name}
+              where id = ${evidence.id} returning name`,
             scope
           );
-          assert.equal(changed?.citation_ref, citationRef({ ...uncited, file_path }));
+          assert.deepEqual([...renamed], [{ name }]);
         }
       }
+    }
+  );
+
+  await t.test(
+    'identity changes are refused: by the freeze, or by RESTRICT when cited',
+    async () => {
+      const claim = await insertClaim(admin);
+      const otherClaim = await insertClaim(admin);
+      const foreignClaim = await insertClaim(admin, { tenant: foreignTenant });
+      const { evidence, uncited } = await restricted(runtime, async tx => {
+        const evidence = await insertDocument(tx, documentInput(claim));
+        const uncited = await insertDocument(tx, documentInput(claim));
+        await createBases(tx, claim, evidence);
+        return { evidence, uncited };
+      });
+      // The owner bypasses RLS, so only the trigger and the keys can refuse these updates.
+      for (const patch of [
+        { claim_id: otherClaim.id },
+        { tenant_id: foreignTenant, claim_id: foreignClaim.id },
+        { id: randomUUID() },
+      ]) {
+        const columns = Object.keys(patch).join();
+        await assert.rejects(
+          admin`update claim_documents set ${admin(patch)} where id = ${uncited.id}`,
+          frozen,
+          `uncited ${columns}`
+        );
+        await assert.rejects(
+          admin`update claim_documents set ${admin(patch)} where id = ${evidence.id}`,
+          foreignKey(evidenceFk),
+          `cited ${columns}`
+        );
+      }
+    }
+  );
+}
+
+async function proveRestrictedIdentity(t: TestContext, { admin, runtime }: Connection) {
+  await t.test('a cited document cannot be replaced under the same key', async () => {
+    const claim = await insertClaim(admin);
+    const { evidence, sent, uncited } = await restricted(runtime, async tx => {
+      const evidence = await insertDocument(tx, documentInput(claim));
+      const sent = await insertDocument(tx, documentInput(claim));
+      const uncited = await insertDocument(tx, documentInput(claim));
+      const bases = await createBases(tx, claim, evidence);
+      const entry = await insertEntry(tx, outboundInput(claim, bases, 1));
+      await insertLink(tx, linkInput(entry, sent));
+      return { evidence, sent, uncited };
+    });
+
+    for (const [document, constraint] of [
+      [evidence, evidenceFk],
+      [sent, sentFk],
+    ] as const) {
+      // One statement: NO ACTION would accept the replacement at statement end; RESTRICT does not.
+      await assert.rejects(
+        restricted(
+          runtime,
+          tx => tx`with removed as (
+            delete from claim_documents where id = ${document.id} returning *
+          )
+          insert into claim_documents (id, tenant_id, claim_id, name, file_path, file_type,
+            file_size, bucket, uploaded_by)
+          select id, tenant_id, claim_id, name, file_path || '.replaced', file_type, file_size,
+            bucket, uploaded_by
+          from removed`
+        ),
+        foreignKey(constraint),
+        `one statement: ${constraint}`
+      );
+      // Two statements of one transaction.
+      await assert.rejects(
+        restricted(runtime, async tx => {
+          await tx`delete from claim_documents where id = ${document.id}`;
+          await insertDocument(tx, { ...document, file_path: `${document.file_path}.replaced` });
+        }),
+        foreignKey(constraint),
+        `two statements: ${constraint}`
+      );
+      const kept = await admin`select file_path from claim_documents where id = ${document.id}`;
+      assert.deepEqual([...kept], [{ file_path: document.file_path }]);
+    }
+
+    // Positive control: an uncited document can still be deleted where the grants allow it.
+    const removed = await restricted(
+      runtime,
+      tx => tx`delete from claim_documents where id = ${uncited.id} returning id`
+    );
+    assert.deepEqual([...removed], [{ id: uncited.id }]);
+  });
+}
+
+async function proveFinalCopies(t: TestContext, { admin, runtime }: Connection) {
+  await t.test(
+    'the final citing row must still copy its document after every BEFORE INSERT trigger',
+    async () => {
+      const claim = await insertClaim(admin);
+      const { evidence, bases, sent } = await restricted(runtime, async tx => {
+        const evidence = await insertDocument(tx, documentInput(claim));
+        const sent = await insertDocument(tx, documentInput(claim));
+        return { evidence, sent, bases: await createBases(tx, claim, evidence) };
+      });
+      const tables = ['claim_authorities', 'claim_correspondence_documents'];
+      await admin.unsafe(`
+        create function public.wp12_test_change_copy() returns trigger language plpgsql as $$
+        begin
+          if tg_table_name = 'claim_authorities' then
+            new.evidence_file_path := new.evidence_file_path || '.changed';
+          else
+            new.document_file_path := new.document_file_path || '.changed';
+          end if;
+          return new;
+        end $$`);
+      try {
+        for (const table of tables) {
+          // "zzz" sorts after every guard, so it runs after the BEFORE INSERT validation.
+          await admin.unsafe(`create trigger zzz_wp12_test_change_copy before insert
+            on public.${table} for each row execute function public.wp12_test_change_copy()`);
+        }
+        await assert.rejects(
+          restricted(runtime, tx =>
+            insertGrant(tx, grantInput(claim, evidence, 'signed_assignment'))
+          ),
+          frozen,
+          'authority evidence copy'
+        );
+        await assert.rejects(
+          restricted(runtime, async tx => {
+            const entry = await insertEntry(tx, outboundInput(claim, bases, 1));
+            await insertLink(tx, linkInput(entry, sent));
+          }),
+          frozen,
+          'sent document copy'
+        );
+      } finally {
+        for (const table of tables) {
+          await admin.unsafe(`drop trigger if exists zzz_wp12_test_change_copy on public.${table}`);
+        }
+        await admin.unsafe('drop function public.wp12_test_change_copy()');
+      }
+      // Positive control: without the test trigger the same citations are accepted.
+      await restricted(runtime, async tx => {
+        await insertGrant(tx, grantInput(claim, evidence, 'signed_assignment'));
+        const entry = await insertEntry(tx, outboundInput(claim, bases, 1));
+        await insertLink(tx, linkInput(entry, sent));
+      });
     }
   );
 }

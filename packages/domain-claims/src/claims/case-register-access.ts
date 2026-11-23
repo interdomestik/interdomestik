@@ -31,12 +31,13 @@ type RegisterMode = 'write' | 'full' | 'summary';
 export type RegisterActor = Pick<TenantAuthorityPrincipal, 'userId' | 'role' | 'branchId'>;
 export type LockedRegister = { tx: TenantTransaction; tenantId: string; actorId: string };
 
+// The action schema form admits checks, not transforms: commands trim after parsing.
 export function registerText(maxLength: number) {
   return z
     .string()
-    .trim()
     .min(1)
     .max(maxLength)
+    .regex(/\S/)
     .refine(value => !value.includes('\u0000'));
 }
 
@@ -47,15 +48,44 @@ export const registerId = z
   .string()
   .min(1)
   .refine(value => !value.includes('\u0000'));
-// PostgreSQL returns UUIDs in lower case; replay and basis lookups compare them as strings.
-export const registerUuid = z.uuid().toLowerCase();
+export const registerUuid = z.uuid();
+
+const registerUuidFields = [
+  'correlationId',
+  'inReplyToId',
+  'recoveryAuthorityId',
+  'representationAuthorityId',
+  'sharingAuthorityId',
+  'authorityId',
+  'correspondenceId',
+] as const;
+
+/**
+ * Each write command normalizes its parsed input (the action schema form admits no transform):
+ * text is trimmed, and UUIDs are lower-cased because PostgreSQL returns them in lower case and
+ * replay and basis lookups compare them as strings.
+ */
+export function normalizeRegisterInput<T extends object>(input: T): T {
+  const result = { ...input } as Record<string, unknown>;
+  for (const [field, value] of Object.entries(result)) {
+    if (typeof value !== 'string') continue;
+    const trimmed = value.trim();
+    result[field] = (registerUuidFields as readonly string[]).includes(field)
+      ? trimmed.toLowerCase()
+      : trimmed;
+  }
+  return result as T;
+}
 export const registerClaimInput = z.object({ claimId: registerId }).strict();
 
-const adminRoles = new Set<string>([ROLES.admin, ROLES.tenant_admin]);
+// Read at call time: importers may load this module under a partial shared-auth mock.
+function isAdminRole(role: string | null | undefined) {
+  return role === ROLES.admin || role === ROLES.tenant_admin;
+}
 
 function canEnterRegister(mode: RegisterMode, actor: RegisterActor) {
   if (mode === 'summary') return actor.role === ROLES.branch_manager && Boolean(actor.branchId);
-  if (actor.role === ROLES.staff || adminRoles.has(actor.role ?? '')) return true;
+  if (actor.role === ROLES.staff || isAdminRole(actor.role)) return true;
   return mode === 'full' && actor.role === ROLES.super_admin;
 }
 
@@ -183,13 +213,36 @@ export function resolveRegisterWrite<I extends { claimId: string }>(
   return resolveRegisterAccess(session, authority, input, 'write', schema);
 }
 
-export function resolveRegisterRead(
+export function resolveRegisterRead<I extends { claimId: string } = { claimId: string }>(
   session: ClaimsSession | null,
   authority: TenantAuthority | null,
   input: unknown,
-  mode: 'full' | 'summary'
+  mode: 'full' | 'summary',
+  schema: z.ZodType<I> = registerClaimInput as unknown as z.ZodType<I>
 ) {
-  return resolveRegisterAccess(session, authority, input, mode, registerClaimInput);
+  return resolveRegisterAccess(session, authority, input, mode, schema);
+}
+
+/** The largest register page; the web clamps request values to it before calling (R-20). */
+export const REGISTER_MAX_PAGE_SIZE = 50;
+export const registerPageInput = registerClaimInput.extend({
+  page: z.number().int().min(1).max(100_000),
+  perPage: z.number().int().min(1).max(REGISTER_MAX_PAGE_SIZE),
+});
+
+function sqlState(error: unknown, depth = 0): string | undefined {
+  if (!error || typeof error !== 'object' || depth > 3) return undefined;
+  if ('code' in error && typeof error.code === 'string') return error.code;
+  return 'cause' in error ? sqlState(error.cause, depth + 1) : undefined;
+}
+
+/**
+ * A direct SQL revocation locks the authority row before its trigger locks the claim, while a
+ * command locks the claim first; PostgreSQL then aborts one side with 40P01. The command runs
+ * its whole transaction once more: it is idempotent by correlation id or by revoker.
+ */
+export function retryRegisterDeadlock(error: unknown, attempt: number) {
+  return attempt === 1 && sqlState(error) === '40P01';
 }
 
 // A refused database guard becomes its typed failure; any other error is rethrown (R-08).

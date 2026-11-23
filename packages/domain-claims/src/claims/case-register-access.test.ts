@@ -35,7 +35,10 @@ const writes = [
   [updateGreenCardCaseFields, caseFieldsInput],
 ] as const;
 const fullReads = [listCaseAuthorities, listClaimCorrespondence, getGreenCardCaseFields] as const;
-const commands = [...writes, ...fullReads.map(read => [read, { claimId }] as const)] as const;
+const listPage = { claimId, page: 1, perPage: 20 };
+const readInput = (read: (typeof fullReads)[number]) =>
+  read === listClaimCorrespondence ? listPage : { claimId };
+const commands = [...writes, ...fullReads.map(read => [read, readInput(read)] as const)] as const;
 const forbidden = { ok: false, code: 'forbidden' };
 
 describe('register admission', () => {
@@ -90,7 +93,7 @@ describe('register admission', () => {
     '%s exposes full content only to scoped staff and home administrators',
     async read => {
       for (const role of ['member', 'agent', 'branch_manager', 'auditor', 'global_support']) {
-        expect(await read(caller(role), authority, { claimId })).toEqual(forbidden);
+        expect(await read(caller(role), authority, readInput(read) as never)).toEqual(forbidden);
       }
       expect(db.transaction).not.toHaveBeenCalled();
       expect(
@@ -111,8 +114,12 @@ describe('register admission', () => {
   it.each(['admin', 'tenant_admin', 'super_admin', 'staff'])(
     'admits a home %s to an empty register',
     async role => {
-      expect(await listClaimCorrespondence(caller(role), authority, { claimId })).toEqual({
+      db.results = [admitted, [{ total: 0 }], []];
+      expect(await listClaimCorrespondence(caller(role), authority, listPage)).toEqual({
         ok: true,
+        page: 1,
+        perPage: 20,
+        total: 0,
         entries: [],
       });
       const where = queryWhere(0);
@@ -123,12 +130,14 @@ describe('register admission', () => {
 
   it('checks the session principal and authority purpose before entering the register', async () => {
     const nonSession = caller('staff', branchId, { purpose: 'claim-home-read' });
-    expect(await listClaimCorrespondence(nonSession, authority, { claimId })).toEqual(forbidden);
+    expect(await listClaimCorrespondence(nonSession, authority, listPage)).toEqual(forbidden);
     const stale = caller();
     expect(
-      await listClaimCorrespondence({ user: { ...stale.user, branchId: 'foreign' } }, authority, {
-        claimId,
-      })
+      await listClaimCorrespondence(
+        { user: { ...stale.user, branchId: 'foreign' } },
+        authority,
+        listPage
+      )
     ).toEqual(forbidden);
     expect(db.transaction).not.toHaveBeenCalled();
   });
@@ -148,7 +157,7 @@ describe('register admission', () => {
       expect.arrayContaining([tenantId, claimId, branchId, 'draft'])
     );
     expect(db.statements).toHaveLength(1);
-    db.results = [admitted, [{ occurredAt: new Date(occurredAt) }]];
+    db.results = [admitted, [{ total: 1 }], [{ occurredAt: new Date(occurredAt) }]];
     expect(await getClaimCorrespondenceSummary(manager, authority, { claimId })).toEqual({
       ok: true,
       summary: { total: 1, dates: [occurredAt] },

@@ -1,6 +1,7 @@
 'use client';
 
 import { setCorrespondenceFollowUp } from '@/actions/staff-claims/correspondence';
+import { Link } from '@/i18n/routing';
 import { formatPilotDateTime } from '@/lib/utils/date';
 import { formatNumber } from '@/lib/utils/number';
 import type { ClaimCorrespondenceEntry } from '@interdomestik/domain-claims/claims/correspondence-read';
@@ -134,16 +135,52 @@ function CorrespondenceRow({
   );
 }
 
+function RegisterPages({
+  claimId,
+  page,
+  pages,
+}: Readonly<{ claimId: string; page: number; pages: number }>) {
+  const t = useTranslations('staff-correspondence.list');
+  const locale = useLocale();
+  const href = (target: number) => `/staff/claims/${claimId}?correspondencePage=${target}`;
+  return (
+    <nav aria-label={t('pages')} className="flex flex-wrap items-center gap-3 text-sm">
+      {page > 1 && (
+        <Link href={href(page - 1)} prefetch={false} className="underline">
+          {t('previous')}
+        </Link>
+      )}
+      <span aria-current="page">
+        {t('position', {
+          page: formatNumber(page, locale) ?? '',
+          pages: formatNumber(pages, locale) ?? '',
+        })}
+      </span>
+      {page < pages && (
+        <Link href={href(page + 1)} prefetch={false} className="underline">
+          {t('next')}
+        </Link>
+      )}
+    </nav>
+  );
+}
+
 export function ClaimCorrespondenceList({
   canWrite,
   claimId,
   entries,
   documents,
+  page = 1,
+  perPage = entries.length,
+  total = entries.length,
 }: Readonly<{
   canWrite: boolean;
   claimId: string;
   entries: readonly ClaimCorrespondenceEntry[];
   documents: readonly RegisterDocument[];
+  page?: number;
+  perPage?: number;
+  total?: number;
 }>) {
   const t = useTranslations('staff-correspondence.list');
   const title = useId();
@@ -174,6 +211,9 @@ export function ClaimCorrespondenceList({
             />
           ))}
         </ul>
+      )}
+      {total > perPage && (
+        <RegisterPages claimId={claimId} page={page} pages={Math.ceil(total / perPage)} />
       )}
     </section>
   );

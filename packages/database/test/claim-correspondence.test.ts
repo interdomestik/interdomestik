@@ -26,6 +26,7 @@ import {
 const ownBranch = 'wp12-branch-one';
 const foreignBranch = 'wp12-branch-two';
 const manager = 'wp12-manager';
+const firstPage = { page: 1, perPage: 20 };
 
 function actor(id: string, role: string, accessTenantId = homeTenant) {
   return {
@@ -48,9 +49,18 @@ type Reader<T> = (
 
 type RegisterReaders = {
   listCaseAuthorities: Reader<{ authorities: { evidenceDocumentId: string }[] }>;
-  listClaimCorrespondence: Reader<{
-    entries: { id: string; answered: boolean; overdue: boolean; sharedDocumentIds: string[] }[];
-  }>;
+  listClaimCorrespondence: (
+    session: Actor['session'],
+    authority: Actor['authority'],
+    input: { claimId: string; page: number; perPage: number }
+  ) => Promise<
+    | {
+        ok: true;
+        total: number;
+        entries: { id: string; answered: boolean; overdue: boolean; sharedDocumentIds: string[] }[];
+      }
+    | { ok: false; code: string }
+  >;
   getClaimCorrespondenceSummary: Reader<{ summary: { total: number; dates: string[] } }>;
 };
 
@@ -118,9 +128,20 @@ test('WP-12 branch-scoped reader queries run through the restricted runtime conn
       const staff = actor(homeActor, 'staff');
       const result = await listClaimCorrespondence(staff.session, staff.authority, {
         claimId: own.id,
+        ...firstPage,
       });
-      assert.ok(result.ok);
+      assert.ok(result.ok, JSON.stringify(result));
       assert.equal(result.entries.length, 3);
+      assert.equal(result.total, 3);
+      // A smaller page returns only its rows, with the same total.
+      const single = await listClaimCorrespondence(staff.session, staff.authority, {
+        claimId: own.id,
+        page: 2,
+        perPage: 1,
+      });
+      assert.ok(single.ok, JSON.stringify(single));
+      assert.equal(single.entries.length, 1);
+      assert.equal(single.total, 3);
       const replyReceived = result.entries.find(entry => entry.id === answered.id);
       assert.ok(replyReceived?.answered);
       assert.equal(replyReceived.overdue, false);
@@ -142,7 +163,7 @@ test('WP-12 branch-scoped reader queries run through the restricted runtime conn
       );
       assert.deepEqual(JSON.parse(JSON.stringify(summary)), {
         ok: true,
-        summary: { total: 3, dates: [earlier, past, past] },
+        summary: { total: 3, dates: [past, past, earlier] }, // latest first
       });
       assert.deepEqual(
         await getClaimCorrespondenceSummary(branchManager.session, branchManager.authority, {
@@ -154,6 +175,7 @@ test('WP-12 branch-scoped reader queries run through the restricted runtime conn
       assert.deepEqual(
         await listClaimCorrespondence(branchManager.session, branchManager.authority, {
           claimId: own.id,
+          ...firstPage,
         }),
         forbidden
       );
@@ -169,7 +191,7 @@ test('WP-12 branch-scoped reader queries run through the restricted runtime conn
           forbidden
         );
         assert.deepEqual(
-          await listClaimCorrespondence(staff.session, staff.authority, { claimId }),
+          await listClaimCorrespondence(staff.session, staff.authority, { claimId, ...firstPage }),
           forbidden
         );
         assert.deepEqual(
@@ -181,7 +203,10 @@ test('WP-12 branch-scoped reader queries run through the restricted runtime conn
       }
       const delegated = actor(homeActor, 'staff', foreignTenant);
       assert.deepEqual(
-        await listClaimCorrespondence(delegated.session, delegated.authority, { claimId: own.id }),
+        await listClaimCorrespondence(delegated.session, delegated.authority, {
+          claimId: own.id,
+          ...firstPage,
+        }),
         forbidden
       );
     } finally {

@@ -81,11 +81,9 @@ export function documentInput(
   };
 }
 
-export async function insertDocument(sql: Sql, document: Document, suppliedRef?: string) {
-  const cols = suppliedRef === undefined ? document : { ...document, citation_ref: suppliedRef };
-  const [row] = await sql<{ citation_ref: string }[]>`
-    insert into claim_documents ${sql(cols)} returning citation_ref`;
-  return { ...document, ...row };
+export async function insertDocument(sql: Sql, document: Document) {
+  await sql`insert into claim_documents ${sql(document)}`;
+  return document;
 }
 
 export type StoredDocument = Awaited<ReturnType<typeof insertDocument>>;
@@ -112,7 +110,6 @@ export function grantInput(
     evidence_document_id: document.id,
     evidence_bucket: document.bucket,
     evidence_file_path: document.file_path,
-    evidence_citation_ref: document.citation_ref,
     version: 'v1',
     jurisdiction_country_code: kind === 'power_of_attorney' ? 'XK' : null,
     jurisdiction_attested_by_user_id: kind === 'power_of_attorney' ? claim.user : null,
@@ -200,7 +197,6 @@ export function linkInput(entry: Entry, document: StoredDocument) {
     claim_document_id: document.id,
     document_bucket: document.bucket,
     document_file_path: document.file_path,
-    document_citation_ref: document.citation_ref,
   };
 }
 
@@ -240,7 +236,7 @@ export async function withRuntime(admin: postgres.Sql, work: RegisterProof) {
     await admin.unsafe(`grant usage on schema public to ${roleSql}`);
     // This mirrors the runtime lane's table-wide DML so every mutation trigger is reachable.
     await admin.unsafe(
-      `grant select, insert, update, delete on claim, claim_documents, ${registerTables.join(', ')} to ${roleSql}`
+      `grant select, insert, update, delete on claim, claim_documents, claim_case_fields, ${registerTables.join(', ')} to ${roleSql}`
     );
     await withDisposableClient(
       runtimeUrl.toString(),

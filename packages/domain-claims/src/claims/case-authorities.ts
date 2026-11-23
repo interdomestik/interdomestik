@@ -25,6 +25,8 @@ import {
   resolveRegisterWrite,
   type LockedRegister,
   registerUuid,
+  retryRegisterDeadlock,
+  normalizeRegisterInput,
 } from './case-register-access';
 import { caseAuthorityScopes } from './outward-action-requirements';
 import type { ClaimsSession } from './types';
@@ -163,7 +165,8 @@ export async function recordCaseAuthority(
 ) {
   const access = resolveRegisterWrite(session, authority, input, grantDecisionSchema);
   if (!access.ok) return access;
-  const { tenantId, actor, data } = access;
+  const { tenantId, actor } = access;
+  const data = normalizeRegisterInput(access.data);
   try {
     return await withTenantAuthority(access.authority, async tx => {
       if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor))) return registerForbidden;
@@ -219,14 +222,19 @@ export async function revokeCaseAuthority(
 ) {
   const access = resolveRegisterWrite(session, authority, input, revokeCaseAuthorityInputSchema);
   if (!access.ok) return access;
-  const { tenantId, actor, data } = access;
-  try {
-    return await withTenantAuthority(access.authority, async tx => {
-      if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor))) return registerForbidden;
-      return revokeAuthority({ tx, tenantId, actorId: actor.userId }, data);
-    });
-  } catch (error) {
-    return registerFailure(error);
+  const { tenantId, actor } = access;
+  const data = normalizeRegisterInput(access.data);
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      return await withTenantAuthority(access.authority, async tx => {
+        if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor))) {
+          return registerForbidden;
+        }
+        return revokeAuthority({ tx, tenantId, actorId: actor.userId }, data);
+      });
+    } catch (error) {
+      if (!retryRegisterDeadlock(error, attempt)) return registerFailure(error);
+    }
   }
 }
 
