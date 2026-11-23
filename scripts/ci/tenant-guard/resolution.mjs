@@ -3,7 +3,8 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
-import { byCodeUnit } from './rules-digest.mjs';
+import { byCodeUnit, sha256 } from './rules-digest.mjs';
+import { NEXT_CONFIG_TRANSITION } from './trusted.mjs';
 
 const GIT = '/usr/bin/git';
 
@@ -11,7 +12,7 @@ const GIT = '/usr/bin/git';
 // workspace is parsed as data (never executed) and its `baseUrl` and `paths` become resolution
 // alternatives, so an alias cannot hide a privileged module as an external package. Resolver
 // options the guard does not model are refused, and the JavaScript bundler configuration, which
-// can only be executed, is admitted only unchanged from the trusted tree.
+// can only be executed, is bound to exact reviewed bytes.
 
 const CONFIG = /^[jt]sconfig(?:\..+)?\.json$/u;
 const BUNDLER_CONFIG = /^next\.config\.[cm]?[jt]s$/u;
@@ -256,7 +257,7 @@ export function workspaceGlobViolations(repoRoot) {
       ];
 }
 
-/** Executable bundler configs (next.config.*) must equal the trusted tree's bytes. */
+/** Executable bundler configs must match the trusted bytes or the pinned WP-10 postimage. */
 export function bundlerConfigViolations(repoRoot, commit) {
   const violations = [];
   for (const dir of workspaceDirs(repoRoot)) {
@@ -274,14 +275,20 @@ export function bundlerConfigViolations(repoRoot, commit) {
       } catch {
         trusted = null;
       }
-      if (!trusted?.equals(current)) {
-        violations.push(
-          violation(
-            file,
-            'bundler configuration differs from the trusted tree; review and move the pin'
-          )
-        );
-      }
+      if (trusted?.equals(current)) continue;
+      if (
+        file === NEXT_CONFIG_TRANSITION.file &&
+        trusted &&
+        sha256(trusted) === NEXT_CONFIG_TRANSITION.predecessor &&
+        sha256(current) === NEXT_CONFIG_TRANSITION.successor
+      )
+        continue;
+      violations.push(
+        violation(
+          file,
+          'bundler configuration differs from the trusted tree; review and move the pin'
+        )
+      );
     }
   }
   return violations;
