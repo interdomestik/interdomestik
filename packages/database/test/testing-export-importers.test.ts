@@ -6,9 +6,25 @@ import test from 'node:test';
 
 const ROOT = path.resolve(import.meta.dirname, '../../..');
 const HELPER = 'packages/database/src/testing/claim-notification-cleanup.ts';
+const HELPER_STEM = HELPER.replace(/\.ts$/, '');
+const EXPORT = '@interdomestik/database/testing/claim-notification-cleanup';
 const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
-// Any module specifier that names the helper: the package export or a relative path to its file.
-const REFERENCE = /['"`][^'"`\n]*testing\/claim-notification-cleanup(?:\.[cm]?[jt]s)?['"`]/;
+// Static and side-effect imports, re-exports, dynamic import() and require(), with any quote.
+const SPECIFIERS = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)(['"`])([^'"`\n]+)\1/g;
+
+/** True when a specifier in `file` resolves to the helper: by its export or by a relative path. */
+export function resolvesToHelper(file: string, specifier: string): boolean {
+  if (specifier === EXPORT) return true;
+  if (!specifier.startsWith('.')) return false;
+  const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier));
+  return target.replace(/\.(?:[cm]?[jt]sx?)$/, '').replace(/\/index$/, '') === HELPER_STEM;
+}
+
+export function importsHelper(file: string, text: string): boolean {
+  return [...text.matchAll(SPECIFIERS)].some(([, , specifier]) =>
+    resolvesToHelper(file, specifier)
+  );
+}
 // The seed cleanup removes the same rows before it deletes seeded claims, messages and users.
 const SEED_CALLERS = new Set([
   'packages/database/src/seed-full/cleanup.ts',
@@ -30,7 +46,7 @@ function trackedImporters(): string[] {
   })
     .split('\0')
     .filter(file => SOURCE.test(file) && file !== HELPER)
-    .filter(file => REFERENCE.test(readFileSync(path.join(ROOT, file), 'utf8')));
+    .filter(file => importsHelper(file, readFileSync(path.join(ROOT, file), 'utf8')));
 }
 
 test('the claim notification cleanup helper is imported only by tests, browser specs and the seed cleanup', () => {
@@ -66,14 +82,47 @@ test('the importer rule refuses production paths, including the database package
   }
 });
 
-test('the reference pattern matches the export and relative paths, not look-alikes', () => {
-  for (const line of [
-    "import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';",
-    "import { cleanupClaimNotificationRows } from './testing/claim-notification-cleanup';",
-    "export * from '../src/testing/claim-notification-cleanup.ts';",
-    'await import(`@interdomestik/database/testing/claim-notification-cleanup`);',
-  ]) {
-    assert.match(line, REFERENCE, line);
+test('specifiers resolve against the importing file, including siblings of the helper', () => {
+  const cases: Array<[string, string, boolean]> = [
+    ['apps/web/e2e/gate/x.fixture.ts', `import { a } from '${EXPORT}';`, true],
+    [
+      'packages/database/src/index.ts',
+      "export * from './testing/claim-notification-cleanup';",
+      true,
+    ],
+    [
+      'packages/database/src/testing/message-fixtures.ts',
+      "export * from './claim-notification-cleanup';",
+      true,
+    ],
+    [
+      'packages/database/src/testing/message-fixtures.ts',
+      "import './claim-notification-cleanup.ts';",
+      true,
+    ],
+    [
+      'packages/database/src/seed-utils/cleanup.ts',
+      "import { a } from '../testing/claim-notification-cleanup';",
+      true,
+    ],
+    [
+      'packages/domain-claims/src/claims/x.ts',
+      "await import('../../../database/src/testing/claim-notification-cleanup');",
+      true,
+    ],
+    [
+      'packages/domain-claims/src/claims/x.ts',
+      'const m = require(`@interdomestik/database/testing/claim-notification-cleanup`);',
+      true,
+    ],
+    [
+      'packages/database/src/testing/message-fixtures.ts',
+      "import { a } from './claim-notification-cleanup-copy';",
+      false,
+    ],
+    ['packages/database/src/index.ts', "import { a } from './claim-notification-cleanup';", false],
+  ];
+  for (const [file, line, expected] of cases) {
+    assert.equal(importsHelper(file, line), expected, `${file}: ${line}`);
   }
-  assert.doesNotMatch("import { x } from './testing/claim-notification-cleanup-copy';", REFERENCE);
 });
