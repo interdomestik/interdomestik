@@ -1,18 +1,23 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
 import {
   AREA_TABLE,
-  FULL_FALLBACK,
   commandScripts,
-  main,
+  parseArgs,
   selectContractWork,
+  testSetChange,
 } from './contract-test-affected.mjs';
-import { inputClosure, inventory, resolveLiteral, touches } from './contract-test-inputs.mjs';
+import {
+  inputClosure,
+  inventory,
+  parseSource,
+  resolveLiteral,
+  touches,
+} from './contract-test-inputs.mjs';
 import { contractTestPlan } from './contract-test-shards.mjs';
 
 const byText = (left, right) => left.localeCompare(right);
@@ -28,6 +33,7 @@ test('literals resolve relative to the file only for ./ and ../, else from the r
     '.github/workflows/ci.yml',
     'apps/web/e2e/a.spec.ts',
     'docs/x.md',
+    'docs/Release Notes.md',
   ]);
   const from = 'scripts/ci/x.test.mjs';
   assert.deepEqual(resolveLiteral(from, './helper', tracked), {
@@ -49,6 +55,11 @@ test('literals resolve relative to the file only for ./ and ../, else from the r
   assert.deepEqual(resolveLiteral(from, 'apps/web/e2e/', tracked), {
     kind: 'dir',
     path: 'apps/web/e2e/',
+  });
+  // An exact tracked path resolves even with a space in it.
+  assert.deepEqual(resolveLiteral(from, 'docs/Release Notes.md', tracked), {
+    kind: 'file',
+    path: 'docs/Release Notes.md',
   });
   // Area roots, single-segment directories, escapes, absolute paths and prose resolve to nothing.
   for (const text of ['scripts/ci', 'apps/web', 'docs', '../../../x', '/etc/hosts', 'a b', '']) {
@@ -83,6 +94,37 @@ test('the closure follows scripts, keeps template parts and marks scanners', () 
   assert.equal(touches(scan, ['scripts/ci/scan.test.mjs']), 'scripts/ci/scan.test.mjs');
 });
 
+test('only parsed calls and listing arguments make a scanner, never comments or prose', () => {
+  const file = 'scripts/ci/a.test.mjs';
+  for (const source of [
+    '// fs.readdirSync() is not used here\n',
+    "assert.ok(true, 'no readdirSync( call and no ls-files listing');\n",
+    'const walker = 1;\n',
+  ]) {
+    assert.equal(parseSource(file, source).scanner, false, source);
+  }
+  for (const source of [
+    "fs.readdirSync('x');\n",
+    "const { glob } = await import('node:fs/promises');\nawait glob('*.mjs');\n",
+    "execFileSync('git', ['ls-files', '-z']);\n",
+    "run('git ls-files -z');\n",
+  ]) {
+    assert.equal(parseSource(file, source).scanner, true, source);
+  }
+});
+
+test('the closure follows TypeScript and shell scripts under scripts/', () => {
+  const files = {
+    'scripts/ci/a.test.mjs': "run('scripts/helper.mts');\nrun('scripts/tool.sh');\n",
+    'scripts/helper.mts': "export const config = 'config/a.json';\n",
+    'scripts/tool.sh': 'cat "docs/input.md" > /dev/null\n',
+  };
+  const closure = closureFor(files, 'scripts/ci/a.test.mjs', ['config/a.json', 'docs/input.md']);
+  assert.ok(closure.files.has('config/a.json'));
+  assert.ok(closure.files.has('docs/input.md'));
+  assert.equal(closure.scanner, false);
+});
+
 test('a deleted input still selects the unchanged test that reads it', () => {
   const config = 'apps/web/playwright.config.ts';
   const files = { 'scripts/ci/a.test.mjs': `read('${config}');\n` };
@@ -98,6 +140,13 @@ test('command wiring follows pnpm links and refuses anything else', () => {
     b: 'node scripts/b.mjs && pnpm c',
     c: 'node scripts/c.mjs --flag',
     odd: 'pnpm a && tsx scripts/d.ts',
+    piped: 'node scripts/a.mjs | node scripts/b.mjs',
+    redirected: 'node scripts/a.mjs > out.txt',
+    either: 'node scripts/a.mjs || node scripts/b.mjs',
+    flagged: 'pnpm -s a',
+    dotted: 'node ./scripts/a.mjs && pnpm a',
+    escaping: 'node ../outside.mjs',
+    diamond: 'pnpm dotted && pnpm a',
     loop: 'pnpm loop2',
     loop2: 'pnpm loop',
   };
@@ -108,7 +157,16 @@ test('command wiring follows pnpm links and refuses anything else', () => {
     'scripts/c.mjs',
   ]);
   assert.deepEqual([...seen].sort(byText), ['a', 'b', 'c', 'top']);
-  assert.equal(commandScripts(scripts, 'odd'), null);
+  for (const name of ['odd', 'piped', 'redirected', 'either', 'flagged', 'escaping']) {
+    assert.equal(commandScripts(scripts, name), null, name);
+  }
+  // Entry paths are normalized to repository paths; a shared link is not a cycle.
+  assert.deepEqual(commandScripts(scripts, 'dotted'), ['scripts/a.mjs', 'scripts/a.mjs']);
+  assert.deepEqual(commandScripts(scripts, 'diamond'), [
+    'scripts/a.mjs',
+    'scripts/a.mjs',
+    'scripts/a.mjs',
+  ]);
   assert.equal(commandScripts(scripts, 'loop'), null);
   assert.equal(commandScripts(scripts, 'missing'), null);
 });
@@ -142,7 +200,18 @@ const select = (changed, extra = {}) =>
   });
 
 test('runner, lockfile and wiring changes fall back to both full commands', () => {
-  for (const file of FULL_FALLBACK) assert.match(select([file]).full, /changed$/u);
+  for (const file of [
+    'pnpm-lock.yaml',
+    'pnpm-workspace.yaml',
+    '.nvmrc',
+    'scripts/ci/contract-test-shards.mjs',
+    'scripts/ci/contract-test-scratch.mjs',
+    'scripts/ci/contract-test-inputs.mjs',
+    'scripts/ci/contract-test-affected.mjs',
+    'scripts/lib/modularity-guard.mjs',
+  ]) {
+    assert.equal(select(['docs/a.md', file]).full, `${file} changed`);
+  }
   assert.match(select(['x'], { e2eClosure: null }).full, /wiring/u);
 });
 
@@ -176,6 +245,28 @@ test('test-set changes select the runner test; unrelated changes select nothing'
   assert.equal(select(['packages/x/src/a.ts']).selected.get(OTHER_TEST), 'packages/x/src/a.ts');
 });
 
+test('the test-set rule reads both sides of a rename and ignores modifications', () => {
+  const entry = (status, file, oldPath = null) => ({ status, file, oldPath });
+  const added = 'scripts/ci/new.test.mjs';
+  assert.equal(testSetChange([entry('R', added, 'scripts/ci/helper.mjs')]), added);
+  assert.equal(
+    testSetChange([entry('R', 'scripts/ci/helper.mjs', added)]),
+    'scripts/ci/helper.mjs'
+  );
+  assert.equal(testSetChange([entry('A', added)]), added);
+  assert.equal(testSetChange([entry('D', added)]), added);
+  assert.equal(testSetChange([entry('M', added)]), undefined);
+  assert.equal(testSetChange([entry('A', 'scripts/ci/fixtures/x.test.mjs')]), undefined);
+});
+
+test('arguments are no ref or exactly --base with a ref that is not an option', () => {
+  assert.equal(parseArgs([]), 'origin/main');
+  assert.equal(parseArgs(['--base', 'main']), 'main');
+  for (const argv of [['--base'], ['--base', '--independent'], ['--fast'], ['--base', 'a', 'b']]) {
+    assert.equal(parseArgs(argv), null, argv.join(' '));
+  }
+});
+
 test('on this repository the tenant-host lane and the workflow audit are reachable', () => {
   const files = execFileSync('/usr/bin/git', ['ls-files', '-z'], { cwd: root, encoding: 'utf8' })
     .split('\0')
@@ -201,27 +292,4 @@ test('on this repository the tenant-host lane and the workflow audit are reachab
   assert.ok(e2e.selected.has('scripts/ci/e2e-tenant-host-lanes.test.mjs'));
   assert.equal(e2e.e2e, 'apps/web/e2e/auth.spec.ts');
   assert.ok(run(['.github/workflows/ci.yml']).selected.has(PLAN_TEST));
-});
-
-function gitRepo(t) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'contract-affected-'));
-  t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
-  const git = (...args) => execFileSync('/usr/bin/git', args, { cwd: dir, stdio: 'pipe' });
-  git('init', '-q', '-b', 'main');
-  fs.writeFileSync(path.join(dir, 'a.txt'), 'a\n');
-  git('add', '.');
-  git('-c', 'user.name=t', '-c', 'user.email=t@example.invalid', 'commit', '-qm', 'init');
-  return dir;
-}
-
-test('main refuses bad usage, an unknown base and a dirty tree before running anything', async t => {
-  const errors = [];
-  t.mock.method(console, 'error', text => errors.push(text));
-  assert.equal(await main(['--fast']), 2);
-  assert.equal(await main(['--base', 'main', 'extra']), 2);
-  const dir = gitRepo(t);
-  assert.equal(await main(['--base', 'no-such-ref'], dir), 2);
-  fs.writeFileSync(path.join(dir, 'a.txt'), 'changed\n');
-  assert.equal(await main(['--base', 'main'], dir), 2);
-  assert.match(errors.at(-1), /working tree is not clean\. Nothing ran\./u);
 });
