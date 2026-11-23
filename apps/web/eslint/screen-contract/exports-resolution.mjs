@@ -56,7 +56,10 @@ export default rule('An import reaches a package only through its exports (CHK-1
       const resolver = resolverOf(context);
       const ownDir = resolver.packageDirOf(rel);
       units.add('file');
-      for (const edge of edgesOfProgram(program, context.sourceCode.visitorKeys)) {
+      for (const edge of edgesOfProgram(program, context.sourceCode.visitorKeys, {
+        rel,
+        sourceCode: context.sourceCode,
+      })) {
         const kind = kindOfSpecifier(edge.specifier);
         const key = `CHK-15b|${rel}|${edge.specifier}`;
         if (kind === 'workspace') checkWorkspaceEdge(resolver, ownDir, edge, key);

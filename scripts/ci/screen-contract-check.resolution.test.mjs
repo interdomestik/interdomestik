@@ -11,7 +11,7 @@ import ts from 'typescript';
 import { lint, tree, webTsconfig } from './fixtures/screen-contract-check/harness.mjs';
 import { has, lacks } from './fixtures/screen-contract-check/rules-fixtures.mjs';
 import { WEBPACK_EXTENSIONS } from './screen-contract/resolution.mjs';
-import { resolverFor } from './screen-contract/specifiers.mjs';
+import { kindOfSpecifier, resolverFor } from './screen-contract/specifiers.mjs';
 
 const W = 'apps/web/src';
 const FROM = `${W}/components/caller.tsx`;
@@ -498,4 +498,102 @@ test('D-1: webpack’s pick is among at most two targets for every file set and 
     }
   });
   assert.ok(checked > 200, String(checked));
+});
+
+// Request forms D-1 does not model are refused where an edge is classified, so no rule can take one
+// for an external package and skip it: webpack's `roots` (`/…`), inline loaders (`!`), package
+// imports (`#…`), URL schemes other than `node:`, and Next's built-in aliases into the app.
+test('D-1: a request form D-1 does not model is refused, wherever it is classified', async t => {
+  const refused = /is a form D-1 does not model; .*scanner PR first/u;
+  for (const spec of [
+    '/src/actions/x',
+    '#db',
+    '!!raw-loader!./x',
+    'raw-loader!./x',
+    './x!',
+    'file:///repo/packages/database/src/index.ts',
+    'data:text/javascript,export default 1',
+    'https://example.test/x.js',
+    'private-next-root-dir/src/actions/x',
+    'private-next-app-dir/x',
+    'private-next-pages/_app',
+    'private-dot-next/server/x',
+    'private-next-rsc-action-validate',
+    'private-next-instrumentation-client-user',
+  ])
+    assert.throws(() => kindOfSpecifier(spec), refused, spec);
+  for (const [spec, kind] of [
+    ['node:fs', 'external'],
+    ['react', 'external'],
+    ['next/dist/x', 'external'],
+    ['@interdomestik/ui', 'workspace'],
+    ['./x', 'relative'],
+    ['@/x', 'alias'],
+  ])
+    assert.equal(kindOfSpecifier(spec), kind, spec);
+  // In a linted file the scan is a scanner error, for a value and for a type edge.
+  for (const line of [
+    "import { db } from 'private-next-root-dir/../../packages/database/src';",
+    "import type { T } from '/src/t';",
+  ])
+    await assert.rejects(
+      lint(tree(t, { [`${W}/components/f.tsx`]: `${line}\nexport const F = () => null;\n` })),
+      refused,
+      line
+    );
+});
+
+// The client build's `aliasFields: ['browser']` lets a `package.json` remap a relative request
+// inside its package; a `browser` field anywhere in the tree is refused.
+test('D-1: a package.json with a browser field is refused', t => {
+  const browser = JSON.stringify({ name: 'x', browser: { './src/a.ts': './src/b.ts' } });
+  for (const rel of ['apps/web/package.json', 'packages/ui/package.json', `${W}/lib/package.json`])
+    rejects(
+      t,
+      { [rel]: browser },
+      both(new RegExp(`${rel.replaceAll('/', '\\/')} has a browser field`, 'u'), SCANNER_PR)
+    );
+  rejects(t, { 'apps/web/package.json': '{ nope' }, /apps\/web\/package\.json is not parseable/u);
+  // node_modules is not the scanned tree's source.
+  assert.ok(resolverFor(fs.realpathSync(tree(t, { 'node_modules/x/package.json': browser }))));
+});
+
+// A module request that is not a literal specifier builds a webpack context module, loads a file by
+// URL, or escapes the bundler: refused in a linted file unless it is a reviewed occurrence (file and
+// exact text). The reviewed ones load message catalogues, test helpers and Node-only tooling.
+test('D-1: a module request that is not a literal specifier is refused unless reviewed', async t => {
+  const refused = /loads a module by .*, a request D-1 does not model; .*scanner PR first/u;
+  const screen = `${W}/components/f.tsx`;
+  const lintWith = (rel, body) =>
+    lint(
+      tree(t, { [rel]: `${body}\nexport const F = () => null;\n`, [`${W}/components/x.ts`]: X })
+    );
+  for (const body of [
+    'const name = "x"; export const m = () => import(`../../../../packages/database/src/${name}`);',
+    'const name = "./x"; export const m = () => import(name);',
+    'const name = "./x"; export const m = require(name);',
+    "export const m = require('./x', 1);",
+    "export const ctx = require.context('../../../../packages/database/src', true);",
+    "export const id = require.resolve('./x');",
+    'export const r = require;',
+    "define(['./x'], x => x);",
+    "import { createRequire } from 'node:module'; export const r = createRequire(import.meta.url);",
+    "export const ctx = import.meta.webpackContext('./');",
+    "export const w = () => new Worker(new URL('./x.ts', import.meta.url));",
+    "export const u = new URL('../../../../packages/database/src/index.ts', import.meta.url);",
+  ])
+    await assert.rejects(lintWith(screen, body), refused, body);
+  // Literal requests, `import.meta.url` on its own, and non-request uses of the name are judged as
+  // before.
+  for (const body of [
+    "import { x } from './x'; export const m = () => import('./x'); export const n = require('./x'); export const y = x;",
+    "import { fileURLToPath } from 'node:url'; export const here = fileURLToPath(import.meta.url);",
+    'declare function require(id: string): unknown; export const o = { require: 1 }; export type R = typeof require;',
+  ])
+    assert.ok(await lintWith(screen, body), body);
+  // A reviewed occurrence is accepted in its own file only.
+  const reviewed =
+    'export async function load(locale: string, namespace: string) { return import(`../messages/${locale}/${namespace}.json`); }';
+  assert.ok(await lintWith(`${W}/i18n/messages.ts`, reviewed));
+  await assert.rejects(lintWith(`${W}/i18n/other.ts`, reviewed), refused);
 });

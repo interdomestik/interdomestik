@@ -12,6 +12,7 @@ import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
 import { environmentsFor, resolveEnvironment, validateExports } from './exports.mjs';
 import {
   ALIAS_PATTERN,
+  assertDescriptionFiles,
   assertNextResolution,
   confinedHost,
   requestPath,
@@ -95,6 +96,7 @@ export function resolverFor(root) {
     ])
   );
   assertNextResolution(root);
+  assertDescriptionFiles(root);
   const packages = workspacePackages(root);
   const existing = new Map();
   const isFile = rel => {

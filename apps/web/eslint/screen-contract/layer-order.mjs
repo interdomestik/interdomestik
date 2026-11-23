@@ -50,7 +50,10 @@ export default rule(
         if (layer === null || layer < 2) return;
         const resolver = resolverOf(context);
         units.add(`source:${layer}`);
-        for (const edge of edgesOfProgram(program, context.sourceCode.visitorKeys)) {
+        for (const edge of edgesOfProgram(program, context.sourceCode.visitorKeys, {
+          rel,
+          sourceCode: context.sourceCode,
+        })) {
           if (kindOfSpecifier(edge.specifier) === 'external') continue;
           units.add(`edge:${layer}`);
           const hit = targetLayer(resolver, rel, edge);

@@ -19,6 +19,7 @@
 // 16.4.1); a later Next that aliases a relative or `@/` key is a named limit, and its extension list
 // is pinned by the test against the installed Next.
 import { createHash } from 'node:crypto';
+import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 
@@ -246,6 +247,75 @@ export function assertNextResolution(root) {
     if (sha256(text) !== digest) refuse(`${rel} is not the fixed configuration's exact file`);
   }
   assertWrappers(root);
+}
+
+// Request forms D-1 does not model, refused wherever an edge is classified (`kindOfSpecifier`):
+// an absolute or server-relative path (webpack's `roots`), an inline loader (`!`), a package import
+// (`#…`, a `package.json` `imports` map), a URL scheme other than `node:` (webpack's `file:` and
+// `data:`), and Next's built-in aliases that point into the app (`private-next-root-dir`,
+// `private-next-app-dir`, `private-next-pages`, `private-dot-next`, the `private-next-rsc-…` and
+// `private-next-instrumentation-…` keys; `create-compiler-aliases.js`). None occurs on today's tree.
+const UNMODELLED_REQUEST = /^(?:\/|#|private-(?:next|dot-next))|!|^(?!node:)[a-z][a-z0-9+.-]*:/iu;
+export function assertModelledRequest(specifier) {
+  if (UNMODELLED_REQUEST.test(specifier))
+    refuse(`the request ${specifier} is a form D-1 does not model`);
+}
+
+// Module requests that are not a literal specifier (webpack builds a context module, or loads a
+// file by URL, or the request escapes the bundler): a non-literal `import()` or `require()`, any
+// other use of `require` (`require.context`, `require.resolve`, `require.ensure`, a bare
+// `require`), AMD `define(…)`, `createRequire(…)`, `import.meta.<x>` other than `url`, and
+// `new X(…, import.meta.url)` (an asset or worker). Only the reviewed occurrences below, by file
+// and exact source text, are accepted; each loads no source file of a layer (message catalogues,
+// test helpers, and Node-only database tooling), and none yields a target.
+const REVIEWED_DYNAMIC_REQUESTS = Object.freeze({
+  'apps/web/src/app/[locale]/_core.entry.tsx': ['import(`@/messages/${locale}/metadata.json`)'],
+  'apps/web/src/i18n/messages.ts': [
+    'import(`../messages/${locale}/${namespace}.json`)',
+    'import(`../messages/${routing.defaultLocale}/${namespace}.json`)',
+  ],
+  'apps/web/src/features/help-now/sw-test-utils.ts': [
+    'import(OFFLINE_HELPER_MODULE)',
+    'import(WORKER_MODULE)',
+  ],
+  'packages/database/src/migration-callback-source-verifier.ts': [
+    'createRequire(import.meta.url)',
+    'import.meta.resolve',
+    'import(url)',
+  ],
+  'packages/database/src/migration-corpus-root.ts': ["new URL('../drizzle/', import.meta.url)"],
+  'packages/domain-communications/src/messages/public-reply-concurrency.runtime-fixture.ts': [
+    "new URL('../../../../node_modules/tsx/dist/loader.mjs', import.meta.url)",
+    "new URL('./public-reply-concurrency-worker.test-support.ts', import.meta.url)",
+  ],
+});
+export function assertReviewedDynamicRequest(rel, text) {
+  if (!(REVIEWED_DYNAMIC_REQUESTS[rel] ?? []).includes(text))
+    refuse(`${rel ?? 'a file'} loads a module by ${text}, a request D-1 does not model`);
+}
+
+// A `browser` field in any `package.json` of the tree: the client build's `aliasFields` can remap a
+// relative request inside that package to another file. None has one today. `node_modules` and
+// build output are not the scanned tree's sources.
+const SKIPPED_DIRS = new Set(['node_modules', '.git', '.next', '.turbo']);
+export function assertDescriptionFiles(root) {
+  const visit = rel => {
+    for (const entry of fs.readdirSync(path.join(root, rel), { withFileTypes: true })) {
+      const child = rel ? `${rel}/${entry.name}` : entry.name;
+      if (entry.isDirectory() && !SKIPPED_DIRS.has(entry.name)) visit(child);
+      else if (entry.isFile() && entry.name === 'package.json') {
+        let data;
+        try {
+          data = JSON.parse(fs.readFileSync(path.join(root, child), 'utf8'));
+        } catch {
+          throw new ScanError(`${child} is not parseable`);
+        }
+        if (data && typeof data === 'object' && Object.hasOwn(data, 'browser'))
+          refuse(`${child} has a browser field, which the client build applies to its requests`);
+      }
+    }
+  };
+  visit('');
 }
 
 // A relative or `@/` request with a query or fragment (`?raw`, `#x`): webpack loads the path part

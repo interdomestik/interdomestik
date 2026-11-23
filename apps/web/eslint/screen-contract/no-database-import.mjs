@@ -15,7 +15,10 @@ export default rule('A screen file does not import the database (CHK-15c)', cont
     'Program:exit'(program) {
       const resolver = resolverOf(context);
       units.add('file');
-      for (const edge of edgesOfProgram(program, context.sourceCode.visitorKeys)) {
+      for (const edge of edgesOfProgram(program, context.sourceCode.visitorKeys, {
+        rel,
+        sourceCode: context.sourceCode,
+      })) {
         units.add(`edge:${edge.kind}`);
         // Every file a relative or `@/` path can name (the WP-05 flip, D-1), reported once.
         const local = ['relative', 'alias'].includes(kindOfSpecifier(edge.specifier))
