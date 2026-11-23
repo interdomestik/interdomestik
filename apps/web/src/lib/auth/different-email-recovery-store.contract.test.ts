@@ -21,6 +21,22 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       return support.openRecoveryContractIntake();
     });
 
+    it('restores an existing open switch as a JSON object with its original revision', async () => {
+      const original = { enabled: true, revision: 7 };
+      await support.recoverySql`
+        update tenant_settings set value = ${JSON.stringify(original)}::text::jsonb
+        where tenant_id = ${support.recoveryTenant} and category = 'pilot' and key = 'public_intake'
+      `;
+      const restore = await support.openRecoveryContractIntake();
+      await restore();
+
+      const [restored] = await support.recoverySql<{ value: unknown }[]>`
+        select value from tenant_settings
+        where tenant_id = ${support.recoveryTenant} and category = 'pilot' and key = 'public_intake'
+      `;
+      expect(restored?.value).toEqual(original);
+    });
+
     it('preserves a committed proof on preflight drift and disables superseded reservations', async () => {
       const owner = await support.createRecoveryOwner('reservation');
       const first = nonce();

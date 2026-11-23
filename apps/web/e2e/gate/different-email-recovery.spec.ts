@@ -83,11 +83,11 @@ async function enterCurrentProof(
 test.describe('IDA-UI03b different-email recovery', () => {
   test.describe.configure({ mode: 'default' });
 
-  test('refuses a verified manager submission after public intake closes', async ({
+  test('refuses a verified manager submission after public intake closes @ks-intake-switch', async ({
     browser,
   }, rawInfo) => {
     test.skip(
-      rawInfo.project.name !== 'gate-ks-sq',
+      !['gate-ks-sq', 'gate-ks-intake-switch'].includes(rawInfo.project.name),
       'One canonical gate run owns the intake switch.'
     );
     requireMailbox();

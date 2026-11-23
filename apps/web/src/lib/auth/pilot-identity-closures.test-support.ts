@@ -1,5 +1,4 @@
 import { sql } from '@interdomestik/database';
-import { readDisposableTargetClass } from '@interdomestik/database/seed-target-classification';
 import { changePilotSwitch, type PilotSwitchKey } from '@interdomestik/database/pilot-switch';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
@@ -14,6 +13,10 @@ import {
 } from './better-auth-email-otp.contract-test-support';
 import { stageReplacement } from './different-email-recovery-store.contract-test-support';
 import { confirmReplacementProof, discardProof } from './different-email-recovery-store';
+import {
+  requireMatchingLocalContractDatabase,
+  type ContractDatabaseIdentity,
+} from './pilot-contract-database.test-support';
 import { insertDoorAccount, pilotAuth } from './pilot-identity.contract-test-support';
 
 const wiring = vi.hoisted(() => ({
@@ -81,26 +84,15 @@ function confirm(userId: string) {
   });
 }
 
-type ContractDatabaseIdentity = { database: string; started: string; pid: number };
-
 export function installIdentityContractHooks() {
   beforeAll(async () => {
     // The app opens the configured admin and RLS pools. The pinned library gets its own
     // connection to the same local database through the existing OTP contract harness.
-    if (
-      !process.env.DATABASE_URL_RLS ||
-      readDisposableTargetClass(process.env) !== 'local' ||
-      (process.env.BETTER_AUTH_CONTRACT_DATABASE_URL &&
-        process.env.BETTER_AUTH_CONTRACT_DATABASE_URL !== process.env.DATABASE_URL)
-    ) {
-      throw new Error('Pilot identity contract requires matching isolated local database targets');
-    }
+    const library = await requireMatchingLocalContractDatabase(
+      sqlClient,
+      process.env.BETTER_AUTH_CONTRACT_DATABASE_URL ?? process.env.DATABASE_URL
+    );
     vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', 'tenant_ks');
-    const [library] = await sqlClient<ContractDatabaseIdentity[]>`
-      select current_database() as database,
-        extract(epoch from pg_postmaster_start_time())::text as started,
-        pg_backend_pid() as pid
-    `;
     const [classification] = await withTenantAuthority(authority, tx =>
       tx.execute<ContractDatabaseIdentity & { restricted: boolean }>(sql`
         select current_database() as database,

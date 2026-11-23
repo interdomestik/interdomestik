@@ -49,6 +49,8 @@ const mergeArgs = ['e2e/gate', 'e2e/golden', '--grep-invert', '@quarantine|@visu
 const pwArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
 const fastEnv = { PW_FAST_GATES: '1' };
 const ksSq = '--project=gate-ks-sq';
+const ksIntakeSwitch = '--project=gate-ks-intake-switch';
+const ksParallelArgs = ['--config=playwright.ks-parallel.config.ts', ksSq, ksIntakeSwitch];
 const mkMk = '--project=gate-mk-mk';
 const mkContract = '--project=gate-mk-contract';
 const smokeIda = '--project=smoke-ida';
@@ -58,10 +60,10 @@ const gateLane = (projects, state = false) => ({
   env: fastEnv,
   playwrightArgs: [...gateArgs, ...projects],
 });
-const projectLane = (project, env) => ({
+const projectLane = (projectArgs, env) => ({
   gatekeeper: true,
   ...(env && { env }),
-  playwrightArgs: ['e2e/gate', project, ...strictArgs],
+  playwrightArgs: ['e2e/gate', ...projectArgs, ...strictArgs],
 });
 const laneDefinitions = {
   state: { playwrightArgs: [...setupArgs, ...strictWorkers] },
@@ -88,10 +90,10 @@ const laneDefinitions = {
     gatekeeper: true,
     playwrightArgs: ['e2e/smoke/ida-dashboard-smoke.spec.ts', smokeIda, ...strictWorkers],
   },
-  ks: projectLane(ksSq),
-  mk: projectLane(mkMk),
-  'ks-fast': projectLane(ksSq, fastEnv),
-  'mk-fast': projectLane(mkMk, fastEnv),
+  ks: projectLane(ksParallelArgs),
+  mk: projectLane([mkMk]),
+  'ks-fast': projectLane(ksParallelArgs, fastEnv),
+  'mk-fast': projectLane([mkMk], fastEnv),
   'front-door': {
     env: { PW_FRONT_DOOR: '1' },
     playwrightArgs: [
@@ -156,4 +158,13 @@ if (shouldRunLocalDoctor) await run('pnpm', ['run', 'doctor'], laneEnv);
 await ensureLocalTestHosts({ required: process.env.CI === 'true' });
 if (lane.gatekeeper) await run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
 if (lane.state) await run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
-await run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], finalEnv);
+// Playwright's --no-deps disables project ordering, so keep the switch case safe with one worker.
+const serialArgs =
+  lane.playwrightArgs.includes(ksIntakeSwitch) && extraPlaywrightArgs.includes('--no-deps')
+    ? ['--workers=1']
+    : [];
+await run(
+  'pnpm',
+  [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs, ...serialArgs],
+  finalEnv
+);

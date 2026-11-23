@@ -3,24 +3,30 @@ import postgres from 'postgres';
 import { expect } from 'vitest';
 
 import * as store from './different-email-recovery-store';
+import { requireMatchingLocalContractDatabase } from './pilot-contract-database.test-support';
 
-export const recoverySql = postgres(
+const recoveryDatabaseUrl =
   process.env.DIFFERENT_EMAIL_RECOVERY_DATABASE_URL ??
-    process.env.DATABASE_URL ??
-    'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
-  { max: 4 }
-);
+  process.env.DATABASE_URL ??
+  'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+export const recoverySql = postgres(recoveryDatabaseUrl, { max: 4 });
 
 const owners = new Set<string>();
 const challengePattern = (userId: string) => `ida-ui03b:${userId}:%`;
 
 export const recoveryTenant = 'tenant_ks';
 
-export async function openRecoveryContractIntake() {
+async function readRecoveryContractIntake() {
   const [previous] = await recoverySql<{ value: unknown }[]>`
     select value from tenant_settings
     where tenant_id = ${recoveryTenant} and category = 'pilot' and key = 'public_intake'
   `;
+  return previous;
+}
+
+export async function openRecoveryContractIntake() {
+  await requireMatchingLocalContractDatabase(recoverySql, recoveryDatabaseUrl);
+  const previous = await readRecoveryContractIntake();
   const id = randomUUID();
   await recoverySql`
     insert into tenant_settings (id, tenant_id, category, key, value)
@@ -30,16 +36,18 @@ export async function openRecoveryContractIntake() {
   return async () => {
     if (previous) {
       await recoverySql`
-        update tenant_settings set value = ${JSON.stringify(previous.value)}::jsonb
+        update tenant_settings set value = ${JSON.stringify(previous.value)}::text::jsonb
         where tenant_id = ${recoveryTenant} and category = 'pilot' and key = 'public_intake'
       `;
     } else {
       await recoverySql`delete from tenant_settings where id = ${id}`;
     }
+    expect(await readRecoveryContractIntake()).toEqual(previous);
   };
 }
 
 export async function createRecoveryOwner(label: string, email?: string) {
+  await requireMatchingLocalContractDatabase(recoverySql, recoveryDatabaseUrl);
   const id = randomUUID();
   const address = email ?? `ida-ui03b-${label}-${randomUUID()}@example.com`;
   owners.add(id);
