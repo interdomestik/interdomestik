@@ -150,6 +150,32 @@ test.describe('S5 door OTP secure save', () => {
       });
       await absentPanel.getByRole('button', { name: 'Use a different email', exact: true }).click();
       const { mail, panel } = await requestCode(flow);
+      await test.step('a wrong code for an eligible account is refused and the browser copy is kept', async () => {
+        await enter(
+          panel.getByTestId('free-start-save-code'),
+          mail.code === '000000' ? '111111' : '000000'
+        );
+        const [response] = await Promise.all([
+          start.waitForResponse(
+            response =>
+              new URL(response.url()).pathname === '/api/auth/sign-in/email-otp' &&
+              response.request().method() === 'POST'
+          ),
+          panel.getByTestId('free-start-save-verify').click(),
+        ]);
+        expect(response.status()).toBe(400);
+        expect((await response.json()).code).toBe('INVALID_OTP');
+        await expect(panel.locator('#free-start-save-error')).toBeVisible();
+        expect(
+          await db.$count(user, eq(user.email, email)),
+          'the single eligible account remains'
+        ).toBe(1);
+        expect(
+          (await start.context().cookies()).some(cookie => cookie.name.includes('session_token'))
+        ).toBe(false);
+        expect(await drafts(), 'a wrong code saves no draft').toEqual([]);
+        expect(await localCopy(start), 'the browser copy survives a refused save').toBe(true);
+      });
       const created =
         await test.step('a verified account uses its own code and saves', async () => {
           await enter(panel.getByTestId('free-start-save-code'), mail.code);

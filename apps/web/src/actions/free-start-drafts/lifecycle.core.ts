@@ -15,8 +15,8 @@ import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 
 import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
+import { resolvePublicAdmissionTenant } from '@/lib/tenant/public-admission-tenant';
 import { isPublicIntakeOpenForTenant } from '@/lib/tenant/public-intake-admission';
-import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
 import { freeStartDraftPayloadSchema } from '@/lib/validators/free-start-draft';
 
 import { resolveFreeStartDraftSession, type FreeStartDraftSessionResult } from './session.core';
@@ -56,7 +56,7 @@ export type FreeStartDraftLifecycleDependencies = {
   hasClaimEntitlement: (context: FreeStartDraftContext) => Promise<boolean>;
   listDrafts: typeof listFreeStartDrafts;
   readIntakeOpen: typeof readFreeStartDraftIntakeOpen;
-  readPublicIntakeOpen: () => Promise<boolean>;
+  readPublicIntakeOpen: (requestHeaders: Headers) => Promise<boolean>;
   resolveSession: typeof resolveFreeStartDraftSession;
   resumeDraft: typeof resumeFreeStartDraft;
   updateDraft: typeof updateFreeStartDraft;
@@ -74,8 +74,8 @@ const defaultDependencies: FreeStartDraftLifecycleDependencies = {
   },
   listDrafts: listFreeStartDrafts,
   readIntakeOpen: readFreeStartDraftIntakeOpen,
-  async readPublicIntakeOpen() {
-    const tenantId = resolveDefaultPublicTenantId();
+  async readPublicIntakeOpen(requestHeaders) {
+    const tenantId = resolvePublicAdmissionTenant(requestHeaders);
     return tenantId ? isPublicIntakeOpenForTenant(tenantId) : false;
   },
   resolveSession: resolveFreeStartDraftSession,
@@ -158,18 +158,28 @@ async function withDraftWriteAdmission<T>(
 ) {
   const session = await dependencies.resolveSession(requestHeaders);
   if (!session.ok) {
-    if (session.code === 'authRequired' && !(await dependencies.readPublicIntakeOpen())) {
+    if (
+      session.code === 'authRequired' &&
+      !(await dependencies.readPublicIntakeOpen(requestHeaders))
+    ) {
       return draftIntakeClosed();
     }
     return session;
   }
 
+  if (session.emailVerified === true) {
+    let entitled = false;
+    try {
+      entitled = await dependencies.hasClaimEntitlement(session.context);
+    } catch (error) {
+      Sentry.captureException(error, { tags: { operation: 'pilot.freeStartDraftIntake' } });
+    }
+    if (entitled) return operation(session);
+  }
+
   let open = false;
   try {
-    open =
-      (session.emailVerified === true &&
-        (await dependencies.hasClaimEntitlement(session.context))) ||
-      (await dependencies.readIntakeOpen(session.context));
+    open = await dependencies.readIntakeOpen(session.context);
   } catch (error) {
     Sentry.captureException(error, { tags: { operation: 'pilot.freeStartDraftIntake' } });
   }

@@ -31,17 +31,6 @@ export async function proveAbsentOtpRefusal(args: {
       return sent;
     });
 
-  await test.step('a wrong code is refused and the browser copy is kept', async () => {
-    await enter(
-      absentPanel.getByTestId('free-start-save-code'),
-      absentMail.code === '000000' ? '111111' : '000000'
-    );
-    await absentPanel.getByTestId('free-start-save-verify').click();
-    await expect(absentPanel.locator('#free-start-save-error')).toBeVisible();
-    expect(await userRow(), 'a wrong code creates no account').toBeUndefined();
-    expect(await localCopy(start), 'the browser copy survives a refused save').toBe(true);
-  });
-
   await test.step('a cookie-free untrusted origin cannot consume a valid code', async () => {
     const hostile = await browser.newContext({
       baseURL: start.url(),

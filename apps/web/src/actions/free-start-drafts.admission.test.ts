@@ -1,6 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import type { FreeStartDraft } from '@interdomestik/database/free-start-drafts';
-import { describe, expect, it, vi } from 'vitest';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { captureException } from '@sentry/nextjs';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createFreeStartDraftCore,
@@ -16,6 +18,28 @@ import {
 } from './free-start-drafts/session.core';
 
 vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
+vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
+
+const publicIntake = vi.hoisted(() => ({
+  authorize: vi.fn(),
+  transaction: vi.fn(),
+  read: vi.fn(),
+}));
+vi.mock('@interdomestik/database', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database')>()),
+  authorizePublicSiteTenant: publicIntake.authorize,
+}));
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: publicIntake.transaction,
+}));
+vi.mock('@interdomestik/database/pilot-switch', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database/pilot-switch')>()),
+  readPilotSwitch: publicIntake.read,
+}));
+vi.mock('./free-start-drafts/session.core', async importOriginal => {
+  const original = await importOriginal<typeof import('./free-start-drafts/session.core')>();
+  return { resolveFreeStartDraftSession: vi.fn(original.resolveFreeStartDraftSession) };
+});
 
 const headers = new Headers({ host: 'ida.interdomestik.com' });
 const context = {
@@ -116,6 +140,57 @@ const staleAuthority: { current: FreeStartDraftSessionContext; label: string }[]
   { label: 'access tenant only', current: { ...context, accessTenantId: 'tenant_mk' } },
 ];
 
+describe('anonymous draft intake after an authRequired session verdict', () => {
+  beforeEach(() => {
+    vi.stubEnv('VERCEL', '1');
+    vi.stubEnv('VERCEL_ENV', 'preview');
+    vi.stubEnv('VERCEL_TARGET_ENV', 'preview');
+    vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', 'staging');
+    vi.stubEnv('INTERDOMESTIK_PRODUCTION', undefined);
+    vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', 'tenant_ks');
+    vi.mocked(resolveFreeStartDraftSession).mockResolvedValueOnce({
+      ok: false,
+      code: 'authRequired',
+    });
+  });
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('returns CLOSED for unresolvable ingress before looking up authority or reading a switch', async () => {
+    const request = new Headers({ host: 'unknown.staging.interdomestik.com' });
+    await expect(createFreeStartDraftCore(request, createInput(expectedContext))).resolves.toEqual({
+      ok: false,
+      code: 'CLOSED',
+      error: 'draft.CLOSED',
+    });
+    expect(publicIntake.authorize).not.toHaveBeenCalled();
+    expect(publicIntake.transaction).not.toHaveBeenCalled();
+    expect(publicIntake.read).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['staging.interdomestik.com', 'tenant_ks'],
+    ['mk.staging.interdomestik.com', 'tenant_mk'],
+  ])('reads only the resolved intake switch for %s', async (host, tenantId) => {
+    const request = new Headers({ host });
+    const authority = mintTestTenantAuthority(tenantId);
+    const tx = {};
+    publicIntake.authorize.mockResolvedValueOnce(authority);
+    publicIntake.transaction.mockImplementationOnce((_, effect) => effect(tx));
+    publicIntake.read.mockResolvedValueOnce({ state: 'open' });
+    await expect(createFreeStartDraftCore(request, createInput(expectedContext))).resolves.toEqual({
+      ok: false,
+      code: 'authRequired',
+    });
+    expect(publicIntake.authorize.mock.calls).toEqual([[tenantId]]);
+    expect(publicIntake.transaction).toHaveBeenCalledExactlyOnceWith(
+      authority,
+      expect.any(Function)
+    );
+    expect(publicIntake.read.mock.calls).toEqual([[tx, tenantId, 'public_intake']]);
+  });
+});
+
 describe('account draft admission before repository mutation', () => {
   it('closes create and update for a non-entitled owner before parsing, while read and delete still work', async () => {
     const deps = dependencies(true);
@@ -154,6 +229,7 @@ describe('account draft admission before repository mutation', () => {
       ? { ok: false, code: 'authRequired' }
       : { ok: false, code: 'CLOSED', error: 'draft.CLOSED' };
     expect(await attemptBoth(deps, expectedContext)).toEqual([refusal, refusal]);
+    expect(vi.mocked(deps.readPublicIntakeOpen).mock.calls).toEqual([[headers], [headers]]);
     expect(deps.hasClaimEntitlement).not.toHaveBeenCalled();
     expect(deps.readIntakeOpen).not.toHaveBeenCalled();
     expectNoRepositoryCalls(deps);
@@ -203,6 +279,36 @@ describe('account draft admission before repository mutation', () => {
       summary: edited.summary,
     });
   });
+
+  it.each([true, false])(
+    'falls back to the intake switch after an entitlement error (intake open: %s)',
+    async open => {
+      const deps = dependencies(true);
+      const error = new Error('entitlement lookup failed');
+      vi.mocked(deps.hasClaimEntitlement).mockRejectedValue(error);
+      vi.mocked(deps.readIntakeOpen).mockResolvedValue(open);
+
+      const results = await attemptBoth(deps, expectedContext);
+
+      expect(captureException).toHaveBeenCalledTimes(2);
+      expect(captureException).toHaveBeenCalledWith(error, {
+        tags: { operation: 'pilot.freeStartDraftIntake' },
+      });
+      expect(vi.mocked(deps.readIntakeOpen).mock.calls).toEqual([[context], [context]]);
+      if (open) {
+        expect(results).toEqual([
+          { ok: false, code: 'limitReached' },
+          { ok: false, code: 'notFound' },
+        ]);
+        expect(deps.createDraft).toHaveBeenCalledOnce();
+        expect(deps.updateDraft).toHaveBeenCalledOnce();
+      } else {
+        const closed = { ok: false, code: 'CLOSED', error: 'draft.CLOSED' };
+        expect(results).toEqual([closed, closed]);
+        expectNoRepositoryCalls(deps);
+      }
+    }
+  );
 
   it('keeps the closed-intake refusal for an unverified owner', async () => {
     const deps = dependencies(false);
