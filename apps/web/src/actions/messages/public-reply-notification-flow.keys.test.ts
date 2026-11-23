@@ -14,16 +14,15 @@ const registry = JSON.parse(
   )
 ) as { objects: { key: string; value: string }[] };
 
+const sorted = (values: readonly string[]) => [...values].sort((a, b) => a.localeCompare(b));
+
 /** The column keys (sorted property names) and partial and expression unique indexes of a table. */
 function schemaKeys(table: PgTable) {
   const property = new Map(
     Object.entries(getTableColumns(table)).map(([name, c]) => [c.name, name])
   );
   const names = (columns: { name: string }[]) =>
-    columns
-      .map(column => property.get(column.name) ?? `?${column.name}`)
-      .sort()
-      .join(',');
+    sorted(columns.map(column => property.get(column.name) ?? `?${column.name}`)).join(',');
   const config = getTableConfig(table);
   const columns = new Set<string>();
   const partial: string[] = [];
@@ -43,7 +42,7 @@ function schemaKeys(table: PgTable) {
     const [, tableName, indexName] = JSON.parse(entry.key.slice('index '.length)) as string[];
     if (tableName === config.name) expressions.push(indexName);
   }
-  return { columns, partial: partial.sort(), expressions: expressions.sort() };
+  return { columns, partial: sorted(partial), expressions: sorted(expressions) };
 }
 
 describe('reply-flow fixture unique keys', () => {
@@ -52,17 +51,14 @@ describe('reply-flow fixture unique keys', () => {
     const actual = schemaKeys(table);
     const declared = UNIQUE_KEYS[name] ?? [];
     expect(
-      new Set(declared.flatMap(key => (key.columns ? [[...key.columns].sort().join(',')] : []))),
+      new Set(declared.flatMap(key => (key.columns ? [sorted(key.columns).join(',')] : []))),
       'column keys'
     ).toEqual(actual.columns);
     expect(
-      declared
-        .filter(key => key.columns === null)
-        .map(key => key.name)
-        .sort(),
+      sorted(declared.filter(key => key.columns === null).map(key => key.name)),
       'expression keys'
     ).toEqual(actual.expressions);
-    expect([...((NOT_MODELLED as Record<string, readonly string[]>)[name] ?? [])].sort()).toEqual(
+    expect(sorted((NOT_MODELLED as Record<string, readonly string[]>)[name] ?? [])).toEqual(
       actual.partial
     );
   });

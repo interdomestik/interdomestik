@@ -111,7 +111,10 @@ function client(
         const name = nameOf(table);
         const inputs: readonly Row[] = Array.isArray(input) ? input : [input as Row];
         let onConflict: { target: string[] | null } | null = null;
+        let targetError: Error | null = null;
         const promise = Promise.resolve().then(() => {
+          // The statement fails, as in PostgreSQL; the builder call itself never throws.
+          if (targetError) throw targetError;
           check();
           if (name === 'notifications' && state.notificationFault)
             throw new Error('Synthetic notification failure');
@@ -127,8 +130,9 @@ function client(
           const target = config && 'target' in config ? [config.target].flat() : null;
           // A target column the catalogue lacks is a fixture gap, never "no target".
           if (target?.some(column => typeof column?.field !== 'string'))
-            throw new Error('Unknown fixture column in the ON CONFLICT target');
-          onConflict = { target: target ? target.map(column => (column as Column).field) : null };
+            targetError = new Error('Unknown fixture column in the ON CONFLICT target');
+          else
+            onConflict = { target: target ? target.map(column => (column as Column).field) : null };
           return Object.assign(promise, { returning });
         };
         return Object.assign(promise, { returning, onConflictDoNothing });
