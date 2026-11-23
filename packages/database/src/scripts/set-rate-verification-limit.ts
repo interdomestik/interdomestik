@@ -40,11 +40,13 @@ async function main() {
     approvalReference,
     releaseIdentity,
   };
-  const run = checkReceipt ? checkRateVerificationLimitReceipt : setRateVerificationLimit;
   const receipt = await withDisposableClient(
     databaseUrl,
     { applicationName: 'wp07_set_rate_verification_limit' },
-    async client => run(client, operation)
+    async client =>
+      checkReceipt
+        ? checkRateVerificationLimitReceipt(client, operation)
+        : setRateVerificationLimit(client, operation)
   );
   console.log(JSON.stringify(receipt));
 }
