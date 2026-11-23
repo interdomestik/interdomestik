@@ -84,7 +84,7 @@ export async function proveLegacyPreviewState(client: postgres.Sql, legacy: Lega
   });
 }
 
-/** 0102 copied exactly the handoffs answered once, at their UTC response time. */
+/** The WP-11 migration copied exactly the handoffs answered once, at their UTC response time. */
 export async function proveFirstResponseBackfill(client: postgres.Sql, legacy: LegacyPreviews) {
   const ids = Object.values(legacy.handoffs);
   // The instant is compared in SQL: the scratch client returns timestamps as text.

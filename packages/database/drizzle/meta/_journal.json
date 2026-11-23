@@ -719,8 +719,22 @@
     {
       "idx": 102,
       "version": "7",
-      "when": 1795443014820,
-      "tag": "0102_wp11_notification_deliveries",
+      "when": 1795274630008,
+      "tag": "0102_wp07_membership_sales",
+      "breakpoints": true
+    },
+    {
+      "idx": 103,
+      "version": "7",
+      "when": 1795278270702,
+      "tag": "0103_wp07_sale_insert_outcome",
+      "breakpoints": true
+    },
+    {
+      "idx": 104,
+      "version": "7",
+      "when": 1795453375997,
+      "tag": "0104_wp11_notification_deliveries",
       "breakpoints": true
     }
   ]

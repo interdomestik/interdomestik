@@ -39,7 +39,7 @@ async function writeLegacyPreview(
 }
 
 /**
- * Handoffs that exist before 0102: one answered once (the backfill copies it), one answered twice
+ * Handoffs that exist before the WP-11 migration: one answered once (the backfill copies it), one answered twice
  * and one unanswered (controls the backfill leaves out). `public_response_at` has no time zone.
  */
 async function writeLegacyHandoffs(client: postgres.Sql, owner: { tenant: string; user: string }) {

@@ -43,6 +43,8 @@ Declare it in a schema file with its tenant column, its policy and `.enableRLS()
 
 `exchange_rate_books` and `exchange_rates` are owned by the membership billing payment port. Legal entities are created through the admin path by seeds and migrations. The book provisioning trigger runs with the inserting role's privileges. Migration `0101` backfills existing entities before forcing RLS on both tables and sets the runtime privileges when the role exists. The book lock requires column-level `UPDATE` on `id`. A trigger rejects updates, deletes and truncation on both tables.
 
+Migration `0102` declares the membership billing port's plan versions, sale kinds and channels, sale claims, sales and ledger entries. The billing module owns the commands and invariants. `test/exchange-rates.fixture.ts` shares the journal-built scratch database fixture with the billing restricted-role lane.
+
 WP-11 adds five tables, each declared in its own module appended at the tail of `src/schema/index.ts`:
 
 - `notification_deliveries` and `claim_response_requests`;
@@ -54,7 +56,7 @@ No WP-11 column is added to an existing table. The owning domain is `domain-comm
 
 Their foreign keys and the composite unique indexes they target, on `claim`, `claim_messages`, `notifications` and `support_handoffs`, are SQL-managed:
 
-- They are declared only in migration `0102`, not in Drizzle.
+- They are declared only in migration `0104`, not in Drizzle.
 - Each is registered in `scripts/ci/sql-managed-objects.json`.
 - Each deletes with its parent (`ON DELETE CASCADE`), so seed and test cleanups need no extra step.
 - The exception is `claim_response_requests.answered_by`, which is set to null when its user is deleted.

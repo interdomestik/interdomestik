@@ -39,22 +39,22 @@
     {
       "key": "fk [\"public\",\"claim_response_requests\",[\"answered_by\"],\"public\",\"user\",[\"id\"]]",
       "value": "delete=set null update=no action match=s",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "fk [\"public\",\"claim_response_requests\",[\"tenant_id\",\"claim_id\",\"answer_message_id\"],\"public\",\"claim_messages\",[\"tenant_id\",\"claim_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "fk [\"public\",\"claim_response_requests\",[\"tenant_id\",\"claim_id\",\"source_message_id\"],\"public\",\"claim_messages\",[\"tenant_id\",\"claim_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "fk [\"public\",\"claim_response_requests\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "fk [\"public\",\"crm_deals\",[\"membership_plan_id\"],\"public\",\"membership_plans\",[\"id\"]]",
@@ -67,34 +67,39 @@
       "migration": "0058_redundant_tinkerer"
     },
     {
+      "key": "fk [\"public\",\"membership_sales\",[\"tenant_id\",\"plan_version_id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"plan_tier\",\"plan_members_included\"],\"public\",\"membership_plan_versions\",[\"tenant_id\",\"id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"tier\",\"members_included\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
       "key": "fk [\"public\",\"notification_deliveries\",[\"tenant_id\",\"claim_id\",\"subject_message_id\"],\"public\",\"claim_messages\",[\"tenant_id\",\"claim_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "fk [\"public\",\"notification_deliveries\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "fk [\"public\",\"notification_deliveries\",[\"tenant_id\",\"recipient_user_id\"],\"public\",\"user\",[\"tenant_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "fk [\"public\",\"notification_preview_restrictions\",[\"tenant_id\",\"notification_id\"],\"public\",\"notifications\",[\"tenant_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "fk [\"public\",\"support_handoff_first_responses\",[\"tenant_id\",\"handoff_id\"],\"public\",\"support_handoffs\",[\"tenant_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "fk [\"public\",\"user_locale_preferences\",[\"tenant_id\",\"user_id\"],\"public\",\"user\",[\"tenant_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "function [\"public\",\"billing_invoices_scope_guard_fn()\"]",
@@ -135,6 +140,56 @@
       "key": "function [\"public\",\"member_referral_reward_type_percent()\"]",
       "value": "c716964d73abe7de1e61eeb60756b7b5",
       "migration": "0073_harden_member_referral_reward_type_functions"
+    },
+    {
+      "key": "function [\"public\",\"membership_claim_require_sale_fn()\"]",
+      "value": "eb64ff0d75412b2d3b7b298344b14b92",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "function [\"public\",\"membership_individual_sale_guard_fn()\"]",
+      "value": "5f4f551a12be11642dfc88431dac2162",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "function [\"public\",\"membership_individual_sale_hash(buyer_kind text, buyer_id text, plan_version_id text, terms_version text, rate_id text, amount_mkd_minor bigint, channel text)\"]",
+      "value": "de1836c101d579a003dd3a604a947b44",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "function [\"public\",\"membership_plan_version_guard_fn()\"]",
+      "value": "56ec0a3266b1e7500b593b6c88509434",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "function [\"public\",\"membership_port_reject_mutation_fn()\"]",
+      "value": "5f3bbe904ec97f9ec89bf572a85778e1",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "function [\"public\",\"membership_sale_claim_assign_id_fn()\"]",
+      "value": "a2fa15bbcd3116fba42a6a22850fe672",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "function [\"public\",\"membership_sale_post_charge_fn()\"]",
+      "value": "46997334c330b97977ff8c29c5e3ab84",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "function [\"public\",\"membership_sale_require_charge_fn()\"]",
+      "value": "6b3c0ec94f36df3c73dd88255733d214",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "function [\"public\",\"membership_sale_void_state_fn()\"]",
+      "value": "e0fc4c7fef807148f47c9674f4e85df4",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "function [\"public\",\"membership_try_insert_individual_sale(candidate jsonb)\"]",
+      "value": "05e363a0fd2713bf1200d8c0a1dc8d17",
+      "migration": "0103_wp07_sale_insert_outcome"
     },
     {
       "key": "function [\"public\",\"provision_exchange_rate_book_fn()\"]",
@@ -189,7 +244,7 @@
     {
       "key": "index [\"public\",\"claim\",\"claim_tenant_id_id_uq\"]",
       "value": "unique btree (tenant_id, id)",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "index [\"public\",\"claim\",\"idx_claim_tenant_id\"]",
@@ -204,7 +259,7 @@
     {
       "key": "index [\"public\",\"claim_messages\",\"claim_messages_tenant_claim_id_uq\"]",
       "value": "unique btree (tenant_id, claim_id, id)",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "index [\"public\",\"claim_messages\",\"idx_claim_messages_tenant_id\"]",
@@ -214,7 +269,7 @@
     {
       "key": "index [\"public\",\"claim_response_requests\",\"claim_response_requests_source_uq\"]",
       "value": "unique btree (tenant_id, kind, COALESCE(source_message_id, claim_id))",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "index [\"public\",\"claim_stage_history\",\"idx_claim_stage_history_tenant_id\"]",
@@ -252,14 +307,29 @@
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"member_leads\",\"member_leads_tenant_id_id_uq\"]",
+      "value": "unique btree (tenant_id, id)",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
       "key": "index [\"public\",\"member_notes\",\"idx_member_notes_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"membership_ledger_entries\",\"membership_ledger_entries_charge_uq\"]",
+      "value": "unique btree (tenant_id, sale_id) WHERE (kind = 'charge'::text)",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
       "key": "index [\"public\",\"membership_plans\",\"idx_membership_plans_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"membership_sales\",\"membership_sales_live_lead_uq\"]",
+      "value": "unique btree (tenant_id, lead_id) WHERE ((lead_id IS NOT NULL) AND (voided_at IS NULL))",
+      "migration": "0102_wp07_membership_sales"
     },
     {
       "key": "index [\"public\",\"notifications\",\"idx_notifications_tenant_id\"]",
@@ -269,7 +339,7 @@
     {
       "key": "index [\"public\",\"notifications\",\"notifications_tenant_id_id_uq\"]",
       "value": "unique btree (tenant_id, id)",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "index [\"public\",\"nps_survey_responses\",\"idx_nps_survey_responses_tenant_id\"]",
@@ -324,7 +394,7 @@
     {
       "key": "index [\"public\",\"support_handoffs\",\"support_handoffs_tenant_id_id_uq\"]",
       "value": "unique btree (tenant_id, id)",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "index [\"public\",\"user\",\"idx_user_branch_id\"]",
@@ -1339,7 +1409,7 @@
     {
       "key": "rls-force [\"public\",\"claim_response_requests\"]",
       "value": "forced",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "rls-force [\"public\",\"exchange_rate_books\"]",
@@ -1352,14 +1422,44 @@
       "migration": "0101_wp07_exchange_rates"
     },
     {
+      "key": "rls-force [\"public\",\"membership_ledger_entries\"]",
+      "value": "forced",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_plan_versions\"]",
+      "value": "forced",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_sale_channels\"]",
+      "value": "forced",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_sale_claims\"]",
+      "value": "forced",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_sale_kinds\"]",
+      "value": "forced",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_sales\"]",
+      "value": "forced",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
       "key": "rls-force [\"public\",\"notification_deliveries\"]",
       "value": "forced",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "rls-force [\"public\",\"notification_preview_restrictions\"]",
       "value": "forced",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "rls-force [\"public\",\"sponsor_handover_cancel_attempts\"]",
@@ -1409,12 +1509,12 @@
     {
       "key": "rls-force [\"public\",\"support_handoff_first_responses\"]",
       "value": "forced",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "rls-force [\"public\",\"user_locale_preferences\"]",
       "value": "forced",
-      "migration": "0102_wp11_notification_deliveries"
+      "migration": "0104_wp11_notification_deliveries"
     },
     {
       "key": "trigger [\"public\",\"billing_invoices\",\"billing_invoices_scope_guard_trg\"]",
@@ -1455,6 +1555,61 @@
       "key": "trigger [\"public\",\"member_leads\",\"member_leads_legacy_consent_guard\"]",
       "value": "CREATE TRIGGER member_leads_legacy_consent_guard BEFORE INSERT OR UPDATE OF consent_captured_at ON public.member_leads FOR EACH ROW EXECUTE FUNCTION member_leads_legacy_consent_guard_fn()",
       "migration": "0097_member_leads_consent"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_ledger_entries\",\"membership_ledger_entries_append_only\"]",
+      "value": "CREATE TRIGGER membership_ledger_entries_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.membership_ledger_entries FOR EACH STATEMENT EXECUTE FUNCTION membership_port_reject_mutation_fn()",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_plan_versions\",\"membership_plan_versions_copy_and_withdrawal\"]",
+      "value": "CREATE TRIGGER membership_plan_versions_copy_and_withdrawal BEFORE INSERT OR UPDATE ON public.membership_plan_versions FOR EACH ROW EXECUTE FUNCTION membership_plan_version_guard_fn()",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_plan_versions\",\"membership_plan_versions_no_delete\"]",
+      "value": "CREATE TRIGGER membership_plan_versions_no_delete BEFORE DELETE OR TRUNCATE ON public.membership_plan_versions FOR EACH STATEMENT EXECUTE FUNCTION membership_port_reject_mutation_fn()",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_sale_claims\",\"membership_claims_require_sale\"]",
+      "value": "CREATE CONSTRAINT TRIGGER membership_claims_require_sale AFTER INSERT ON public.membership_sale_claims DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION membership_claim_require_sale_fn()",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_sale_claims\",\"membership_sale_claims_append_only\"]",
+      "value": "CREATE TRIGGER membership_sale_claims_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.membership_sale_claims FOR EACH STATEMENT EXECUTE FUNCTION membership_port_reject_mutation_fn()",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_sale_claims\",\"membership_sale_claims_assign_id\"]",
+      "value": "CREATE TRIGGER membership_sale_claims_assign_id BEFORE INSERT ON public.membership_sale_claims FOR EACH ROW EXECUTE FUNCTION membership_sale_claim_assign_id_fn()",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_sales\",\"membership_sales_individual_insert\"]",
+      "value": "CREATE TRIGGER membership_sales_individual_insert BEFORE INSERT ON public.membership_sales FOR EACH ROW WHEN ((new.kind = 'individual'::text)) EXECUTE FUNCTION membership_individual_sale_guard_fn()",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_sales\",\"membership_sales_no_delete\"]",
+      "value": "CREATE TRIGGER membership_sales_no_delete BEFORE DELETE OR TRUNCATE ON public.membership_sales FOR EACH STATEMENT EXECUTE FUNCTION membership_port_reject_mutation_fn()",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_sales\",\"membership_sales_post_charge\"]",
+      "value": "CREATE TRIGGER membership_sales_post_charge AFTER INSERT ON public.membership_sales FOR EACH ROW EXECUTE FUNCTION membership_sale_post_charge_fn()",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_sales\",\"membership_sales_require_charge\"]",
+      "value": "CREATE CONSTRAINT TRIGGER membership_sales_require_charge AFTER INSERT ON public.membership_sales DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION membership_sale_require_charge_fn()",
+      "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_sales\",\"membership_sales_void_state\"]",
+      "value": "CREATE TRIGGER membership_sales_void_state BEFORE INSERT OR UPDATE ON public.membership_sales FOR EACH ROW EXECUTE FUNCTION membership_sale_void_state_fn()",
+      "migration": "0102_wp07_membership_sales"
     },
     {
       "key": "trigger [\"public\",\"sponsor_handover_cancel_attempts\",\"sponsor_handover_cancel_attempts_guard\"]",

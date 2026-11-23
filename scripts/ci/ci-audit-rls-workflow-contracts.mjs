@@ -30,9 +30,12 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   const communicationsScripts = JSON.parse(
     fs.readFileSync(path.join(root, 'packages/domain-communications/package.json'), 'utf8')
   ).scripts;
+  const billingScripts = JSON.parse(
+    fs.readFileSync(path.join(root, 'packages/domain-membership-billing/package.json'), 'utf8')
+  ).scripts;
   assert.equal(
     rootScripts['db:rls:test'],
-    'pnpm --filter @interdomestik/database test:rls && pnpm --filter @interdomestik/domain-communications test:rls && pnpm db:rls:test:staff-detail'
+    'pnpm --filter @interdomestik/database test:rls && pnpm --filter @interdomestik/domain-communications test:rls && pnpm --filter @interdomestik/domain-membership-billing test:rls && pnpm db:rls:test:staff-detail'
   );
   assert.equal(rootScripts['db:rls:test:staff-detail'], 'node scripts/run-staff-detail-rls.mjs');
   assert.equal(
@@ -46,5 +49,9 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   assert.equal(
     claimsScripts['test:rls'],
     'MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/claims/message-integration/tenant-context.integration.test.ts src/claims/message-integration/send-negative-matrix.integration.test.ts src/claims/message-integration/send-idempotency.integration.test.ts src/claims/message-integration/send-reassignment.integration.test.ts src/claims/message-integration/public-reply-notification.integration.test.ts'
+  );
+  assert.equal(
+    billingScripts['test:rls'],
+    'BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test test/exchange-rates-port.test.ts'
   );
 });
