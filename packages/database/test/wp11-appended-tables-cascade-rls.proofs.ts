@@ -27,14 +27,14 @@ export async function proveCascades(client: postgres.Sql, a: Rows, b: Rows) {
 
   // A staff answer survives its actor's deletion: the actor goes, the answer time stays.
   const staff = `${b.tenant}-staff`;
-  const answeredAt = new Date('2026-11-20T10:00:00Z');
+  const answeredAt = '2026-11-20T10:00:00.000Z';
   await insertUser(client, staff, b.tenant, 'staff');
-  await client`update claim_response_requests set answered_at = ${answeredAt}, answered_by = ${staff},
+  await client`update claim_response_requests set answered_at = ${answeredAt}::timestamptz, answered_by = ${staff},
     answer_kind = 'member_visible_status_change' where id = ${a.request}`;
   await client`delete from "user" where id = ${staff}`;
-  const [answer] =
-    await client`select answered_by, answered_at from claim_response_requests where id = ${a.request}`;
-  assert.deepEqual(answer, { answered_by: null, answered_at: answeredAt });
+  const [answer] = await client`select answered_by, answered_at = ${answeredAt}::timestamptz as kept
+      from claim_response_requests where id = ${a.request}`;
+  assert.deepEqual(answer, { answered_by: null, kept: true });
 
   // A source message takes its response request and its deliveries, and nothing of its claim.
   const sourceRequest = `${b.tenant}-source-request`;

@@ -88,7 +88,9 @@ async function proveConsumer(client: postgres.Sql, a: Rows, b: Rows) {
   const rlsUrl = new URL(url);
   rlsUrl.username = login;
   rlsUrl.password = password;
-  await client.unsafe(`grant select on public."user", public.claim to ${role}`);
+  await client.unsafe(
+    `grant select on public."user", public.claim, public.claim_messages to ${role}`
+  );
   await client.unsafe(`grant insert on public.audit_log to ${role}`);
   await client.unsafe(`grant select on public.user_notification_preferences to ${role}`);
   await client.unsafe(`grant select, delete on public.push_subscriptions to ${role}`);

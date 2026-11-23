@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 
 import { user, userLocalePreferences } from '../src/schema';
 import { grantTablePrivileges } from './activity-access-rls.support';
@@ -104,13 +104,45 @@ test('saves the locale only when the session authority covers its own profile', 
       });
     const sessionOf = (id: string) => ({ user: { ...admin, id, accessTenantId: MK_TENANT_ID } });
 
-    // Two first saves for one user overlap: both succeed and leave one row.
+    // A transaction id's waiters: sessions blocked on a row or key that transaction holds.
+    const xidOf = async (tx: Pick<typeof adminDb, 'execute'>) =>
+      String(
+        (
+          await tx.execute<{ xid: string }>(sql`select (txid_current() % 4294967296)::text as xid`)
+        )[0]?.xid
+      );
+    const waitForWaiters = async (xid: string, count: number) => {
+      const deadline = Date.now() + 10_000;
+      for (;;) {
+        const [row] = await adminDb.execute<{ waiting: number }>(sql`
+          select count(*)::int as waiting from pg_locks
+          where locktype = 'transactionid' and not granted and transactionid::text = ${xid}`);
+        if ((row?.waiting ?? 0) >= count) return;
+        assert.ok(Date.now() < deadline, `expected ${count} sessions waiting on ${xid}`);
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+    };
+
+    // Two first saves for one user, held at the same key until both wait there, then released
+    // together: both succeed and leave one row.
     await seedUser(raceUser);
-    const raced = await Promise.all([
-      savePreferredLocale(authority(MK_TENANT_ID, raceUser), sessionOf(raceUser), 'mk'),
-      savePreferredLocale(authority(MK_TENANT_ID, raceUser), sessionOf(raceUser), 'de'),
-    ]);
-    assert.deepEqual(raced, ['saved', 'saved']);
+    let raced: Promise<string[]> | undefined;
+    await assert.rejects(
+      adminDb.transaction(async tx => {
+        await tx
+          .insert(userLocalePreferences)
+          .values({ tenantId: MK_TENANT_ID, userId: raceUser, locale: 'sq' });
+        const xid = await xidOf(tx);
+        raced = Promise.all([
+          savePreferredLocale(authority(MK_TENANT_ID, raceUser), sessionOf(raceUser), 'mk'),
+          savePreferredLocale(authority(MK_TENANT_ID, raceUser), sessionOf(raceUser), 'de'),
+        ]);
+        await waitForWaiters(xid, 2);
+        throw new Error('release the held key');
+      }),
+      /release the held key/
+    );
+    assert.deepEqual(await raced, ['saved', 'saved']);
     const raceRows = await adminDb
       .select({ locale: userLocalePreferences.locale })
       .from(userLocalePreferences)
@@ -118,19 +150,16 @@ test('saves the locale only when the session authority covers its own profile', 
     assert.equal(raceRows.length, 1);
     assert.ok(['mk', 'de'].includes(raceRows[0]?.locale ?? ''));
 
-    // The save locks its user before it writes: while another transaction holds the row, the save
-    // waits; when that transaction deletes the user, the save reports a conflict. Without its own
-    // lock the save would read the user, then fail on the foreign key.
+    // The save locks its user before it writes. Another transaction holds the user row; the save is
+    // seen waiting on it; that transaction then deletes the user, and the save reports a conflict.
+    // Without its own lock the save would read the user, then fail on the foreign key.
     await seedUser(lockUser);
     let pending: Promise<string> | undefined;
     await adminDb.transaction(async tx => {
       await tx.select({ id: user.id }).from(user).where(eq(user.id, lockUser)).for('update');
+      const xid = await xidOf(tx);
       pending = savePreferredLocale(authority(MK_TENANT_ID, lockUser), sessionOf(lockUser), 'mk');
-      const early = await Promise.race([
-        pending.then(() => 'finished'),
-        new Promise(resolve => setTimeout(() => resolve('waiting'), 300)),
-      ]);
-      assert.equal(early, 'waiting');
+      await waitForWaiters(xid, 1);
       await tx.delete(user).where(eq(user.id, lockUser));
     });
     assert.equal(await pending, 'conflict');

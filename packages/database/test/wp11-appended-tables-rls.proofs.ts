@@ -87,17 +87,13 @@ export async function proveLegacyPreviewState(client: postgres.Sql, legacy: Lega
 /** 0102 copied exactly the handoffs answered once, at their UTC response time. */
 export async function proveFirstResponseBackfill(client: postgres.Sql, legacy: LegacyPreviews) {
   const ids = Object.values(legacy.handoffs);
-  const rows = await client`select handoff_id, tenant_id, first_public_response_at
+  // The instant is compared in SQL: the scratch client returns timestamps as text.
+  const rows = await client`select handoff_id, tenant_id,
+      first_public_response_at = '2026-11-01T10:00:00Z'::timestamptz as exact
     from support_handoff_first_responses where handoff_id in ${client(ids)} order by handoff_id`;
   assert.deepEqual(
     [...rows],
-    [
-      {
-        handoff_id: legacy.handoffs.first,
-        tenant_id: legacy.tenant,
-        first_public_response_at: new Date('2026-11-01T10:00:00Z'),
-      },
-    ]
+    [{ handoff_id: legacy.handoffs.first, tenant_id: legacy.tenant, exact: true }]
   );
 }
 

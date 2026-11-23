@@ -195,7 +195,8 @@ export async function proveStaffRouting(
 /**
  * R-08 for stored facts: the worker parses a delivery's facts for its kind. A malformed value is
  * recorded on the delivery as the retryable `facts_unavailable` failure, under its lease, and no
- * provider is called.
+ * provider is called. A well-formed control in the same run must send, so the failure cannot come
+ * from a missing privilege or another path.
  */
 export async function proveMalformedFacts(
   client: postgres.Sql,
@@ -203,11 +204,14 @@ export async function proveMalformedFacts(
   authority: TenantAuthority,
   dispatch: typeof dispatchNotificationDeliveries
 ) {
-  const id = randomUUID();
+  const malformed = randomUUID();
+  const control = randomUUID();
   await client`insert into notification_deliveries
     (id, tenant_id, idempotency_key, kind, channel, recipient_user_id, claim_id, subject_message_id, facts)
-    values (${id}, ${a.tenant}, ${id}, 'claim_message_to_member', 'email', ${a.user}, ${a.claim},
-      ${a.message}, '{"previewRestricted":"no"}')`;
+    values (${malformed}, ${a.tenant}, ${malformed}, 'claim_message_to_member', 'email', ${a.user},
+      ${a.claim}, ${a.message}, '{"previewRestricted":"no"}'),
+      (${control}, ${a.tenant}, ${control}, 'claim_message_to_member', 'email', ${a.user},
+      ${a.claim}, ${a.message}, '{"previewRestricted":false}')`;
   const sends: string[] = [];
   const outcome = await dispatch(
     authority,
@@ -219,21 +223,25 @@ export async function proveMalformedFacts(
         return Promise.resolve({ ok: true, transport });
       },
     },
-    { ids: [id] }
+    { ids: [malformed, control] }
   );
-  assert.deepEqual(sends, []);
-  assert.deepEqual(outcome.failures, [{ id, code: 'facts_unavailable' }]);
-  const [row] = await restricted(
+  // The control renders the full preview and sends; only the malformed row fails.
+  assert.deepEqual(sends, [control]);
+  assert.deepEqual(outcome.failures, [{ id: malformed, code: 'facts_unavailable' }]);
+  const rows = await restricted(
     client,
     a.tenant,
-    tx => tx`select state, attempts, lease_until, last_error_code, sent_at
-      from notification_deliveries where id = ${id}`
+    tx => tx`select id, state, attempts, lease_until, last_error_code, sent_at is not null as sent
+      from notification_deliveries where id in (${malformed}, ${control})`
   );
-  assert.deepEqual(row, {
-    state: 'queued',
-    attempts: 1,
-    lease_until: null,
-    last_error_code: 'facts_unavailable',
-    sent_at: null,
+  assert.deepEqual(Object.fromEntries(rows.map(({ id, ...row }) => [id as string, row])), {
+    [malformed]: {
+      state: 'queued',
+      attempts: 1,
+      lease_until: null,
+      last_error_code: 'facts_unavailable',
+      sent: false,
+    },
+    [control]: { state: 'sent', attempts: 1, lease_until: null, last_error_code: null, sent: true },
   });
 }
