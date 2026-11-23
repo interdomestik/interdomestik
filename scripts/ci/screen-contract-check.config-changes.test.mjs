@@ -142,7 +142,11 @@ test('config: a wrapper patch-hash change and a malformed lockfile are refused',
     { 'pnpm-lock.yaml': patch('a'.repeat(64)) }
   );
   assert.equal(hash.code, 2);
-  assert.match(hash.report.errors.join('\n'), /pnpm-lock\.yaml next-intl \(.*a{64}.* -> .*b{64}/u);
+  const hashError = hash.report.errors.join('\n');
+  const arrow = hashError.indexOf(' -> ');
+  assert.ok(hashError.includes('pnpm-lock.yaml next-intl ('), hashError);
+  assert.ok(arrow > hashError.indexOf('a'.repeat(64)), hashError);
+  assert.ok(hashError.indexOf('b'.repeat(64)) > arrow, hashError);
   const malformed = enforced(t, { 'pnpm-lock.yaml': 'a: [\n' }, { 'pnpm-lock.yaml': lock });
   assert.equal(malformed.code, 2);
   assert.match(

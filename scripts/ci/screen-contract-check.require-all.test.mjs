@@ -18,6 +18,7 @@ import {
   scan,
 } from './fixtures/screen-contract-check/cli-fixtures.mjs';
 import { commit } from './fixtures/screen-contract-check/harness.mjs';
+import { byCodeUnit } from './server-mutation/ast.mjs';
 
 const ITEMS = { 'CHK-15c': [LEGACY] };
 const FLAGS = ['--enforcing', '--require-all-enforcing'];
@@ -81,7 +82,7 @@ test('D-6: an authorized #check removal of a required check is an error naming i
 });
 
 test('D-6: the required set is the fixed six, not the scanner catalogue (r3-B5)', () => {
-  assert.deepEqual([...REQUIRED_CHECKS].sort(), [
+  assert.deepEqual([...REQUIRED_CHECKS].sort(byCodeUnit), [
     'A11Y',
     'CHK-09',
     'CHK-15a',
@@ -90,5 +91,5 @@ test('D-6: the required set is the fixed six, not the scanner catalogue (r3-B5)'
     'CHK-22',
   ]);
   // Today the catalogue holds the same six; a scanner that retires one cannot shrink the list.
-  assert.deepEqual(CHECKS.map(c => c.id).sort(), [...REQUIRED_CHECKS].sort());
+  assert.deepEqual(CHECKS.map(c => c.id).sort(byCodeUnit), [...REQUIRED_CHECKS].sort(byCodeUnit));
 });

@@ -1,7 +1,7 @@
 import ts from 'typescript';
 
 import { ScanError } from '../server-mutation/ast.mjs';
-import { assertModelledRequest, assertReviewedDynamicRequest } from './resolution.mjs';
+import { assertModelledRequest, assertReviewedDynamicRequest } from './requests.mjs';
 
 const literalOf = node => {
   if (node?.type === 'Literal' && typeof node.value === 'string') return node.value;
@@ -38,11 +38,9 @@ function importTypeEdge(node) {
 function moduleMember(node) {
   if (node?.type !== 'MemberExpression' || node.object?.type !== 'Identifier') return null;
   if (node.object.name !== 'module') return null;
-  const name = node.computed
-    ? literalOf(node.property)
-    : node.property.type === 'Identifier'
-      ? node.property.name
-      : null;
+  let name = null;
+  if (node.computed) name = literalOf(node.property);
+  else if (node.property.type === 'Identifier') name = node.property.name;
   if (name === null) return node.computed ? 'unknown' : null;
   return name === 'require' ? 'require' : null;
 }
@@ -189,33 +187,34 @@ function freeModuleIdentifiers(origin) {
 // A module request that is not a literal specifier (resolution.mjs, `REVIEWED_DYNAMIC_REQUESTS`):
 // the node whose source text names it, or null. `parent` is the node's parent; `isFreeModule`
 // tells whether a `module` identifier is the CommonJS one.
-function dynamicRequest(node, parent, isFreeModule) {
-  if (node.type === 'ImportExpression') return literalOf(node.source) === null ? node : null;
-  if (node.type === 'CallExpression') {
-    const { callee } = node;
-    if (isIdentifier(callee, 'require'))
-      return node.arguments.length === 1 && literalOf(node.arguments[0]) !== null ? null : node;
-    if (isIdentifier(callee, 'define') || isIdentifier(callee, 'createRequire')) return node;
-    if (callee.type === 'MemberExpression' && isIdentifier(callee.property, 'createRequire'))
-      return node;
-    return null;
-  }
-  if (node.type === 'MemberExpression') {
-    if (isIdentifier(node.object, 'require')) return node;
-    // `module[k]` with a computed name, and `module.require` other than called with one literal
-    // (`const r = module.require`, r7: also `module['require']`).
-    const freeModule = isFreeModule(node.object);
-    if (freeModule && moduleMember(node) === 'unknown') return node;
-    if (freeModule && isModuleRequire(node)) {
+const hasOneLiteralArgument = call =>
+  call?.arguments.length === 1 && literalOf(call.arguments[0]) !== null;
+
+function callRequest(node) {
+  const { callee } = node;
+  if (isIdentifier(callee, 'require')) return hasOneLiteralArgument(node) ? null : node;
+  if (isIdentifier(callee, 'define') || isIdentifier(callee, 'createRequire')) return node;
+  if (callee.type === 'MemberExpression' && isIdentifier(callee.property, 'createRequire'))
+    return node;
+  return null;
+}
+
+function memberRequest(node, parent, isFreeModule) {
+  if (isIdentifier(node.object, 'require')) return node;
+  // `module[k]` with a computed name, and `module.require` other than called with one literal
+  // (`const r = module.require`, r7: also `module['require']`).
+  if (isFreeModule(node.object)) {
+    if (moduleMember(node) === 'unknown') return node;
+    if (isModuleRequire(node)) {
       const called = parent?.type === 'CallExpression' && parent.callee === node;
-      return called && parent.arguments.length === 1 && literalOf(parent.arguments[0]) !== null
-        ? null
-        : node;
+      return called && hasOneLiteralArgument(parent) ? null : node;
     }
-    if (isImportMeta(node.object) && !isImportMetaUrl(node)) return node;
-    return null;
   }
-  if (node.type === 'NewExpression') return node.arguments.some(isImportMetaUrl) ? node : null;
+  if (isImportMeta(node.object) && !isImportMetaUrl(node)) return node;
+  return null;
+}
+
+function identifierRequest(node, parent, isFreeModule) {
   // A bare `require` that is neither called, nor a member's object or name, nor a declared name or
   // type query (`const r = require` is refused; `declare function require` is not a request).
   if (isIdentifier(node, 'require')) return BARE_REQUIRE_OK(node, parent) ? null : node;
@@ -226,6 +225,23 @@ function dynamicRequest(node, parent, isFreeModule) {
     return typeofRead || BARE_REQUIRE_OK(node, parent) ? null : node;
   }
   return null;
+}
+
+function dynamicRequest(node, parent, isFreeModule) {
+  switch (node.type) {
+    case 'ImportExpression':
+      return literalOf(node.source) === null ? node : null;
+    case 'CallExpression':
+      return callRequest(node);
+    case 'MemberExpression':
+      return memberRequest(node, parent, isFreeModule);
+    case 'NewExpression':
+      return node.arguments.some(isImportMetaUrl) ? node : null;
+    case 'Identifier':
+      return identifierRequest(node, parent, isFreeModule);
+    default:
+      return null;
+  }
 }
 
 // Every module edge of an ESTree program: static import, `export … from`, literal `import()`,

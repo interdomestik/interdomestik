@@ -3,7 +3,7 @@
 // see another record than pnpm does.
 import yaml from 'js-yaml';
 
-import { ScanError } from '../server-mutation/ast.mjs';
+import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
 
 const SECTIONS = ['dependencies', 'devDependencies', 'optionalDependencies'];
 
@@ -68,7 +68,7 @@ export function wrapperRecords(data, names) {
       patched: Object.entries(patchedDependencies)
         .filter(([key]) => key === name || key.startsWith(`${name}@`))
         .map(([key, entry]) => patchEntry(key, entry))
-        .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)),
+        .sort((a, b) => byCodeUnit(a.key, b.key)),
     };
   }
   return out;

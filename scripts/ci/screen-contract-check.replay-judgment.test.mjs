@@ -8,6 +8,7 @@ import { CHECKS, evaluatorDigest } from './screen-contract/evaluate.mjs';
 import { candidateBaseline } from './screen-contract/replay.mjs';
 import { candidateJudgment } from './screen-contract/replay-candidate.mjs';
 import { commit, git, repo } from './fixtures/screen-contract-check/harness.mjs';
+import { byCodeUnit } from './server-mutation/ast.mjs';
 import {
   BASELINE,
   LANES,
@@ -201,7 +202,7 @@ test('r5-B6: the adoption pair’s parent gets its inputs synthesized and record
     [BASELINE]: baselineOf({ 'CHK-15c': [LEGACY] }),
   });
   const j = judged(t, { root, base, head });
-  assert.deepEqual([...j.synthesizedBase].sort(), [REBUILT, REG].sort());
+  assert.deepEqual([...j.synthesizedBase].sort(byCodeUnit), [REBUILT, REG].sort(byCodeUnit));
   assert.deepEqual(j.errors, []);
   // An adopted parent gets nothing synthesized.
   const pair = adoptedPair(t, baselineOf({ 'CHK-15c': [LEGACY] }), {

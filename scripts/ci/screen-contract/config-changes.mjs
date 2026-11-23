@@ -13,7 +13,8 @@ import { createHash } from 'node:crypto';
 import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
 import { showAt } from '../server-mutation/git.mjs';
 import { parseLockfile, wrapperRecords } from './lockfile.mjs';
-import { REVIEWED_WRAPPERS, refuse } from './resolution.mjs';
+import { refuse } from './refusal.mjs';
+import { REVIEWED_WRAPPERS } from './resolution.mjs';
 
 const GIT = '/usr/bin/git';
 

@@ -10,13 +10,12 @@ import ts from 'typescript';
 
 import { byCodeUnit } from '../server-mutation/ast.mjs';
 import { environmentsFor, resolveEnvironment, validateExports } from './exports.mjs';
+import { refuse } from './refusal.mjs';
+import { assertDescriptionFiles, requestPath } from './requests.mjs';
 import {
   ALIAS_PATTERN,
-  assertDescriptionFiles,
   assertNextResolution,
   confinedHost,
-  refuse,
-  requestPath,
   typescriptOptions,
   validateResolutionConfig,
   webpackPick,
