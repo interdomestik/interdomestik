@@ -6,11 +6,11 @@ import path from 'node:path';
 import yaml from 'js-yaml';
 import { officialArchive } from './db-access-required-compiler.mjs';
 import { commit, git, rootDir, tmp, writeFile } from './db-access-required-git.mjs';
-import { TRUSTED } from './tenant-guard/trusted.mjs';
+import { KERNEL_ANCHOR } from './tenant-guard/manifest.mjs';
 
 // Adversarial coverage of the S2 org-required workflow: its production step text runs verbatim
-// (bash) against a fixture origin whose protected main is the current tree on top of the trusted
-// commit, with only the pending source pin set to a fixture commit. Successor of the still
+// (bash) against a fixture origin whose protected main combines the historical application tree
+// with the guard under test, with the pending source pin set to a fixture commit. Successor of the still
 // applicable legacy workflow negatives: candidate substitution, CI deletion, compiler integrity,
 // environment isolation, exact merge/ref/object identity, closure completeness and resolver data.
 
@@ -35,8 +35,8 @@ export const ready = fs.existsSync(archive) && lockIntegrity && sri(archive) ===
 assert.ok(ready, `needs the verified TypeScript ${TS} archive at ${archive}`);
 export const skip = false;
 
-// Protected main: the current working tree (tracked and unignored files) as one commit on top of
-// the trusted comparator. It is also the approved source unless a test pins a variant.
+// Protected main: the guard under test on top of the kernel anchor.
+// The anchor's history includes the trusted comparator.
 // Mutable fixture state lives on one shared object; `fixture.main` is the protected main commit.
 export const fixture = { origin: null, main: null, variants: 0, pulls: 0 };
 export function fixtureOrigin() {
@@ -49,14 +49,23 @@ export function fixtureOrigin() {
     path.join(origin, '.git/objects/info/alternates'),
     `${path.join(common, 'objects')}\n`
   );
-  git(origin, `--work-tree=${rootDir}`, 'add', '-A');
+  git(origin, 'read-tree', KERNEL_ANCHOR.tree);
+  git(
+    origin,
+    `--work-tree=${rootDir}`,
+    'add',
+    '-A',
+    '--',
+    'scripts/ci/tenant-guard.mjs',
+    'scripts/ci/tenant-guard'
+  );
   const tree = git(origin, 'write-tree');
   fixture.main = git(
     origin,
     'commit-tree',
     tree,
     '-p',
-    TRUSTED.commit,
+    KERNEL_ANCHOR.commit,
     '-m',
     'protected main snapshot'
   );
@@ -114,15 +123,23 @@ export function openPullRequest(mutate = () => {}, { base = 'main', force = [] }
   };
 }
 
-export function route(pr, { source = fixture.main, overrides = {}, extraEnv = {} } = {}) {
+export function route(
+  pr,
+  { source = fixture.main, anchorTree = null, overrides = {}, extraEnv = {} } = {}
+) {
   const tree = git(fixtureOrigin(), 'rev-parse', `${source}^{tree}`);
   const COMMIT_PIN = /^source_commit='[0-9a-f]{40}'$/mu;
   const TREE_PIN = /^source_tree='[0-9a-f]{40}'$/mu;
+  const ANCHOR_TREE_PIN = /^anchor_tree='[0-9a-f]{40}'$/mu;
   assert.match(step.run, COMMIT_PIN, 'the source commit pin line must exist');
   assert.match(step.run, TREE_PIN, 'the source tree pin line must exist');
-  const script = step.run
+  assert.match(step.run, ANCHOR_TREE_PIN, 'the anchor tree pin line must exist');
+  assert.equal(ANCHOR_TREE_PIN.exec(step.run)?.[0], `anchor_tree='${KERNEL_ANCHOR.tree}'`);
+  if (anchorTree !== null) assert.match(anchorTree, /^[0-9a-f]{40}$/u);
+  let script = step.run
     .replace(COMMIT_PIN, `source_commit='${source}'`)
     .replace(TREE_PIN, `source_tree='${tree}'`);
+  if (anchorTree !== null) script = script.replace(ANCHOR_TREE_PIN, `anchor_tree='${anchorTree}'`);
   const env = {
     PATH: `${path.dirname(process.execPath)}:/usr/bin:/bin`,
     GITHUB_WORKSPACE: pr.ws,
@@ -152,6 +169,15 @@ export function route(pr, { source = fixture.main, overrides = {}, extraEnv = {}
   }
   return { ...result, work, report, source };
 }
+
+export const reportIdentity = [
+  'const args = process.argv.slice(2);',
+  'const arg = name => args[args.indexOf(name) + 1];',
+  'const identity = Object.fromEntries(["merge", "base", "anchor"].map(role => [role, {',
+  '  commit: arg(`--${role}-commit`), tree: arg(`--${role}-tree`),',
+  '}]));',
+  'const schemaAdmission = { version: 2, ok: true };',
+];
 
 export function assertFailed(result, reason) {
   assert.equal(result.status, 1, `${result.stderr}\n${result.stdout}`);

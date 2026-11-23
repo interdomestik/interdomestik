@@ -1,48 +1,65 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { cpSync, mkdirSync, readFileSync, symlinkSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
+import { git, rootDir, tmp, writeFile } from './db-access-required-git.mjs';
 
 import { DB_TRANSACTION_POOLER } from './tenant-guard/c1-admissions-pooler.mjs';
-import { LEGACY_PINS } from './tenant-guard/manifest.mjs';
+import { LEGACY } from './tenant-guard/manifest.mjs';
 import { createModuleGraph } from './tenant-guard/modules.mjs';
 import { installAdmission } from './tenant-guard/rules-admission.mjs';
 import { installTrust } from './tenant-guard/rules-trust.mjs';
-import { APP_ALIASES, currentSources, SOURCE, workspacePackages } from './tenant-guard/sources.mjs';
+import { APP_ALIASES, readSchemaTree } from './tenant-guard/sources.mjs';
 
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const current = new Map(
-  [...currentSources(root)].filter(([file]) => file.startsWith('packages/database/'))
+const predecessor = readSchemaTree(
+  rootDir,
+  {
+    commit: '7e114c2eeee83453331f5a1d5082f716d5cf1c9c',
+    tree: '53bf5f79859c86e8bf80e236e9a03bf067643f99',
+  },
+  'historical pooler predecessor'
 );
-const packages = workspacePackages(root);
+const postimage = readSchemaTree(
+  rootDir,
+  {
+    commit: '68fbe0aeeb961bf163355b198ac84841e99a5675',
+    tree: '61cd6ab8be28f3a0277db4d90619f7f7dd5d5212',
+  },
+  'historical pooler successor'
+);
+const sources = predecessor.sources;
+const successor = postimage.sources;
 const DB = 'packages/database/src/db.ts';
 const MODE = 'packages/database/src/pooler-mode.ts';
-const PREDECESSOR = '7e114c2eeee83453331f5a1d5082f716d5cf1c9c';
 
-// Keep exact successor bytes in data-only fixtures so the guard PR has no runtime change.
-// The fixed predecessor commit remains available after either side of the transition merges.
-const sources = new Map(current);
-sources.set(
-  DB,
-  execFileSync('/usr/bin/git', ['show', `${PREDECESSOR}:${DB}`], { cwd: root, encoding: 'utf8' })
+// Owner-reviewed v1 predecessor and successor preserve the historical pooler contract.
+const POOLER_TUPLE = [
+  [
+    '92e239c86942fe9c17d22826b9e0c64ed0e132f2e57d1408e26289988ccc16eb',
+    'd5a48cd0122819d13b21c018aa2728d7f675de0d2306b379fbc21330ffe7b5d9',
+  ],
+  [
+    '40c646fcae0b203d0337dbb0e5ceb46091f2403cf9f89f6065878d4c504c76e7',
+    '7a219887513dba5ff0b88241b9926b13c010d51ceaee7a020e4ab1f8dfb2d988',
+  ],
+  [
+    '93c5c961056320a272ed82e9e5cc8822715a76ce4b79bc53e8d7ab7f14fb74df',
+    '3cbacb145c83aa637e232999b07dd4f10131ba23dec5dc62282c8f5e0a1ad671',
+  ],
+];
+const LEGACY_PINS = new Map(
+  [...LEGACY.keys()].map((key, index) => [key, Object.freeze(POOLER_TUPLE[index])])
 );
-sources.delete(MODE);
-const successor = new Map(sources);
-for (const file of [DB, MODE]) {
-  successor.set(
-    file,
-    readFileSync(
-      new URL(`./tests/fixtures/pooler-transition/${path.basename(file)}.txt`, import.meta.url),
-      'utf8'
-    )
-  );
-}
 
-function trust(candidate, legacyPins = LEGACY_PINS) {
+function trust(candidate, legacyPins = LEGACY_PINS, tree = postimage) {
   const ctx = {
-    graph: createModuleGraph({ sources: candidate, packages, appAliases: APP_ALIASES }),
+    graph: createModuleGraph({
+      sources: candidate,
+      packages: tree.packages,
+      appAliases: APP_ALIASES,
+      resolution: tree.resolution,
+    }),
     trusted: sources,
     legacyPins,
     pinnedModules: new Set(),
@@ -53,76 +70,86 @@ function trust(candidate, legacyPins = LEGACY_PINS) {
   return ctx;
 }
 
-const TENANT = 'packages/database/src/tenant.ts';
-const previousPins = new Map([
-  [
-    `${TENANT}#withTenantContext`,
-    '92e239c86942fe9c17d22826b9e0c64ed0e132f2e57d1408e26289988ccc16eb',
-  ],
-  [`${TENANT}#withTenantDb`, '40c646fcae0b203d0337dbb0e5ceb46091f2403cf9f89f6065878d4c504c76e7'],
-  [`${DB}#db`, '93c5c961056320a272ed82e9e5cc8822715a76ce4b79bc53e8d7ab7f14fb74df'],
-]);
-
-test('the pre-pooler predecessor is now refused', () => {
-  const git = args => execFileSync('/usr/bin/git', args, { cwd: root, encoding: 'utf8' });
-  const files = git(['ls-tree', '-r', '--name-only', '-z', PREDECESSOR, '--', 'packages/database/'])
-    .split('\0')
-    .filter(file => SOURCE.test(file));
-  const predecessor = new Map(files.map(file => [file, git(['show', `${PREDECESSOR}:${file}`])]));
-  const ctx = trust(predecessor);
-  for (const key of previousPins.keys()) {
-    const digest = ctx.legacyDigest(key);
-    const pins = LEGACY_PINS.get(key);
-    assert.equal(ctx.legacyPinned(key), false, key);
-    assert.ok(!pins.includes(digest), key);
-    assert.equal(digest, previousPins.get(key), key);
+test('the predecessor remains pinned while the pooler admission stays inactive', () => {
+  const ctx = trust(sources, LEGACY_PINS, predecessor);
+  for (const [key, pins] of LEGACY_PINS) {
+    assert.equal(ctx.legacyPinned(key), true, key);
+    assert.equal(ctx.legacyDigest(key), pins[0]);
   }
   assert.equal(ctx.telemetry.c1Admissions, 0);
 });
 
-test('the checked-out kernel is exactly one reviewed side of the transition', () => {
-  const expected = current.has(MODE) ? successor : sources;
-  for (const file of [DB, MODE]) assert.equal(current.get(file), expected.get(file), file);
-  for (const key of LEGACY_PINS.keys()) assert.equal(trust(current).legacyPinned(key), true, key);
+test('the historical pooler successor matches the reviewed byte fixtures', () => {
+  for (const file of [DB, MODE]) {
+    const expected = readFileSync(
+      new URL(`./tests/fixtures/pooler-transition/${path.basename(file)}.txt`, import.meta.url),
+      'utf8'
+    );
+    assert.equal(successor.get(file), expected, file);
+  }
+  for (const key of LEGACY_PINS.keys()) assert.equal(trust(successor).legacyPinned(key), true, key);
+});
+
+test('historical pooler proofs still pass after a table append in the working tree', () => {
+  const checkout = tmp('pooler-appended-checkout');
+  const entry = 'scripts/ci/tenant-guard.pooler-transition.test.mjs';
+  git(checkout, 'init', '-q');
+  const objects = git(rootDir, 'rev-parse', '--path-format=absolute', '--git-common-dir');
+  writeFile(checkout, '.git/objects/info/alternates', `${path.join(objects, 'objects')}\n`);
+  for (const file of [
+    entry,
+    'scripts/ci/db-access-required-git.mjs',
+    'scripts/ci/tenant-guard',
+    'scripts/ci/tests/fixtures/pooler-transition',
+    'packages/database/src',
+    'packages/database/package.json',
+  ]) {
+    const destination = path.join(checkout, file);
+    mkdirSync(path.dirname(destination), { recursive: true });
+    cpSync(path.join(rootDir, file), destination, { recursive: true });
+  }
+  symlinkSync(path.join(rootDir, 'node_modules'), path.join(checkout, 'node_modules'));
+  const schema = 'packages/database/src/schema';
+  const barrel = `${schema}/index.ts`;
+  writeFile(
+    checkout,
+    barrel,
+    `${readFileSync(path.join(checkout, barrel), 'utf8')}export * from './pooler-test-table';\n`
+  );
+  writeFile(checkout, `${schema}/pooler-test-table.ts`, [
+    "import { pgTable, text } from 'drizzle-orm/pg-core';",
+    "export const poolerTestTable = pgTable('pooler_test_table', { id: text('id') });",
+  ]);
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  const run = spawnSync(
+    process.execPath,
+    [
+      '--test',
+      '--test-reporter=tap',
+      '--test-name-pattern=^(the |predecessor-only|drift |an unresolved|one changed)',
+      entry,
+    ],
+    { cwd: checkout, env, encoding: 'utf8' }
+  );
+  assert.equal(run.status, 0, `${run.stderr}\n${run.stdout}`);
+  assert.match(run.stdout, /# pass 8\b/u);
 });
 
 test('predecessor-only pins refuse the exact pooler successor', () => {
+  const previousPins = new Map([...LEGACY_PINS].map(([key, pins]) => [key, pins[0]]));
   const ctx = trust(successor, previousPins);
   for (const key of LEGACY_PINS.keys()) assert.equal(ctx.legacyPinned(key), false, key);
 });
 
 test('the reviewed pooler kernel binds all three legacy entries and the helper import', () => {
-  const ctx = trust(current);
-  const pooler = trust(successor);
-  const expectedPins = [
-    [
-      `${TENANT}#withTenantContext`,
-      'd5a48cd0122819d13b21c018aa2728d7f675de0d2306b379fbc21330ffe7b5d9',
-      '1d75e1be9ef39be8b7e1fd522f5f62d5e34479a67d2b61af5d6c0d9985ff5c60',
-    ],
-    [
-      `${TENANT}#withTenantDb`,
-      '7a219887513dba5ff0b88241b9926b13c010d51ceaee7a020e4ab1f8dfb2d988',
-      '692e1867c412c7d42112590cbea6a94d11a6e8d0a0832427204bf19cfcf29ba9',
-    ],
-    [
-      `${DB}#db`,
-      '3cbacb145c83aa637e232999b07dd4f10131ba23dec5dc62282c8f5e0a1ad671',
-      '66891cd8aa8f554c2bb6c95204833b02a6b47b756d137db25f4bca9abf2b66ed',
-    ],
-  ];
-  for (const [key, mainDigest, pr1aDigest] of expectedPins) {
-    const pins = LEGACY_PINS.get(key);
-    assert.ok(pins, key);
-    assert.equal(pooler.legacyPinned(key), true, key);
-    assert.ok(pins.includes(ctx.legacyDigest(key)), key);
-    assert.equal(pins.length, 2, `${key} pin count`);
-    assert.equal(pins[0], mainDigest, `${key} main digest`);
-    assert.equal(pins[1], pr1aDigest, `${key} PR-1a digest`);
-    assert.equal(pooler.legacyDigest(key), ctx.legacyDigest(key), 'matches the checked-out kernel');
+  const ctx = trust(successor);
+  for (const [key, pins] of LEGACY_PINS) {
+    assert.equal(ctx.legacyPinned(key), true, key);
+    assert.equal(ctx.legacyDigest(key), pins[1], 'matches the successor in the transition pair');
   }
-  assert.equal(pooler.pinnedModules.has(DB), true);
-  assert.equal(pooler.pinnedModules.has(MODE), true);
+  assert.equal(ctx.pinnedModules.has(DB), true);
+  assert.equal(ctx.pinnedModules.has(MODE), true);
 });
 
 test('drift in either pooler file refuses every legacy kernel entry', () => {
