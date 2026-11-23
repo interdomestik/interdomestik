@@ -1,4 +1,4 @@
-import { agentClients, and, eq, user, type TenantTransaction } from '@interdomestik/database';
+import { and, eq, user, type TenantTransaction } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -6,6 +6,9 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { ROLES } from '@interdomestik/shared-auth';
 import { ensureTenantId, type SessionWithTenant } from '@interdomestik/shared-auth/session';
+
+import { activityActorOf, isMemberSelfRole } from '../access';
+import { holdsActiveAssignment } from '../assignment';
 
 // Who may read and write member notes (R-16: the rule lives here, not in the entry points).
 // Deny by default: only the roles named below pass, and each check runs before any read.
@@ -58,14 +61,12 @@ export function memberNoteActorOf(
   ) {
     return null;
   }
-  const { principal } = descriptor;
-  if (!principal?.role || principal.userId !== session.user.id) return null;
-  if (principal.role !== session.user.role) return null;
-  return Object.freeze({
-    tenantId: descriptor.tenantId,
-    userId: principal.userId,
-    role: principal.role,
-  });
+  // The principal binding is the activities rule: the session's user, with exactly its role.
+  const actor = activityActorOf(
+    { user: { ...session.user, role: session.user.role ?? '' } },
+    authority
+  );
+  return actor ? Object.freeze(actor) : null;
 }
 
 /** tenant: any member of the tenant; assigned: members actively assigned to the agent. */
@@ -79,11 +80,6 @@ export function memberNoteScope(role: string): MemberNoteScope {
   if (role === ROLES.agent) return 'assigned';
   if (role === ROLES.staff || role === ROLES.admin) return 'tenant';
   return 'denied';
-}
-
-/** A note is about a member account: `member`, or `user`, the legacy default member role. */
-function isMemberAccountRole(role: string | null | undefined): boolean {
-  return role === ROLES.member || role === 'user';
 }
 
 /**
@@ -105,20 +101,9 @@ export async function canActOnMemberNotes(
     .from(user)
     .where(and(eq(user.id, memberId), eq(user.tenantId, actor.tenantId)))
     .for('share');
-  if (!target || !isMemberAccountRole(target.role)) return false;
+  // A note is about a member account: `member`, or `user`, the legacy default member role.
+  if (!target || !isMemberSelfRole(target.role)) return false;
   if (scope === 'tenant') return true;
 
-  const assignments = await tx
-    .select({ id: agentClients.id })
-    .from(agentClients)
-    .where(
-      and(
-        eq(agentClients.tenantId, actor.tenantId),
-        eq(agentClients.agentId, actor.userId),
-        eq(agentClients.memberId, memberId),
-        eq(agentClients.status, 'active')
-      )
-    )
-    .for('share');
-  return assignments.length > 0;
+  return holdsActiveAssignment(tx, { tenantId: actor.tenantId, agentId: actor.userId, memberId });
 }

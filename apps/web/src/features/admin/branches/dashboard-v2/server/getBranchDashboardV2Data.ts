@@ -1,3 +1,4 @@
+import { isAllowedInAdmin } from '@/lib/rbac-portals';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { getBranchCashPendingCount } from '@/features/admin/branches/server/branch-cash-metrics';
 import { computeHealthScore } from '@/features/admin/health/health-model';
@@ -21,6 +22,16 @@ import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 export type { BranchDashboardV2Data } from './branch-dashboard-v2-types';
 
+/** The exact-row predicate when the branch is bound by id: a resolved owner or a manager's own. */
+function lookupByIdOnly(
+  resolvedOwnerBranchId: string | null,
+  userRole: string | null | undefined,
+  branchId: string
+) {
+  if (resolvedOwnerBranchId) return eq(branches.id, resolvedOwnerBranchId);
+  return userRole === ROLES.branch_manager ? eq(branches.id, branchId) : null;
+}
+
 export async function getBranchDashboardV2Data(
   branchId: string
 ): Promise<BranchDashboardV2Data | null> {
@@ -36,7 +47,8 @@ export async function getBranchDashboardV2Data(
         // RBAC Checks
         const userRole = session.user.role;
 
-        if (userRole === 'user' || userRole === ROLES.agent) {
+        // Allow-list: only the admin-portal roles see a branch dashboard; every other role is denied.
+        if (!isAllowedInAdmin(userRole)) {
           throw new Error('Forbidden');
         }
 
@@ -73,10 +85,10 @@ export async function getBranchDashboardV2Data(
           tx.query.branches.findFirst({
             where: and(
               eq(branches.tenantId, tenantId),
-              // A resolved owner binds the exact row; tenant scopes match id or code in-tenant.
-              resolvedOwnerBranchId
-                ? eq(branches.id, resolvedOwnerBranchId)
-                : or(eq(branches.id, branchId), eq(branches.code, branchId))
+              // A resolved owner binds the exact row, and so does a branch manager's assigned id;
+              // the other tenant scopes match id or code in-tenant.
+              lookupByIdOnly(resolvedOwnerBranchId, userRole, branchId) ??
+                or(eq(branches.id, branchId), eq(branches.code, branchId))
             ),
           })
         );
