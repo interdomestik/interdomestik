@@ -7,6 +7,7 @@ import {
   NEW_EXPORT,
   append,
   initial,
+  recordFor,
   refuses,
   scan,
   snapshot,
@@ -44,7 +45,12 @@ test('an already admitted builder cannot be retargeted by a resolver-only PR', (
     candidate.graph.resolveSpecifier(NEW, 'drizzle-orm/pg-core').external,
     'drizzle-orm/pg-core'
   );
-  refuses(scan(candidate, { base }), 'candidate: builder alias matches drizzle-orm/pg-core');
+  refuses(scan(candidate, { base }), `candidate: resolver input changed ${config}`);
+  // Even as an exact reviewed resolver transition, the builder alias still refuses.
+  refuses(
+    scan(candidate, { base, resolverRecord: recordFor(base, candidate) }),
+    'candidate: builder alias matches drizzle-orm/pg-core'
+  );
 });
 
 for (const inBase of [false, true]) {
@@ -61,7 +67,10 @@ for (const inBase of [false, true]) {
       ),
     });
     assert.ok(changed.inputs.get(LOCK) !== lock);
-    const result = scan(changed, { base: inBase ? changed : append() });
+    const result = scan(changed, {
+      base: inBase ? changed : append(),
+      resolverRecord: recordFor(append()),
+    });
     assert.equal(result.schemaAdmission.ok, true, result.schemaAdmission.reason);
     assert.deepEqual(result.violations, []);
   });
