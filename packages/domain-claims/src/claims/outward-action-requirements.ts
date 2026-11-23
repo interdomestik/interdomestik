@@ -34,12 +34,14 @@ export const outwardActionRequirements = {
   case_fields: [],
 } as const;
 
+export const MAX_SHARED_DOCUMENTS = 20;
+
 export const outboundAuthorityFields = z.object({
   recoveryAuthorityId: registerUuid,
   representationAuthorityId: registerUuid,
   sharingAuthorityId: registerUuid.optional(),
   sharingCoveredByConsentConfirmed: z.literal(true).optional(),
-  sharedDocumentIds: z.array(registerId).optional(),
+  sharedDocumentIds: z.array(registerId).max(MAX_SHARED_DOCUMENTS).optional(),
 });
 
 export function outboundSharingIsAttested(input: z.infer<typeof outboundAuthorityFields>) {

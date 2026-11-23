@@ -58,11 +58,13 @@ vi.mock('@/actions/staff-claims/correspondence', () => ({
 
 const copy = catalog['staff-correspondence'];
 function show(view: ReactNode) {
-  return render(
+  const wrap = (child: ReactNode) => (
     <NextIntlClientProvider locale="en" messages={catalog}>
-      {view}
+      {child}
     </NextIntlClientProvider>
   );
+  const result = render(wrap(view));
+  return { ...result, rerender: (child: ReactNode) => result.rerender(wrap(child)) };
 }
 
 function set(label: string, value: string) {
@@ -146,16 +148,63 @@ describe('case details', () => {
     expect(screen.getByText(fields.insuranceProofReference)).toBeVisible();
     expect(screen.queryByRole('button', { name: copy.caseFields.save })).not.toBeInTheDocument();
   });
+
+  it('refreshes the inputs and expected snapshot together after a conflict', async () => {
+    action.fields.mockResolvedValueOnce({ success: false, code: 'conflict' });
+    const view = show(<ClaimCaseFieldsPanel claimId={claimId} canWrite fields={fields} />);
+    set(copy.caseFields.insurance, 'Local insurance reference');
+    submit(copy.caseFields.save);
+    expect(await screen.findByRole('alert')).toHaveTextContent(copy.feedback.conflict);
+    expect(action.refresh).toHaveBeenCalledOnce();
+    expect(action.fields).toHaveBeenNthCalledWith(1, {
+      claimId,
+      ...fields,
+      insuranceProofReference: 'Local insurance reference',
+      expected: fields,
+    });
+
+    const winning = {
+      otherVehicleCountryCode: 'DE',
+      insuranceProofReference: 'Winning insurance reference',
+      outsideHandlingParty: 'Winning bureau',
+      coverageVerificationStatus: 'requested' as const,
+      caseFollowUpAt: occurredAt,
+    };
+    view.rerender(<ClaimCaseFieldsPanel claimId={claimId} canWrite fields={winning} />);
+    expect(screen.getByLabelText(copy.caseFields.country)).toHaveValue('DE');
+    expect(screen.getByLabelText(copy.caseFields.insurance)).toHaveValue(
+      winning.insuranceProofReference
+    );
+    expect(screen.getByLabelText(copy.caseFields.outsideParty)).toHaveValue(
+      winning.outsideHandlingParty
+    );
+    expect(screen.getByLabelText(copy.caseFields.coverage)).toHaveValue('requested');
+    expect(screen.getByLabelText(copy.caseFields.caseFollowUpUtc)).toHaveValue('2026-01-02T12:30');
+    set(copy.caseFields.insurance, 'Retried reference');
+    submit(copy.caseFields.save);
+    expect(await screen.findByText(copy.feedback.saved)).toBeVisible();
+    expect(action.fields).toHaveBeenNthCalledWith(2, {
+      claimId,
+      ...winning,
+      insuranceProofReference: 'Retried reference',
+      expected: winning,
+    });
+  });
 });
 
 describe('authorizations', () => {
   it('requires a jurisdiction confirmation and records only the checkbox literal', async () => {
     show(
-      <ClaimAuthoritiesPanel claimId={claimId} canWrite authorities={[]} documents={documents} />
+      <ClaimAuthoritiesPanel
+        claimId={claimId}
+        canWrite
+        authorities={[]}
+        documents={[...documents, { id: ' doc-a ', name: 'Different instrument.pdf' }]}
+      />
     );
     expect(screen.getByText(copy.authorities.empty)).toBeVisible();
     set(copy.authorities.kind, 'power_of_attorney');
-    set(copy.authorities.instrument, 'doc-a');
+    set(copy.authorities.instrument, ' doc-a ');
     set(copy.authorities.version, 'v1');
     set(copy.authorities.grantedUtc, '2026-01-02T12:30');
     set(copy.authorities.jurisdiction, 'de');
@@ -167,7 +216,7 @@ describe('authorizations', () => {
     expect(action.record).toHaveBeenCalledExactlyOnceWith({
       claimId,
       kind: 'power_of_attorney',
-      evidenceDocumentId: 'doc-a',
+      evidenceDocumentId: ' doc-a ',
       version: 'v1',
       grantedAt: occurredAt,
       expiresAt: null,
@@ -350,5 +399,24 @@ describe('correspondence', () => {
       />
     );
     expect(screen.queryByRole('navigation', { name: copy.list.pages })).not.toBeInTheDocument();
+  });
+
+  it('labels an inbound reply whose outbound parent is on an older page', () => {
+    show(
+      <ClaimCorrespondenceList
+        claimId={claimId}
+        canWrite={false}
+        documents={[]}
+        entries={[{ ...outbound, id: 'reply-a', direction: 'inbound', inReplyToId: outbound.id }]}
+        replyParents={[outbound]}
+        page={1}
+        perPage={1}
+        total={2}
+      />
+    );
+    expect(screen.getByText(/^Reply to Synthetic insurer/)).toBeVisible();
+    expect(
+      screen.queryByRole('link', { name: /^Reply to Synthetic insurer/ })
+    ).not.toBeInTheDocument();
   });
 });

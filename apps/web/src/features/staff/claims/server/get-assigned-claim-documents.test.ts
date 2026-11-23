@@ -6,7 +6,7 @@ type QueryChain = {
   innerJoin: (table: unknown, predicate: unknown) => QueryChain;
   leftJoin: (table: unknown, predicate: unknown) => QueryChain;
   limit: (count: number) => Promise<unknown[]>;
-  orderBy: (order: unknown) => Promise<unknown[]>;
+  orderBy: (...order: unknown[]) => QueryChain;
   where: (predicate: unknown) => QueryChain;
 };
 type StaffUser = {
@@ -77,7 +77,10 @@ const tx = {
         return chain;
       },
       limit: hoisted.limit,
-      orderBy: hoisted.orderBy,
+      orderBy: (...order) => {
+        hoisted.orderBy(...order);
+        return chain;
+      },
       where: predicate => {
         hoisted.wheres.push(predicate);
         return chain;
@@ -114,7 +117,7 @@ beforeEach(() => {
 describe('getAssignedStaffClaimDocuments', () => {
   it('returns the minimal projection and canonical links to assigned staff', async () => {
     hoisted.limit.mockResolvedValueOnce([{ id: 'claim-1' }]);
-    hoisted.orderBy.mockResolvedValueOnce([
+    hoisted.limit.mockResolvedValueOnce([
       {
         id: 'doc-1',
         name: 'evidence.pdf',
@@ -194,15 +197,16 @@ describe('getAssignedStaffClaimDocuments', () => {
         },
       }),
     ]);
-    expect(hoisted.orderBy).toHaveBeenCalledWith({
-      op: 'desc',
-      column: 'claim_documents.created_at',
-    });
+    expect(hoisted.orderBy).toHaveBeenCalledWith(
+      { op: 'desc', column: 'claim_documents.created_at' },
+      { op: 'desc', column: 'claim_documents.id' }
+    );
+    expect(hoisted.limit).toHaveBeenLastCalledWith(100);
   });
 
   it('encodes document ids in the canonical authorized download route', async () => {
     hoisted.limit.mockResolvedValueOnce([{ id: 'claim-1' }]);
-    hoisted.orderBy.mockResolvedValueOnce([
+    hoisted.limit.mockResolvedValueOnce([
       { id: 'doc/1?x', name: 'a.pdf', fileType: 'application/pdf', fileSize: 1 },
     ]);
 
@@ -242,7 +246,7 @@ describe('getAssignedStaffClaimDocuments', () => {
   it('reads under the authority it is given, never a tenant carried by the session object', async () => {
     const other = mintTestTenantAuthority('tenant-b');
     hoisted.limit.mockResolvedValueOnce([{ id: 'claim-1' }]);
-    hoisted.orderBy.mockResolvedValueOnce([
+    hoisted.limit.mockResolvedValueOnce([
       { id: 'doc-b', name: 'access.pdf', fileType: 'application/pdf', fileSize: 2 },
     ]);
     await expect(read(staff(), other)).resolves.toEqual([

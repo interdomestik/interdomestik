@@ -32,6 +32,7 @@ import { caseAuthorityScopes } from './outward-action-requirements';
 import type { ClaimsSession } from './types';
 
 type AuthorityKind = keyof typeof caseAuthorityScopes;
+const authorityScope = z.enum(caseAuthorityScopes);
 
 export const recordCaseAuthorityInputSchema = registerClaimInput.extend({
   correlationId: registerUuid,
@@ -265,6 +266,8 @@ async function readAuthorities(tx: TenantTransaction, tenantId: string, claimId:
   return {
     authorities: rows.map(row => ({
       ...row,
+      kind: recordCaseAuthorityInputSchema.shape.kind.parse(row.kind),
+      scope: authorityScope.parse(row.scope),
       jurisdictionAttestedAt: row.jurisdictionAttestedAt?.toISOString() ?? null,
       grantedAt: row.grantedAt.toISOString(),
       expiresAt: row.expiresAt?.toISOString() ?? null,

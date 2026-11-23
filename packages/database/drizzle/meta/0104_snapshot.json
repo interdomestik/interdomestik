@@ -1,5 +1,5 @@
 {
-  "id": "159e6657-92d1-47c8-8d11-d84271c2439d",
+  "id": "af1878ff-e29c-439b-857c-64317affe535",
   "prevId": "ccc8f4ad-6910-498a-a5a2-7d7d15d9e3e0",
   "version": "7",
   "dialect": "postgresql",
@@ -20621,7 +20621,13 @@
               "nulls": "last"
             },
             {
-              "expression": "created_at",
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -20829,7 +20835,7 @@
         },
         "claim_correspondence_document_count_check": {
           "name": "claim_correspondence_document_count_check",
-          "value": "\"claim_correspondence\".\"shared_document_count\" >= 0"
+          "value": "\"claim_correspondence\".\"shared_document_count\" between 0 and 20"
         },
         "claim_correspondence_sharing_check": {
           "name": "claim_correspondence_sharing_check",

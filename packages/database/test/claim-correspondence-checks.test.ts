@@ -103,6 +103,7 @@ test('WP-12 database CHECK constraints under restricted writes', async t => {
             ['body', { ...inbound, body: '\t' }],
             ['reply_direction', { ...outbound, in_reply_to_id: own.entry.id }],
             ['document_count', { ...outbound, shared_document_count: -1 }],
+            ['document_count', { ...outboundInput(own.claim, own.bases, 21), decided_at: past }],
             ['sharing', { ...outbound, shared_document_count: 1 }],
             [
               'sharing',

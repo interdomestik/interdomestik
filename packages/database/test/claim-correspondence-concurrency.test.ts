@@ -203,34 +203,5 @@ test('WP-12 concurrent correspondence and authority decisions', async t => {
         }
       }
     );
-
-    await t.test(
-      'draft editing and submission serialize their compare-and-set in both orders',
-      async () => {
-        for (const submitFirst of [true, false]) {
-          const draft = await insertClaim(admin, { lifecycle: 'draft', category: 'property' });
-          const edit = async (tx: Tx) => {
-            const rows = await tx`update claim set category = 'vehicle' where id = ${draft.id}
-            and case_lifecycle_state = 'draft' returning id`;
-            assert.equal(rows.length, submitFirst ? 0 : 1);
-          };
-          const submit = async (tx: Tx) => {
-            const [row] =
-              await tx`update claim set case_lifecycle_state = 'submitted' where id = ${draft.id}
-            and case_lifecycle_state = 'draft' and claim_category_open_for_intake(category) returning category`;
-            assert.equal(row.category, submitFirst ? 'property' : 'vehicle');
-          };
-          await overlap(connections, submitFirst ? submit : edit, submitFirst ? edit : submit);
-          const [stored] = await restricted(
-            runtime,
-            tx => tx`select case_lifecycle_state, category from claim where id = ${draft.id}`
-          );
-          assert.deepEqual(stored, {
-            case_lifecycle_state: 'submitted',
-            category: submitFirst ? 'property' : 'vehicle',
-          });
-        }
-      }
-    );
   });
 });

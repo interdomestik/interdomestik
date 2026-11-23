@@ -4,6 +4,7 @@ import { listCaseAuthorities } from '@interdomestik/domain-claims/claims/case-au
 import {
   getClaimCorrespondenceSummary,
   listClaimCorrespondence,
+  listRegisterCitationNames,
 } from '@interdomestik/domain-claims/claims/correspondence-read';
 import { getGreenCardCaseFields } from '@interdomestik/domain-claims/claims/green-card-case-fields';
 import * as Sentry from '@sentry/nextjs';
@@ -26,7 +27,7 @@ async function settleRead<T extends object>(read: Promise<T>) {
 /** Register entries per page of the staff case page. */
 export const REGISTER_PAGE_SIZE = 20;
 
-export function readStaffCaseRegister(
+export async function readStaffCaseRegister(
   session: RegisterReadContext[0],
   authority: RegisterReadContext[1],
   claimId: string,
@@ -34,12 +35,25 @@ export function readStaffCaseRegister(
 ) {
   const input = { claimId };
   const page = { claimId, page: clampPage(correspondencePage), perPage: REGISTER_PAGE_SIZE };
-  return Promise.all([
+  const [fields, authorities, correspondence] = await Promise.all([
     settleRead(getGreenCardCaseFields(session, authority, input)),
     // At most one row per authority kind (a unique key), so this list needs no page.
     settleRead(listCaseAuthorities(session, authority, input)),
     settleRead(listClaimCorrespondence(session, authority, page)),
   ]);
+  const documentIds = [
+    ...new Set([
+      ...(authorities.ok ? authorities.authorities.map(entry => entry.evidenceDocumentId) : []),
+      ...(correspondence.ok
+        ? correspondence.entries.flatMap(entry => entry.sharedDocumentIds)
+        : []),
+    ]),
+  ];
+  const citationNames =
+    documentIds.length > 0
+      ? await settleRead(listRegisterCitationNames(session, authority, { claimId, documentIds }))
+      : { ok: true as const, documents: [] };
+  return [fields, authorities, correspondence, citationNames] as const;
 }
 
 export function readBranchCorrespondenceSummary(

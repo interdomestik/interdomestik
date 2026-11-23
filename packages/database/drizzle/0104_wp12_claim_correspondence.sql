@@ -86,7 +86,7 @@ CREATE TABLE "claim_correspondence" (
 	CONSTRAINT "claim_correspondence_organisation_check" CHECK ("claim_correspondence"."party_organisation" ~ '\S'),
 	CONSTRAINT "claim_correspondence_body_check" CHECK ("claim_correspondence"."body" ~ '\S'),
 	CONSTRAINT "claim_correspondence_reply_direction_check" CHECK ("claim_correspondence"."in_reply_to_id" is null or "claim_correspondence"."direction" = 'inbound'),
-	CONSTRAINT "claim_correspondence_document_count_check" CHECK ("claim_correspondence"."shared_document_count" >= 0),
+	CONSTRAINT "claim_correspondence_document_count_check" CHECK ("claim_correspondence"."shared_document_count" between 0 and 20),
 	CONSTRAINT "claim_correspondence_sharing_check" CHECK (("claim_correspondence"."sharing_authority_id" is not null) = ("claim_correspondence"."shared_document_count" > 0)
         and ("claim_correspondence"."sharing_authority_id" is not null) = ("claim_correspondence"."sharing_attested_by_user_id" is not null)
         and ("claim_correspondence"."sharing_authority_id" is not null) = ("claim_correspondence"."sharing_attested_at" is not null)
@@ -119,7 +119,7 @@ CREATE UNIQUE INDEX "claim_case_fields_claim_uq" ON "claim_case_fields" USING bt
 CREATE INDEX "claim_case_fields_follow_up_idx" ON "claim_case_fields" USING btree ("tenant_id","case_follow_up_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "claim_correspondence_correlation_uq" ON "claim_correspondence" USING btree ("tenant_id","correlation_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "claim_correspondence_tenant_claim_id_uq" ON "claim_correspondence" USING btree ("tenant_id","claim_id","id");--> statement-breakpoint
-CREATE INDEX "claim_correspondence_claim_idx" ON "claim_correspondence" USING btree ("tenant_id","claim_id","created_at");--> statement-breakpoint
+CREATE INDEX "claim_correspondence_claim_idx" ON "claim_correspondence" USING btree ("tenant_id","claim_id","occurred_at","id");--> statement-breakpoint
 CREATE INDEX "claim_correspondence_reply_idx" ON "claim_correspondence" USING btree ("tenant_id","claim_id","in_reply_to_id");--> statement-breakpoint
 CREATE INDEX "claim_correspondence_documents_entry_idx" ON "claim_correspondence_documents" USING btree ("tenant_id","claim_id","correspondence_id");--> statement-breakpoint
 CREATE INDEX "claim_correspondence_documents_document_idx" ON "claim_correspondence_documents" USING btree ("tenant_id","claim_id","claim_document_id");--> statement-breakpoint
@@ -198,6 +198,23 @@ BEGIN
   END IF;
 END;
 $$;
+--> statement-breakpoint
+-- The storage coordinates of a case document never change (R-35, no overwrite). AFTER ROW sees
+-- the final row after every BEFORE trigger; it reads nothing, so no RLS can hide anything from it.
+CREATE FUNCTION public.claim_documents_coordinates_frozen_fn() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  IF NEW.tenant_id IS DISTINCT FROM OLD.tenant_id OR NEW.claim_id IS DISTINCT FROM OLD.claim_id
+    OR NEW.id IS DISTINCT FROM OLD.id OR NEW.bucket IS DISTINCT FROM OLD.bucket
+    OR NEW.file_path IS DISTINCT FROM OLD.file_path THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1203', MESSAGE = 'Case document storage coordinates cannot change';
+  END IF;
+  RETURN NULL;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER claim_documents_coordinates_frozen AFTER UPDATE ON public.claim_documents
+FOR EACH ROW EXECUTE FUNCTION public.claim_documents_coordinates_frozen_fn();
 --> statement-breakpoint
 CREATE FUNCTION public.claim_document_provenance_ok(p_tenant_id text, p_claim_id text, p_document_id text)
 RETURNS boolean
@@ -454,51 +471,6 @@ DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.claim_corresp
 CREATE CONSTRAINT TRIGGER claim_correspondence_documents_document_count AFTER INSERT ON public.claim_correspondence_documents
 DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION public.claim_correspondence_document_count_fn();
 --> statement-breakpoint
-CREATE FUNCTION public.claim_category_open_for_intake(p_category text) RETURNS boolean
-LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE SECURITY INVOKER SET search_path = pg_catalog, pg_temp
-BEGIN ATOMIC
-  -- Match the whitespace trimmed by JavaScript String.prototype.trim().
-  SELECT pg_catalog.lower(pg_catalog.btrim(
-    p_category, U&'\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF'
-  ) COLLATE pg_catalog."C") IN ('vehicle', 'property', 'travel');
-END;
---> statement-breakpoint
-CREATE FUNCTION public.claim_intake_category_guard_fn() RETURNS trigger
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
-BEGIN
-  IF TG_OP = 'UPDATE' THEN
-    IF NEW.category IS NOT DISTINCT FROM OLD.category
-      AND NOT (OLD.case_lifecycle_state = 'draft' AND NEW.case_lifecycle_state <> 'draft') THEN
-      RETURN NEW;
-    END IF;
-  END IF;
-  IF public.claim_category_open_for_intake(NEW.category) IS NOT TRUE THEN
-    RAISE EXCEPTION USING ERRCODE = 'P1204', MESSAGE = 'The claim category is closed for intake';
-  END IF;
-  RETURN NEW;
-END;
-$$;
---> statement-breakpoint
-CREATE TRIGGER claim_intake_category_guard BEFORE INSERT OR UPDATE OF category, case_lifecycle_state ON public.claim
-FOR EACH ROW EXECUTE FUNCTION public.claim_intake_category_guard_fn();
---> statement-breakpoint
--- The storage coordinates of a case document never change (R-35, no overwrite). AFTER ROW sees
--- the final row after every BEFORE trigger; it reads nothing, so no RLS can hide anything from it.
-CREATE FUNCTION public.claim_documents_coordinates_frozen_fn() RETURNS trigger
-LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
-BEGIN
-  IF NEW.tenant_id IS DISTINCT FROM OLD.tenant_id OR NEW.claim_id IS DISTINCT FROM OLD.claim_id
-    OR NEW.id IS DISTINCT FROM OLD.id OR NEW.bucket IS DISTINCT FROM OLD.bucket
-    OR NEW.file_path IS DISTINCT FROM OLD.file_path THEN
-    RAISE EXCEPTION USING ERRCODE = 'P1203', MESSAGE = 'Case document storage coordinates cannot change';
-  END IF;
-  RETURN NULL;
-END;
-$$;
---> statement-breakpoint
-CREATE TRIGGER claim_documents_coordinates_frozen AFTER UPDATE ON public.claim_documents
-FOR EACH ROW EXECUTE FUNCTION public.claim_documents_coordinates_frozen_fn();
---> statement-breakpoint
 -- The final citing row (after every BEFORE INSERT trigger) must still copy its document's storage.
 CREATE FUNCTION public.claim_citation_copy_check_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
@@ -532,3 +504,31 @@ FOR EACH ROW EXECUTE FUNCTION public.claim_citation_copy_check_fn();
 --> statement-breakpoint
 CREATE TRIGGER claim_correspondence_documents_citation_copy_check AFTER INSERT ON public.claim_correspondence_documents
 FOR EACH ROW EXECUTE FUNCTION public.claim_citation_copy_check_fn();
+--> statement-breakpoint
+CREATE FUNCTION public.claim_category_open_for_intake(p_category text) RETURNS boolean
+LANGUAGE sql IMMUTABLE STRICT PARALLEL SAFE SECURITY INVOKER SET search_path = pg_catalog, pg_temp
+BEGIN ATOMIC
+  -- Match the whitespace trimmed by JavaScript String.prototype.trim().
+  SELECT pg_catalog.lower(pg_catalog.btrim(
+    p_category, U&'\0009\000A\000B\000C\000D\0020\00A0\1680\2000\2001\2002\2003\2004\2005\2006\2007\2008\2009\200A\2028\2029\202F\205F\3000\FEFF'
+  ) COLLATE pg_catalog."C") IN ('vehicle', 'property', 'travel');
+END;
+--> statement-breakpoint
+CREATE FUNCTION public.claim_intake_category_guard_fn() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' THEN
+    IF NEW.category IS NOT DISTINCT FROM OLD.category
+      AND NOT (OLD.case_lifecycle_state = 'draft' AND NEW.case_lifecycle_state <> 'draft') THEN
+      RETURN NEW;
+    END IF;
+  END IF;
+  IF public.claim_category_open_for_intake(NEW.category) IS NOT TRUE THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1204', MESSAGE = 'The claim category is closed for intake';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER claim_intake_category_guard BEFORE INSERT OR UPDATE OF category, case_lifecycle_state ON public.claim
+FOR EACH ROW EXECUTE FUNCTION public.claim_intake_category_guard_fn();

@@ -4,7 +4,7 @@ import { updateGreenCardCaseFields } from '@/actions/staff-claims/case-authoriti
 import { formatPilotDateTime } from '@/lib/utils/date';
 import type { GreenCardCaseFields } from '@interdomestik/domain-claims/claims/green-card-case-fields';
 import { useLocale, useTranslations } from 'next-intl';
-import { useId, type FormEvent } from 'react';
+import { useId, useState, type FormEvent } from 'react';
 import {
   RegisterFeedback,
   RegisterInput,
@@ -18,6 +18,16 @@ import {
 
 const statuses = ['not_checked', 'requested', 'confirmed_by_party', 'refused_by_party'] as const;
 
+function editableFields(fields: GreenCardCaseFields) {
+  return {
+    otherVehicleCountryCode: fields.otherVehicleCountryCode ?? '',
+    insuranceProofReference: fields.insuranceProofReference ?? '',
+    outsideHandlingParty: fields.outsideHandlingParty ?? '',
+    coverageVerificationStatus: fields.coverageVerificationStatus,
+    caseFollowUpAt: utcInputValue(fields.caseFollowUpAt),
+  };
+}
+
 export function ClaimCaseFieldsPanel({
   canWrite,
   claimId,
@@ -27,6 +37,33 @@ export function ClaimCaseFieldsPanel({
   const locale = useLocale();
   const title = useId();
   const mutation = useRegisterMutation();
+  const revision = JSON.stringify([
+    claimId,
+    fields.otherVehicleCountryCode,
+    fields.insuranceProofReference,
+    fields.outsideHandlingParty,
+    fields.coverageVerificationStatus,
+    fields.caseFollowUpAt,
+  ]);
+  const [form, setForm] = useState(() => ({
+    revision,
+    expected: fields,
+    values: editableFields(fields),
+  }));
+  if (form.revision !== revision) {
+    setForm({ revision, expected: fields, values: editableFields(fields) });
+  }
+
+  function bind(name: keyof GreenCardCaseFields) {
+    return {
+      name,
+      value: form.values[name],
+      onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        const value = event.currentTarget.value;
+        setForm(previous => ({ ...previous, values: { ...previous.values, [name]: value } }));
+      },
+    };
+  }
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -39,7 +76,7 @@ export function ClaimCaseFieldsPanel({
         outsideHandlingParty: formText(data, 'outsideHandlingParty') || null,
         coverageVerificationStatus: formText(data, 'coverageVerificationStatus'),
         caseFollowUpAt: formTimestamp(data, 'caseFollowUpAt'),
-        expected: fields,
+        expected: form.expected,
       })
     );
   }
@@ -62,27 +99,23 @@ export function ClaimCaseFieldsPanel({
           <fieldset disabled={mutation.pending} className="grid min-w-0 gap-3 sm:grid-cols-2">
             <RegisterInput
               label={t('caseFields.country')}
-              name="otherVehicleCountryCode"
-              defaultValue={fields.otherVehicleCountryCode ?? ''}
+              {...bind('otherVehicleCountryCode')}
               pattern="[A-Za-z]{2}"
               maxLength={2}
             />
             <RegisterInput
               label={t('caseFields.insurance')}
-              name="insuranceProofReference"
-              defaultValue={fields.insuranceProofReference ?? ''}
+              {...bind('insuranceProofReference')}
               maxLength={200}
             />
             <RegisterInput
               label={t('caseFields.outsideParty')}
-              name="outsideHandlingParty"
-              defaultValue={fields.outsideHandlingParty ?? ''}
+              {...bind('outsideHandlingParty')}
               maxLength={200}
             />
             <RegisterSelect
               label={t('caseFields.coverage')}
-              name="coverageVerificationStatus"
-              defaultValue={fields.coverageVerificationStatus}
+              {...bind('coverageVerificationStatus')}
             >
               {statuses.map(status => (
                 <option key={status} value={status}>
@@ -92,10 +125,9 @@ export function ClaimCaseFieldsPanel({
             </RegisterSelect>
             <RegisterInput
               label={t('caseFields.caseFollowUpUtc')}
-              name="caseFollowUpAt"
+              {...bind('caseFollowUpAt')}
               type="datetime-local"
               step="any"
-              defaultValue={utcInputValue(fields.caseFollowUpAt)}
             />
           </fieldset>
           <RegisterSubmit pending={mutation.pending}>{t('caseFields.save')}</RegisterSubmit>

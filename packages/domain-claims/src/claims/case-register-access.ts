@@ -60,19 +60,31 @@ const registerUuidFields = [
   'correspondenceId',
 ] as const;
 
+const registerDisplayTextFields = [
+  'partyOrganisation',
+  'partyReference',
+  'partyContactName',
+  'body',
+  'version',
+  'purpose',
+  'insuranceProofReference',
+  'outsideHandlingParty',
+] as const;
+
 /**
  * Each write command normalizes its parsed input (the action schema form admits no transform):
- * text is trimmed, and UUIDs are lower-cased because PostgreSQL returns them in lower case and
+ * display text is trimmed, and UUIDs are lower-cased because PostgreSQL returns them in lower case and
  * replay and basis lookups compare them as strings.
  */
 export function normalizeRegisterInput<T extends object>(input: T): T {
   const result = { ...input } as Record<string, unknown>;
-  for (const [field, value] of Object.entries(result)) {
-    if (typeof value !== 'string') continue;
-    const trimmed = value.trim();
-    result[field] = (registerUuidFields as readonly string[]).includes(field)
-      ? trimmed.toLowerCase()
-      : trimmed;
+  for (const field of registerUuidFields) {
+    const value = result[field];
+    if (typeof value === 'string') result[field] = value.toLowerCase();
+  }
+  for (const field of registerDisplayTextFields) {
+    const value = result[field];
+    if (typeof value === 'string') result[field] = value.trim();
   }
   return result as T;
 }

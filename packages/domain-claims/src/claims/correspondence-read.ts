@@ -2,6 +2,7 @@ import {
   and,
   asc,
   claimCorrespondence,
+  claimDocuments,
   desc,
   inArray,
   claimCorrespondenceDocuments,
@@ -12,17 +13,34 @@ import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { sql } from 'drizzle-orm';
+import { z } from 'zod';
 import {
+  REGISTER_MAX_PAGE_SIZE,
   lockCaseForRegister,
   registerClaimInput,
   registerForbidden,
+  registerId,
   registerPageInput,
   resolveRegisterRead,
 } from './case-register-access';
+import { recordInboundCorrespondenceInputSchema } from './correspondence';
+import { caseAuthorityScopes, MAX_SHARED_DOCUMENTS } from './outward-action-requirements';
 import type { ClaimsSession } from './types';
 
 export const listClaimCorrespondenceInputSchema = registerPageInput;
 export const getClaimCorrespondenceSummaryInputSchema = registerClaimInput;
+const correspondenceDirection = z.enum(['outbound', 'inbound']);
+const correspondenceContact = recordInboundCorrespondenceInputSchema.shape;
+const citationNamesInput = registerClaimInput.extend({
+  documentIds: z
+    .array(registerId)
+    .max(REGISTER_MAX_PAGE_SIZE * MAX_SHARED_DOCUMENTS + Object.keys(caseAuthorityScopes).length),
+});
+
+export type CorrespondenceReplyParent = Pick<
+  ClaimCorrespondenceEntry,
+  'id' | 'partyOrganisation' | 'occurredAt'
+>;
 
 function groupDocumentIds(links: { correspondenceId: string; documentId: string }[]) {
   const byEntry = new Map<string, string[]>();
@@ -79,13 +97,12 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, input
     .limit(perPage)
     .offset((page - 1) * perPage);
   const entryIds = rows.map(row => row.id);
-  // Replies to this page's entries only (claim_correspondence_reply_idx), so the cost follows
-  // the page size, not the size of the tenant's register.
+  // Return one answered flag per page entry, even if it has many inbound replies.
   const replies =
     entryIds.length === 0
       ? []
       : await tx
-          .select({ inReplyToId: claimCorrespondence.inReplyToId })
+          .selectDistinct({ inReplyToId: claimCorrespondence.inReplyToId })
           .from(claimCorrespondence)
           .where(
             withTenant(
@@ -99,6 +116,27 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, input
             )
           );
   const answered = new Set(replies.map(reply => reply.inReplyToId));
+  const parents = new Set(rows.flatMap(({ inReplyToId }) => (inReplyToId ? [inReplyToId] : [])));
+  const replyParents =
+    parents.size === 0
+      ? []
+      : await tx
+          .select({
+            id: claimCorrespondence.id,
+            partyOrganisation: claimCorrespondence.partyOrganisation,
+            occurredAt: claimCorrespondence.occurredAt,
+          })
+          .from(claimCorrespondence)
+          .where(
+            withTenant(
+              tenantId,
+              claimCorrespondence.tenantId,
+              and(
+                eq(claimCorrespondence.claimId, claimId),
+                inArray(claimCorrespondence.id, [...parents])
+              )
+            )
+          );
   const links =
     entryIds.length === 0
       ? []
@@ -125,8 +163,12 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, input
     page,
     perPage,
     total,
+    replyParents: replyParents.map(row => ({ ...row, occurredAt: row.occurredAt.toISOString() })),
     entries: rows.map(row => ({
       ...row,
+      direction: correspondenceDirection.parse(row.direction),
+      partyKind: correspondenceContact.partyKind.parse(row.partyKind),
+      channel: correspondenceContact.channel.parse(row.channel),
       answered: answered.has(row.id),
       occurredAt: row.occurredAt.toISOString(),
       followUpAt: row.followUpAt?.toISOString() ?? null,
@@ -141,6 +183,53 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, input
         row.followUpAt.getTime() < now,
     })),
   };
+}
+
+/** Names only for the cited document IDs already read by the register for this page. */
+export async function listRegisterCitationNames(
+  session: ClaimsSession | null,
+  authority: TenantAuthority | null,
+  input: unknown
+) {
+  const access = resolveRegisterRead(session, authority, input, 'full', citationNamesInput);
+  if (!access.ok) return access;
+  const {
+    tenantId,
+    actor,
+    data: { claimId, documentIds },
+  } = access;
+  return withTenantAuthority(access.authority, async tx => {
+    if (!(await lockCaseForRegister(tx, tenantId, claimId, actor, 'full')))
+      return registerForbidden;
+    const documents =
+      documentIds.length === 0
+        ? []
+        : await tx
+            .select({ id: claimDocuments.id, name: claimDocuments.name })
+            .from(claimDocuments)
+            .where(
+              withTenant(
+                tenantId,
+                claimDocuments.tenantId,
+                and(
+                  eq(claimDocuments.claimId, claimId),
+                  inArray(claimDocuments.id, documentIds),
+                  sql`(exists (
+          select 1 from public."claim_authorities" a
+          where a.tenant_id = "claim_documents"."tenant_id"
+            and a.claim_id = "claim_documents"."claim_id"
+            and a.evidence_document_id = "claim_documents"."id"
+        ) or exists (
+          select 1 from public."claim_correspondence_documents" d
+          where d.tenant_id = "claim_documents"."tenant_id"
+            and d.claim_id = "claim_documents"."claim_id"
+            and d.claim_document_id = "claim_documents"."id"
+        ))`
+                )
+              )
+            );
+    return { ok: true as const, documents };
+  });
 }
 
 export type ClaimCorrespondenceEntry = Awaited<

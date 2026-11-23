@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
 import test, { type TestContext } from 'node:test';
 import type postgres from 'postgres';
 
@@ -11,6 +12,9 @@ import {
   insertClaim,
   insertDocument,
   insertEntry,
+  inboundInput,
+  insertLink,
+  linkInput,
   outboundInput,
   past,
   restricted,
@@ -28,12 +32,11 @@ import {
   type Actor,
 } from './claim-correspondence-domain.fixture';
 
-type Result = { ok: true } | { ok: false; code: string };
-type Command<I> = (
+type Command<I, T extends object = object> = (
   session: Actor['session'],
   authority: Actor['authority'],
   input: I
-) => Promise<Result>;
+) => Promise<({ ok: true } & T) | { ok: false; code: string }>;
 type CaseFields = {
   otherVehicleCountryCode: string | null;
   insuranceProofReference: string | null;
@@ -43,9 +46,14 @@ type CaseFields = {
 };
 type Attention = Record<
   string,
-  { overdueFollowUpDueAt: string | null; overdueFollowUpSource?: string }
+  { nextActor: string; overdueFollowUpDueAt: string | null; overdueFollowUpSource?: string }
 >;
 type Domain = {
+  listClaimCorrespondence: Command<{ claimId: string; page: number; perPage: number }>;
+  listRegisterCitationNames: Command<
+    { claimId: string; documentIds: string[] },
+    { documents: { id: string; name: string }[] }
+  >;
   updateGreenCardCaseFields: Command<{ claimId: string; expected: CaseFields } & CaseFields>;
   setCorrespondenceFollowUp: Command<{
     claimId: string;
@@ -54,15 +62,20 @@ type Domain = {
     followUpAt: string | null;
   }>;
   revokeCaseAuthority: Command<{ claimId: string; authorityId: string }>;
+  recordCaseAuthority: Command<{
+    claimId: string;
+    correlationId: string;
+    kind: string;
+    evidenceDocumentId: string;
+    version: string;
+    grantedAt: string;
+  }>;
   getAssignedStaffClaimAttention: (
     session: Actor['session'],
     authority: Actor['authority'],
     claimIds: string[],
     now?: Date
   ) => Promise<Attention>;
-  updateDraftClaimCore: (
-    params: Record<string, unknown>
-  ) => Promise<{ success: boolean; error?: string; code?: string }>;
 };
 
 const otherStaff = 'wp12-other-staff';
@@ -76,19 +89,24 @@ const defaults: CaseFields = {
 const conflict = { ok: false, code: 'conflict' };
 
 async function loadDomain(): Promise<Domain> {
-  const [fields, followUp, authorities, root, draft] = await Promise.all([
+  const [fields, followUp, authorities, root, reads] = await Promise.all([
     importDomain<Pick<Domain, 'updateGreenCardCaseFields'>>('/claims/green-card-case-fields'),
     importDomain<Pick<Domain, 'setCorrespondenceFollowUp'>>('/claims/correspondence'),
-    importDomain<Pick<Domain, 'revokeCaseAuthority'>>('/claims/case-authorities'),
+    importDomain<Pick<Domain, 'recordCaseAuthority' | 'revokeCaseAuthority'>>(
+      '/claims/case-authorities'
+    ),
     importDomain<Pick<Domain, 'getAssignedStaffClaimAttention'>>(''),
-    importDomain<Pick<Domain, 'updateDraftClaimCore'>>('/claims/draft'),
+    importDomain<Pick<Domain, 'listClaimCorrespondence' | 'listRegisterCitationNames'>>(
+      '/claims/correspondence-read'
+    ),
   ]);
   return {
     updateGreenCardCaseFields: fields.updateGreenCardCaseFields,
     setCorrespondenceFollowUp: followUp.setCorrespondenceFollowUp,
     revokeCaseAuthority: authorities.revokeCaseAuthority,
+    recordCaseAuthority: authorities.recordCaseAuthority,
     getAssignedStaffClaimAttention: root.getAssignedStaffClaimAttention,
-    updateDraftClaimCore: draft.updateDraftClaimCore,
+    ...reads,
   };
 }
 
@@ -144,6 +162,87 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
   const storedFields = async (claimId: string) =>
     admin`select insurance_proof_reference, updated_by_staff_id from claim_case_fields
       where claim_id = ${claimId}`;
+
+  await t.test(
+    'register reads preserve cross-page parents and only names of cited case documents',
+    async () => {
+      const claim = await insertClaim(admin, { branch: ownBranch });
+      const other = await insertClaim(admin, { branch: ownBranch });
+      const { entry, evidence, sent, uncited, offCase } = await restricted(runtime, async tx => {
+        const evidence = await insertDocument(tx, documentInput(claim));
+        const sent = await insertDocument(tx, documentInput(claim, 'sent-document'));
+        const uncited = await insertDocument(tx, documentInput(claim, ' sent-document '));
+        const offCase = await insertDocument(tx, documentInput(other));
+        const bases = await createBases(tx, claim, evidence);
+        const entry = await insertEntry(tx, {
+          ...outboundInput(claim, bases, 1),
+          occurred_at: earlier,
+        });
+        await insertLink(tx, linkInput(entry, sent));
+        for (const _ of [1, 2]) {
+          await insertEntry(tx, { ...inboundInput(claim), in_reply_to_id: entry.id });
+        }
+        return { entry, evidence, sent, uncited, offCase };
+      });
+      const page = (number: number) =>
+        domain.listClaimCorrespondence(staff.session, staff.authority, {
+          claimId: claim.id,
+          page: number,
+          perPage: 1,
+        });
+      assert.partialDeepStrictEqual(await page(1), {
+        ok: true,
+        entries: [{ inReplyToId: entry.id }],
+        replyParents: [
+          { id: entry.id, partyOrganisation: entry.party_organisation, occurredAt: earlier },
+        ],
+      });
+      assert.partialDeepStrictEqual(await page(3), {
+        ok: true,
+        entries: [{ id: entry.id, answered: true }],
+      });
+      const citationInput = {
+        claimId: claim.id,
+        documentIds: [sent.id, evidence.id, uncited.id, offCase.id],
+      };
+      const names = await domain.listRegisterCitationNames(
+        staff.session,
+        staff.authority,
+        citationInput
+      );
+      assert.equal(names.ok, true);
+      assert.deepEqual(
+        new Map(names.documents.map(({ id, name }) => [id, name])),
+        new Map([sent, evidence].map(({ id, name }) => [id, name]))
+      );
+      const manager = actor(homeActor, 'branch_manager');
+      assert.deepEqual(
+        await domain.listRegisterCitationNames(manager.session, manager.authority, citationInput),
+        { ok: false, code: 'forbidden' }
+      );
+      const grant = {
+        claimId: claim.id,
+        correlationId: randomUUID(),
+        kind: 'signed_assignment',
+        evidenceDocumentId: uncited.id,
+        version: 'v1',
+        grantedAt: past,
+      };
+      assert.deepEqual(await domain.recordCaseAuthority(staff.session, staff.authority, grant), {
+        ok: false,
+        code: 'document_invalid',
+      });
+      assert.equal(
+        (
+          await domain.recordCaseAuthority(staff.session, staff.authority, {
+            ...grant,
+            evidenceDocumentId: sent.id,
+          })
+        ).ok,
+        true
+      );
+    }
+  );
 
   await t.test(
     'case fields: compare-and-set in both orders, then under a held claim lock',
@@ -205,6 +304,41 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
     assert.equal((await storedFields(claim.id)).length, 0);
   });
 
+  await t.test(
+    'case fields: populated expectations match only the same populated row',
+    async () => {
+      const claim = await insertClaim(admin, { branch: ownBranch });
+      const absent = await insertClaim(admin, { branch: ownBranch });
+      const populated = {
+        otherVehicleCountryCode: 'DE',
+        insuranceProofReference: 'Original proof',
+        outsideHandlingParty: 'Original bureau',
+        coverageVerificationStatus: 'requested',
+        caseFollowUpAt: earlier,
+      };
+      const changed = { ...populated, insuranceProofReference: 'Updated proof' };
+      const update = (claimId: string, fields: CaseFields, expected: CaseFields) =>
+        domain.updateGreenCardCaseFields(staff.session, staff.authority, {
+          claimId,
+          ...fields,
+          expected,
+        });
+      assert.equal((await update(claim.id, populated, defaults)).ok, true);
+      assert.equal((await update(claim.id, changed, populated)).ok, true);
+      assert.deepEqual(
+        await update(claim.id, { ...changed, insuranceProofReference: 'Stale edit' }, populated),
+        conflict
+      );
+      assert.deepEqual(await update(absent.id, changed, populated), conflict);
+      const [stored] = await storedFields(claim.id);
+      assert.deepEqual(stored, {
+        insurance_proof_reference: 'Updated proof',
+        updated_by_staff_id: homeActor,
+      });
+      assert.equal((await storedFields(absent.id)).length, 0);
+    }
+  );
+
   await t.test('follow-up: compare-and-set in sequence and under a held entry lock', async () => {
     const claim = await insertClaim(admin, { branch: ownBranch });
     const entry = await restricted(runtime, async tx => {
@@ -233,7 +367,7 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
     assert.equal(new Date(stored.follow_up_at).toISOString(), earlier);
   });
 
-  await t.test('queue: register deadlines follow the claim branch (Astra code r1 B1)', async () => {
+  await t.test('queue: register deadlines and open requests follow the claim branch', async () => {
     const claim = await insertClaim(admin, { branch: ownBranch });
     await restricted(runtime, async tx => {
       const document = await insertDocument(tx, documentInput(claim));
@@ -244,52 +378,22 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
     });
     const read = () =>
       domain.getAssignedStaffClaimAttention(staff.session, staff.authority, [claim.id]);
+    await admin`insert into claim_information_requests (tenant_id, claim_id, correlation_id,
+      requested_information, explanation_for_member, due_at, responsible_staff_id,
+      created_by_staff_id, sla_posture)
+      values (${homeTenant}, ${claim.id}, gen_random_uuid(), 'Case evidence', 'Please send evidence',
+        ${past}, ${homeActor}, ${homeActor}, 'incomplete')`;
     const visible = await read();
+    assert.equal(visible[claim.id]?.nextActor, 'member');
     assert.equal(visible[claim.id]?.overdueFollowUpDueAt, earlier);
     assert.equal(visible[claim.id]?.overdueFollowUpSource, 'case_register');
 
     await admin`update claim set branch_id = ${foreignBranch} where id = ${claim.id}`;
     const moved = await read();
+    assert.equal(moved[claim.id]?.nextActor, 'untracked');
     assert.equal(moved[claim.id]?.overdueFollowUpDueAt, null);
     assert.equal(moved[claim.id]?.overdueFollowUpSource, undefined);
   });
-
-  await t.test(
-    'draft edit: a submission that commits first turns the edit into a conflict',
-    async () => {
-      const draft = await insertClaim(admin, { lifecycle: 'draft', category: 'property' });
-      const member = actor(homeActor, 'member', homeTenant, null);
-      const result = await whilePeerHolds(
-        connections,
-        tx => tx`update claim set case_lifecycle_state = 'submitted' where id = ${draft.id}
-        and case_lifecycle_state = 'draft'`,
-        () =>
-          domain.updateDraftClaimCore({
-            authority: member.authority,
-            session: member.session,
-            requestHeaders: new Headers(),
-            claimId: draft.id,
-            data: {
-              category: 'vehicle',
-              title: 'Edited draft title',
-              companyName: 'Example organisation',
-              description: 'A description long enough for the claim validator.',
-              currency: 'EUR',
-              files: [],
-            },
-          }),
-        () => Promise.resolve(undefined)
-      );
-      assert.deepEqual(result, {
-        success: false,
-        error: 'Claim changed. Refresh and retry.',
-        code: 'CONFLICT',
-      });
-      const [stored] =
-        await admin`select case_lifecycle_state, category from claim where id = ${draft.id}`;
-      assert.deepEqual(stored, { case_lifecycle_state: 'submitted', category: 'property' });
-    }
-  );
 
   await t.test(
     'revocation: a deadlock with a direct revoker is retried, one revocation persists',

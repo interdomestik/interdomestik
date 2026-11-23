@@ -54,7 +54,10 @@ export const setCorrespondenceFollowUp = defineAction({
   subject: { type: 'claim', from: 'claimId' },
   input: setCorrespondenceFollowUpInputSchema,
   async handler(input, { authority, session }) {
-    const result = await setFollowUp(session, authority, input);
+    const result = await withoutParameters(
+      setFollowUp(session, authority, input),
+      'correspondence follow-up'
+    );
     if (result.ok) return { correspondenceId: result.correspondenceId };
     if (result.code === 'forbidden') {
       return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });

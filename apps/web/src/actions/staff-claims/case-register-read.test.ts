@@ -5,6 +5,7 @@ const mocks = vi.hoisted(() => ({
   fields: vi.fn(),
   authorities: vi.fn(),
   correspondence: vi.fn(),
+  citationNames: vi.fn(),
   summary: vi.fn(),
 }));
 
@@ -18,6 +19,7 @@ vi.mock('@interdomestik/domain-claims/claims/case-authorities', () => ({
 }));
 vi.mock('@interdomestik/domain-claims/claims/correspondence-read', () => ({
   listClaimCorrespondence: mocks.correspondence,
+  listRegisterCitationNames: mocks.citationNames,
   getClaimCorrespondenceSummary: mocks.summary,
 }));
 
@@ -52,5 +54,25 @@ describe('case register reads', () => {
       code: 'forbidden',
     });
     expect(mocks.capture).not.toHaveBeenCalled();
+  });
+
+  it('resolves distinct authority and current-page citations in one read', async () => {
+    const documents = [{ id: 'older', name: 'Older cited evidence.pdf' }];
+    mocks.fields.mockResolvedValue({ ok: true, fields: {} });
+    mocks.authorities.mockResolvedValue({
+      ok: true,
+      authorities: [{ evidenceDocumentId: 'older' }],
+    });
+    mocks.correspondence.mockResolvedValue({
+      ok: true,
+      entries: [{ sharedDocumentIds: ['recent', 'older'] }],
+    });
+    mocks.citationNames.mockResolvedValue({ ok: true, documents });
+    const [, , , names] = await readStaffCaseRegister(null, null, 'c1', 2);
+    expect(mocks.citationNames).toHaveBeenCalledExactlyOnceWith(null, null, {
+      claimId: 'c1',
+      documentIds: ['older', 'recent'],
+    });
+    expect(names).toEqual({ ok: true, documents });
   });
 });

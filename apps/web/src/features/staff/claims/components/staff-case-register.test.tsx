@@ -87,7 +87,7 @@ it('reads the requested correspondence page for staff', async () => {
     role: 'staff',
   });
   const failed = { ok: false, code: 'INTERNAL_SERVER_ERROR' };
-  read.staff.mockResolvedValue([failed, failed, failed]);
+  read.staff.mockResolvedValue([failed, failed, failed, { ok: true, documents: [] }]);
   const view = await caseRegister(
     session,
     authority,

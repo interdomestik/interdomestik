@@ -160,7 +160,12 @@ export const claimCorrespondence = pgTable(
       table.claimId,
       table.id
     ),
-    index('claim_correspondence_claim_idx').on(table.tenantId, table.claimId, table.createdAt),
+    index('claim_correspondence_claim_idx').on(
+      table.tenantId,
+      table.claimId,
+      table.occurredAt,
+      table.id
+    ),
     index('claim_correspondence_reply_idx').on(table.tenantId, table.claimId, table.inReplyToId),
     foreignKey({
       name: 'claim_correspondence_claim_fk',
@@ -215,7 +220,10 @@ export const claimCorrespondence = pgTable(
       'claim_correspondence_reply_direction_check',
       sql`${table.inReplyToId} is null or ${table.direction} = 'inbound'`
     ),
-    check('claim_correspondence_document_count_check', sql`${table.sharedDocumentCount} >= 0`),
+    check(
+      'claim_correspondence_document_count_check',
+      sql`${table.sharedDocumentCount} between 0 and 20`
+    ),
     check(
       'claim_correspondence_sharing_check',
       sql`(${table.sharingAuthorityId} is not null) = (${table.sharedDocumentCount} > 0)

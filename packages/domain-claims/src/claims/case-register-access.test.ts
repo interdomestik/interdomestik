@@ -25,6 +25,7 @@ import {
 } from './correspondence';
 import { getClaimCorrespondenceSummary, listClaimCorrespondence } from './correspondence-read';
 import { getGreenCardCaseFields, updateGreenCardCaseFields } from './green-card-case-fields';
+import { normalizeRegisterInput } from './case-register-access';
 
 const writes = [
   [recordCaseAuthority, grantInput],
@@ -40,6 +41,24 @@ const readInput = (read: (typeof fullReads)[number]) =>
   read === listClaimCorrespondence ? listPage : { claimId };
 const commands = [...writes, ...fullReads.map(read => [read, readInput(read)] as const)] as const;
 const forbidden = { ok: false, code: 'forbidden' };
+
+it('normalizes only UUIDs and editable display text while preserving opaque IDs', () => {
+  const input = {
+    claimId: ' case-1 ',
+    documentId: ' document-1 ',
+    evidenceDocumentId: ' document-1 ',
+    sharedDocumentIds: ['document-1', ' document-1 '],
+    correlationId: 'ABCDEF12-1234-4234-8234-ABCDEFABCDEF',
+    partyOrganisation: ' Example insurer ',
+    insuranceProofReference: ' Reference ',
+  };
+  expect(normalizeRegisterInput(input)).toEqual({
+    ...input,
+    correlationId: input.correlationId.toLowerCase(),
+    partyOrganisation: 'Example insurer',
+    insuranceProofReference: 'Reference',
+  });
+});
 
 describe('register admission', () => {
   it.each(commands)(
@@ -121,6 +140,7 @@ describe('register admission', () => {
         perPage: 20,
         total: 0,
         entries: [],
+        replyParents: [],
       });
       const where = queryWhere(0);
       expect(where.params).toEqual(expect.arrayContaining([tenantId, claimId, 'draft']));

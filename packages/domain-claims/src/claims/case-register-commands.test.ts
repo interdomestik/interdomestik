@@ -25,6 +25,7 @@ import { describe, expect, it } from 'vitest';
 import {
   recordInboundCorrespondence,
   recordOutboundCorrespondence,
+  recordOutboundCorrespondenceInputSchema,
   setCorrespondenceFollowUp,
 } from './correspondence';
 import { listClaimCorrespondence } from './correspondence-read';
@@ -176,6 +177,47 @@ describe('correspondence decisions', () => {
     ]);
   });
 
+  it('allows 20 shared document IDs and refuses 21', () => {
+    const shared = (count: number) => ({
+      ...outboundWithDocument,
+      sharedDocumentIds: Array.from({ length: count }, (_, index) => `doc-${index}`),
+    });
+    expect(recordOutboundCorrespondenceInputSchema.safeParse(shared(20)).success).toBe(true);
+    expect(recordOutboundCorrespondenceInputSchema.safeParse(shared(21)).success).toBe(false);
+  });
+
+  it('retries the entire outbound transaction once after a deadlock', async () => {
+    const deadlock = new Error('Query failed', { cause: { code: '40P01' } });
+    const run = db.transaction.getMockImplementation()!;
+    db.transaction.mockImplementationOnce(async (...args) => {
+      await run(...args);
+      throw deadlock;
+    });
+    const transactionRows = [
+      admitted,
+      [],
+      [recovery, representation],
+      now,
+      [{ appropriate: true }],
+      [{ id: ids.outbound }],
+    ];
+    db.results = [...transactionRows, ...transactionRows];
+    const session = caller();
+    await expect(recordOutboundCorrespondence(session, authority, outboundInput)).resolves.toEqual({
+      ok: true,
+      correspondenceId: ids.outbound,
+    });
+    expect(db.transaction).toHaveBeenCalledTimes(2);
+    expect(db.statements.filter(row => row.table === claims && row.lock === 'update')).toHaveLength(
+      2
+    );
+    db.transaction.mockRejectedValueOnce(deadlock).mockRejectedValueOnce(deadlock);
+    await expect(recordOutboundCorrespondence(session, authority, outboundInput)).rejects.toBe(
+      deadlock
+    );
+    expect(db.transaction).toHaveBeenCalledTimes(4);
+  });
+
   it('replays outbound after a follow-up change and distinguishes a later request with a different payload', async () => {
     db.results = [admitted, [recorded], admitted, [recorded]];
     const session = caller();
@@ -312,6 +354,7 @@ describe('correspondence decisions', () => {
     });
     expect(result).toMatchObject({ ok: true, page: 3, perPage: 20, total: 45 });
     expect(db.statements[2]).toMatchObject({ limit: 20, offset: 40 });
+    expect(db.statements[3]?.kind).toBe('selectDistinct');
     expect(queryWhere(3).params).toEqual([tenantId, claimId, 'inbound', recorded.id]);
     expect(queryWhere(4).params).toEqual([tenantId, claimId, recorded.id]);
     expect(

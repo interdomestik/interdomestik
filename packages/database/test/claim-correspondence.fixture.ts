@@ -217,7 +217,11 @@ export type Connection = {
 
 type RegisterProof = (connections: Connection) => Promise<void>;
 
-export async function withRuntime(admin: postgres.Sql, work: RegisterProof) {
+export async function withRuntime(
+  admin: postgres.Sql,
+  work: RegisterProof,
+  runtimeConnections = 1
+) {
   const role = `wp12_runtime_${randomBytes(6).toString('hex')}`;
   const roleSql = quoteIdentifier(role);
   const password = randomBytes(24).toString('hex');
@@ -240,7 +244,7 @@ export async function withRuntime(admin: postgres.Sql, work: RegisterProof) {
     );
     await withDisposableClient(
       runtimeUrl.toString(),
-      { applicationName: 'wp12_register_runtime' },
+      { applicationName: 'wp12_register_runtime', max: runtimeConnections },
       runtime =>
         withDisposableClient(
           runtimeUrl.toString(),
@@ -283,12 +287,12 @@ export const unique = (constraint_name: string) => ({ code: '23505', constraint_
 
 const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
 
-export async function withRegisterDb(t: TestContext, work: RegisterProof) {
+export async function withRegisterDb(t: TestContext, work: RegisterProof, runtimeConnections = 1) {
   const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
   if (missing) return t.skip(missing);
   await withScratchDatabase('wp12_register', async admin => {
     await migrateJournal(admin, migrations);
     await seedActors(admin);
-    await withRuntime(admin, work);
+    await withRuntime(admin, work, runtimeConnections);
   });
 }

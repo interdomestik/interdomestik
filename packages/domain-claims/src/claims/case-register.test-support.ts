@@ -134,6 +134,7 @@ beforeEach(() => {
   db.transaction.mockReset().mockImplementation((_authority, run) =>
     run({
       select: () => statement({ kind: 'select' }),
+      selectDistinct: () => statement({ kind: 'selectDistinct' }),
       update: (table: unknown) => statement({ kind: 'update', table }),
       insert: (table: unknown) => statement({ kind: 'insert', table }),
     })

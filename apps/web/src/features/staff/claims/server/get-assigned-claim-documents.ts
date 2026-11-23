@@ -91,7 +91,8 @@ export async function getAssignedStaffClaimDocuments(args: {
           isNull(claimInformationRequestEvidence.documentId)
         )
       )
-      .orderBy(desc(claimDocuments.createdAt));
+      .orderBy(desc(claimDocuments.createdAt), desc(claimDocuments.id))
+      .limit(100);
 
     return rows.map(row => ({
       id: row.id,

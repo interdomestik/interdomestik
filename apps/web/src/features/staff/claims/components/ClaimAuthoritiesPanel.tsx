@@ -49,7 +49,7 @@ function RecordAuthorityForm({
         const input = {
           claimId,
           kind,
-          evidenceDocumentId: formText(data, 'evidenceDocumentId'),
+          evidenceDocumentId: String(data.get('evidenceDocumentId') ?? ''),
           version: formText(data, 'version'),
           grantedAt: formTimestamp(data, 'grantedAt'),
           expiresAt: formTimestamp(data, 'expiresAt'),
@@ -214,16 +214,18 @@ export function ClaimAuthoritiesPanel({
   canWrite,
   claimId,
   documents,
+  citedDocuments = documents ?? [],
 }: Readonly<{
   authorities: readonly CaseAuthorityEntry[];
   canWrite: boolean;
   claimId: string;
   documents: readonly RegisterDocument[] | null;
+  citedDocuments?: readonly RegisterDocument[];
 }>) {
   const t = useTranslations('staff-correspondence.authorities');
   const title = useId();
   const availableKinds = kinds.filter(kind => !authorities.some(entry => entry.kind === kind));
-  const names = new Map(documents?.map(document => [document.id, document.name]));
+  const names = new Map(citedDocuments.map(document => [document.id, document.name]));
 
   return (
     <section aria-labelledby={title} className="grid gap-3 rounded-lg border bg-card p-4">

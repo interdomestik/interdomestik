@@ -87,6 +87,7 @@ This section records the approved WP-12 contract, design v14.1 (appended tables;
 
 ### Named limits
 
+- The register picker shows the latest 100 eligible case documents. An outbound entry can cite at most 20 documents.
 - jurisdiction rule pending legal review
 - consent-purpose rule pending legal review
 - member and agent reads of the register are not opened here; they open with their screens and portal predicates;

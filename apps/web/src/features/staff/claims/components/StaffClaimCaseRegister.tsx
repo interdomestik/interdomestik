@@ -73,13 +73,14 @@ async function StaffRegister({
   documents,
   correspondencePage,
 }: RegisterProps) {
-  const [caseFields, authorities, correspondence] = await readStaffCaseRegister(
+  const [caseFields, authorities, correspondence, citationNames] = await readStaffCaseRegister(
     session,
     authority,
     claimId,
     correspondencePage
   );
   const documentOptions = documents ?? [];
+  const citedDocuments = citationNames.ok ? citationNames.documents : documentOptions;
 
   return (
     <>
@@ -88,6 +89,7 @@ async function StaffRegister({
       ) : (
         <RegisterReadError code={caseFields.code} />
       )}
+      {!citationNames.ok && <RegisterReadError code={citationNames.code} />}
       {canWrite && authorities.ok && <ClaimRegisterDocumentUpload claimId={claimId} />}
       {authorities.ok ? (
         <ClaimAuthoritiesPanel
@@ -95,6 +97,7 @@ async function StaffRegister({
           authorities={authorities.authorities}
           canWrite={canWrite}
           documents={documents}
+          citedDocuments={citedDocuments}
         />
       ) : (
         <RegisterReadError code={authorities.code} />
@@ -103,11 +106,12 @@ async function StaffRegister({
         <ClaimCorrespondenceList
           claimId={claimId}
           entries={correspondence.entries}
+          replyParents={correspondence.replyParents}
           page={correspondence.page}
           perPage={correspondence.perPage}
           total={correspondence.total}
           canWrite={canWrite}
-          documents={documentOptions}
+          documents={citedDocuments}
         />
       ) : (
         <RegisterReadError code={correspondence.code} />

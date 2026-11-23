@@ -4,7 +4,10 @@ import { setCorrespondenceFollowUp } from '@/actions/staff-claims/correspondence
 import { Link } from '@/i18n/routing';
 import { formatPilotDateTime } from '@/lib/utils/date';
 import { formatNumber } from '@/lib/utils/number';
-import type { ClaimCorrespondenceEntry } from '@interdomestik/domain-claims/claims/correspondence-read';
+import type {
+  ClaimCorrespondenceEntry,
+  CorrespondenceReplyParent,
+} from '@interdomestik/domain-claims/claims/correspondence-read';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, type FormEvent } from 'react';
 import {
@@ -59,17 +62,25 @@ function CorrespondenceRow({
   claimId,
   entry,
   documentNames,
-  reply,
+  parent,
+  parentOnPage,
 }: Readonly<{
   canWrite: boolean;
   claimId: string;
   entry: ClaimCorrespondenceEntry;
   documentNames: ReadonlyMap<string, string>;
-  reply?: ClaimCorrespondenceEntry;
+  parent?: CorrespondenceReplyParent;
+  parentOnPage: boolean;
 }>) {
   const t = useTranslations('staff-correspondence');
   const locale = useLocale();
   const date = formatPilotDateTime(entry.occurredAt, locale, '');
+  const parentLabel =
+    parent &&
+    t('list.inReplyTo', {
+      organisation: parent.partyOrganisation,
+      date: formatPilotDateTime(parent.occurredAt, locale, ''),
+    });
   const linkedNames = entry.sharedDocumentIds.flatMap(id => {
     const name = documentNames.get(id);
     return name ? [{ id, name }] : [];
@@ -91,14 +102,14 @@ function CorrespondenceRow({
       {entry.partyReference && <p>{t('list.reference', { reference: entry.partyReference })}</p>}
       {entry.partyContactName && <p>{t('list.contact', { contact: entry.partyContactName })}</p>}
       <p className="whitespace-pre-wrap">{entry.body}</p>
-      {reply && (
-        <a href={`#correspondence-${reply.id}`} className="w-fit py-1 underline">
-          {t('list.inReplyTo', {
-            organisation: reply.partyOrganisation,
-            date: formatPilotDateTime(reply.occurredAt, locale, ''),
-          })}
-        </a>
-      )}
+      {parent &&
+        (parentOnPage ? (
+          <a href={`#correspondence-${parent.id}`} className="w-fit py-1 underline">
+            {parentLabel}
+          </a>
+        ) : (
+          <p>{parentLabel}</p>
+        ))}
       {entry.sharedDocumentIds.length > 0 && (
         <div>
           <p>
@@ -170,6 +181,7 @@ export function ClaimCorrespondenceList({
   claimId,
   entries,
   documents,
+  replyParents = [],
   page = 1,
   perPage = entries.length,
   total = entries.length,
@@ -178,6 +190,7 @@ export function ClaimCorrespondenceList({
   claimId: string;
   entries: readonly ClaimCorrespondenceEntry[];
   documents: readonly RegisterDocument[];
+  replyParents?: readonly CorrespondenceReplyParent[];
   page?: number;
   perPage?: number;
   total?: number;
@@ -186,6 +199,7 @@ export function ClaimCorrespondenceList({
   const title = useId();
   const names = new Map(documents.map(document => [document.id, document.name]));
   const byId = new Map(entries.map(entry => [entry.id, entry]));
+  const parentsById = new Map(replyParents.map(parent => [parent.id, parent]));
 
   return (
     <section
@@ -207,7 +221,8 @@ export function ClaimCorrespondenceList({
               claimId={claimId}
               entry={entry}
               documentNames={names}
-              reply={byId.get(entry.inReplyToId ?? '')}
+              parent={byId.get(entry.inReplyToId ?? '') ?? parentsById.get(entry.inReplyToId ?? '')}
+              parentOnPage={byId.has(entry.inReplyToId ?? '')}
             />
           ))}
         </ul>

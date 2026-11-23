@@ -128,6 +128,11 @@ async function proveFreeze(t: TestContext, { admin, runtime }: Connection) {
         return { evidence, uncited };
       });
       // The owner bypasses RLS, so only the trigger and the keys can refuse these updates.
+      await assert.rejects(
+        admin`update claim_documents set tenant_id = ${foreignTenant} where id = ${uncited.id}`,
+        frozen,
+        'uncited tenant_id only'
+      );
       for (const patch of [
         { claim_id: otherClaim.id },
         { tenant_id: foreignTenant, claim_id: foreignClaim.id },

@@ -229,6 +229,7 @@ it('keeps contact names out of unexpected insert exception data', async () => {
 it.each([
   ['recordCaseAuthority', 'Synthetic consent purpose', 'case authority write'],
   ['updateGreenCardCaseFields', 'Synthetic insurance reference', 'case fields write'],
+  ['setCorrespondenceFollowUp', occurredAt, 'correspondence follow-up'],
 ] as const)(
   'keeps %s parameters out of unexpected exception data',
   async (name, secret, operation) => {
