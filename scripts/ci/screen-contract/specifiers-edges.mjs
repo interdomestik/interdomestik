@@ -153,12 +153,13 @@ const BARE_REQUIRE_OK = (node, parent) => {
   }
 };
 
-// A declaration the compiled code keeps: not ambient (`declare …`, a `declare module` or namespace
-// block, an overload signature) and not a type-only import, which the emit erases (Sol r2).
+// A declaration the compiled code keeps: not ambient (`declare …`, inside a `declare module`,
+// `declare namespace` or `declare global` block, an overload signature) and not a type-only
+// import, which the emit erases (Sol r2). A plain `namespace` is emitted, so its bindings are kept
+// (Sol r3).
 function isAmbient(node) {
   for (let at = node; at; at = at.parent)
-    if (at.declare === true || at.type === 'TSDeclareFunction' || at.type === 'TSModuleDeclaration')
-      return true;
+    if (at.declare === true || at.type === 'TSDeclareFunction') return true;
   return false;
 }
 const isRuntimeDef = def =>

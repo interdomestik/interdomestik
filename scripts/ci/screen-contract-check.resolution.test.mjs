@@ -796,6 +796,7 @@ test('D-1: module[require] is an edge; module[k] and a bare module value are ref
   for (const body of [
     'declare const module: { require(id: string): unknown }; export const m = module;',
     'declare global { var module: unknown } export const m = module;',
+    'declare namespace N { const module: unknown; export const m = module; }',
     "import type module from './x'; export const m = module;",
   ])
     await assert.rejects(
@@ -816,6 +817,8 @@ test('D-1: module[require] is an edge; module[k] and a bare module value are ref
     "import * as module from './x'; export const m = module; export const n = module['x'];",
     'export const p = () => Promise.resolve(1).then(module => Promise.resolve(module));',
     'export function q(module: Record<string, unknown>, k: string) { return module[k]; }',
+    // Sol r3: a plain namespace is emitted, so a parameter inside it is a runtime binding.
+    'export namespace Labels { export function pick(module: string) { return module; } }',
     // Sol r2: a local binding's `module.require('…')` is a method call, no request or edge.
     "import * as module from './x'; export const r = module.require('./label?short');",
   ])
