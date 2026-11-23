@@ -1,62 +1,22 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 
 import yaml from 'js-yaml';
 
-import { auditContract, CONTRACT_PATH, runTrackAudit, stripComments } from '../track-audit.mjs';
+import { structuredArtifactOwner } from '../modularity-guard-policy.mjs';
+import { CONTRACT_PATH, runTrackAudit } from '../track-audit.mjs';
+import { audit, fixture, noSeed, quiet, reason, root, SRC } from './track-audit-fixtures.mjs';
 
 // `pnpm track:audit` runs in the required check `audit`. Defect class: a contract audit that
 // passes without checking (no checks, a target that matches nothing, an exclusion that hides a
 // file without a reason or after the file stopped violating).
-
-const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
-const quiet = { log() {}, error() {} };
-
-function fixture(files) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'idct-track-'));
-  for (const [name, content] of Object.entries(files)) {
-    fs.mkdirSync(path.dirname(path.join(dir, name)), { recursive: true });
-    fs.writeFileSync(path.join(dir, name), content);
-  }
-  return dir;
-}
-
-function audit(files, checks) {
-  const dir = fixture(files);
-  try {
-    return auditContract({ version: 1, checks }, dir);
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true });
-  }
-}
-
-const SRC = { 'src/a.ts': 'import x from "seed";\n', 'src/b.ts': 'const ok = 1;\n' };
-const noSeed = extra => ({
-  id: 'no_seed',
-  type: 'regex',
-  targets: ['src/*.ts'],
-  must_not_match: ['seed'],
-  ...extra,
-});
-const reason = 'a test that reads seed rows as expected data';
+// This file: contract loading, check shapes, targets and the command's exit code.
 
 test('track audit: the repository contract passes', () => {
   assert.equal(runTrackAudit(root, quiet), 0);
-});
-
-test('track audit: the repository exclusion list holds exactly the one approved entry', () => {
-  const contract = yaml.load(fs.readFileSync(path.join(root, CONTRACT_PATH), 'utf8'));
-  const entries = contract.checks.flatMap(check =>
-    (check.exclude ?? []).map(entry => `${check.id} ${entry.file}`)
-  );
-  assert.deepEqual(entries, [
-    'seeding.no_seed_imports_outside_database apps/web/src/features/admin/verification/server/mutations/resubmit-attempt.test.ts',
-  ]);
 });
 
 test('track audit: missing, unparseable, empty and valid-but-empty contracts fail', () => {
@@ -101,80 +61,6 @@ test('track audit: regex, file_exists and file_not_exists report violations', ()
   );
 });
 
-test('track audit: a valid exclusion skips only its file', () => {
-  assert.deepEqual(audit(SRC, [noSeed({ exclude: [{ file: 'src/a.ts', reason }] })]), []);
-  const other = { ...SRC, 'src/c.ts': 'seed again\n' };
-  const failures = audit(other, [noSeed({ exclude: [{ file: 'src/a.ts', reason }] })]);
-  assert.deepEqual(failures, ["Check no_seed failed: src/c.ts must NOT match regex 'seed'"]);
-});
-
-test('track audit: an entry without a file or a reason fails, and its file is still checked', () => {
-  for (const entry of [
-    { file: 'src/a.ts' },
-    { file: 'src/a.ts', reason: '   ' },
-    { file: 'src/a.ts', reason: 7 },
-    { reason },
-    'src/a.ts',
-  ]) {
-    const failures = audit(SRC, [noSeed({ exclude: [entry] })]);
-    assert.ok(
-      failures.some(f => /needs a file and a non-empty reason/u.test(f)),
-      String(entry)
-    );
-    assert.ok(
-      failures.some(f => /src\/a\.ts must NOT match/u.test(f)),
-      String(entry)
-    );
-  }
-});
-
-test('track audit: a stale entry fails (file gone, or no longer violating)', () => {
-  const gone = audit(SRC, [noSeed({ exclude: [{ file: 'src/gone.ts', reason }] })]);
-  assert.ok(
-    gone.some(f => /'src\/gone\.ts' is stale: file not found/u.test(f)),
-    gone.join('\n')
-  );
-  const clean = audit(SRC, [noSeed({ exclude: [{ file: 'src/b.ts', reason }] })]);
-  assert.ok(
-    clean.some(f => /'src\/b\.ts' is stale: the file no longer violates the check/u.test(f)),
-    clean.join('\n')
-  );
-});
-
-test('track audit: an entry outside the targets, a duplicate or a malformed list fails', () => {
-  const files = { ...SRC, 'lib/d.ts': 'seed\n' };
-  const outside = audit(files, [noSeed({ exclude: [{ file: 'lib/d.ts', reason }] })]);
-  assert.ok(
-    outside.some(f => /not matched by the check's targets/u.test(f)),
-    outside.join('\n')
-  );
-  const twice = audit(SRC, [
-    noSeed({
-      exclude: [
-        { file: 'src/a.ts', reason },
-        { file: 'src/a.ts', reason },
-      ],
-    }),
-  ]);
-  assert.ok(
-    twice.some(f => /listed twice/u.test(f)),
-    twice.join('\n')
-  );
-  for (const exclude of [[], {}, 'src/a.ts']) {
-    const failures = audit(SRC, [noSeed({ exclude })]);
-    assert.ok(
-      failures.some(f => /exclude must be a non-empty list/u.test(f)),
-      String(exclude)
-    );
-    assert.ok(
-      failures.some(f => /src\/a\.ts must NOT match/u.test(f)),
-      String(exclude)
-    );
-  }
-  const onFileCheck = { id: 'e', type: 'file_exists', targets: ['src/a.ts'], exclude: [] };
-  assert.match(audit(SRC, [onFileCheck])[0], /exclude must be a non-empty list on a regex check/u);
-});
-
 test('track audit: a regex check without patterns, or with an unknown key, fails', () => {
   const target = { id: 'r', type: 'regex', targets: ['src/b.ts'] };
   for (const check of [
@@ -192,38 +78,6 @@ test('track audit: a regex check without patterns, or with an unknown key, fails
       `${JSON.stringify(check)}: ${failures.join('\n')}`
     );
   }
-});
-
-test('track audit: an entry with an unsupported key, or a duplicate, leaves its file checked', () => {
-  const violation = /src\/a\.ts must NOT match regex 'seed'/u;
-  const extra = audit(SRC, [noSeed({ exclude: [{ file: 'src/a.ts', reason, pattern: 'x' }] })]);
-  assert.ok(
-    extra.some(f => /unsupported keys: pattern/u.test(f)),
-    extra.join('\n')
-  );
-  assert.ok(
-    extra.some(f => violation.test(f)),
-    extra.join('\n')
-  );
-  const twice = audit(SRC, [
-    noSeed({
-      exclude: [
-        { file: 'src/a.ts', reason },
-        { file: 'src/a.ts', reason },
-      ],
-    }),
-  ]);
-  assert.ok(
-    twice.some(f => violation.test(f)),
-    twice.join('\n')
-  );
-  const mixed = audit(SRC, [
-    noSeed({ exclude: [{ file: 'src/a.ts' }, { file: 'src/a.ts', reason }] }),
-  ]);
-  assert.ok(
-    mixed.some(f => violation.test(f)),
-    mixed.join('\n')
-  );
 });
 
 test('track audit: the command exits 1 on a failing contract and 0 on a passing one', () => {
@@ -289,47 +143,6 @@ test('track audit: optional targets may match nothing but are still checked when
   );
 });
 
-test('track audit: stripComments removes every comment form and keeps code, strings and regexes', () => {
-  const cases = [
-    ['a // c\nb', 'a     \nb'],
-    ['a // c\rb', 'a     \rb'],
-    ['a // c b', 'a      b'],
-    ['a /* c\nd */ b', 'a     \n     b'],
-    ["s = 'http://x' // c", "s = 'http://x'     "],
-    ['s = "/* no */"', 's = "/* no */"'],
-    ['t = `a ${b /* c */} // no`', 't = `a ${b        } // no`'],
-    ['t = `x ${`y ${z}`} /* no */`', 't = `x ${`y ${z}`} /* no */`'],
-    ['r = /\\/\\/ no/u.test(x) // c', 'r = /\\/\\/ no/u.test(x)     '],
-    ['r = /[/*]/u; // c', 'r = /[/*]/u;     '],
-    ['x = a / b / c // c', 'x = a / b / c     '],
-    ['return /* c */ /a\\/b/', 'return         /a\\/b/'],
-  ];
-  for (const [source, expected] of cases) {
-    assert.equal(stripComments(source), expected, JSON.stringify(source));
-    assert.equal(stripComments(source).length, source.length);
-  }
-});
-
-test('track audit: strip_comments decides on code only, and must be a boolean', () => {
-  const check = extra => ({
-    id: 'c',
-    type: 'regex',
-    targets: ['src/*.ts'],
-    must_not_match: ['bad\\('],
-    ...extra,
-  });
-  const files = { 'src/a.ts': 'ok(); // bad()\n/* bad() */\n' };
-  assert.equal(audit(files, [check()]).length, 1);
-  assert.deepEqual(audit(files, [check({ strip_comments: true })]), []);
-  const live = audit({ 'src/a.ts': '/* x */ bad();\n' }, [check({ strip_comments: true })]);
-  assert.equal(live.length, 1, live.join('\n'));
-  assert.match(
-    audit(files, [check({ strip_comments: 'yes' })])[0],
-    /strip_comments that is not a boolean/u
-  );
-  const onFile = { id: 'e', type: 'file_exists', targets: ['src/a.ts'], strip_comments: true };
-  assert.match(
-    audit(files, [onFile])[0],
-    /regex-only keys on a file_exists check: strip_comments/u
-  );
+test('track audit: the delivery contract has its structured-artifact owner', () => {
+  assert.equal(structuredArtifactOwner(CONTRACT_PATH), 'track-audit-contract');
 });
