@@ -18,13 +18,12 @@ Created on 2026-11-23 for the WP-05 flip (PR-A, the flip-ready scanner). R-19 as
 ## Invariants
 
 - **The fixed configuration (owner, decision B, 2026-11-23).** Module resolution (`resolution.mjs`, `specifiers.mjs`) models one build configuration, today's, and refuses every other with exit 2 and the sentence "a change to it needs a scanner PR first (WP-05 flip, D-1 fixed configuration)". It pins:
-  - `apps/web/next.config.mjs` and its helper, by sha256;
-  - each tsconfig's `@/*` mapping and its `{ baseUrl, paths }` value;
-  - the four Next wrappers' lockfile records (version, own patch, `patchedDependencies`, integrity), read with a YAML parser (`lockfile.mjs`);
+  - each tsconfig's `@/*` mapping and its `{ baseUrl, paths }` value, on every tree;
+  - **when `apps/web/next.config.mjs` exists** (an absent one is Next's defaults, which load no wrapper): that file and its helper by sha256, and the four Next wrappers' lockfile records (version, own patch, `patchedDependencies`, integrity), read with a YAML parser (`lockfile.mjs`). Whatever the Next config's state, a change of those records is refused under enforcement by the configuration-change refusal below;
   - no query, fragment, backslash or `node_modules` segment in a relative or `@/` request, except the two reviewed `?raw` edges;
-  - no request form other than relative, `@/`, workspace or a bare package name;
-  - no non-literal module request (`import()`, `require`, `module.require`, a bare `module` value, `createRequire`, `import.meta.<x>`, `new X(…, import.meta.url)`), except eleven reviewed occurrences by file and exact text;
-  - no `browser` field in a tracked `package.json`.
+  - no request form other than relative, `@/`, workspace, a bare package name or a `node:` built-in;
+  - no non-literal module request (`import()`, `require`, `module.require` or `module[…]`, a bare value of the free CommonJS `module`, `createRequire`, `import.meta.<x>`, `new X(…, import.meta.url)`), except eleven reviewed occurrences in six files, by file and exact text; a local binding named `module` is not the CommonJS one;
+  - no `browser` field in a tracked `package.json` outside `node_modules`, `.git`, `.next` and `.turbo` directories (residual 7).
 - **The configuration-change refusal (owner, narrowed bar, 2026-11-23; `config-changes.mjs`).** Under `--enforcing`, a base→head change of any of these is a scanner error, unless `REVIEWED_CONFIG_CHANGES` admits the resulting state. Only a scanner PR can add an admission, and the list is empty today.
   - Files named `next.config.*`, `.babelrc`, `.babelrc.*`, `babel.config.*`, `tsconfig*.json`, `jsconfig*.json` or `.swcrc`, at any level and under any new name of these kinds. An addition, a removal and an edit all count.
   - A reviewed wrapper's lockfile record, compared between base and head whatever the Next config's state.
@@ -43,15 +42,27 @@ These are outside the scanner's listed inputs (Astra round 6; the owner's bar, 2
    - Noticed: any `tsconfig*.json` change is refused under enforcement. The admitting scanner PR reviews whether it changes a resolution.
 4. **`jsxImportSource`.** A relative JSX runtime source creates a request that no source line shows.
    - Noticed: it is a tsconfig change (refused under enforcement), or a pragma comment in a source file, which review sees in the diff.
-5. **Reviewed dynamic requests.** The eleven reviewed occurrences are pinned by their text. A later use, in the same file, of what they bind (the service-worker module constants in `apps/web/src/features/help-now/sw-test-utils.ts`, `requireFromHere` in `packages/database/src/migration-callback-source-verifier.ts`) is not followed.
-   - Noticed: by review of any diff to those files, which are the only files where the exception applies.
+5. **Reviewed dynamic requests.** The eleven reviewed occurrences are pinned by their text, in six files:
+   - `apps/web/src/app/[locale]/_core.entry.tsx`;
+   - `apps/web/src/i18n/messages.ts`;
+   - `apps/web/src/features/help-now/sw-test-utils.ts`;
+   - `packages/database/src/migration-callback-source-verifier.ts`;
+   - `packages/database/src/migration-corpus-root.ts`;
+   - `packages/domain-communications/src/messages/public-reply-concurrency.runtime-fixture.ts`.
+
+   The values their text uses (the template variables, the service-worker module constants that name the imported paths) and later uses of what they bind (`requireFromHere`) are not followed.
+   - Noticed: by review of any diff to those six files, the only files where the exception applies.
+
 6. **The wrappers' own dependencies.** The wrapper's record is pinned, but a dependency of a wrapper can change version under it.
    - Noticed: by review of the lockfile diff, in the dependency PR that changes it.
 7. **A `browser` field under a tracked `.turbo` or `.next` directory.** These directories are not walked.
    - Today no such directory is tracked (`git ls-files`, 2026-11-23).
    - Noticed: a tracked `.turbo/` or `.next/` path shows in the PR's file list, and review refuses it.
 
-Also named limits: Turbopack (`next dev`) is not modelled; a later Next that aliases a relative or `@/` key is caught only through the extension-list oracle test.
+Also named limits:
+
+- Turbopack (`next dev`) is not modelled.
+- A later Next that changes its built-in aliases is not detected by the scanner. The oracle test pins only `resolve.extensions` and the absence of `mainFiles`. Such a change is noticed by review of the Next upgrade PR, whose `next` lockfile change is a dependency PR reviewed on its own.
 
 ## Tests to run
 

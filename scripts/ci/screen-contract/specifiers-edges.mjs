@@ -150,9 +150,24 @@ const BARE_REQUIRE_OK = (node, parent) => {
   }
 };
 
+// The identifiers that name the free CommonJS `module` (no declaration in scope; a configured global
+// has none either): a local binding named `module` (`import * as module`, a parameter) is not it
+// (Sol r1). Without a scope manager every `module` counts as free (fail closed).
+function freeModuleIdentifiers(origin) {
+  const manager = origin?.sourceCode?.scopeManager;
+  if (!manager) return null;
+  const out = new Set();
+  for (const scope of manager.scopes)
+    for (const ref of scope.references)
+      if (ref.identifier.name === 'module' && (!ref.resolved || ref.resolved.defs.length === 0))
+        out.add(ref.identifier);
+  return out;
+}
+
 // A module request that is not a literal specifier (resolution.mjs, `REVIEWED_DYNAMIC_REQUESTS`):
-// the node whose source text names it, or null. `parent` is the node's parent.
-function dynamicRequest(node, parent) {
+// the node whose source text names it, or null. `parent` is the node's parent; `isFreeModule`
+// tells whether a `module` identifier is the CommonJS one.
+function dynamicRequest(node, parent, isFreeModule) {
   if (node.type === 'ImportExpression') return literalOf(node.source) === null ? node : null;
   if (node.type === 'CallExpression') {
     const { callee } = node;
@@ -167,8 +182,9 @@ function dynamicRequest(node, parent) {
     if (isIdentifier(node.object, 'require')) return node;
     // `module[k]` with a computed name, and `module.require` other than called with one literal
     // (`const r = module.require`, r7: also `module['require']`).
-    if (moduleMember(node) === 'unknown') return node;
-    if (isModuleRequire(node)) {
+    const freeModule = isFreeModule(node.object);
+    if (freeModule && moduleMember(node) === 'unknown') return node;
+    if (freeModule && isModuleRequire(node)) {
       const called = parent?.type === 'CallExpression' && parent.callee === node;
       return called && parent.arguments.length === 1 && literalOf(parent.arguments[0]) !== null
         ? null
@@ -183,7 +199,7 @@ function dynamicRequest(node, parent) {
   if (isIdentifier(node, 'require')) return BARE_REQUIRE_OK(node, parent) ? null : node;
   // r7: a bare `module` read as a value can carry its `require` elsewhere (`const m = module`,
   // `const { require: r } = module`); a member's object, a declared name or a type query is not.
-  if (isIdentifier(node, 'module')) {
+  if (isIdentifier(node, 'module') && isFreeModule(node)) {
     const typeofRead = parent?.type === 'UnaryExpression' && parent.operator === 'typeof';
     return typeofRead || BARE_REQUIRE_OK(node, parent) ? null : node;
   }
@@ -196,11 +212,13 @@ function dynamicRequest(node, parent) {
 // reviewed occurrence in `origin.rel` (its exact text from `origin.sourceCode`), and yields no edge.
 export function edgesOfProgram(program, visitorKeys, origin = null) {
   const out = jsdocEdges(origin);
+  const free = freeModuleIdentifiers(origin);
+  const isFreeModule = node => isIdentifier(node, 'module') && (free === null || free.has(node));
   const visit = (node, parent) => {
     if (!node || typeof node.type !== 'string') return;
     const edge = Object.hasOwn(EDGE_OF, node.type) ? EDGE_OF[node.type](node) : null;
     if (edge) out.push(edge);
-    const dynamic = dynamicRequest(node, parent);
+    const dynamic = dynamicRequest(node, parent, isFreeModule);
     if (dynamic)
       assertReviewedDynamicRequest(
         origin?.rel ?? null,

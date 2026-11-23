@@ -239,9 +239,13 @@ export async function lintTree(root, files, { configFile } = {}) {
     results = await eslint.lintFiles(files.map(rel => path.join(root, rel)));
   } catch (error) {
     // A scanner error a rule raised keeps its own text (r7): ESLint appends the file and the rule
-    // after it, so the reported refusal would no longer end with its scanner-PR sentence.
-    if (error instanceof ScanError)
-      throw new ScanError(String(error.message).split('\nOccurred while linting ')[0]);
+    // after it, so the reported refusal would no longer end with its scanner-PR sentence. The cut is
+    // at ESLint's own (last) suffix, so the same words inside a request do not shorten it (Sol r1).
+    if (error instanceof ScanError) {
+      const message = String(error.message);
+      const cut = message.lastIndexOf('\nOccurred while linting ');
+      throw new ScanError(cut === -1 ? message : message.slice(0, cut));
+    }
     throw new ScanError(`ESLint failed: ${error?.message ?? error}`);
   }
   const byFile = new Map(

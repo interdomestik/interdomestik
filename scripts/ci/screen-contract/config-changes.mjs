@@ -13,7 +13,7 @@ import { createHash } from 'node:crypto';
 import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
 import { showAt } from '../server-mutation/git.mjs';
 import { parseLockfile, wrapperRecords } from './lockfile.mjs';
-import { REVIEWED_WRAPPERS } from './resolution.mjs';
+import { REVIEWED_WRAPPERS, refuse } from './resolution.mjs';
 
 const GIT = '/usr/bin/git';
 
@@ -46,14 +46,27 @@ function changedPaths(repo, baseSha, headSha) {
 const LOCKFILE = 'pnpm-lock.yaml';
 const wrappersAt = (repo, sha) => {
   const text = showAt(repo, sha, LOCKFILE);
-  return text === null
-    ? null
-    : wrapperRecords(parseLockfile(text, `${LOCKFILE} at ${sha}`), Object.keys(REVIEWED_WRAPPERS));
+  if (text === null) return null;
+  let data;
+  try {
+    data = parseLockfile(text, `${LOCKFILE} at ${sha}`);
+  } catch (error) {
+    // Sol r1: a malformed lockfile is a refusal of the fixed configuration too.
+    if (error instanceof ScanError) refuse(error.message);
+    throw error;
+  }
+  return wrapperRecords(data, Object.keys(REVIEWED_WRAPPERS));
 };
+// The whole record (Sol r1): version, own patch hash, `patchedDependencies` entries, integrity.
 const describe = record =>
   record === null || record === undefined
     ? 'absent'
-    : `${record.version}${record.patch === null && !record.patched ? '' : ' patched'} ${record.integrity ?? 'no-integrity'}`;
+    : [
+        record.version,
+        `patch=${record.patch ?? 'none'}`,
+        `patchedDependencies=[${record.patched.join('; ')}]`,
+        record.integrity ?? 'no-integrity',
+      ].join(' ');
 
 // The reviewed wrappers whose lockfile record differs between base and head, each as
 // `pnpm-lock.yaml <name> (<base> -> <head>)`.

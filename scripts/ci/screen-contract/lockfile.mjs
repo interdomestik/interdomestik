@@ -29,14 +29,13 @@ export function parseLockfile(text, label = 'pnpm-lock.yaml') {
   return data;
 }
 
-// name -> { version, patch, integrity, patched } for each named package as `apps/web` resolves it;
-// a package listed in no or more than one dependency section is `null`.
+// name -> { version, patch, integrity, patched } for each named package as `apps/web` resolves it,
+// where `patched` lists the package's `patchedDependencies` entries (`key hash path`, sorted); a
+// package listed in no or more than one dependency section is `null`.
 export function wrapperRecords(data, names) {
   const web = isObject(data.importers) ? data.importers['apps/web'] : null;
   const packages = isObject(data.packages) ? data.packages : {};
-  const patchedKeys = isObject(data.patchedDependencies)
-    ? Object.keys(data.patchedDependencies)
-    : [];
+  const patchedDependencies = isObject(data.patchedDependencies) ? data.patchedDependencies : {};
   const out = {};
   for (const name of names) {
     const entries = SECTIONS.map(section =>
@@ -54,7 +53,12 @@ export function wrapperRecords(data, names) {
       version: split.version,
       patch: split.patch,
       integrity: typeof integrity === 'string' ? integrity : null,
-      patched: patchedKeys.some(key => key === name || key.startsWith(`${name}@`)),
+      patched: Object.entries(patchedDependencies)
+        .filter(([key]) => key === name || key.startsWith(`${name}@`))
+        .map(([key, entry]) =>
+          isObject(entry) ? `${key} ${entry.hash ?? ''} ${entry.path ?? ''}` : `${key} ${entry}`
+        )
+        .sort(),
     };
   }
   return out;

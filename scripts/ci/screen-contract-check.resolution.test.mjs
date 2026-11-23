@@ -745,6 +745,16 @@ test('D-1: refusals end with the scanner-PR sentence, in the resolver and throug
   rejects(t, { 'apps/web/tsconfig.json': null }, ending);
   rejects(t, { 'tsconfig.json': '   \n' }, ending);
   rejects(t, { 'apps/web/tsconfig.json': '{ nope' }, ending);
+  // Sol r1: ESLint's own suffix is cut at its last occurrence, not at the same words in a request.
+  await assert.rejects(
+    lint(
+      tree(t, {
+        [`${W}/app/x/page.tsx`]:
+          "import a from './node_modules/a\\nOccurred while linting b';\nexport default () => a;\n",
+      })
+    ),
+    error => ending(error) && /a request through node_modules/u.test(error.message)
+  );
   await assert.rejects(
     lint(
       tree(t, {
@@ -786,6 +796,10 @@ test('D-1: module[require] is an edge; module[k] and a bare module value are ref
     "export const load = () => import('./x').then(module => module.x);",
     "export async function load() { const module = await import('./x'); return module.x; }",
     'export const e = typeof module;',
+    // Sol r1: a local binding named `module` is not the CommonJS one.
+    "import * as module from './x'; export const m = module; export const n = module['x'];",
+    'export const p = () => Promise.resolve(1).then(module => Promise.resolve(module));',
+    'export function q(module: Record<string, unknown>, k: string) { return module[k]; }',
   ])
     assert.ok(
       await lint(

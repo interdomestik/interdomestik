@@ -218,7 +218,7 @@ function assertWrappers(root) {
       refuse(
         `${NEXT_CONFIG} loads ${pkg} ${found?.version ?? '(absent)'}, not the reviewed ${reviewed.version}`
       );
-    if (found.patch !== null || found.patched)
+    if (found.patch !== null || found.patched.length > 0)
       refuse(
         `${NEXT_CONFIG} loads ${pkg} ${reviewed.version} with a pnpm patch, which was not reviewed`
       );

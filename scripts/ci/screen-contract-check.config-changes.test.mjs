@@ -109,7 +109,7 @@ test('config: a wrapper lockfile record change is refused; another lockfile chan
   assert.match(bumped.report.errors.join('\n'), REFUSED);
   assert.match(
     bumped.report.errors.join('\n'),
-    /pnpm-lock\.yaml next-intl \(4\.14\.5 sha512-.* -> 4\.15\.0 /u
+    /pnpm-lock\.yaml next-intl \(4\.14\.5 patch=none patchedDependencies=\[\] sha512-.* -> 4\.15\.0 /u
   );
   const added = enforced(t, { 'pnpm-lock.yaml': lock });
   assert.equal(added.code, 2);
@@ -124,4 +124,29 @@ test('config: a wrapper lockfile record change is refused; another lockfile chan
   );
   assert.equal(other.code, 0, JSON.stringify(other.report.errors));
   assert.deepEqual(other.report.configChanges, []);
+});
+
+// Sol r1: the whole record is compared, so a change of a wrapper's patch hash alone is refused; a
+// malformed lockfile in the change is a refusal ending with the scanner-PR sentence.
+test('config: a wrapper patch-hash change and a malformed lockfile are refused', t => {
+  const lock = fs.readFileSync('pnpm-lock.yaml', 'utf8');
+  const patch = hash =>
+    lock.replace(
+      /^patchedDependencies:\n/mu,
+      `patchedDependencies:\n  next-intl@4.14.5:\n    hash: ${hash}\n    path: patches/next-intl@4.14.5.patch\n`
+    );
+  assert.notEqual(patch('a'.repeat(64)), lock);
+  const hash = enforced(
+    t,
+    { 'pnpm-lock.yaml': patch('b'.repeat(64)) },
+    { 'pnpm-lock.yaml': patch('a'.repeat(64)) }
+  );
+  assert.equal(hash.code, 2);
+  assert.match(hash.report.errors.join('\n'), /pnpm-lock\.yaml next-intl \(.*a{64}.* -> .*b{64}/u);
+  const malformed = enforced(t, { 'pnpm-lock.yaml': 'a: [\n' }, { 'pnpm-lock.yaml': lock });
+  assert.equal(malformed.code, 2);
+  assert.match(
+    malformed.report.errors.join('\n'),
+    /pnpm-lock\.yaml at [0-9a-f]+ is not parseable; a change to it needs a scanner PR first/u
+  );
 });
