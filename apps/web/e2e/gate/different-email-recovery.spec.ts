@@ -86,9 +86,11 @@ test.describe('IDA-UI03b different-email recovery', () => {
   test('refuses a verified manager submission after public intake closes @ks-intake-switch', async ({
     browser,
   }, rawInfo) => {
+    // The case closes the shared KS intake switch, so it runs only where nothing else runs beside it:
+    // the single-worker gate-ks-sq project (PR CI and the Mac gate). Parallel local lanes skip it visibly.
     test.skip(
-      !['gate-ks-sq', 'gate-ks-intake-switch'].includes(rawInfo.project.name),
-      'One canonical gate run owns the intake switch.'
+      rawInfo.project.name !== 'gate-ks-sq' || rawInfo.config.workers !== 1,
+      'One single-worker canonical gate run owns the intake switch.'
     );
     requireMailbox();
     test.setTimeout(120_000);

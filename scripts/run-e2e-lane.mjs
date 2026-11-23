@@ -49,8 +49,6 @@ const mergeArgs = ['e2e/gate', 'e2e/golden', '--grep-invert', '@quarantine|@visu
 const pwArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
 const fastEnv = { PW_FAST_GATES: '1' };
 const ksSq = '--project=gate-ks-sq';
-const ksIntakeSwitch = '--project=gate-ks-intake-switch';
-const ksParallelConfig = '--config=playwright.ks-parallel.config.ts';
 const mkMk = '--project=gate-mk-mk';
 const mkContract = '--project=gate-mk-contract';
 const smokeIda = '--project=smoke-ida';
@@ -60,16 +58,10 @@ const gateLane = (projects, state = false) => ({
   env: fastEnv,
   playwrightArgs: [...gateArgs, ...projects],
 });
-const projectLane = (projectArgs, env) => ({
+const projectLane = (project, env) => ({
   gatekeeper: true,
   ...(env && { env }),
-  playwrightArgs: ['e2e/gate', ...projectArgs, ...strictArgs],
-});
-const ksLane = env => ({
-  gatekeeper: true,
-  env,
-  playwrightArgs: [ksParallelConfig, ksSq, ...strictArgs],
-  intakeSwitchArgs: [ksParallelConfig, ksIntakeSwitch, ...strictArgs],
+  playwrightArgs: ['e2e/gate', project, ...strictArgs],
 });
 const laneDefinitions = {
   state: { playwrightArgs: [...setupArgs, ...strictWorkers] },
@@ -96,10 +88,10 @@ const laneDefinitions = {
     gatekeeper: true,
     playwrightArgs: ['e2e/smoke/ida-dashboard-smoke.spec.ts', smokeIda, ...strictWorkers],
   },
-  ks: ksLane(),
-  mk: projectLane([mkMk]),
-  'ks-fast': ksLane(fastEnv),
-  'mk-fast': projectLane([mkMk], fastEnv),
+  ks: projectLane(ksSq),
+  mk: projectLane(mkMk),
+  'ks-fast': projectLane(ksSq, fastEnv),
+  'mk-fast': projectLane(mkMk, fastEnv),
   'front-door': {
     env: { PW_FRONT_DOOR: '1' },
     playwrightArgs: [
@@ -164,11 +156,4 @@ if (shouldRunLocalDoctor) await run('pnpm', ['run', 'doctor'], laneEnv);
 await ensureLocalTestHosts({ required: process.env.CI === 'true' });
 if (lane.gatekeeper) await run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
 if (lane.state) await run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
-const passes = [lane.playwrightArgs];
-if (lane.intakeSwitchArgs) passes.push(lane.intakeSwitchArgs);
-// A caller's filters can select tests from just one of the two KS passes.
-const emptyPassArgs =
-  lane.intakeSwitchArgs && extraPlaywrightArgs.length ? ['--pass-with-no-tests'] : [];
-for (const args of passes) {
-  await run('pnpm', [...pwArgs, ...args, ...emptyPassArgs, ...extraPlaywrightArgs], finalEnv);
-}
+await run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], finalEnv);
