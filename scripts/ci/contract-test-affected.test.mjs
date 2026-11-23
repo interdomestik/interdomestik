@@ -8,10 +8,14 @@ import {
   AREA_TABLE,
   parseArgs,
   selectContractWork,
+  rawDiffProblem,
+  readDiff,
   testSetChange,
   unrecognizedEntry,
 } from './contract-test-affected.mjs';
-import { inputClosure, inventory } from './contract-test-inputs.mjs';
+import { commandScripts, dependencyNames } from './contract-test-wiring.mjs';
+import { parseNameStatus } from '../lib/modularity-guard.mjs';
+import { inputClosure, inventory, touches } from './contract-test-inputs.mjs';
 import { contractTestPlan } from './contract-test-shards.mjs';
 
 const byText = (left, right) => left.localeCompare(right);
@@ -42,6 +46,7 @@ const select = (changed, extra = {}) =>
     changed,
     structural: undefined,
     e2eClosure: { files: new Set(['scripts/check-e2e-contracts.mjs']), dirs: new Set() },
+    touches,
     ...extra,
   });
 
@@ -139,6 +144,41 @@ test('fail safe: an unrecognized diff entry, and a test with an unresolved impor
   );
 });
 
+test('fail safe: a raw diff stream that does not parse runs full, before the parser absorbs it', () => {
+  const absorbed = 'M\0\0A\0README.md\0M\0docs/other.md\0';
+  assert.match(readDiff(absorbed, parseNameStatus).odd, /^unrecognized diff entry /u);
+  for (const raw of ['X\0a\0', 'R100\0old\0', 'M\0', '\0']) {
+    assert.match(rawDiffProblem(raw), /^unrecognized diff entry /u, JSON.stringify(raw));
+  }
+  const good = 'M\0a\0R100\0old\0new\0C075\0src\0copy\0T\0link\0D\0gone\0A\0new.md\0';
+  assert.equal(rawDiffProblem(good), null);
+  assert.equal(readDiff(good, parseNameStatus).odd, null);
+  assert.equal(rawDiffProblem(''), null);
+});
+
+test('fail safe: E2E roots normalize trailing slashes and the root; aliases and optionals count', () => {
+  const scripts = { e2e: 'node scripts/a.mjs ./fixtures/lanes/ . dir//' };
+  assert.deepEqual(commandScripts(scripts, 'e2e'), ['scripts/a.mjs', 'fixtures/lanes', '.', 'dir']);
+  const manifest = {
+    dependencies: { plain: '1.0.0', leafAlias: 'workspace:@interdomestik/leaf@*' },
+    optionalDependencies: { '@interdomestik/opt': 'workspace:*' },
+    peerDependencies: { npmAlias: 'npm:@interdomestik/peer@^1' },
+  };
+  assert.deepEqual(dependencyNames(manifest).sort(byText), [
+    '@interdomestik/leaf',
+    '@interdomestik/opt',
+    '@interdomestik/peer',
+    'leafAlias',
+    'npmAlias',
+    'plain',
+  ]);
+  const unresolved = { files: new Set(), dirs: new Set(), unresolved: '@interdomestik/x (e2e)' };
+  assert.equal(
+    select(['docs/a.md'], { e2eClosure: unresolved }).e2e,
+    'unresolved import @interdomestik/x (e2e)'
+  );
+});
+
 test('arguments are no ref or exactly --base with a ref that is not an option', () => {
   assert.equal(parseArgs([]), 'origin/main');
   assert.equal(parseArgs(['--base', 'main']), 'main');
@@ -167,6 +207,7 @@ test('on this repository the tenant-host lane and the workflow audit are reachab
       changed,
       structural: undefined,
       e2eClosure: { files: new Set(), dirs: new Set() },
+      touches,
     });
   const e2e = run(['apps/web/e2e/auth.spec.ts']);
   assert.ok(e2e.selected.has('scripts/ci/e2e-tenant-host-lanes.test.mjs'));

@@ -120,6 +120,9 @@ test('shell and Python prose about ls-files keeps the directory inputs', () => {
     'echo "git ls-files lists tracked files"\n',
     'cat docs/x.md # read like git ls-files would\n',
     "print('git ls-files is not run here')\n",
+    'echo "use \\"git ls-files\\" for an inventory"\n',
+    'echo "a quoted # is no comment"; echo "git ls-files in a string"\n',
+    'help="spans\nlines; git ls-files is described here"\n',
   ]) {
     const files = {
       'scripts/ci/a.test.mjs': "run('scripts/tool.sh');\nconst dir = 'packages/db/schema';\n",
@@ -131,6 +134,14 @@ test('shell and Python prose about ls-files keeps the directory inputs', () => {
   }
   assert.equal(parseSource('scripts/t.py', 'run(["git", "ls-files", "-z"])\n').scanner, true);
   assert.equal(parseSource('scripts/t.sh', 'n=${#list}; git ls-files\n').scanner, true);
+  // Python: a multiline docstring is a string; a shell single quote has no escapes.
+  const docstring = 'def f():\n    """List like\n    git ls-files would."""\n    return 1\n';
+  assert.equal(parseSource('scripts/t.py', docstring).scanner, false);
+  assert.equal(parseSource('scripts/t.py', "x = '''a\ngit ls-files'''\n").scanner, false);
+  const inner = 'def f():\n    """Run like "git ls-files" would."""\n';
+  assert.equal(parseSource('scripts/t.py', inner).scanner, false);
+  assert.equal(parseSource('scripts/t.sh', "echo 'a\\'; git ls-files\n").scanner, true);
+  assert.equal(parseSource('scripts/t.sh', 'echo \\"; git ls-files\n').scanner, true);
 });
 
 test('shell and Python helpers keep quoted paths with spaces and see their listings', () => {
@@ -235,12 +246,20 @@ test('command wiring follows pnpm links and refuses anything else', () => {
 test('fail safe: workspace imports pin package directories; an unknown package is unresolved', () => {
   const files = {
     'scripts/ci/a.test.mjs':
-      "import { db } from '@interdomestik/db/schema';\nconst m = await import('@interdomestik/ghost');\n",
+      "import { db } from '@interdomestik/db/schema';\nconst m = await import('@interdomestik/ghost');\nrun('scripts/h.cts');\n",
+    'scripts/h.cts': "import leaf = require('@interdomestik/leaf');\n",
   };
   const tracked = inventory([...Object.keys(files), 'packages/db/src/a.ts', 'packages/utils/b.ts']);
-  tracked.workspace = new Map([['@interdomestik/db', ['packages/db', 'packages/utils']]]);
+  tracked.workspace = new Map([
+    ['@interdomestik/db', ['packages/db', 'packages/utils']],
+    ['@interdomestik/leaf', ['packages/leaf']],
+  ]);
   const c = inputClosure('scripts/ci/a.test.mjs', sources(files), tracked);
-  assert.deepEqual([...c.pinned].sort(byText), ['packages/db/', 'packages/utils/']);
+  assert.deepEqual([...c.pinned].sort(byText), [
+    'packages/db/',
+    'packages/leaf/',
+    'packages/utils/',
+  ]);
   assert.equal(c.unresolved, '@interdomestik/ghost (imported by scripts/ci/a.test.mjs)');
   const scanning = { ...c, scanner: true };
   assert.equal(touches(scanning, ['packages/utils/b.ts']), 'packages/utils/b.ts');

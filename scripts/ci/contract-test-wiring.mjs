@@ -21,7 +21,24 @@ export const tracked = (root, ref) =>
   git(root, ['ls-tree', '-r', '-z', '--name-only', ref]).split('\0').filter(Boolean);
 
 const MANIFEST = /^(?:packages|apps)\/[^/]+\/package\.json$/u;
-const DEPENDENCY_KEYS = ['dependencies', 'devDependencies', 'peerDependencies'];
+const DEPENDENCY_KEYS = [
+  'dependencies',
+  'devDependencies',
+  'peerDependencies',
+  'optionalDependencies',
+];
+// A pnpm alias (`"x": "workspace:@scope/name@*"` or `"npm:@scope/name@…"`) names its target.
+const ALIAS_TARGET = /^(?:workspace|npm):(@[^@/]+\/[^@/]+)/u;
+
+// The package names a manifest depends on: each key, and an alias's target.
+export function dependencyNames(manifest) {
+  return DEPENDENCY_KEYS.flatMap(key =>
+    Object.entries(manifest[key] ?? {}).flatMap(([name, spec]) => {
+      const target = ALIAS_TARGET.exec(String(spec))?.[1];
+      return target ? [name, target] : [name];
+    })
+  );
+}
 
 // One side's manifest, or null when it is missing, unreadable or unnamed there.
 function readManifest(root, ref, file) {
@@ -58,9 +75,7 @@ export function workspacePackages(root, refs, paths) {
     for (const manifest of refs.map(ref => readManifest(root, ref, file)).filter(Boolean)) {
       const entry = manifests.get(manifest.name) ?? { dirs: new Set(), deps: new Set() };
       entry.dirs.add(path.posix.dirname(file));
-      for (const key of DEPENDENCY_KEYS) {
-        Object.keys(manifest[key] ?? {}).forEach(dep => entry.deps.add(dep));
-      }
+      dependencyNames(manifest).forEach(dep => entry.deps.add(dep));
       manifests.set(manifest.name, entry);
     }
   }
@@ -87,12 +102,19 @@ function pnpmTarget(words) {
   return rest.length === 1 && !rest[0].startsWith('-') ? rest[0] : null;
 }
 
+function withoutTrailingSlashes(text) {
+  let end = text.length;
+  while (end > 0 && text[end - 1] === '/') end -= 1;
+  return text.slice(0, end);
+}
+
 // `node <entry> [args]`: the entry and every non-flag argument are closure roots (an argument
 // may name a file the entry reads). An argument that escapes the repository is not derivable.
 function nodeEntries([tool, entry, ...args]) {
   if (tool !== 'node' || !entry || entry.startsWith('-')) return null;
-  const roots = [entry, ...args.filter(arg => !arg.startsWith('-'))].map(arg =>
-    path.posix.normalize(arg)
+  // Normalized without a trailing slash, so `./dir/` and `dir` name the same directory.
+  const roots = [entry, ...args.filter(arg => !arg.startsWith('-'))].map(
+    arg => withoutTrailingSlashes(path.posix.normalize(arg)) || '.'
   );
   return roots.some(root => root.startsWith('..') || path.posix.isAbsolute(root)) ? null : roots;
 }
@@ -135,16 +157,19 @@ export function e2eWiring(root, mergeBase, read, paths) {
   const rewired = [...wiring].some(key => before[key] !== after[key]);
   if (rewired) return { full: 'package.json contract or E2E command wiring changed' };
   if (!chain || !chainBefore) return { closure: null };
-  const closure = { files: new Set(), dirs: new Set() };
+  const closure = { files: new Set(), dirs: new Set(), pinned: new Set(), unresolved: null };
   for (const script of chain) {
-    // A tracked directory argument is a directory input; anything else roots a closure.
-    if (paths.dirs.has(script)) {
-      closure.dirs.add(`${script}/`);
+    // The repository root or a tracked directory argument is a directory input (the root matches
+    // every change); anything else roots a closure, whose pins and unresolved imports carry over.
+    if (script === '.' || paths.dirs.has(script)) {
+      closure.dirs.add(script === '.' ? '' : `${script}/`);
       continue;
     }
     const found = inputClosure(script, read, paths);
-    found.files.forEach(file => closure.files.add(file));
-    found.dirs.forEach(dir => closure.dirs.add(dir));
+    for (const key of ['files', 'dirs', 'pinned']) {
+      found[key].forEach(value => closure[key].add(value));
+    }
+    closure.unresolved ??= found.unresolved;
   }
   return { closure };
 }

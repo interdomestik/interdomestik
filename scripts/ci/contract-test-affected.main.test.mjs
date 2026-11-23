@@ -172,17 +172,23 @@ test('an edit to a linked child of the E2E command is a wiring change', async t 
 });
 
 test('an edit inside a directory the E2E command names runs the E2E command', async t => {
-  const scripts = {
-    ...manifest.scripts,
-    'check:e2e-contracts': 'node scripts/stub.mjs e2e fixtures/lanes',
-  };
-  const extra = { 'fixtures/lanes/case.json': '{}\n' };
-  const repo = fixture(t, JSON.stringify({ ...manifest, scripts }), extra);
-  repo.write({ 'fixtures/lanes/case.json': '{"changed":true}\n' });
-  repo.commit('edit a case inside the directory argument');
-  const result = await run(t, repo);
-  assert.equal(result.code, 0, result.output);
-  assert.deepEqual(result.ran, ['e2e ', `guard ${repo.base}`]);
+  for (const [argument, edited] of [
+    ['fixtures/lanes', 'fixtures/lanes/case.json'],
+    ['./fixtures/lanes/', 'fixtures/lanes/case.json'],
+    ['.', 'docs/other.md'],
+  ]) {
+    const scripts = {
+      ...manifest.scripts,
+      'check:e2e-contracts': `node scripts/stub.mjs e2e ${argument}`,
+    };
+    const extra = { 'fixtures/lanes/case.json': '{}\n' };
+    const repo = fixture(t, JSON.stringify({ ...manifest, scripts }), extra);
+    repo.write({ [edited]: '{"changed":true}\n' });
+    repo.commit('edit inside the directory argument');
+    const result = await run(t, repo);
+    assert.equal(result.code, 0, result.output);
+    assert.deepEqual(result.ran, ['e2e ', `guard ${repo.base}`], argument);
+  }
 });
 
 test('a runner that cannot load still runs both hosted commands and the guard', async t => {
@@ -194,18 +200,28 @@ test('a runner that cannot load still runs both hosted commands and the guard', 
   assert.equal(result.code, 0, result.output);
   assert.match(result.output, /FULL fallback \(runner unavailable: moved\)/u);
   assert.deepEqual(result.ran, ['contracts ', 'e2e ', `guard ${repo.base}`]);
-  // A module that imports but lacks a required export takes the same fallback.
-  const renamed = () =>
-    loadDependencies(specifier =>
-      import(specifier).then(module =>
-        specifier.includes('modularity-guard') ? { ...module, parseNameStatus: undefined } : module
-      )
+  // A module that imports but lacks a required export takes the same fallback: the diff parser,
+  // and the selector's own inputs and wiring modules.
+  for (const [moduleName, exported] of [
+    ['modularity-guard', 'parseNameStatus'],
+    ['contract-test-inputs', 'touches'],
+    ['contract-test-wiring', 'workspacePackages'],
+  ]) {
+    const renamed = () =>
+      loadDependencies(specifier =>
+        import(specifier).then(module =>
+          specifier.includes(moduleName) ? { ...module, [exported]: undefined } : module
+        )
+      );
+    const missing = await run(t, repo, { load: renamed });
+    assert.equal(missing.code, 0, missing.output);
+    assert.match(
+      missing.output,
+      new RegExp(`runner unavailable: missing export\\(s\\) ${exported}`, 'u')
     );
-  const missing = await run(t, repo, { load: renamed });
-  assert.equal(missing.code, 0, missing.output);
-  assert.match(missing.output, /runner unavailable: missing export\(s\) parseNameStatus/u);
-  assert.match(missing.output, /unknown changed path/u);
-  assert.deepEqual(missing.ran, ['contracts ', 'e2e ', `guard ${repo.base}`]);
+    assert.match(missing.output, /unknown changed path/u);
+    assert.deepEqual(missing.ran, ['contracts ', 'e2e ', `guard ${repo.base}`], moduleName);
+  }
 });
 
 test('planWork: deleted inputs, renames into tests, fallback order and unreadable manifests', async t => {
@@ -237,9 +253,14 @@ test('planWork: deleted inputs, renames into tests, fallback order and unreadabl
 });
 
 test('planWork fails safe: imported packages pin their workspace dependencies; odd entries run full', async t => {
-  const pkg = (name, dependencies = {}) => JSON.stringify({ name, dependencies });
-  const repo = fixture(t, JSON.stringify(manifest), {
-    'packages/db/package.json': pkg('@interdomestik/db', { '@interdomestik/utils': 'workspace:*' }),
+  const pkg = (name, optionalDependencies = {}) => JSON.stringify({ name, optionalDependencies });
+  // The E2E entry imports the package too, and the dependency is an aliased optional one.
+  const scripts = { ...manifest.scripts, 'check:e2e-contracts': 'node scripts/e2e-entry.mjs' };
+  const repo = fixture(t, JSON.stringify({ ...manifest, scripts }), {
+    'scripts/e2e-entry.mjs': "export const load = () => import('@interdomestik/db');\n",
+    'packages/db/package.json': pkg('@interdomestik/db', {
+      utilsAlias: 'workspace:@interdomestik/utils@*',
+    }),
     'packages/utils/package.json': pkg('@interdomestik/utils'),
     'packages/utils/src/b.ts': 'export {};\n',
     'scripts/ci/pkg.test.mjs': `${passing}export const load = () => import('@interdomestik/db');\n`,
@@ -249,6 +270,7 @@ test('planWork fails safe: imported packages pin their workspace dependencies; o
   const work = await planWork(repo.dir, 'main');
   assert.equal(work.full, null);
   assert.equal(work.selected.get('scripts/ci/pkg.test.mjs'), 'packages/utils/src/b.ts');
+  assert.equal(work.e2e, 'packages/utils/src/b.ts');
   const entry = { file: 'docs/other.md', oldPath: null, status: 'X' };
   const odd = () =>
     loadDependencies().then(found => ({ ...found, parseNameStatus: () => [entry] }));

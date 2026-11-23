@@ -78,35 +78,51 @@ const listsFiles = node =>
   (node.text === 'ls-files' && (ts.isArrayLiteralExpression(node.parent) || spawnArgument(node))) ||
   (LS_FILES_COMMAND.test(node.text) && spawnArgument(node));
 
-// One shell or Python line: its quoted strings, and its code with the strings and a trailing
-// comment removed.
-function splitLine(line) {
+// Where a quoted string ends: the closing quote (three of them for a Python triple-quoted
+// string), skipping backslash escapes except inside shell single quotes.
+function closingQuote(source, start, quote, python) {
+  const triple = python && source.startsWith(quote.repeat(3), start);
+  const close = triple ? quote.repeat(3) : quote;
+  const escapes = python || quote === '"';
+  let index = start + close.length;
+  while (index < source.length && !source.startsWith(close, index)) {
+    index += escapes && source[index] === '\\' ? 2 : 1;
+  }
+  return { body: source.slice(start + close.length, index), end: index + close.length };
+}
+
+// A shell or Python source split into its quoted strings and its code (strings replaced by a
+// space, comments removed). Quotes are tracked across lines (multiline strings, docstrings), a
+// backslash escapes the next character, and `#` starts a comment only outside strings, at the
+// start of a line or after whitespace.
+function splitSource(source, python) {
   const quoted = [];
   let code = '';
-  let quote = null;
-  let current = '';
-  for (let index = 0; index < line.length; index += 1) {
-    const char = line[index];
-    if (quote) {
-      if (char === quote) {
-        quoted.push(current);
-        [current, quote] = ['', null];
-      } else current += char;
+  for (let index = 0; index < source.length;) {
+    const char = source[index];
+    if (char === '\\') {
+      code += source.slice(index, index + 2);
+      index += 2;
     } else if (char === '"' || char === "'") {
-      [quote, code] = [char, `${code} `];
-    } else if (char === '#' && (index === 0 || /\s/u.test(line[index - 1]))) {
-      break;
-    } else code += char;
+      const { body, end } = closingQuote(source, index, char, python);
+      quoted.push(body);
+      code += ' ';
+      index = end;
+    } else if (char === '#' && (index === 0 || /\s/u.test(source[index - 1]))) {
+      const newline = source.indexOf('\n', index);
+      index = newline === -1 ? source.length : newline;
+    } else {
+      code += char;
+      index += 1;
+    }
   }
   return { code, quoted };
 }
 
 // Shell and Python helpers: each quoted string whole (a path may hold spaces) and split, and the
 // words of the code. A listing counts only in code, or as a quoted `ls-files` argument.
-function parseText(source) {
-  const lines = source.split('\n').map(splitLine);
-  const quoted = lines.flatMap(line => line.quoted);
-  const code = lines.map(line => line.code).join('\n');
+function parseText(file, source) {
+  const { code, quoted } = splitSource(source, file.endsWith('.py'));
   const words = [
     ...quoted.flatMap(text => text.split(TEXT_SEPARATORS)),
     ...code.split(TEXT_SEPARATORS),
@@ -125,8 +141,13 @@ const isModuleCall = node =>
   (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
     (ts.isIdentifier(node.expression) && node.expression.text === 'require'));
 
-// The specifier of an import or export declaration, or of import()/require() with a literal.
+// The specifier of an import or export declaration, an `import x = require()`, or of
+// import()/require() with a literal.
 function moduleSpecifier(node) {
+  if (ts.isImportEqualsDeclaration(node) && ts.isExternalModuleReference(node.moduleReference)) {
+    const { expression } = node.moduleReference;
+    return ts.isStringLiteralLike(expression) ? expression.text : null;
+  }
   if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
     return ts.isStringLiteralLike(node.moduleSpecifier) ? node.moduleSpecifier.text : null;
   }
@@ -136,7 +157,7 @@ function moduleSpecifier(node) {
 
 // The candidate path texts of one source, and whether it scans directories.
 export function parseSource(file, source) {
-  if (!JS_SOURCE.test(file)) return parseText(source);
+  if (!JS_SOURCE.test(file)) return parseText(file, source);
   const texts = [];
   const packages = [];
   let scanner = false;
