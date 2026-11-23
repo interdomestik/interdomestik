@@ -242,3 +242,21 @@ test('track audit: the command exits 1 on a failing contract and 0 on a passing 
     }
   }
 });
+
+test('track audit: a file check with patterns, or a blank target, fails', () => {
+  const exists = { id: 'e', type: 'file_exists', targets: ['src/a.ts'] };
+  for (const check of [
+    { ...exists, must_not_match: ['seed'] },
+    { ...exists, must_match: ['nothing'] },
+    { ...exists, targets: [''] },
+    { ...exists, targets: ['  '] },
+    { ...exists, targets: [7] },
+    { id: 'r', type: 'regex', targets: [''], must_match: ['a'] },
+  ]) {
+    const failures = audit(SRC, [check]);
+    assert.ok(
+      failures.some(f => /regex-only keys|not a non-empty path/u.test(f)),
+      `${JSON.stringify(check)}: ${failures.join('\n')}`
+    );
+  }
+});

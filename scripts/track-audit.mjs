@@ -83,7 +83,15 @@ function shapeProblem(check) {
   const unknown = Object.keys(check ?? {}).filter(key => !CHECK_KEYS.has(key));
   if (unknown.length > 0) return `has unsupported keys: ${unknown.join(', ')}`;
   if (!Array.isArray(check.targets) || check.targets.length === 0) return 'has no targets';
-  if (check.type !== 'regex') return '';
+  if (!check.targets.every(target => typeof target === 'string' && target.trim() !== '')) {
+    return 'has a target that is not a non-empty path';
+  }
+  if (check.type !== 'regex') {
+    const regexOnly = ['must_match', 'must_not_match'].filter(key => check[key] !== undefined);
+    return regexOnly.length > 0
+      ? `has regex-only keys on a ${check.type} check: ${regexOnly.join(', ')}`
+      : '';
+  }
   if (!isPatternList(check.must_match) || !isPatternList(check.must_not_match)) {
     return 'has a pattern list that is not a list of non-empty strings';
   }

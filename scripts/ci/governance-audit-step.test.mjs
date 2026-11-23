@@ -68,8 +68,28 @@ function runStep(
 const ranAll = calls => AUDITS.every(audit => calls.includes(`pnpm ${audit}`));
 const errorLine = names => new RegExp(`::error::Governance audit step failed: ${names}\\n`, 'u');
 
-test('governance step: it pins its shell', () => {
+test('governance step: it pins its shell and is never skipped or tolerated', () => {
   assert.equal(step.shell, 'bash');
+  assert.equal(step.if, undefined);
+  assert.equal(step['continue-on-error'], undefined);
+  assert.equal(workflow.jobs.audit['continue-on-error'], undefined);
+  assert.equal(workflow.jobs.audit.if, undefined);
+});
+
+test('governance step: the narrow lane runs exactly its two contract tests', () => {
+  const run = runStep(step.run, { broad: 'false' });
+  assert.equal(run.status, 0, run.output);
+  assert.deepEqual(
+    run.calls.filter(call => call.startsWith('node ')),
+    [
+      'node --test scripts/ci/docs-closeout-main-push-contract.test.mjs scripts/ci/z620-parity-policy.test.mjs',
+    ]
+  );
+  assert.deepEqual(
+    runStep(step.run).calls.filter(call => call.startsWith('node ')),
+    [],
+    'the broad lane runs them in Run Audits instead'
+  );
 });
 
 for (const [shell, flags] of Object.entries(SHELLS)) {
