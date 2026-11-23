@@ -210,13 +210,6 @@ function mayChange(actor: MemberNoteActor, note: LockedNote): boolean {
   return note.authorId === actor.userId || actor.role === ROLES.admin;
 }
 
-type NoteChanges = Partial<
-  Pick<
-    typeof memberNotes.$inferInsert,
-    'type' | 'content' | 'isPinned' | 'isInternal' | 'followUpDate' | 'updatedAt'
-  >
->;
-
 /** Updates a note the actor wrote (or any, for an admin) on a member it may act on. */
 export async function updateMemberNote(
   params: MemberNoteCommandParams
@@ -225,18 +218,24 @@ export async function updateMemberNote(
   if ('ok' in admitted) return admitted;
   const { actor, input } = admitted;
 
-  const changes: NoteChanges = {};
-  if (input.type !== undefined) changes.type = input.type;
+  let content: string | undefined;
   if (input.content !== undefined) {
-    const content = sanitizeNoteContent(input.content);
+    content = sanitizeNoteContent(input.content);
     // Deliberate: content that is empty once sanitized is refused, never stored.
     if (!content) return fail('EMPTY_CONTENT');
-    changes.content = content;
   }
-  if (input.isPinned !== undefined) changes.isPinned = input.isPinned;
-  if (input.isInternal !== undefined) changes.isInternal = input.isInternal;
-  if (input.followUpDate !== undefined) changes.followUpDate = input.followUpDate;
-  const updatedFields = Object.keys(changes);
+  // Each column named on its own from the parsed input; an absent field is undefined, which the
+  // update leaves unchanged (followUpDate: null clears the date).
+  const values = {
+    type: input.type,
+    content,
+    isPinned: input.isPinned,
+    isInternal: input.isInternal,
+    followUpDate: input.followUpDate,
+  };
+  const updatedFields = Object.entries(values)
+    .filter(([, value]) => value !== undefined)
+    .map(([field]) => field);
 
   // db-access-guard: tenant-scoped -- reason: tenantId from the session-bound authority actor
   return withTenantAuthority(params.authority, async tx => {
@@ -245,7 +244,14 @@ export async function updateMemberNote(
     if (!mayChange(actor, note)) return fail('NOT_AUTHOR');
     await tx
       .update(memberNotes)
-      .set({ ...changes, updatedAt: new Date() })
+      .set({
+        type: values.type,
+        content: values.content,
+        isPinned: values.isPinned,
+        isInternal: values.isInternal,
+        followUpDate: values.followUpDate,
+        updatedAt: new Date(),
+      })
       .where(and(eq(memberNotes.id, note.id), eq(memberNotes.tenantId, actor.tenantId)));
     const [updated] = await selectNotesWithAuthor(tx)
       .where(and(eq(memberNotes.id, note.id), eq(memberNotes.tenantId, actor.tenantId)))

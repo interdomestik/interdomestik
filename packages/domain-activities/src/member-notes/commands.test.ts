@@ -543,3 +543,22 @@ describe('sanitizeNoteContent', () => {
     expect(sanitizeNoteContent(raw)).toBe(clean);
   });
 });
+
+describe('updateMemberNote field handling', () => {
+  it('changes only the fields given and clears a follow-up date on null', async () => {
+    const row = store.rows.memberNotes.find(candidate => candidate.id === 'n1');
+    if (row) row.followUpDate = at(30);
+    expect(await updateMemberNote({ ...A(), input: { id: 'n1', isPinned: true } })).toMatchObject({
+      ok: true,
+      data: { content: 'content n1', type: 'general', isPinned: true, followUpDate: at(30) },
+      audit: { updatedFields: ['isPinned'] },
+    });
+    expect(
+      await updateMemberNote({ ...A(), input: { id: 'n1', followUpDate: null, type: 'call' } })
+    ).toMatchObject({
+      ok: true,
+      data: { type: 'call', isPinned: true, followUpDate: null },
+      audit: { updatedFields: ['type', 'followUpDate'] },
+    });
+  });
+});

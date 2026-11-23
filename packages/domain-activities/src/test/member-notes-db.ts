@@ -164,7 +164,12 @@ export function fakeTransaction() {
         where: async (condition: Condition) => {
           store.statements.push({ tx: txId, kind: 'update', table: target.__name, lock: null });
           for (const row of store.rows[target.__name as keyof typeof store.rows]) {
-            if (matches(row, condition)) Object.assign(row, values);
+            // As drizzle's update: an undefined value leaves the column unchanged.
+            if (matches(row, condition)) {
+              for (const [key, value] of Object.entries(values)) {
+                if (value !== undefined) row[key] = value;
+              }
+            }
           }
         },
       }),
