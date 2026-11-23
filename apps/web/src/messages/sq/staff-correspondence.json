@@ -1,6 +1,7 @@
 {
   "staff-correspondence": {
     "choose": "Zgjidhni një mundësi",
+    "citedDocument": "Dokument i cituar",
     "notRecorded": "Pa të dhëna",
     "feedback": {
       "loading": "Po ngarkohen të dhënat e rastit…",
@@ -105,6 +106,7 @@
       "noReply": "Pa kontakt dalës të lidhur",
       "replyOption": "{organisation} • {date} • {summary}",
       "documents": "Dokumentet e dërguara me këtë kontakt",
+      "documentLimit": "Zgjidhni deri në {limit} dokumente.",
       "basesRequired": "Për një kontakt dalës kërkohen marrëveshja për rikuperimin e dëmit dhe prokura.",
       "consentRequired": "Dërgimi i dokumenteve kërkon pëlqim ose bazë ligjore për ndarjen e tyre.",
       "attestSharing": "Konfirmoj se qëllimi i regjistruar e mbulon këtë zbulim të të dhënave.",

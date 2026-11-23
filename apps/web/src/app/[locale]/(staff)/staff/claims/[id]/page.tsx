@@ -31,9 +31,14 @@ import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { StaffClaimDocumentsSection } from './staff-claim-documents-section';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { getMessagesForClaimCore } from '@/actions/messages/get.core';
+import { parameterFreeFailure } from '@/actions/staff-claims/register-failure';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { authorizeStaffClaimPage } from '@/features/staff/claims/server/authorize-staff-claim-page';
-import { getAssignedStaffClaimDocuments } from '@/features/staff/claims/server/get-assigned-claim-documents';
+import {
+  getAssignedStaffClaimDocuments,
+  getRegisterPickerDocuments,
+} from '@/features/staff/claims/server/get-assigned-claim-documents';
+import * as Sentry from '@sentry/nextjs';
 import { getPublicStatusHistoryCore } from './_core';
 
 interface PageProps {
@@ -41,7 +46,10 @@ interface PageProps {
     locale: string;
     id: string;
   }>;
-  searchParams?: Promise<{ correspondencePage?: string | string[] }>;
+  searchParams?: Promise<{
+    correspondencePage?: string | string[];
+    evidencePage?: string | string[];
+  }>;
 }
 
 function toClaimStatus(value: unknown): ClaimStatus {
@@ -74,8 +82,13 @@ export default async function StaffClaimDetailsPage({
   searchParams,
 }: Readonly<PageProps>): Promise<React.JSX.Element> {
   const { id, locale } = await params;
-  const requestedPage = (await searchParams)?.correspondencePage;
-  const correspondencePage = clampPage(Number(Array.isArray(requestedPage) ? 1 : requestedPage));
+  const query = await searchParams;
+  const correspondencePage = clampPage(
+    Number(typeof query?.correspondencePage === 'string' ? query.correspondencePage : 1)
+  );
+  const evidencePage = clampPage(
+    Number(typeof query?.evidencePage === 'string' ? query.evidencePage : 1)
+  );
   setRequestLocale(locale);
   const tClaims = await getTranslations({ locale, namespace: 'agent-claims.claims' });
   const tStatus = await getTranslations({ locale, namespace: 'claims-tracking.status' });
@@ -119,9 +132,27 @@ export default async function StaffClaimDetailsPage({
     Array.isArray((initialMessagesResult as { messages?: unknown }).messages);
   const initialReadFailed = isStaff && !serverReadSucceeded;
   // The document reader rechecks exact assignment inside its tenant transaction.
-  const assignedDocuments = isAssignedStaff
-    ? await getAssignedStaffClaimDocuments({ claimId: id, session, authority }).catch(() => null)
-    : null;
+  const readDocuments = { claimId: id, session, authority };
+  const [evidence, picker] = isAssignedStaff
+    ? await Promise.allSettled([
+        getAssignedStaffClaimDocuments({ ...readDocuments, page: evidencePage }),
+        getRegisterPickerDocuments(readDocuments),
+      ])
+    : [null, null];
+  if (evidence?.status === 'rejected') {
+    Sentry.captureException(parameterFreeFailure(evidence.reason, 'claim evidence read'));
+  }
+  if (picker?.status === 'rejected') {
+    Sentry.captureException(parameterFreeFailure(picker.reason, 'register picker read'));
+  }
+  const evidenceResult = evidence?.status === 'fulfilled' ? evidence.value : null;
+  function evidenceHref(page: number) {
+    const params = new URLSearchParams();
+    if (correspondencePage > 1) params.set('correspondencePage', String(correspondencePage));
+    if (page > 1) params.set('evidencePage', String(page));
+    const search = params.size > 0 ? `?${params}` : '';
+    return `/${locale}/staff/claims/${encodeURIComponent(id)}${search}`;
+  }
   // The information-request card owns real member duties; generic phase copy stays neutral.
   const slaPhaseLabel = isVerificationGuidancePhase(claimStatus, slaPhase)
     ? tClaims('details.verification_guidance')
@@ -169,9 +200,10 @@ export default async function StaffClaimDetailsPage({
     session,
     authority,
     detail.claim,
-    assignedDocuments,
+    picker?.status === 'fulfilled' ? picker.value : null,
     locale,
-    correspondencePage
+    correspondencePage,
+    evidenceResult?.page ?? evidencePage
   );
   return (
     <div
@@ -245,11 +277,21 @@ export default async function StaffClaimDetailsPage({
           requests={informationRequests}
         />
         <StaffClaimDocumentsSection
-          documents={assignedDocuments}
+          documents={evidenceResult?.documents ?? null}
           emptyLabel={tEvidence('detail.documentsEmpty')}
           errorLabel={tCommon('errors.generic')}
           isAssignedStaff={isAssignedStaff}
-          retryHref={`/${locale}/staff/claims/${encodeURIComponent(id)}`}
+          nextPage={
+            evidenceResult?.hasNextPage
+              ? { href: evidenceHref(evidenceResult.page + 1), label: tCommon('next') }
+              : undefined
+          }
+          previousPage={
+            evidenceResult && evidenceResult.page > 1
+              ? { href: evidenceHref(evidenceResult.page - 1), label: tCommon('previous') }
+              : undefined
+          }
+          retryHref={evidenceHref(evidencePage)}
           retryLabel={tCommon('tryAgain')}
           title={tEvidence('detail.evidence')}
           viewLabel={tEvidence('informationRequests.download')}

@@ -172,6 +172,7 @@ function AuthorityRow({
   documentName?: string;
 }>) {
   const t = useTranslations('staff-correspondence.authorities');
+  const tRegister = useTranslations('staff-correspondence');
   const locale = useLocale();
   const mutation = useRegisterMutation();
   const date = (value: string) => formatPilotDateTime(value, locale, '');
@@ -180,7 +181,9 @@ function AuthorityRow({
     <li className="grid gap-1 break-words rounded-md border p-3">
       <h3 className="font-semibold">{t(`kinds.${entry.kind}`)}</h3>
       <p>{t('versionValue', { version: entry.version })}</p>
-      {documentName && <p>{t('instrumentValue', { name: documentName })}</p>}
+      <p>
+        {documentName ? t('instrumentValue', { name: documentName }) : tRegister('citedDocument')}
+      </p>
       <p>{t('granted', { date: date(entry.grantedAt) })}</p>
       {entry.expiresAt && <p>{t('expires', { date: date(entry.expiresAt) })}</p>}
       {entry.jurisdictionCountryCode && (
@@ -214,7 +217,7 @@ export function ClaimAuthoritiesPanel({
   canWrite,
   claimId,
   documents,
-  citedDocuments = documents ?? [],
+  citedDocuments = [],
 }: Readonly<{
   authorities: readonly CaseAuthorityEntry[];
   canWrite: boolean;

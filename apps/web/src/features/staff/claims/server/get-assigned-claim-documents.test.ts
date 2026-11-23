@@ -5,7 +5,7 @@ type QueryChain = {
   from: (table: unknown) => QueryChain;
   innerJoin: (table: unknown, predicate: unknown) => QueryChain;
   leftJoin: (table: unknown, predicate: unknown) => QueryChain;
-  limit: (count: number) => Promise<unknown[]>;
+  limit: (count: number) => Promise<unknown[]> & { offset: (value: number) => Promise<unknown[]> };
   orderBy: (...order: unknown[]) => QueryChain;
   where: (predicate: unknown) => QueryChain;
 };
@@ -18,6 +18,7 @@ const hoisted = vi.hoisted(() => ({
   froms: [] as unknown[],
   joins: [] as unknown[],
   limit: vi.fn(),
+  offset: vi.fn(),
   orderBy: vi.fn(),
   selections: [] as unknown[],
   wheres: [] as unknown[],
@@ -52,13 +53,16 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('drizzle-orm', () => ({
   and: (...args: unknown[]) => ({ op: 'and', args }),
-  desc: (column: unknown) => ({ op: 'desc', column }),
   eq: (left: unknown, right: unknown) => ({ op: 'eq', left, right }),
   isNull: (column: unknown) => ({ op: 'isNull', column }),
   ne: (left: unknown, right: unknown) => ({ op: 'ne', left, right }),
+  sql: (parts: TemplateStringsArray, ...values: string[]) => String.raw({ raw: parts }, ...values),
 }));
 
-import { getAssignedStaffClaimDocuments } from './get-assigned-claim-documents';
+import {
+  getAssignedStaffClaimDocuments,
+  getRegisterPickerDocuments,
+} from './get-assigned-claim-documents';
 
 const tx = {
   select: vi.fn((selection: unknown) => {
@@ -76,7 +80,15 @@ const tx = {
         hoisted.joins.push({ table, predicate });
         return chain;
       },
-      limit: hoisted.limit,
+      limit: count => {
+        const rows: Promise<unknown[]> = hoisted.limit(count);
+        return Object.assign(rows, {
+          offset: (value: number) => {
+            hoisted.offset(value);
+            return rows;
+          },
+        });
+      },
       orderBy: (...order) => {
         hoisted.orderBy(...order);
         return chain;
@@ -104,6 +116,7 @@ function read(session = staff(), sessionAuthority: typeof authority | null = aut
     authority: sessionAuthority,
   });
 }
+const emptyPage = { page: 1, documents: [], hasNextPage: false };
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -129,7 +142,7 @@ describe('getAssignedStaffClaimDocuments', () => {
 
     const documents = await read();
 
-    expect(documents).toEqual([
+    expect(documents.documents).toEqual([
       {
         id: 'doc-1',
         name: 'evidence.pdf',
@@ -170,6 +183,7 @@ describe('getAssignedStaffClaimDocuments', () => {
           { op: 'eq', left: 'claim_documents.claim_id', right: 'claim-1' },
           { op: 'eq', left: 'claim_documents.tenant_id', right: 'tenant-a' },
           { op: 'isNull', column: 'link.document_id' },
+          undefined,
         ],
       },
     ]);
@@ -198,10 +212,11 @@ describe('getAssignedStaffClaimDocuments', () => {
       }),
     ]);
     expect(hoisted.orderBy).toHaveBeenCalledWith(
-      { op: 'desc', column: 'claim_documents.created_at' },
-      { op: 'desc', column: 'claim_documents.id' }
+      'claim_documents.created_at desc nulls last',
+      'claim_documents.id'
     );
-    expect(hoisted.limit).toHaveBeenLastCalledWith(100);
+    expect(hoisted.limit).toHaveBeenLastCalledWith(21);
+    expect(hoisted.offset).toHaveBeenCalledWith(0);
   });
 
   it('encodes document ids in the canonical authorized download route', async () => {
@@ -210,7 +225,7 @@ describe('getAssignedStaffClaimDocuments', () => {
       { id: 'doc/1?x', name: 'a.pdf', fileType: 'application/pdf', fileSize: 1 },
     ]);
 
-    await expect(read()).resolves.toEqual([
+    expect((await read()).documents).toEqual([
       expect.objectContaining({ url: '/api/documents/doc%2F1%3Fx/download' }),
     ]);
   });
@@ -218,7 +233,7 @@ describe('getAssignedStaffClaimDocuments', () => {
   it('issues no document query for a wrong assignee, even in the same branch', async () => {
     hoisted.limit.mockResolvedValueOnce([]);
 
-    await expect(read(staff({ id: 'staff-2' }))).resolves.toEqual([]);
+    await expect(read(staff({ id: 'staff-2' }))).resolves.toEqual(emptyPage);
     expect(tx.select).toHaveBeenCalledTimes(1);
     expect(hoisted.wheres[0]).toEqual(
       expect.objectContaining({
@@ -231,14 +246,14 @@ describe('getAssignedStaffClaimDocuments', () => {
   it.each(['branch_manager', 'admin', 'agent', 'member', null])(
     'returns no documents and opens no context for role %s',
     async role => {
-      await expect(read(staff({ role }))).resolves.toEqual([]);
+      await expect(read(staff({ role }))).resolves.toEqual(emptyPage);
       expect(hoisted.withTenantContext).not.toHaveBeenCalled();
       expect(tx.select).not.toHaveBeenCalled();
     }
   );
 
   it('returns no documents and opens no context without a session authority', async () => {
-    await expect(read(staff(), null)).resolves.toEqual([]);
+    await expect(read(staff(), null)).resolves.toEqual(emptyPage);
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
     expect(tx.select).not.toHaveBeenCalled();
   });
@@ -249,7 +264,7 @@ describe('getAssignedStaffClaimDocuments', () => {
     hoisted.limit.mockResolvedValueOnce([
       { id: 'doc-b', name: 'access.pdf', fileType: 'application/pdf', fileSize: 2 },
     ]);
-    await expect(read(staff(), other)).resolves.toEqual([
+    expect((await read(staff(), other)).documents).toEqual([
       {
         id: 'doc-b',
         name: 'access.pdf',
@@ -278,5 +293,45 @@ describe('getAssignedStaffClaimDocuments', () => {
 
     await expect(read()).rejects.toThrow('tenant context unavailable');
     expect(tx.select).not.toHaveBeenCalled();
+  });
+
+  it('pages through ordinary evidence past row 100 and clamps the requested size', async () => {
+    const rows = Array.from({ length: 51 }, (_, index) => ({
+      id: `doc-${101 + index}`,
+      name: 'Evidence',
+      fileType: 'application/pdf',
+      fileSize: 1,
+    }));
+    hoisted.limit.mockResolvedValueOnce([{ id: 'claim-1' }]).mockResolvedValueOnce(rows);
+    const result = await getAssignedStaffClaimDocuments({
+      claimId: 'claim-1',
+      session: staff(),
+      authority,
+      page: 3,
+      perPage: 1000,
+    });
+    expect(hoisted.offset).toHaveBeenCalledExactlyOnceWith(100);
+    expect(hoisted.limit).toHaveBeenLastCalledWith(51);
+    expect(result.documents).toHaveLength(50);
+    expect(result.documents[0]?.url).toBe('/api/documents/doc-101/download');
+    expect(result.hasNextPage).toBe(true);
+  });
+
+  it('filters the picker by citation provenance before the ordered 100-row limit', async () => {
+    hoisted.limit.mockResolvedValueOnce([{ id: 'claim-1' }]).mockResolvedValueOnce([]);
+    await getRegisterPickerDocuments({ claimId: 'claim-1', session: staff(), authority });
+    expect(hoisted.wheres[1]).toEqual(
+      expect.objectContaining({
+        args: expect.arrayContaining([
+          'public.claim_document_provenance_ok(claim_documents.tenant_id, claim_documents.claim_id, claim_documents.id)',
+        ]),
+      })
+    );
+    expect(hoisted.orderBy).toHaveBeenCalledExactlyOnceWith(
+      'claim_documents.created_at desc nulls last',
+      'claim_documents.id'
+    );
+    expect(hoisted.limit).toHaveBeenLastCalledWith(100);
+    expect(hoisted.offset).not.toHaveBeenCalled();
   });
 });

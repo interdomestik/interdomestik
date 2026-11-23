@@ -7,6 +7,8 @@ import {
   createBases,
   documentInput,
   earlier,
+  foreignActor,
+  foreignTenant,
   homeActor,
   homeTenant,
   insertClaim,
@@ -79,6 +81,8 @@ type Domain = {
 };
 
 const otherStaff = 'wp12-other-staff';
+const branchlessStaff = 'wp12-branchless-staff';
+const member = 'wp12-citation-member';
 const defaults: CaseFields = {
   otherVehicleCountryCode: null,
   insuranceProofReference: null,
@@ -117,7 +121,20 @@ async function seedBranches(admin: postgres.Sql) {
   await admin`update "user" set branch_id = ${ownBranch} where id = ${homeActor}`;
   await admin`insert into "user" (id, tenant_id, name, email, "emailVerified", role, branch_id, "createdAt", "updatedAt")
     values (${otherStaff}, ${homeTenant}, 'Other staff', 'wp12-other@example.test', true,
-      'staff', ${ownBranch}, now(), now())`;
+      'staff', ${ownBranch}, now(), now()),
+      (${branchlessStaff}, ${homeTenant}, 'Branchless staff', 'wp12-branchless@example.test', true,
+      'staff', null, now(), now()),
+      (${member}, ${homeTenant}, 'Citation member', 'wp12-citation@example.test', true,
+      'member', ${ownBranch}, now(), now())`;
+}
+
+async function insertRequest(admin: postgres.Sql, claimId: string, dueAt = past) {
+  const [row] = await admin<{ id: string }[]>`insert into claim_information_requests (
+    tenant_id, claim_id, correlation_id, requested_information, explanation_for_member,
+    due_at, responsible_staff_id, created_by_staff_id, sla_posture
+  ) values (${homeTenant}, ${claimId}, gen_random_uuid(), 'Case evidence', 'Please send evidence',
+    ${dueAt}, ${homeActor}, ${homeActor}, 'incomplete') returning id`;
+  return row.id;
 }
 
 /**
@@ -147,7 +164,7 @@ test('WP-12 production writers on the restricted runtime connection', async t =>
     await seedBranches(connections.admin);
     // The queue read also reads member requests; the fixture role grants only register tables.
     await connections.admin.unsafe(
-      `grant select on claim_information_requests, claim_information_request_evidence to "${connections.role}"`
+      `grant select on claim_information_requests, claim_information_request_evidence, case_scoped_access_grants to "${connections.role}"`
     );
     // The domain binds its database client on import: load it once the pools are in place.
     await withDomainPools(connections.admin, connections.runtime, async () =>
@@ -168,17 +185,29 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
     async () => {
       const claim = await insertClaim(admin, { branch: ownBranch });
       const other = await insertClaim(admin, { branch: ownBranch });
+      await admin`update claim set "userId" = ${member} where id in (${claim.id}, ${other.id})`;
       const { entry, evidence, sent, uncited, offCase } = await restricted(runtime, async tx => {
-        const evidence = await insertDocument(tx, documentInput(claim));
-        const sent = await insertDocument(tx, documentInput(claim, 'sent-document'));
+        const evidence = await insertDocument(tx, {
+          ...documentInput(claim),
+          uploaded_by: member,
+          name: 'Member authority.pdf',
+        });
+        const sent = await insertDocument(tx, {
+          ...documentInput(claim, 'sent-document'),
+          uploaded_by: member,
+          name: 'Member evidence.pdf',
+        });
         const uncited = await insertDocument(tx, documentInput(claim, ' sent-document '));
         const offCase = await insertDocument(tx, documentInput(other));
+        await createBases(tx, other, offCase);
+        const omitted = await insertDocument(tx, documentInput(claim));
         const bases = await createBases(tx, claim, evidence);
         const entry = await insertEntry(tx, {
-          ...outboundInput(claim, bases, 1),
+          ...outboundInput(claim, bases, 2),
           occurred_at: earlier,
         });
         await insertLink(tx, linkInput(entry, sent));
+        await insertLink(tx, linkInput(entry, omitted));
         for (const _ of [1, 2]) {
           await insertEntry(tx, { ...inboundInput(claim), in_reply_to_id: entry.id });
         }
@@ -215,6 +244,32 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
         new Map(names.documents.map(({ id, name }) => [id, name])),
         new Map([sent, evidence].map(({ id, name }) => [id, name]))
       );
+      const colleague = actor(otherStaff, 'staff');
+      assert.equal(
+        (
+          await domain.listClaimCorrespondence(colleague.session, colleague.authority, {
+            claimId: claim.id,
+            page: 1,
+            perPage: 1,
+          })
+        ).ok,
+        true
+      );
+      const readAsColleague = () =>
+        domain.listRegisterCitationNames(colleague.session, colleague.authority, citationInput);
+      assert.deepEqual(await readAsColleague(), { ok: true, documents: [] });
+      await admin`insert into case_scoped_access_grants
+        (id, tenant_id, access_tenant_id, case_id, actor_id, document_classes, created_by_id, correlation_id)
+        values (gen_random_uuid(), ${homeTenant}, ${homeTenant}, ${claim.id}, ${otherStaff}, array['evidence'],
+          ${homeActor}, gen_random_uuid())`;
+      const granted = await readAsColleague();
+      assert.equal(granted.ok, true);
+      assert.deepEqual(
+        new Map(granted.documents.map(({ id, name }) => [id, name])),
+        new Map([sent, evidence].map(({ id, name }) => [id, name]))
+      );
+      await admin`update case_scoped_access_grants set revoked_at = now() where case_id = ${claim.id}`;
+      assert.deepEqual(await readAsColleague(), { ok: true, documents: [] });
       const manager = actor(homeActor, 'branch_manager');
       assert.deepEqual(
         await domain.listRegisterCitationNames(manager.session, manager.authority, citationInput),
@@ -378,11 +433,7 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
     });
     const read = () =>
       domain.getAssignedStaffClaimAttention(staff.session, staff.authority, [claim.id]);
-    await admin`insert into claim_information_requests (tenant_id, claim_id, correlation_id,
-      requested_information, explanation_for_member, due_at, responsible_staff_id,
-      created_by_staff_id, sla_posture)
-      values (${homeTenant}, ${claim.id}, gen_random_uuid(), 'Case evidence', 'Please send evidence',
-        ${past}, ${homeActor}, ${homeActor}, 'incomplete')`;
+    await insertRequest(admin, claim.id);
     const visible = await read();
     assert.equal(visible[claim.id]?.nextActor, 'member');
     assert.equal(visible[claim.id]?.overdueFollowUpDueAt, earlier);
@@ -394,6 +445,91 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
     assert.equal(moved[claim.id]?.overdueFollowUpDueAt, null);
     assert.equal(moved[claim.id]?.overdueFollowUpSource, undefined);
   });
+
+  await t.test(
+    'branchless queue progress equals case-page scope intersected with assignment',
+    async () => {
+      const assigned = await insertClaim(admin, { branch: ownBranch });
+      const unassigned = await insertClaim(admin, { branch: ownBranch });
+      const assignedElsewhere = await insertClaim(admin, { branch: foreignBranch });
+      const draft = await insertClaim(admin, { branch: foreignBranch, lifecycle: 'draft' });
+      await admin`update claim set "staffId" = ${branchlessStaff} where id in (${assigned.id}, ${draft.id})`;
+      await admin`update claim set "staffId" = null where id = ${unassigned.id}`;
+      const claimIds = [assigned.id, unassigned.id, assignedElsewhere.id, draft.id];
+      for (const id of claimIds) await insertRequest(admin, id);
+      const branchless = actor(branchlessStaff, 'staff', homeTenant, null);
+      const progress = await domain.getAssignedStaffClaimAttention(
+        branchless.session,
+        branchless.authority,
+        claimIds
+      );
+      assert.deepEqual(
+        Object.entries(progress).map(([id, item]) => [id, item.nextActor]),
+        [
+          [assigned.id, 'member'],
+          [unassigned.id, 'untracked'],
+          [assignedElsewhere.id, 'untracked'],
+          [draft.id, 'untracked'],
+        ]
+      );
+    }
+  );
+
+  await t.test(
+    'effective-tenant queue retains request progress and keeps register admission',
+    async () => {
+      const claim = await insertClaim(admin, { branch: ownBranch });
+      const offBranch = await insertClaim(admin, { branch: foreignBranch });
+      await restricted(
+        runtime,
+        tx => tx`insert into claim_case_fields
+      (tenant_id, claim_id, case_follow_up_at, updated_by_staff_id)
+      values (${homeTenant}, ${claim.id}, ${earlier}, ${homeActor})`
+      );
+      const claimIds = [claim.id, offBranch.id];
+      for (const id of claimIds) await insertRequest(admin, id);
+      const home = await domain.getAssignedStaffClaimAttention(
+        staff.session,
+        staff.authority,
+        claimIds
+      );
+      assert.equal(home[claim.id]?.overdueFollowUpSource, 'case_register');
+      assert.equal(home[claim.id]?.overdueFollowUpDueAt, earlier);
+
+      await admin`update claim set "staffId" = ${foreignActor} where id in (${claim.id}, ${offBranch.id})`;
+      const effective = actor(foreignActor, 'staff');
+      const session = { user: { ...effective.session.user, tenantId: foreignTenant } };
+      const progress = await domain.getAssignedStaffClaimAttention(
+        session,
+        effective.authority,
+        claimIds
+      );
+      assert.equal(progress[claim.id]?.nextActor, 'member');
+      assert.equal(progress[claim.id]?.overdueFollowUpDueAt, past);
+      assert.equal(progress[claim.id]?.overdueFollowUpSource, undefined);
+      assert.equal(progress[offBranch.id]?.nextActor, 'untracked');
+      assert.equal(progress[offBranch.id]?.overdueFollowUpDueAt, null);
+    }
+  );
+
+  await t.test(
+    'mixed requests prioritize staff review and use the later unanswered deadline',
+    async () => {
+      const claim = await insertClaim(admin, { branch: ownBranch });
+      const answered = await insertRequest(admin, claim.id, earlier);
+      await insertRequest(admin, claim.id, past);
+      const document = await insertDocument(admin, documentInput(claim));
+      await admin`insert into claim_information_request_evidence (
+      tenant_id, claim_id, request_id, document_id, submitted_by_member_id
+    ) values (${homeTenant}, ${claim.id}, ${answered}, ${document.id}, ${claim.user})`;
+      const progress = await domain.getAssignedStaffClaimAttention(staff.session, staff.authority, [
+        claim.id,
+      ]);
+      assert.equal(progress[claim.id]?.nextActor, 'staff');
+      assert.equal(progress[claim.id]?.overdueFollowUpDueAt, past);
+      assert.equal(progress[claim.id]?.overdueFollowUpSource, undefined);
+    }
+  );
 
   await t.test(
     'revocation: a deadlock with a direct revoker is retried, one revocation persists',

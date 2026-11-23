@@ -5,6 +5,7 @@ import {
 import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
 import { formatPilotDateTime } from '@/lib/utils/date';
 import { formatNumber } from '@/lib/utils/number';
+import { MAX_SHARED_DOCUMENTS } from '@interdomestik/domain-claims/claims/outward-action-requirements';
 import { getTranslations } from 'next-intl/server';
 import { Suspense } from 'react';
 import { ClaimAuthoritiesPanel } from './ClaimAuthoritiesPanel';
@@ -23,6 +24,7 @@ type RegisterProps = Readonly<{
   restricted: boolean;
   documents: readonly RegisterDocument[] | null;
   correspondencePage: number;
+  evidencePage: number;
 }>;
 
 async function BranchSummary({ claimId, locale, session, authority }: RegisterProps) {
@@ -72,6 +74,7 @@ async function StaffRegister({
   canWrite,
   documents,
   correspondencePage,
+  evidencePage,
 }: RegisterProps) {
   const [caseFields, authorities, correspondence, citationNames] = await readStaffCaseRegister(
     session,
@@ -80,7 +83,7 @@ async function StaffRegister({
     correspondencePage
   );
   const documentOptions = documents ?? [];
-  const citedDocuments = citationNames.ok ? citationNames.documents : documentOptions;
+  const citedDocuments = citationNames.ok ? citationNames.documents : [];
 
   return (
     <>
@@ -90,6 +93,7 @@ async function StaffRegister({
         <RegisterReadError code={caseFields.code} />
       )}
       {!citationNames.ok && <RegisterReadError code={citationNames.code} />}
+      {canWrite && documents === null && <RegisterReadError code="INTERNAL_SERVER_ERROR" />}
       {canWrite && authorities.ok && <ClaimRegisterDocumentUpload claimId={claimId} />}
       {authorities.ok ? (
         <ClaimAuthoritiesPanel
@@ -108,6 +112,7 @@ async function StaffRegister({
           entries={correspondence.entries}
           replyParents={correspondence.replyParents}
           page={correspondence.page}
+          evidencePage={evidencePage}
           perPage={correspondence.perPage}
           total={correspondence.total}
           canWrite={canWrite}
@@ -122,6 +127,7 @@ async function StaffRegister({
           authorities={authorities.ok ? authorities.authorities : []}
           documents={documentOptions}
           entries={correspondence.entries}
+          maxSharedDocuments={MAX_SHARED_DOCUMENTS}
         />
       )}
     </>
@@ -134,7 +140,8 @@ export async function caseRegister(
   claim: { id: string; staffId: string | null },
   documents: RegisterProps['documents'],
   locale: string,
-  correspondencePage = 1
+  correspondencePage = 1,
+  evidencePage = 1
 ) {
   const t = await getTranslations({ locale, namespace: 'staff-correspondence.feedback' });
   const props: RegisterProps = {
@@ -146,6 +153,7 @@ export async function caseRegister(
     restricted: deniesClaimMessageContent(session.user.role),
     documents: documents?.map(({ id, name }) => ({ id, name })) ?? null,
     correspondencePage,
+    evidencePage,
   };
   return (
     <div className="min-w-0 space-y-4" data-testid="staff-case-register">

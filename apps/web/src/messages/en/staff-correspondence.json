@@ -1,6 +1,7 @@
 {
   "staff-correspondence": {
     "choose": "Select an option",
+    "citedDocument": "Cited document",
     "notRecorded": "Not recorded",
     "feedback": {
       "loading": "Loading case records…",
@@ -105,6 +106,7 @@
       "noReply": "No linked outbound contact",
       "replyOption": "{organisation} • {date} • {summary}",
       "documents": "Documents sent with this contact",
+      "documentLimit": "Select up to {limit} documents.",
       "basesRequired": "An outbound contact requires a recovery agreement and a power of attorney.",
       "consentRequired": "Sending documents requires consent or a legal basis for sharing.",
       "attestSharing": "I confirm that the recorded purpose covers this disclosure.",

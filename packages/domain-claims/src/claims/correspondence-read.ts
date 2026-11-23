@@ -3,6 +3,7 @@ import {
   asc,
   claimCorrespondence,
   claimDocuments,
+  claims,
   desc,
   inArray,
   claimCorrespondenceDocuments,
@@ -25,6 +26,7 @@ import {
 } from './case-register-access';
 import { recordInboundCorrespondenceInputSchema } from './correspondence';
 import { caseAuthorityScopes, MAX_SHARED_DOCUMENTS } from './outward-action-requirements';
+import { filterRegisterCitationNames } from './register-citation-access';
 import type { ClaimsSession } from './types';
 
 export const listClaimCorrespondenceInputSchema = registerPageInput;
@@ -185,7 +187,7 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, input
   };
 }
 
-/** Names only for the cited document IDs already read by the register for this page. */
+/** Names only for this page's citations and only with claim-document metadata access. */
 export async function listRegisterCitationNames(
   session: ClaimsSession | null,
   authority: TenantAuthority | null,
@@ -201,12 +203,29 @@ export async function listRegisterCitationNames(
   return withTenantAuthority(access.authority, async tx => {
     if (!(await lockCaseForRegister(tx, tenantId, claimId, actor, 'full')))
       return registerForbidden;
-    const documents =
+    const candidates =
       documentIds.length === 0
         ? []
         : await tx
-            .select({ id: claimDocuments.id, name: claimDocuments.name })
+            .select({
+              id: claimDocuments.id,
+              name: claimDocuments.name,
+              uploadedBy: claimDocuments.uploadedBy,
+              category: claimDocuments.category,
+              claim: {
+                caseLifecycleState: claims.caseLifecycleState,
+                staffId: claims.staffId,
+                userId: claims.userId,
+              },
+            })
             .from(claimDocuments)
+            .innerJoin(
+              claims,
+              and(
+                eq(claims.tenantId, claimDocuments.tenantId),
+                eq(claims.id, claimDocuments.claimId)
+              )
+            )
             .where(
               withTenant(
                 tenantId,
@@ -228,6 +247,13 @@ export async function listRegisterCitationNames(
                 )
               )
             );
+    const documents = await filterRegisterCitationNames(
+      tx,
+      candidates,
+      actor,
+      { accessTenantId: tenantId, caseId: claimId },
+      session?.user.caseScopedAccessGrants
+    );
     return { ok: true as const, documents };
   });
 }

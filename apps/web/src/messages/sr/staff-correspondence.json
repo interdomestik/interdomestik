@@ -1,6 +1,7 @@
 {
   "staff-correspondence": {
     "choose": "Izaberite opciju",
+    "citedDocument": "Citirani dokument",
     "notRecorded": "Nije evidentirano",
     "feedback": {
       "loading": "Učitavanje evidencije predmeta…",
@@ -105,6 +106,7 @@
       "noReply": "Bez povezanog odlaznog kontakta",
       "replyOption": "{organisation} • {date} • {summary}",
       "documents": "Dokumenti poslati uz ovaj kontakt",
+      "documentLimit": "Izaberite najviše {limit} dokumenata.",
       "basesRequired": "Za odlazni kontakt potrebni su sporazum o naplati naknade i punomoćje.",
       "consentRequired": "Slanje dokumenata zahteva pristanak ili pravni osnov za deljenje.",
       "attestSharing": "Potvrđujem da evidentirana svrha obuhvata ovo otkrivanje podataka.",

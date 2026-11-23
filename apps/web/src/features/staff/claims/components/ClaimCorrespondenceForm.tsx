@@ -5,6 +5,7 @@ import {
   recordOutboundCorrespondence,
 } from '@/actions/staff-claims/correspondence';
 import { formatPilotDateTime } from '@/lib/utils/date';
+import { formatNumber } from '@/lib/utils/number';
 import type { CaseAuthorityEntry } from '@interdomestik/domain-claims/claims/case-authorities';
 import type { ClaimCorrespondenceEntry } from '@interdomestik/domain-claims/claims/correspondence-read';
 import { Textarea } from '@interdomestik/ui';
@@ -28,15 +29,19 @@ const channels = ['email', 'post', 'phone', 'portal', 'other'] as const;
 function OutboundFields({
   authorities,
   documents,
-  sharing,
-  setSharing,
+  maxSharedDocuments,
+  selectedDocuments,
+  setSelectedDocuments,
 }: Readonly<{
   authorities: readonly CaseAuthorityEntry[];
   documents: readonly RegisterDocument[];
-  sharing: boolean;
-  setSharing: (value: boolean) => void;
+  maxSharedDocuments: number;
+  selectedDocuments: string[];
+  setSelectedDocuments: (ids: string[]) => void;
 }>) {
   const t = useTranslations('staff-correspondence');
+  const locale = useLocale();
+  const pickerHint = useId();
   const active = authorities.filter(entry => !entry.revokedAt);
   const recovery = active.find(entry => entry.kind === 'recovery_agreement');
   const representation = active.find(entry => entry.kind === 'power_of_attorney');
@@ -70,25 +75,43 @@ function OutboundFields({
         <p className="text-sm sm:col-span-2">{t('entry.basesRequired')}</p>
       )}
       {documents.length > 0 && (
-        <fieldset className="grid min-w-0 gap-1 rounded-md border p-3 sm:col-span-2">
+        <fieldset
+          className="grid min-w-0 gap-1 rounded-md border p-3 sm:col-span-2"
+          aria-describedby={pickerHint}
+        >
           <legend className="px-1 text-sm font-medium">{t('entry.documents')}</legend>
-          {documents.map(document => (
-            <label key={document.id} className="flex min-h-10 items-center gap-2 break-all text-sm">
-              <input
-                type="checkbox"
-                name="sharedDocumentIds"
-                value={document.id}
-                className="size-5 shrink-0"
-                onChange={event =>
-                  setSharing(new FormData(event.currentTarget.form!).has('sharedDocumentIds'))
-                }
-              />
-              {document.name}
-            </label>
-          ))}
+          <p id={pickerHint} className="text-sm">
+            {t('entry.documentLimit', { limit: formatNumber(maxSharedDocuments, locale) ?? '' })}
+          </p>
+          {documents.map(document => {
+            const checked = selectedDocuments.includes(document.id);
+            return (
+              <label
+                key={document.id}
+                className="flex min-h-10 items-center gap-2 break-all text-sm"
+              >
+                <input
+                  type="checkbox"
+                  name="sharedDocumentIds"
+                  value={document.id}
+                  checked={checked}
+                  disabled={!checked && selectedDocuments.length >= maxSharedDocuments}
+                  className="size-5 shrink-0"
+                  onChange={() =>
+                    setSelectedDocuments(
+                      checked
+                        ? selectedDocuments.filter(id => id !== document.id)
+                        : [...selectedDocuments, document.id]
+                    )
+                  }
+                />
+                {document.name}
+              </label>
+            );
+          })}
         </fieldset>
       )}
-      {sharing && (
+      {selectedDocuments.length > 0 && (
         <>
           <RegisterSelect
             name="sharingAuthorityId"
@@ -127,20 +150,23 @@ export function ClaimCorrespondenceForm({
   authorities,
   documents,
   entries,
+  maxSharedDocuments,
 }: Readonly<{
   claimId: string;
   authorities: readonly CaseAuthorityEntry[];
   documents: readonly RegisterDocument[];
   entries: readonly ClaimCorrespondenceEntry[];
+  maxSharedDocuments: number;
 }>) {
   const t = useTranslations('staff-correspondence');
   const title = useId();
   const locale = useLocale();
   const [direction, setDirection] = useState('inbound');
-  const [sharing, setSharing] = useState(false);
+  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
   const mutation = useRegisterMutation();
   const correlation = useRegisterCorrelation();
   const outbound = entries.filter(entry => entry.direction === 'outbound');
+  const visibleSelection = selectedDocuments.filter(id => documents.some(doc => doc.id === id));
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -180,7 +206,7 @@ export function ClaimCorrespondenceForm({
     mutation.run(save, () => {
       correlation.clear();
       form.reset();
-      setSharing(false);
+      setSelectedDocuments([]);
     });
   }
 
@@ -197,7 +223,7 @@ export function ClaimCorrespondenceForm({
             value={direction}
             onChange={event => {
               setDirection(event.currentTarget.value);
-              setSharing(false);
+              setSelectedDocuments([]);
             }}
           >
             <option value="inbound">{t('direction.inbound')}</option>
@@ -253,8 +279,9 @@ export function ClaimCorrespondenceForm({
             <OutboundFields
               authorities={authorities}
               documents={documents}
-              sharing={sharing}
-              setSharing={setSharing}
+              maxSharedDocuments={maxSharedDocuments}
+              selectedDocuments={visibleSelection}
+              setSelectedDocuments={setSelectedDocuments}
             />
           )}
         </fieldset>

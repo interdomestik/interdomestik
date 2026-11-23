@@ -69,6 +69,8 @@ This section records the approved WP-12 contract, design v14.1 (appended tables;
 - `recordCaseAuthority`, `revokeCaseAuthority`, `listCaseAuthorities`.
 - `recordOutboundCorrespondence`, `recordInboundCorrespondence`, `setCorrespondenceFollowUp`.
 - `listClaimCorrespondence`, `getClaimCorrespondenceSummary`, `getGreenCardCaseFields`, `updateGreenCardCaseFields`.
+- `listRegisterCitationNames` returns names for supplied, cited case documents only when the existing claim-document metadata policy admits the reader.
+- Staff queue request progress uses the effective tenant and the intersection of the staff case-page scope and assignment. Register deadlines use the register's admission.
 
 ### Register invariants
 

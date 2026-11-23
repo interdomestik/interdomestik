@@ -267,6 +267,7 @@ describe('correspondence', () => {
         authorities={[]}
         documents={[]}
         entries={[outbound]}
+        maxSharedDocuments={20}
       />
     );
     enterContact();
@@ -299,6 +300,7 @@ describe('correspondence', () => {
         authorities={[recovery, representation, consent]}
         documents={documents}
         entries={[]}
+        maxSharedDocuments={20}
       />
     );
     set(copy.entry.directionLabel, 'outbound');
@@ -322,6 +324,53 @@ describe('correspondence', () => {
         sharingCoveredByConsentConfirmed: true,
       })
     );
+  });
+
+  it('shows the outbound limit and keeps an unchecked document unavailable at 20 selections', () => {
+    const options = Array.from({ length: 21 }, (_, index) => ({
+      id: `doc-${index + 1}`,
+      name: `Evidence ${index + 1}`,
+    }));
+    show(
+      <ClaimCorrespondenceForm
+        claimId={claimId}
+        authorities={[]}
+        documents={options}
+        entries={[]}
+        maxSharedDocuments={20}
+      />
+    );
+    set(copy.entry.directionLabel, 'outbound');
+    expect(screen.getByText('Select up to 20 documents.')).toBeVisible();
+    const picker = screen.getByRole('group', { name: copy.entry.documents });
+    const checkboxes = within(picker).getAllByRole('checkbox');
+    for (const checkbox of checkboxes.slice(0, 20)) fireEvent.click(checkbox);
+    expect(checkboxes[19]).toBeChecked();
+    expect(checkboxes[20]).toBeDisabled();
+    fireEvent.click(checkboxes[0]!);
+    expect(checkboxes[20]).toBeEnabled();
+  });
+
+  it('uses the generic label for citations whose names are unavailable', () => {
+    show(
+      <>
+        <ClaimAuthoritiesPanel
+          claimId={claimId}
+          canWrite={false}
+          authorities={[recovery]}
+          documents={documents}
+        />
+        <ClaimCorrespondenceList
+          claimId={claimId}
+          canWrite={false}
+          documents={documents}
+          entries={[{ ...outbound, sharedDocumentIds: [documents[0].id, 'hidden-document'] }]}
+        />
+      </>
+    );
+    expect(screen.getAllByText(copy.citedDocument, { exact: true })).toHaveLength(2);
+    expect(screen.getByText(documents[0].name)).toBeVisible();
+    expect(screen.queryByText('hidden-document')).not.toBeInTheDocument();
   });
 
   it('renders answered and overdue separately and submits the original follow-up for compare-and-set', async () => {
@@ -370,6 +419,7 @@ describe('correspondence', () => {
         entries={[outbound]}
         documents={[]}
         page={2}
+        evidencePage={4}
         perPage={20}
         total={45}
       />
@@ -378,11 +428,11 @@ describe('correspondence', () => {
     expect(within(pages).getByText('Page 2 of 3')).toHaveAttribute('aria-current', 'page');
     expect(within(pages).getByRole('link', { name: copy.list.previous })).toHaveAttribute(
       'href',
-      expect.stringContaining(`/staff/claims/${claimId}?correspondencePage=1`)
+      `/staff/claims/${claimId}?correspondencePage=1&evidencePage=4`
     );
     expect(within(pages).getByRole('link', { name: copy.list.next })).toHaveAttribute(
       'href',
-      expect.stringContaining(`/staff/claims/${claimId}?correspondencePage=3`)
+      `/staff/claims/${claimId}?correspondencePage=3&evidencePage=4`
     );
   });
 

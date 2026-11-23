@@ -1,6 +1,7 @@
 {
   "staff-correspondence": {
     "choose": "Option auswählen",
+    "citedDocument": "Zitiertes Dokument",
     "notRecorded": "Nicht erfasst",
     "feedback": {
       "loading": "Falldaten werden geladen …",
@@ -105,6 +106,7 @@
       "noReply": "Kein ausgehender Kontakt verknüpft",
       "replyOption": "{organisation} • {date} • {summary}",
       "documents": "Mit diesem Kontakt versandte Dokumente",
+      "documentLimit": "Wählen Sie bis zu {limit} Dokumente aus.",
       "basesRequired": "Für einen ausgehenden Kontakt sind eine Vereinbarung zur Geltendmachung und eine Vollmacht erforderlich.",
       "consentRequired": "Für den Versand von Dokumenten ist eine Einwilligung oder Rechtsgrundlage zur Weitergabe erforderlich.",
       "attestSharing": "Ich bestätige, dass der erfasste Zweck diese Offenlegung abdeckt.",

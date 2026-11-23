@@ -81,10 +81,6 @@ function CorrespondenceRow({
       organisation: parent.partyOrganisation,
       date: formatPilotDateTime(parent.occurredAt, locale, ''),
     });
-  const linkedNames = entry.sharedDocumentIds.flatMap(id => {
-    const name = documentNames.get(id);
-    return name ? [{ id, name }] : [];
-  });
 
   return (
     <li
@@ -117,13 +113,11 @@ function CorrespondenceRow({
               total: formatNumber(entry.sharedDocumentIds.length, locale) ?? '',
             })}
           </p>
-          {linkedNames.length > 0 && (
-            <ul className="ms-5 list-disc">
-              {linkedNames.map(({ id, name }) => (
-                <li key={id}>{name}</li>
-              ))}
-            </ul>
-          )}
+          <ul className="ms-5 list-disc">
+            {entry.sharedDocumentIds.map(id => (
+              <li key={id}>{documentNames.get(id) ?? t('citedDocument')}</li>
+            ))}
+          </ul>
         </div>
       )}
       {entry.followUpAt && (
@@ -150,10 +144,15 @@ function RegisterPages({
   claimId,
   page,
   pages,
-}: Readonly<{ claimId: string; page: number; pages: number }>) {
+  evidencePage,
+}: Readonly<{ claimId: string; page: number; pages: number; evidencePage: number }>) {
   const t = useTranslations('staff-correspondence.list');
   const locale = useLocale();
-  const href = (target: number) => `/staff/claims/${claimId}?correspondencePage=${target}`;
+  const href = (target: number) => {
+    const query = new URLSearchParams({ correspondencePage: String(target) });
+    if (evidencePage > 1) query.set('evidencePage', String(evidencePage));
+    return `/staff/claims/${encodeURIComponent(claimId)}?${query}`;
+  };
   return (
     <nav aria-label={t('pages')} className="flex flex-wrap items-center gap-3 text-sm">
       {page > 1 && (
@@ -183,6 +182,7 @@ export function ClaimCorrespondenceList({
   documents,
   replyParents = [],
   page = 1,
+  evidencePage = 1,
   perPage = entries.length,
   total = entries.length,
 }: Readonly<{
@@ -192,6 +192,7 @@ export function ClaimCorrespondenceList({
   documents: readonly RegisterDocument[];
   replyParents?: readonly CorrespondenceReplyParent[];
   page?: number;
+  evidencePage?: number;
   perPage?: number;
   total?: number;
 }>) {
@@ -228,7 +229,12 @@ export function ClaimCorrespondenceList({
         </ul>
       )}
       {total > perPage && (
-        <RegisterPages claimId={claimId} page={page} pages={Math.ceil(total / perPage)} />
+        <RegisterPages
+          claimId={claimId}
+          page={page}
+          pages={Math.ceil(total / perPage)}
+          evidencePage={evidencePage}
+        />
       )}
     </section>
   );
