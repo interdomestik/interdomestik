@@ -257,6 +257,28 @@ export function workspaceGlobViolations(repoRoot) {
       ];
 }
 
+function trustedBlob(repoRoot, commit, file) {
+  try {
+    return execFileSync(GIT, ['cat-file', 'blob', `${commit}:${file}`], {
+      cwd: repoRoot,
+      stdio: ['ignore', 'pipe', 'ignore'],
+      maxBuffer: 16 * 1024 * 1024,
+    });
+  } catch {
+    return null;
+  }
+}
+
+/** The one reviewed bundler-config change: exact predecessor bytes to exact WP-10 postimage bytes. */
+function isAdmittedConfigTransition(file, trusted, current) {
+  return (
+    file === NEXT_CONFIG_TRANSITION.file &&
+    trusted !== null &&
+    sha256(trusted) === NEXT_CONFIG_TRANSITION.predecessor &&
+    sha256(current) === NEXT_CONFIG_TRANSITION.successor
+  );
+}
+
 /** Executable bundler configs must match the trusted bytes or the pinned WP-10 postimage. */
 export function bundlerConfigViolations(repoRoot, commit) {
   const violations = [];
@@ -265,24 +287,8 @@ export function bundlerConfigViolations(repoRoot, commit) {
       if (!BUNDLER_CONFIG.test(name)) continue;
       const file = `${dir}/${name}`;
       const current = fs.readFileSync(path.join(repoRoot, file));
-      let trusted = null;
-      try {
-        trusted = execFileSync(GIT, ['cat-file', 'blob', `${commit}:${file}`], {
-          cwd: repoRoot,
-          stdio: ['ignore', 'pipe', 'ignore'],
-          maxBuffer: 16 * 1024 * 1024,
-        });
-      } catch {
-        trusted = null;
-      }
-      if (trusted?.equals(current)) continue;
-      if (
-        file === NEXT_CONFIG_TRANSITION.file &&
-        trusted &&
-        sha256(trusted) === NEXT_CONFIG_TRANSITION.predecessor &&
-        sha256(current) === NEXT_CONFIG_TRANSITION.successor
-      )
-        continue;
+      const trusted = trustedBlob(repoRoot, commit, file);
+      if (trusted?.equals(current) || isAdmittedConfigTransition(file, trusted, current)) continue;
       violations.push(
         violation(
           file,
