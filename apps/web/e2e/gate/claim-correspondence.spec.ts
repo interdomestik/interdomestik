@@ -66,9 +66,11 @@ test('assigned staff record legal bases, document disclosure, and an overdue una
     ).toBeVisible();
     await expect(page.getByTestId('staff-correspondence-overdue')).toHaveCount(1);
 
-    await queue.reload();
-    await expect(overdue).toBeVisible();
-    await expect(overdue).not.toHaveText(firstDue);
+    // Re-open through the ready marker: a bare reload can leave a hidden streamed copy of the
+    // row outside the shell, which makes the row locator match twice.
+    const refreshed = await openQueue(queue, claimId, origin, locale, info);
+    await expect(refreshed).toBeVisible();
+    await expect(refreshed).not.toHaveText(firstDue);
   } finally {
     await queue.close();
   }
