@@ -1,13 +1,20 @@
 import { sql } from '@interdomestik/database';
 import { readDisposableTargetClass } from '@interdomestik/database/seed-target-classification';
-import type { PilotSwitchKey } from '@interdomestik/database/pilot-switch';
+import { changePilotSwitch, type PilotSwitchKey } from '@interdomestik/database/pilot-switch';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { resolveTenantClassificationCore } from '@interdomestik/domain-users/admin/resolve-tenant-classification';
 import { randomUUID } from 'node:crypto';
+import type { TransactionSql } from 'postgres';
 import { afterAll, afterEach, beforeAll, beforeEach, expect, vi } from 'vitest';
-import { cleanupContractRows, sqlClient } from './better-auth-email-otp.contract-test-support';
-import { pilotAuth } from './pilot-identity.contract-test-support';
+import {
+  cleanupContractRows,
+  sqlClient,
+  uniqueEmail,
+} from './better-auth-email-otp.contract-test-support';
+import { stageReplacement } from './different-email-recovery-store.contract-test-support';
+import { confirmReplacementProof, discardProof } from './different-email-recovery-store';
+import { insertDoorAccount, pilotAuth } from './pilot-identity.contract-test-support';
 
 const wiring = vi.hoisted(() => ({
   handler: vi.fn(),
@@ -140,4 +147,78 @@ export function installIdentityContractHooks() {
   });
 }
 
-export { confirm, setSwitch, useAuth, wiring };
+async function waitForBlockedQuery(
+  observer: typeof sqlClient | TransactionSql,
+  blocker: number,
+  queryFragment: string
+) {
+  let pid = 0;
+  await expect
+    .poll(
+      async () => {
+        await observer`select pg_stat_clear_snapshot()`;
+        const [waiting] = await observer<{ pid: number }[]>`
+      select pid from pg_stat_activity
+      where datname = current_database() and wait_event_type = 'Lock'
+        and position(${queryFragment} in query) > 0 and ${blocker} = any(pg_blocking_pids(pid))
+    `;
+        pid = waiting?.pid ?? 0;
+        return pid;
+      },
+      { timeout: 5_000 }
+    )
+    .toBeGreaterThan(0);
+  return pid;
+}
+
+async function withPendingRecovery(
+  run: (fixture: {
+    id: string;
+    email: string;
+    replacement: string;
+    recover: () => ReturnType<typeof confirmReplacementProof>;
+    close: (beforeClose?: (pid: number) => void, holdCommit?: () => Promise<void>) => Promise<void>;
+  }) => Promise<void>
+) {
+  const tenant = 'tenant_ks';
+  const email = uniqueEmail('pilot-recovery-original');
+  const replacement = uniqueEmail('pilot-recovery-replacement');
+  const id = await insertDoorAccount(email, { verified: true });
+  const actorId = await insertDoorAccount(uniqueEmail('pilot-recovery-admin'), { verified: true });
+  await sqlClient`update "user" set role = 'tenant_admin' where id = ${actorId}`;
+  const authority = mintTestTenantAuthority(tenant, { userId: actorId, role: 'tenant_admin' });
+  await setSwitch('public_intake', true);
+  const nonce = await stageReplacement(id, email, replacement, 'pilot-recovery');
+  try {
+    await run({
+      id,
+      email,
+      replacement,
+      recover: () => confirmReplacementProof(id, tenant, () => 'pilot-recovery-r', new Date(0)),
+      close: (beforeClose, holdCommit) =>
+        withTenantAuthority(authority, async tx => {
+          const [backend] = await tx.execute<{ pid: number }>(sql`select pg_backend_pid() as pid`);
+          beforeClose?.(backend!.pid);
+          expect(
+            await changePilotSwitch(tx, authority, {
+              key: 'public_intake',
+              enabled: false,
+              expectedRevision: 1,
+              reason: 'Pilot recovery contract closure',
+            })
+          ).toEqual({ ok: true, switch: { state: 'closed', revision: 2, wellFormed: true } });
+          await holdCommit?.();
+        }),
+    });
+    const [row] = await sqlClient<{ value: unknown }[]>`
+      select value from tenant_settings
+      where tenant_id = ${tenant} and category = 'pilot' and key = 'public_intake'
+    `;
+    expect(row?.value).toEqual({ enabled: false, revision: 2 });
+  } finally {
+    await discardProof(id, 'replacement', nonce);
+    await sqlClient`delete from audit_log where actor_id = ${actorId} and action = 'pilot_switch.changed'`;
+  }
+}
+
+export { confirm, setSwitch, useAuth, waitForBlockedQuery, wiring, withPendingRecovery };

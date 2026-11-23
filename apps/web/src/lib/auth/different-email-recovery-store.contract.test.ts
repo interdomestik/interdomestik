@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   activateCurrentProof,
   activateReplacementProof,
@@ -15,6 +15,12 @@ afterAll(() => support.recoverySql.end());
 describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
   'IDA-UI03b real PostgreSQL recovery store',
   () => {
+    beforeEach(async () => {
+      // Ensure the fixture tenant exists before opening its switch.
+      await support.createRecoveryOwner('intake');
+      return support.openRecoveryContractIntake();
+    });
+
     it('preserves a committed proof on preflight drift and disables superseded reservations', async () => {
       const owner = await support.createRecoveryOwner('reservation');
       const first = nonce();
@@ -75,10 +81,14 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       ).toEqual({ ok: true });
       expect(await activateReplacementProof(owner.id, replacement, now)).toBe(true);
       for (let attempt = 0; attempt < 3; attempt += 1) {
-        expect(await confirmReplacementProof(owner.id, () => 'wrong', now)).toEqual({ ok: false });
+        expect(
+          await confirmReplacementProof(owner.id, support.recoveryTenant, () => 'wrong', now)
+        ).toEqual({ ok: false });
       }
       expect(await support.challengeRows(owner.id)).toHaveLength(0);
-      expect(await confirmReplacementProof(owner.id, () => 'replacement-ok', now)).toEqual({
+      expect(
+        await confirmReplacementProof(owner.id, support.recoveryTenant, () => 'replacement-ok', now)
+      ).toEqual({
         ok: false,
       });
     });
@@ -127,8 +137,8 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       });
       await activateReplacementProof(owner.id, replacement, now);
       const results = await Promise.all([
-        confirmReplacementProof(owner.id, () => 'r2', now),
-        confirmReplacementProof(owner.id, () => 'r2', now),
+        confirmReplacementProof(owner.id, support.recoveryTenant, () => 'r2', now),
+        confirmReplacementProof(owner.id, support.recoveryTenant, () => 'r2', now),
       ]);
       expect(results.filter(result => result.ok)).toHaveLength(1);
       expect(await support.ownerSnapshot(owner.id)).toEqual({

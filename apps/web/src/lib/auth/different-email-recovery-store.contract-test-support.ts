@@ -14,6 +14,31 @@ export const recoverySql = postgres(
 const owners = new Set<string>();
 const challengePattern = (userId: string) => `ida-ui03b:${userId}:%`;
 
+export const recoveryTenant = 'tenant_ks';
+
+export async function openRecoveryContractIntake() {
+  const [previous] = await recoverySql<{ value: unknown }[]>`
+    select value from tenant_settings
+    where tenant_id = ${recoveryTenant} and category = 'pilot' and key = 'public_intake'
+  `;
+  const id = randomUUID();
+  await recoverySql`
+    insert into tenant_settings (id, tenant_id, category, key, value)
+    values (${id}, ${recoveryTenant}, 'pilot', 'public_intake', '{"enabled":true,"revision":1}'::jsonb)
+    on conflict (tenant_id, category, key) do update set value = excluded.value
+  `;
+  return async () => {
+    if (previous) {
+      await recoverySql`
+        update tenant_settings set value = ${JSON.stringify(previous.value)}::jsonb
+        where tenant_id = ${recoveryTenant} and category = 'pilot' and key = 'public_intake'
+      `;
+    } else {
+      await recoverySql`delete from tenant_settings where id = ${id}`;
+    }
+  };
+}
+
 export async function createRecoveryOwner(label: string, email?: string) {
   const id = randomUUID();
   const address = email ?? `ida-ui03b-${label}-${randomUUID()}@example.com`;
@@ -83,8 +108,8 @@ export async function proveOwnerGraphAndConcurrentWriter() {
   await stageReplacement(owner.id, owner.email, finalTarget, 'final');
   expect(await store.activateReplacementProof(owner.id, superseded, new Date(0))).toBe(false);
   const confirms = await Promise.all([
-    store.confirmReplacementProof(owner.id, () => 'final-r', new Date(0)),
-    store.confirmReplacementProof(owner.id, () => 'final-r', new Date(0)),
+    store.confirmReplacementProof(owner.id, recoveryTenant, () => 'final-r', new Date(0)),
+    store.confirmReplacementProof(owner.id, recoveryTenant, () => 'final-r', new Date(0)),
   ]);
   expect(confirms.filter(result => result.ok)).toHaveLength(1);
   expect(await ownershipSnapshot(owner.id)).toEqual(before);
@@ -104,7 +129,12 @@ export async function proveOwnerGraphAndConcurrentWriter() {
     await release;
   });
   await ready;
-  const blockedConfirm = store.confirmReplacementProof(owner.id, () => 'blocked-r', new Date(0));
+  const blockedConfirm = store.confirmReplacementProof(
+    owner.id,
+    recoveryTenant,
+    () => 'blocked-r',
+    new Date(0)
+  );
   let serialized = false;
   for (let attempt = 0; attempt < 50; attempt += 1) {
     const [waiting] =

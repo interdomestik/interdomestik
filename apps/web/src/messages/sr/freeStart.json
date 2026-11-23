@@ -1,5 +1,8 @@
 {
   "freeStart": {
+    "differentEmailRecovery": {
+      "CLOSED": "Promena imejl adrese za prijavu trenutno je zatvorena."
+    },
     "CLOSED": "Free Start je trenutno zatvoren.",
     "claimPack": { "CLOSED": "Priprema paketa zahteva trenutno je zatvorena." },
     "draft": { "CLOSED": "Čuvanje izmena u Free Start nacrtima trenutno je zatvoreno." },

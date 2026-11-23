@@ -1,4 +1,5 @@
 import { dbAdmin } from '@interdomestik/database/db';
+import { readPilotSwitch } from '@interdomestik/database/pilot-switch';
 import { user, verification } from '@interdomestik/database/schema';
 import { and, eq, inArray, like, ne, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
@@ -8,6 +9,7 @@ type Tx = Parameters<Parameters<typeof dbAdmin.transaction>[0]>[0];
 // prettier-ignore
 type Challenge = { active: boolean; attempts: number; digest: string; nonce: string; newEmail?: string; oldEmail?: string };
 type StoreResult = { ok: boolean };
+type ConfirmationResult = { ok: true } | { ok: false; code?: 'CLOSED' };
 // prettier-ignore
 type CurrentReservation = { currentEmail: string; digest: string; nonce: string; now: Date; userId: string };
 // prettier-ignore
@@ -112,13 +114,15 @@ export async function discardProof(userId: string, _stage: Stage, nonce: string)
   await withUserLock(userId, tx => tx.delete(verification).where(eq(verification.id, nonce)));
 }
 // prettier-ignore
-export async function confirmReplacementProof(userId: string, digest: (email: string) => string, now: Date): Promise<StoreResult> {
+export async function confirmReplacementProof(userId: string, tenantId: string, digest: (email: string) => string, now: Date): Promise<ConfirmationResult> {
   try {
     return await withUserLock(userId, async tx => {
       const proof = await challenge(tx, userId, 'replacement'), newEmail = proof?.data.newEmail;
       if (!proof || !newEmail || !(await verify(tx, proof, digest(newEmail), now))) return { ok: false };
       // db-access-guard: system-exempt -- reason: short auth-table lock serializes global collision check with concurrent identity writers
       await tx.execute(sql`lock table "user" in share row exclusive mode`);
+      const intake = await readPilotSwitch(tx, tenantId, 'public_intake', { lock: 'share' });
+      if (intake.state !== 'open') return { ok: false, code: 'CLOSED' };
       const current = await owner(tx, userId), oldEmail = proof.data.oldEmail;
       if (!current || !oldEmail || current.email !== oldEmail || await collision(tx, userId, newEmail)) { await clearStage(tx, userId, 'replacement'); return { ok: false }; }
       // db-access-guard: system-exempt -- reason: dual-proof completion updates only session user by exact old-email compare-and-swap
@@ -133,7 +137,7 @@ export async function confirmReplacementProof(userId: string, digest: (email: st
         // db-access-guard: system-exempt -- reason: exact sign-in challenge identifiers for the old and dual-proof replacement addresses
         await tx.delete(verification).where(inArray(verification.identifier, signInIdentifiers));
       }
-      await clearStage(tx, userId, 'replacement'); return { ok: changed };
+      await clearStage(tx, userId, 'replacement'); return changed ? { ok: true } : { ok: false };
     });
   } catch { return { ok: false }; }
 }

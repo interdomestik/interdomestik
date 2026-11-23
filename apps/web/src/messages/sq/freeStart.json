@@ -1,5 +1,8 @@
 {
   "freeStart": {
+    "differentEmailRecovery": {
+      "CLOSED": "Ndryshimi i emailit të hyrjes është përkohësisht i mbyllur."
+    },
     "CLOSED": "Free Start është përkohësisht i mbyllur.",
     "claimPack": { "CLOSED": "Përgatitja e paketës së kërkesës është përkohësisht e mbyllur." },
     "draft": {

@@ -142,7 +142,10 @@ describe.runIf(process.env.REQUIRE_PILOT_IDENTITY_CONTRACT === '1')(
           })
         ).toEqual({ ok: true });
         expect(await activateReplacementProof(id, replacement, now)).toBe(true);
-        expect(await confirmReplacementProof(id, () => 'replacement', now)).toEqual({ ok: true });
+        await setSwitch('public_intake', true);
+        expect(await confirmReplacementProof(id, 'tenant_ks', () => 'replacement', now)).toEqual({
+          ok: true,
+        });
         expect(await userCount(oldEmail)).toEqual([]);
         expect(await userCount(newEmail)).toEqual([{ id }]);
         await expect(checkOldCode()).rejects.toMatchObject({ body: { code: 'INVALID_OTP' } });

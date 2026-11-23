@@ -1,10 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { contractAuth, send, uniqueEmail } from './better-auth-email-otp.contract-test-support';
+import {
+  contractAuth,
+  send,
+  sqlClient,
+  uniqueEmail,
+} from './better-auth-email-otp.contract-test-support';
 import {
   confirm,
   installIdentityContractHooks,
   setSwitch,
   useAuth,
+  waitForBlockedQuery,
+  withPendingRecovery,
   wiring,
 } from './pilot-identity-closures.test-support';
 import { POST } from '@/app/api/auth/[...all]/route';
@@ -16,6 +23,7 @@ import {
   pilotAuth,
   readDoorAccount,
   replacementPassword,
+  userCount,
   verifyRequest,
 } from './pilot-identity.contract-test-support';
 
@@ -23,6 +31,61 @@ describe.runIf(process.env.REQUIRE_PILOT_IDENTITY_CONTRACT === '1')(
   'Pilot identity closures on isolated local Postgres',
   () => {
     installIdentityContractHooks();
+
+    it('refuses the replacement when the intake close commits first', async () => {
+      await withPendingRecovery(async ({ close, recover, email, replacement, id }) => {
+        const locked = defer();
+        const release = defer();
+        let closerPid = 0;
+        const closing = close(
+          pid => {
+            closerPid = pid;
+          },
+          async () => {
+            locked.resolve();
+            await release.promise;
+          }
+        );
+        let recovery: ReturnType<typeof recover> | undefined;
+        try {
+          await Promise.race([locked.promise, closing]);
+          recovery = recover();
+          await waitForBlockedQuery(sqlClient, closerPid, 'for share');
+        } finally {
+          release.resolve();
+          await Promise.allSettled([closing, recovery]);
+        }
+        await closing;
+        expect(await recovery).toEqual({ ok: false, code: 'CLOSED' });
+        expect(await userCount(email)).toEqual([{ id }]);
+        expect(await userCount(replacement)).toEqual([]);
+      });
+    }, 15_000);
+
+    it('makes the close wait for a replacement that locked intake first', async () => {
+      await withPendingRecovery(async ({ close, recover, email, replacement, id }) => {
+        let recovery: ReturnType<typeof recover> | undefined;
+        let closing: ReturnType<typeof close> | undefined;
+        try {
+          // The observer holds the user's row to pause recovery at its update, after FOR SHARE.
+          await sqlClient.begin(async observer => {
+            const [backend] = await observer<{ pid: number }[]>`select pg_backend_pid() as pid`;
+            await observer`select id from "user" where id = ${id} for no key update`;
+            recovery = recover();
+            const recoveryPid = await waitForBlockedQuery(observer, backend!.pid, 'update "user"');
+            closing = close();
+            await waitForBlockedQuery(observer, recoveryPid, 'for update');
+            expect(await observer`select email from "user" where id = ${id}`).toEqual([{ email }]);
+          });
+        } finally {
+          await Promise.allSettled([recovery, closing]);
+        }
+        expect(await recovery).toEqual({ ok: true });
+        await closing;
+        expect(await userCount(email)).toEqual([]);
+        expect(await userCount(replacement)).toEqual([{ id }]);
+      });
+    }, 15_000);
 
     it('refuses a valid OTP for an unverified account before Better Auth and preserves its access', async () => {
       const email = uniqueEmail('pilot-precheck-first');

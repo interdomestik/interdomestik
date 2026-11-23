@@ -1,5 +1,6 @@
 {
   "freeStart": {
+    "differentEmailRecovery": { "CLOSED": "Changing your sign-in email is currently closed." },
     "CLOSED": "Free Start is currently closed.",
     "claimPack": { "CLOSED": "Claim pack generation is currently closed." },
     "draft": { "CLOSED": "Saving changes to Free Start drafts is currently closed." },
