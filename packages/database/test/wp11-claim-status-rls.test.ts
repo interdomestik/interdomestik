@@ -221,20 +221,20 @@ test(
               .select()
               .from(notificationDeliveries)
               .where(eq(notificationDeliveries.claimId, claimId));
+            assert.equal(deliveries.length, 2);
+            // Ids come back in recipient order; the rows are compared as a set.
             assert.deepEqual(
-              deliveries.map(row => [row.id, row.recipientUserId, row.channel]).sort(),
-              [
-                [first[0], staffId, 'email'],
-                [first[1], adminId, 'email'],
-              ].sort()
+              new Set(deliveries.map(row => `${row.id}|${row.recipientUserId}|${row.channel}`)),
+              new Set([`${first[0]}|${staffId}|email`, `${first[1]}|${adminId}|email`])
             );
             const inbox = await adminDb
               .select()
               .from(notifications)
               .where(eq(notifications.actionUrl, actionUrl));
+            assert.equal(inbox.length, 3);
             assert.deepEqual(
-              inbox.map(row => row.userId).sort(),
-              [staffId, peerStaffId, adminId].sort()
+              new Set(inbox.map(row => row.userId)),
+              new Set([staffId, peerStaffId, adminId])
             );
           } finally {
             await adminDb.delete(notifications).where(eq(notifications.actionUrl, actionUrl));

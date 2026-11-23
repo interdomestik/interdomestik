@@ -46,7 +46,7 @@ export function isAllowedImporter(file: string): boolean {
 }
 
 function trackedImporters(): string[] {
-  return execFileSync('git', ['ls-files', '-z'], {
+  return execFileSync('/usr/bin/git', ['ls-files', '-z'], {
     cwd: ROOT,
     encoding: 'utf8',
   })
