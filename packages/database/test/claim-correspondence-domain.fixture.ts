@@ -73,7 +73,11 @@ export async function waitUntilBlocked(
   holder: number
 ) {
   const until = Date.now() + 4_000;
-  while (Date.now() < until) {
+  // Polls every 20 ms until the pending connection waits on the holder (recursive, not a loop).
+  const poll = async (): Promise<number> => {
+    if (Date.now() >= until) {
+      throw new Error(`Expected a connection to block on connection ${holder}`);
+    }
     const pid = await pending();
     if (pid) {
       const [{ blocked }] = await admin<{ blocked: boolean }[]>`
@@ -81,8 +85,9 @@ export async function waitUntilBlocked(
       if (blocked) return pid;
     }
     await new Promise(resolve => setTimeout(resolve, 20));
-  }
-  throw new Error(`Expected a connection to block on connection ${holder}`);
+    return poll();
+  };
+  return poll();
 }
 
 /** The backend pid of the domain's runtime connection (its application name is fixed). */

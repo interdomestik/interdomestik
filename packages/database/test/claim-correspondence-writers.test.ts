@@ -225,7 +225,7 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
       connections,
       tx => tx`update claim_correspondence set follow_up_at = ${earlier} where id = ${entry.id}`,
       () => followUp(past, '2021-01-01T00:00:00.000Z'),
-      async () => undefined
+      () => Promise.resolve(undefined)
     );
     assert.deepEqual(result, conflict);
     const [stored] =
@@ -278,7 +278,7 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
               files: [],
             },
           }),
-        async () => undefined
+        () => Promise.resolve(undefined)
       );
       assert.deepEqual(result, {
         success: false,

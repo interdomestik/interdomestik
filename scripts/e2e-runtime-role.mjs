@@ -161,14 +161,16 @@ async function provisionRole(sql, role, password) {
       )
     );
     const tables = new Set(names(['r', 'p']));
-    for (const [table, columns] of Object.entries(NARROWED_TABLE_GRANTS)) {
-      const target = `public.${table}`;
-      if (!tables.has(target)) continue;
-      await tx.unsafe(`REVOKE UPDATE, DELETE, TRUNCATE ON TABLE ${target} FROM ${role}`);
-      if (columns.length > 0) {
-        await tx.unsafe(`GRANT UPDATE (${columns.join(', ')}) ON TABLE ${target} TO ${role}`);
-      }
-    }
+    // In order on the one transaction connection: each REVOKE runs before its table's GRANT.
+    const narrowed = Object.entries(NARROWED_TABLE_GRANTS)
+      .filter(([table]) => tables.has(`public.${table}`))
+      .flatMap(([table, columns]) => [
+        `REVOKE UPDATE, DELETE, TRUNCATE ON TABLE public.${table} FROM ${role}`,
+        ...(columns.length > 0
+          ? [`GRANT UPDATE (${columns.join(', ')}) ON TABLE public.${table} TO ${role}`]
+          : []),
+      ]);
+    await Promise.all(narrowed.map(statement => tx.unsafe(statement)));
   });
 }
 
