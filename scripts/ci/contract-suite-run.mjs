@@ -15,7 +15,11 @@ export async function runContractSuite(selectLane = selectRepository) {
     selection = { lane: 'full', reason: 'selector-error' };
   }
 
-  const { lane, reason } = selection;
+  // Only an explicit product selection narrows the suite; anything else runs, and reports, full.
+  const { lane, reason } =
+    selection?.lane === 'product' || selection?.lane === 'full'
+      ? selection
+      : { lane: 'full', reason: 'unknown-lane' };
   process.stdout.write(`contract lane: ${lane} (${reason})\n`);
 
   const { shards } = contractTestPlan();

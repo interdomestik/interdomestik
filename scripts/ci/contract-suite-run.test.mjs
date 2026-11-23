@@ -155,6 +155,22 @@ test('a selector exception runs the full suite and propagates a shard failure', 
   }
 });
 
+test('an unknown lane runs and reports the full suite', t => {
+  const suite = fixture(t, { tests: { [skipped]: failing }, toolingOnly: [skipped] });
+  const { status, output } = suite.run([
+    '--input-type=module',
+    '--eval',
+    `
+    import { runContractSuite } from './${entry}';
+    process.exitCode = await runContractSuite(() => ({ lane: 'partial', reason: 'fixture' }));
+  `,
+  ]);
+  assert.equal(status, 1, output);
+  assert.match(output, /contract lane: full \(unknown-lane\)/u);
+  assert.doesNotMatch(output, /contract lane: partial/u);
+  assert.match(output, /contract shard candidate: FAIL \(code=1/u);
+});
+
 test('zero selected product files fails before starting any shard', t => {
   const suite = fixture(t, { toolingOnly: 'all' });
   suite.pullRequest();

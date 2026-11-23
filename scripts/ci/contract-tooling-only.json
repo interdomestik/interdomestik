@@ -1,6 +1,6 @@
 {
   "derivedOn": "24fc15046",
-  "evidence": "D7.1 design section 3: read trace v3 and classifier v6 on 24fc15046",
+  "evidence": "D7.1 design section 3: read trace v3 and classifier v6 on 24fc15046; the 19 files with repeated launches re-traced with v4 (one record per launch), all reconciled",
   "files": [
     "scripts/ci/actions-check-supersession.test.mjs",
     "scripts/ci/ai-eval-surface.test.mjs",
