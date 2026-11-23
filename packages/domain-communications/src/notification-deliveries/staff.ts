@@ -2,10 +2,9 @@ import type { TenantTransaction } from '@interdomestik/database';
 import { auditLog } from '@interdomestik/database/schema';
 import { randomUUID } from 'node:crypto';
 import { CLAIM_MAIL_COPY } from '../claim-mail';
-import { forEachInOrder } from '../in-order';
-import { enqueueClaimInboxNotification } from './in-app';
+import { enqueueClaimInboxNotifications } from './in-app';
 import { notificationDeliveryKey } from './keys';
-import { enqueueNotificationDelivery } from './store';
+import { enqueueNotificationDeliveries } from './store';
 
 type ClaimScope = { tenantId: string; claimId: string };
 type StaffRecipient = {
@@ -17,16 +16,19 @@ type StaffSource =
 
 type StaffClaim = ClaimScope & { claimNumber: string | null; category: string };
 
-async function queueStaffRecipient(
-  tx: TenantTransaction,
-  claim: StaffClaim,
-  source: StaffSource,
-  recipient: StaffRecipient,
-  ids: string[]
-): Promise<void> {
+function routedTo(claim: StaffClaim, source: StaffSource, recipient: StaffRecipient) {
+  return {
+    ...source,
+    claimId: claim.claimId,
+    tenantId: claim.tenantId,
+    recipientUserId: recipient.id,
+  };
+}
+
+function inboxRow(claim: StaffClaim, source: StaffSource, recipient: StaffRecipient) {
   const { tenantId, claimId, claimNumber, category } = claim;
-  const routed = { ...source, claimId, tenantId, recipientUserId: recipient.id };
-  await enqueueClaimInboxNotification(tx, {
+  const routed = routedTo(claim, source, recipient);
+  return {
     id: `ntf_${notificationDeliveryKey({ ...routed, channel: 'in_app' })}`,
     tenantId,
     userId: recipient.id,
@@ -35,15 +37,11 @@ async function queueStaffRecipient(
     content: Object.hasOwn(CLAIM_MAIL_COPY.en.categories, category) ? category : 'other',
     actionUrl: `/staff/claims/${claimId}`,
     previewRestricted: false,
-  });
-  if (recipient.emailVerified) {
-    const id = await enqueueNotificationDelivery(tx, {
-      ...routed,
-      id: randomUUID(),
-      channel: 'email',
-    });
-    if (id) ids.push(id);
-  }
+  };
+}
+
+function emailDelivery(claim: StaffClaim, source: StaffSource, recipient: StaffRecipient) {
+  return { ...routedTo(claim, source, recipient), id: randomUUID(), channel: 'email' as const };
 }
 
 export async function enqueueStaffClaimNotification(
@@ -65,9 +63,15 @@ export async function enqueueStaffClaimNotification(
     return [];
   }
 
-  const ids: string[] = [];
-  await forEachInOrder(recipients, recipient =>
-    queueStaffRecipient(tx, claim, source, recipient, ids)
+  // One statement per table: every recipient keeps its own key and conflict handling.
+  await enqueueClaimInboxNotifications(
+    tx,
+    recipients.map(recipient => inboxRow(claim, source, recipient))
   );
-  return ids;
+  return enqueueNotificationDeliveries(
+    tx,
+    recipients
+      .filter(recipient => recipient.emailVerified)
+      .map(recipient => emailDelivery(claim, source, recipient))
+  );
 }

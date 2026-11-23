@@ -12,6 +12,7 @@ import {
   claimStageHistory,
   domainEvents,
   notificationDeliveries,
+  notifications,
   user,
 } from '../src/schema';
 import { KS_TENANT_ID } from './s8-claim-restricted-rls.fixture';
@@ -187,6 +188,57 @@ test(
             audits.map(audit => [audit.actorId, audit.action]),
             [[adminId, 'assign_owner']]
           );
+        }
+      );
+
+      await t.test(
+        'staff notifications enqueue every recipient in one statement per table and replay idempotently',
+        async () => {
+          const [{ enqueueStaffClaimNotification }, { withTenantAuthority }] = await Promise.all([
+            import('../../domain-communications/src/notification-deliveries'),
+            import('../src/tenant-authority-context'),
+          ]);
+          const claimId = await newClaim('submitted');
+          const actionUrl = `/staff/claims/${claimId}`;
+          const enqueue = () =>
+            withTenantAuthority(admin, tx =>
+              enqueueStaffClaimNotification(
+                tx,
+                { tenantId: KS_TENANT_ID, claimId, claimNumber: null, category: 'other' },
+                { kind: 'staff_claim_submitted' },
+                [
+                  { id: staffId, emailVerified: true },
+                  { id: peerStaffId, emailVerified: false },
+                  { id: adminId, emailVerified: true },
+                ]
+              )
+            );
+          try {
+            const first = await enqueue();
+            assert.equal(first.length, 2);
+            assert.deepEqual(await enqueue(), []);
+            const deliveries = await adminDb
+              .select()
+              .from(notificationDeliveries)
+              .where(eq(notificationDeliveries.claimId, claimId));
+            assert.deepEqual(
+              deliveries.map(row => [row.id, row.recipientUserId, row.channel]).sort(),
+              [
+                [first[0], staffId, 'email'],
+                [first[1], adminId, 'email'],
+              ].sort()
+            );
+            const inbox = await adminDb
+              .select()
+              .from(notifications)
+              .where(eq(notifications.actionUrl, actionUrl));
+            assert.deepEqual(
+              inbox.map(row => row.userId).sort(),
+              [staffId, peerStaffId, adminId].sort()
+            );
+          } finally {
+            await adminDb.delete(notifications).where(eq(notifications.actionUrl, actionUrl));
+          }
         }
       );
 

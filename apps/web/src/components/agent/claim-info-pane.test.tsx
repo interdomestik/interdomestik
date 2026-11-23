@@ -4,7 +4,7 @@ import { ClaimInfoPane } from './claim-info-pane';
 
 // Mock next-intl
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
+  useTranslations: () => {
     const translations: Record<string, string> = {
       'details.title': 'Claim Details',
       'details.company': 'Company',
@@ -19,7 +19,9 @@ vi.mock('next-intl', () => ({
       verification: 'Verification',
       submitted: 'Submitted',
     };
-    return translations[key] || key;
+    return Object.assign((key: string) => translations[key] || key, {
+      has: (key: string) => Object.hasOwn(translations, key),
+    });
   },
 }));
 
@@ -91,6 +93,12 @@ describe('ClaimInfoPane', () => {
     render(<ClaimInfoPane claim={{ ...mockClaim, status: null }} />);
     expect(screen.getByText('Submitted')).toBeInTheDocument();
     expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the submitted label for a status without a catalogue entry', () => {
+    render(<ClaimInfoPane claim={{ ...mockClaim, status: 'not_a_status' }} />);
+    expect(screen.getByText('Submitted')).toBeInTheDocument();
+    expect(screen.queryByText('not_a_status')).not.toBeInTheDocument();
   });
 
   it('shows user initials in avatar fallback', () => {

@@ -3,27 +3,33 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
+import ts from 'typescript';
 
 const ROOT = path.resolve(import.meta.dirname, '../../..');
 const HELPER = 'packages/database/src/testing/claim-notification-cleanup.ts';
 const HELPER_STEM = HELPER.replace(/\.ts$/, '');
 const EXPORT = '@interdomestik/database/testing/claim-notification-cleanup';
 const SOURCE = /\.(?:[cm]?[jt]sx?)$/;
-// Static and side-effect imports, re-exports, dynamic import() and require(), with any quote.
-const SPECIFIERS = /(?:\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)(['"`])([^'"`\n]+)\1/g;
 
 /** True when a specifier in `file` resolves to the helper: by its export or by a relative path. */
 export function resolvesToHelper(file: string, specifier: string): boolean {
   if (specifier === EXPORT) return true;
   if (!specifier.startsWith('.')) return false;
   const target = path.posix.normalize(path.posix.join(path.posix.dirname(file), specifier));
-  return target.replace(/\.(?:[cm]?[jt]sx?)$/, '').replace(/\/index$/, '') === HELPER_STEM;
+  return target.replace(SOURCE, '').replace(/\/index$/, '') === HELPER_STEM;
 }
 
+/**
+ * True when any string literal in the parsed file names the helper. The syntax tree skips
+ * comments and decodes escapes; counting every literal, not only import positions, also covers
+ * re-exports, import(), require(), createRequire, require.resolve and type imports.
+ */
 export function importsHelper(file: string, text: string): boolean {
-  return [...text.matchAll(SPECIFIERS)].some(([, , specifier]) =>
-    resolvesToHelper(file, specifier)
-  );
+  const source = ts.createSourceFile(file, text, ts.ScriptTarget.Latest, false);
+  const visit = (node: ts.Node): boolean =>
+    (ts.isStringLiteralLike(node) && resolvesToHelper(file, node.text)) ||
+    (ts.forEachChild(node, visit) ?? false);
+  return visit(source);
 }
 // The seed cleanup removes the same rows before it deletes seeded claims, messages and users.
 const SEED_CALLERS = new Set([
@@ -40,7 +46,7 @@ export function isAllowedImporter(file: string): boolean {
 }
 
 function trackedImporters(): string[] {
-  return execFileSync('git', ['ls-files', '-z', '--', 'apps', 'packages', 'scripts'], {
+  return execFileSync('git', ['ls-files', '-z'], {
     cwd: ROOT,
     encoding: 'utf8',
   })
@@ -69,6 +75,7 @@ test('the importer rule refuses production paths, including the database package
     'packages/database/src/schema.ts',
     'packages/database/src/seed-utils/seed-ids.ts',
     'scripts/pilot/admin-users-unread.ts',
+    'tools/review-evidence-console/api/index.mjs',
   ]) {
     assert.equal(isAllowedImporter(file), false, file);
   }
@@ -114,6 +121,26 @@ test('specifiers resolve against the importing file, including siblings of the h
       'packages/domain-claims/src/claims/x.ts',
       'const m = require(`@interdomestik/database/testing/claim-notification-cleanup`);',
       true,
+    ],
+    [
+      'packages/database/src/testing/message-fixtures.ts',
+      "export * from /* sibling */ './claim-notification-cleanup';",
+      true,
+    ],
+    [
+      'tools/review-evidence-console/api/index.mjs',
+      "const load = createRequire(import.meta.url);\nload('../../../packages/database/src/testing/claim-notification-cleanup.ts');",
+      true,
+    ],
+    [
+      'packages/domain-claims/src/claims/x.ts',
+      "import { a } from '@interdomestik/database/testing/claim\\u002dnotification-cleanup';",
+      true,
+    ],
+    [
+      'packages/database/src/testing/message-fixtures.ts',
+      "// export * from './claim-notification-cleanup';\n/* import './claim-notification-cleanup'; */",
+      false,
     ],
     [
       'packages/database/src/testing/message-fixtures.ts',
