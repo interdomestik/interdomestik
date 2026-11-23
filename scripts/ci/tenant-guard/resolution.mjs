@@ -269,7 +269,6 @@ function trustedBlob(repoRoot, commit, file) {
   }
 }
 
-/** The one reviewed bundler-config change: exact predecessor bytes to exact WP-10 postimage bytes. */
 function isAdmittedConfigTransition(file, trusted, current) {
   return (
     file === NEXT_CONFIG_TRANSITION.file &&
