@@ -1,24 +1,14 @@
 import { vi } from 'vitest';
 
-// Synchronous factories that reach the shared doubles at call time: an async factory can lose a
-// race when two files are verified in parallel and hand one of them the real storage module.
+// Synchronous factories that reach the shared doubles at call time. Verifying two files in
+// parallel still reaches the real storage module for the second one under vitest, so the
+// multi-file accepted case is proven on the real database instead
+// (`packages/database/test/draft-claim-attachment-rls.test.ts`).
 const storage = () => import('./draft-attachment-intent.state').then(({ db }) => db.storage);
 vi.mock('@/lib/storage/service-role', () => ({
   listTenantObjectsForSingleFile: async (...args: unknown[]) => (await storage()).list(...args),
   removeTenantObject: async (...args: unknown[]) => (await storage()).remove(...args),
   usesDeterministicE2EStorage: () => false,
-}));
-// The storage boundary itself, for any path that still reaches the real storage module.
-vi.mock('@interdomestik/database', async importOriginal => ({
-  ...(await importOriginal<typeof import('@interdomestik/database')>()),
-  createAdminClient: () => ({
-    storage: {
-      from: () => ({
-        list: async (...args: unknown[]) => (await storage()).list(...args),
-        remove: async (...args: unknown[]) => (await storage()).remove(...args),
-      }),
-    },
-  }),
 }));
 vi.mock('@/lib/storage/object-prefix', () => ({
   readTenantObjectPrefix: async (...args: unknown[]) => (await storage()).prefix(...args),

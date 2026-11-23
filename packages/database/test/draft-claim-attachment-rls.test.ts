@@ -114,6 +114,14 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
     assert.deepEqual(verified, [fileX.path]);
     assert.equal((await h.rowsOf(draftA)).length, 1);
 
+    // An existing file re-sent with a new one: both verified, only the new one inserted.
+    const fileX2 = evidence(initialPath(KS, member, 'x2'), 'x2');
+    assert.deepEqual(await h.update(session(member), draftA, [fileX, fileX2]), { success: true });
+    assert.deepEqual(
+      (await h.rowsOf(draftA)).map(row => row.file_path).sort((p1, p2) => p1.localeCompare(p2)),
+      [fileX.path, fileX2.path].sort((p1, p2) => p1.localeCompare(p2))
+    );
+
     // The re-read row-locks what it finds until commit: a row the decision rests on can be
     // neither deleted nor moved by another connection meanwhile.
     await withTenantAuthority(h.authorityOf(session(member)), async tx => {
@@ -131,7 +139,7 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
         { code: '55P03' }
       );
     });
-    assert.equal((await h.rowsOf(draftA)).length, 1);
+    assert.equal((await h.rowsOf(draftA)).length, 2, 'the row survives the attempted delete');
     // The same object on a second draft of the same member is refused.
     assert.deepEqual(await h.update(session(member), draftB, [fileX]), INVALID_PATH_REFUSAL);
     assert.equal(await h.titleOf(draftB), TITLE);

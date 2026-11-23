@@ -103,15 +103,6 @@ describe('updateDraftClaim attachments — accepted', () => {
     expect(db.inserted).toHaveLength(0);
   });
 
-  it('inserts only the new file when an existing one is re-sent with it', async () => {
-    const existing = initialFile({ fileId: 'file-0' });
-    db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: existing.path }];
-    const fresh = initialFile();
-
-    await expect(update([existing, fresh])).resolves.toEqual({ success: true });
-    expect(db.inserted).toEqual([expect.objectContaining({ filePath: fresh.path })]);
-  });
-
   it('with a padded bucket variable, accepts an intent signed for the trimmed bucket (as /api/uploads signs it)', async () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET', ` ${BUCKET} `);
     const file = initialFile();
