@@ -1,6 +1,6 @@
 import { action, copy, set, show, submit } from './claim-case-register.test-support';
 import { act, fireEvent, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ClaimAuthoritiesPanel } from './ClaimAuthoritiesPanel';
 import { ClaimCaseFieldsPanel } from './ClaimCaseFieldsPanel';
 import { claimId, occurredAt, documents, recovery } from './claim-case-register.test-fixture';

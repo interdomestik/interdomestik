@@ -1,6 +1,6 @@
 import { action, copy, show, submit } from './claim-case-register.test-support';
 import { fireEvent, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ClaimAuthoritiesPanel } from './ClaimAuthoritiesPanel';
 import { ClaimCorrespondenceList } from './ClaimCorrespondenceList';
 import { RegisterReadError } from './case-register-controls';
