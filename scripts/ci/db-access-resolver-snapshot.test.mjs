@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { ADOPTION } from './db-access-adoption.mjs';
+import { LOCK_PROJECTION_ID } from './db-access-lock-projection.mjs';
 import {
   RESOLVER_SNAPSHOT,
   verifyCurrentResolverSnapshot,
@@ -51,6 +52,17 @@ test('production snapshot admits exactly the new pair without replacing historic
   assert.equal(ADOPTION.critical.length, 4);
   assert.ok(Object.isFrozen(RESOLVER_SNAPSHOT.files[pair[0]]));
   assert.equal(resolverFile('pnpm-lock.yaml'), false, 'fixture resolver semantics stay unchanged');
+  assert.equal(RESOLVER_SNAPSHOT.files['pnpm-lock.yaml'].projection, LOCK_PROJECTION_ID);
+  assert.equal(RESOLVER_SNAPSHOT.files['pnpm-workspace.yaml'].projection, undefined);
+});
+
+test('the lockfile keeps a size bound before it is read', t => {
+  const bound = RESOLVER_SNAPSHOT.files['pnpm-lock.yaml'].maxBytes;
+  assert.equal(bound, 8 * 1024 * 1024);
+  const root = fixture(t, new Map([...current, ['pnpm-lock.yaml', Buffer.alloc(bound + 1, 0x20)]]));
+  assert.throws(() => verifyCurrentResolverSnapshot(root, ADOPTION), {
+    message: 'incomplete: resolver snapshot size bound exceeded pnpm-lock.yaml',
+  });
 });
 
 test('old pair, mixed pair and same-size metadata tampering are rejected', t => {
@@ -114,8 +126,9 @@ test('the immediately former lockfile with the unchanged workspace is rejected',
       ['pnpm-lock.yaml', formerLock],
     ])
   );
+  // The projection pin compares the canonical projection, not the raw size.
   assert.throws(() => verifyCurrentResolverSnapshot(root, ADOPTION), {
-    message: 'incomplete: resolver snapshot size mismatch pnpm-lock.yaml',
+    message: 'incomplete: resolver snapshot digest mismatch pnpm-lock.yaml',
   });
 });
 
