@@ -17,18 +17,15 @@ import {
 import { memberNoteActorOf, memberNoteScope } from './access';
 import { sanitizeNoteContent } from './schema';
 
-// The fake authority registry first, then the in-memory database and its transaction runner.
+// The access rule reads only the authority registry; the database module is replaced so the real
+// client is never loaded.
 vi.mock('@interdomestik/database/tenant-authority', async () => ({
   readTenantAuthority: (await import('../test/member-notes-fixture')).readFakeAuthority,
 }));
-vi.mock('@interdomestik/database', async () => {
-  const fake = await import('../test/member-notes-db');
-  return fake.databaseModule;
-});
-vi.mock('@interdomestik/database/tenant-authority-context', async () => {
-  const fake = await import('../test/member-notes-db');
-  return { withTenantAuthority: fake.withFakeTenantAuthority };
-});
+vi.mock(
+  '@interdomestik/database',
+  async () => (await import('../test/member-notes-db')).databaseModule
+);
 
 beforeEach(seed);
 
