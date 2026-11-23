@@ -2,16 +2,20 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type { TestContext } from 'node:test';
 
-import { mintIngressCapability } from '../src/ingress-capability';
-import { mintTenantAuthority } from '../src/tenant-authority';
 import {
+  mintPaymentPortTestIngress,
+  paymentPortTestScheduledAuthority,
   rateInput,
   restricted,
   runSequentially,
-  type ExchangeRateFixture,
-} from './exchange-rates.fixture';
+} from '../../database/test/exchange-rates.fixture';
 
-export async function proveExchangeRateAuthorization(t: TestContext, fixture: ExchangeRateFixture) {
+import type { ExchangeRatePortFixture } from './exchange-rates-port.fixture';
+
+export async function proveExchangeRateAuthorization(
+  t: TestContext,
+  fixture: ExchangeRatePortFixture
+) {
   const { admin, port, tenantId, otherTenant, actor, session, authority, scheduled, publish } =
     fixture;
 
@@ -56,8 +60,8 @@ export async function proveExchangeRateAuthorization(t: TestContext, fixture: Ex
         });
       });
       const deniedCapabilities = [
-        mintIngressCapability('cron'),
-        mintTenantAuthority({ tenantId, purpose: 'scheduled-work' }),
+        mintPaymentPortTestIngress('cron'),
+        paymentPortTestScheduledAuthority(tenantId),
         authority,
       ];
       await runSequentially(deniedCapabilities, async capability => {
@@ -89,10 +93,7 @@ export async function proveExchangeRateAuthorization(t: TestContext, fixture: Ex
       });
       assert.ok(foreign.ok);
       const instant = new Date('2100-01-01T00:00:00.000Z');
-      const scheduledAuthority = mintTenantAuthority({
-        tenantId: otherTenant,
-        purpose: 'scheduled-work',
-      });
+      const scheduledAuthority = paymentPortTestScheduledAuthority(otherTenant);
       assert.deepEqual(await port.getExchangeRateInForce(scheduledAuthority, instant), foreign);
       const delegated = session('tenant_admin', tenantId, otherTenant);
       assert.deepEqual(await port.getExchangeRateInForce(delegated, instant), {
