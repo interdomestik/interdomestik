@@ -154,7 +154,7 @@ test('a runner that cannot load still runs both hosted commands and the guard', 
   const repo = fixture(t);
   repo.write({ 'docs/other.md': 'changed\n' });
   repo.commit('docs');
-  const load = async () => ({ error: new Error('moved') });
+  const load = () => Promise.resolve({ error: new Error('moved') });
   const result = await run(t, repo, { load });
   assert.equal(result.code, 0, result.output);
   assert.match(result.output, /FULL fallback \(runner unavailable: moved\)/u);
