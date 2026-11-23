@@ -16,7 +16,7 @@ const password = 'Synthetic-Fixture-Password1!';
 export const replacementPassword = 'Synthetic-Replacement-Password2!';
 
 export function pilotAuth(
-  options: { open?: boolean; afterUserRead?: (id: string) => Promise<void> } = {}
+  options: { open?: boolean; afterEmailRead?: (email: string) => Promise<void> } = {}
 ) {
   const adapter = drizzleAdapter(drizzle(sqlClient, { schema }), {
     provider: 'pg',
@@ -33,8 +33,10 @@ export function pilotAuth(
       ...storage,
       async findOne<T>(query: Parameters<typeof storage.findOne>[0]) {
         const row = await storage.findOne<T>(query);
-        const id = query.where.find(part => part.field === 'id')?.value;
-        if (query.model === 'user' && typeof id === 'string') await options.afterUserRead?.(id);
+        const email = query.where.find(part => part.field === 'email')?.value;
+        if (query.model === 'user' && typeof email === 'string') {
+          await options.afterEmailRead?.(email);
+        }
         return row;
       },
     };

@@ -5,12 +5,16 @@ import { eq } from 'drizzle-orm';
 import { coerceTenantId, type TenantId } from '@/lib/tenant/tenant-hosts';
 
 export async function lookupNeutralOtpAccountByEmail(email: string): Promise<{
+  id: string;
+  emailVerified: boolean;
   tenantId: TenantId | null;
   tenantClassificationPending: boolean;
 } | null> {
   // db-access-guard: system-exempt -- reason: anonymous login resolves tenant and door eligibility by normalized email before a tenant session exists
   const rows = await dbAdmin
     .select({
+      id: userTable.id,
+      emailVerified: userTable.emailVerified,
       tenantId: userTable.tenantId,
       tenantClassificationPending: userTable.tenantClassificationPending,
     })
@@ -23,6 +27,8 @@ export async function lookupNeutralOtpAccountByEmail(email: string): Promise<{
     return null;
   }
   return {
+    id: account.id,
+    emailVerified: account.emailVerified,
     tenantId: coerceTenantId(account.tenantId),
     tenantClassificationPending: account.tenantClassificationPending === true,
   };

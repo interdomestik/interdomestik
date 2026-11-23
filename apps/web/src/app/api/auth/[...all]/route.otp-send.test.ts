@@ -67,6 +67,8 @@ describe('IDA-UI03a0b2 neutral OTP send route', () => {
     mocks.enforceOtpRateLimits.mockReset().mockResolvedValue(null);
     mocks.handlerPost.mockReset().mockImplementation(async () => Response.json({ success: true }));
     mocks.lookupAccount.mockReset().mockResolvedValue({
+      id: 'user-1',
+      emailVerified: false,
       tenantId: 'tenant_ks',
       tenantClassificationPending: true,
     });
@@ -74,7 +76,7 @@ describe('IDA-UI03a0b2 neutral OTP send route', () => {
   });
   afterEach(() => vi.unstubAllEnvs());
 
-  it('C05 derives the default tenant server-side and ignores every tenant override', async () => {
+  it('C05 sends for an unverified pending account using the server-side tenant and ignores overrides', async () => {
     const response = await POST(
       sendRequest('member@example.com', {
         tenantId: 'tenant_mk',
@@ -110,6 +112,8 @@ describe('IDA-UI03a0b2 neutral OTP send route', () => {
   it('C06 gives eligible and unknown addresses the same send response when intake is closed', async () => {
     mocks.lookupAccount
       .mockResolvedValueOnce({
+        id: 'user-1',
+        emailVerified: false,
         tenantId: 'tenant_ks',
         tenantClassificationPending: true,
       })
@@ -130,9 +134,14 @@ describe('IDA-UI03a0b2 neutral OTP send route', () => {
   });
 
   it.each([
-    { tenantId: 'tenant_mk', tenantClassificationPending: true },
-    { tenantId: 'tenant_ks', tenantClassificationPending: false },
-    { tenantId: null, tenantClassificationPending: true },
+    { id: 'user-1', emailVerified: true, tenantId: 'tenant_mk', tenantClassificationPending: true },
+    {
+      id: 'user-1',
+      emailVerified: true,
+      tenantId: 'tenant_ks',
+      tenantClassificationPending: false,
+    },
+    { id: 'user-1', emailVerified: true, tenantId: null, tenantClassificationPending: true },
   ])(
     'does not send or consult the switch for a known ineligible account ($tenantId)',
     async account => {

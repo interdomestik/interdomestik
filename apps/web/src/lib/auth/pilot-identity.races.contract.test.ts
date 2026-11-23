@@ -9,6 +9,7 @@ import {
 } from './pilot-identity-closures.test-support';
 import { POST } from '@/app/api/auth/[...all]/route';
 import {
+  challenges,
   defer,
   doorRequest,
   insertDoorAccount,
@@ -23,24 +24,40 @@ describe.runIf(process.env.REQUIRE_PILOT_IDENTITY_CONTRACT === '1')(
   () => {
     installIdentityContractHooks();
 
-    it('rejects confirmation between the door precheck and an unproven account’s mailbox proof', async () => {
+    it('refuses a valid OTP for an unverified account before Better Auth and preserves its access', async () => {
       const email = uniqueEmail('pilot-precheck-first');
       const id = await insertDoorAccount(email);
+      expect((await send(contractAuth(), email)).status).toBe(200);
+      expect(await challenges(email)).toHaveLength(1);
+      const before = await readDoorAccount(id);
+      expect(before.owner).toMatchObject({ verified: false, pending: true });
+      expect(before.credentials).toHaveLength(1);
+      expect(before.sessions).toHaveLength(1);
+
+      const denied = await POST(verifyRequest(email));
+
+      expect(denied.status).toBe(400);
+      expect(await denied.json()).toEqual({ code: 'INVALID_OTP', message: 'Invalid OTP' });
+      expect(denied.headers.get('set-cookie')).toBeNull();
+      expect(wiring.handler).not.toHaveBeenCalled();
+      expect(await readDoorAccount(id)).toEqual(before);
+    });
+
+    it('verifies a pending account with a proven mailbox and preserves its prior access', async () => {
+      const email = uniqueEmail('pilot-verified-pending');
+      const id = await insertDoorAccount(email, { verified: true });
       await send(contractAuth(), email);
-      const auth = pilotAuth();
-      wiring.handler.mockImplementationOnce(async (request: Request) => {
-        expect(await confirm(id)).toMatchObject({ code: 'EMAIL_NOT_PROVEN' });
-        expect((await readDoorAccount(id)).owner?.pending).toBe(true);
-        return auth.handler(request);
-      });
-      wiring.getSession.mockImplementation(auth.api.getSession);
-      wiring.revokeSession.mockImplementation(auth.api.revokeSession);
+      const before = await readDoorAccount(id);
+
       const verified = await POST(verifyRequest(email));
+
       expect(verified.status).toBe(200);
+      expect(verified.headers.get('set-cookie')).toContain('session_token');
       const after = await readDoorAccount(id);
-      expect(after.owner).toMatchObject({ verified: true, pending: true });
-      expect(after.credentials).toHaveLength(0);
-      expect(after.sessions).toHaveLength(1);
+      expect(after.owner).toEqual(before.owner);
+      expect(after.credentials).toEqual(before.credentials);
+      expect(after.sessions).toEqual(expect.arrayContaining([...before.sessions]));
+      expect(after.sessions).toHaveLength(before.sessions.length + 1);
     });
 
     it('rejects a door verify after confirmation of a proven account and preserves its access', async () => {
@@ -68,7 +85,7 @@ describe.runIf(process.env.REQUIRE_PILOT_IDENTITY_CONTRACT === '1')(
     it('L-4 bounds the pre-existing reset and door verification race and allows recovery by a new reset', async () => {
       await setSwitch('new_sales', false);
       const email = uniqueEmail('pilot-l4');
-      const id = await insertDoorAccount(email);
+      const id = await insertDoorAccount(email, { verified: true });
       const sameTenant = await insertDoorAccount(uniqueEmail('pilot-other-account'));
       const unrelated = await insertDoorAccount(uniqueEmail('pilot-other-tenant'), {
         tenant: 'tenant_mk',
@@ -81,8 +98,8 @@ describe.runIf(process.env.REQUIRE_PILOT_IDENTITY_CONTRACT === '1')(
       const resume = defer();
       useAuth(
         pilotAuth({
-          afterUserRead: async userId => {
-            if (userId !== id) return;
+          afterEmailRead: async readEmail => {
+            if (readEmail !== email) return;
             read.resolve();
             await resume.promise;
           },

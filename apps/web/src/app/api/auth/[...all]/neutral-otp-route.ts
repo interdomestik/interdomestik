@@ -94,7 +94,10 @@ export async function handleNeutralOtpPost(args: {
   const account = await lookupNeutralOtpAccountByEmail(email);
   let eligible: boolean;
   if (account) {
-    eligible = account.tenantId === tenantId && account.tenantClassificationPending === true;
+    eligible =
+      account.tenantId === tenantId &&
+      account.tenantClassificationPending === true &&
+      (kind === 'send' || account.emailVerified === true);
   } else {
     eligible = await isPublicIntakeOpenForTenant(tenantId);
   }
@@ -106,10 +109,12 @@ export async function handleNeutralOtpPost(args: {
   if (kind === 'send' || !response.ok) return response;
   const guarded = await protectNeutralOtpSession({
     auth,
+    admittedAccountId: account ? account.id : null,
     verifyData: await parseVerifyData(response),
     responseHeaders: response.headers,
     resolveDefaultTenantId: () => tenantId,
     log: contentFreeSessionLog,
   });
+  if (guarded.decision === 'invalidOtp') return refuseNeutralOtpAccount(kind);
   return guarded.decision === 'continue' ? response : accountStop(guarded.headers);
 }

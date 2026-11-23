@@ -25,6 +25,7 @@ describe('IDA-UI03a0b2 fresh Better Auth session guard', () => {
     const auth = fakeAuth();
     const result = await protectNeutralOtpSession({
       auth,
+      admittedAccountId: 'user-1',
       responseHeaders: responseHeaders(),
       verifyData: { token: 'new-row-token', user: { id: 'user-1', tenantId: 'tenant_mk' } },
       resolveDefaultTenantId: () => 'tenant_ks',
@@ -49,6 +50,7 @@ describe('IDA-UI03a0b2 fresh Better Auth session guard', () => {
     headers.append('set-cookie', 'app.better-auth.session_token_backup=keep; Path=/; HttpOnly');
     const result = await protectNeutralOtpSession({
       auth,
+      admittedAccountId: 'user-1',
       log,
       responseHeaders: headers,
       verifyData: { token: 'new-row-token', user: { id: 'user-1', tenantId: 'tenant_mk' } },
@@ -74,6 +76,7 @@ describe('IDA-UI03a0b2 fresh Better Auth session guard', () => {
     });
     const result = await protectNeutralOtpSession({
       auth,
+      admittedAccountId: 'user-1',
       responseHeaders: responseHeaders(),
       verifyData: { token: 'new-row-token', user: { id: 'user-1', tenantId: 'tenant_ks' } },
       resolveDefaultTenantId: () => 'tenant_ks',
@@ -84,12 +87,13 @@ describe('IDA-UI03a0b2 fresh Better Auth session guard', () => {
       headers: expect.any(Headers),
       query: { disableCookieCache: true, disableRefresh: true },
     });
-    expect(result.decision).toBe('accountStop');
+    expect(result.decision).toBe('invalidOtp');
     expect(result.headers.get('set-cookie')).toBeNull();
 
     auth.api.getSession.mockRejectedValueOnce(new Error('PRIVATE_DB_ERROR'));
     const unavailable = await protectNeutralOtpSession({
       auth,
+      admittedAccountId: 'user-1',
       log,
       responseHeaders: responseHeaders(),
       verifyData: { token: 'new-row-token', user: { id: 'user-1', tenantId: 'tenant_ks' } },

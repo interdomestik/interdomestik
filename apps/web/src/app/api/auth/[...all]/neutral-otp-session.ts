@@ -43,12 +43,14 @@ async function revokeNewSession(args: {
 
 export async function protectNeutralOtpSession(args: {
   auth: NeutralOtpAuth;
+  admittedAccountId: string | null;
   verifyData: VerifyData;
   responseHeaders: Headers;
   resolveDefaultTenantId: () => string;
   log?: (category: string) => void;
-}): Promise<{ decision: 'continue' | 'accountStop'; headers: Headers }> {
-  const { auth, verifyData, responseHeaders, resolveDefaultTenantId, log } = args;
+}): Promise<{ decision: 'continue' | 'accountStop' | 'invalidOtp'; headers: Headers }> {
+  const { auth, admittedAccountId, verifyData, responseHeaders, resolveDefaultTenantId, log } =
+    args;
   const token = typeof verifyData?.token === 'string' ? verifyData.token : null;
   const userId = typeof verifyData?.user?.id === 'string' ? verifyData.user.id : null;
   const cookie = cookieHeaderFromSetCookie(responseHeaders);
@@ -57,9 +59,13 @@ export async function protectNeutralOtpSession(args: {
   }
 
   const headers = new Headers({ cookie });
-  if (verifyData?.user?.tenantId !== resolveDefaultTenantId()) {
+  const responseAccountMismatch = admittedAccountId !== null && userId !== admittedAccountId;
+  if (responseAccountMismatch || verifyData?.user?.tenantId !== resolveDefaultTenantId()) {
     await revokeNewSession({ auth, token, headers, log });
-    return { decision: 'accountStop', headers: accountStop(responseHeaders).headers };
+    return {
+      decision: responseAccountMismatch ? 'invalidOtp' : 'accountStop',
+      headers: accountStop(responseHeaders).headers,
+    };
   }
 
   let fresh: FreshSession;
@@ -76,12 +82,20 @@ export async function protectNeutralOtpSession(args: {
     }
     fresh = null;
   }
+  const sessionUserId = fresh?.session?.userId;
   const authoritative =
-    fresh?.session?.userId === userId &&
+    sessionUserId === userId &&
     fresh?.user?.id === userId &&
     fresh?.user?.tenantId === resolveDefaultTenantId() &&
     fresh?.user?.tenantClassificationPending === true;
   if (authoritative) return { decision: 'continue', headers: new Headers(responseHeaders) };
+  const sessionAccountMismatch =
+    admittedAccountId !== null &&
+    typeof sessionUserId === 'string' &&
+    sessionUserId !== admittedAccountId;
   await revokeNewSession({ auth, token, headers, log });
-  return { decision: 'accountStop', headers: accountStop(responseHeaders).headers };
+  return {
+    decision: sessionAccountMismatch ? 'invalidOtp' : 'accountStop',
+    headers: accountStop(responseHeaders).headers,
+  };
 }

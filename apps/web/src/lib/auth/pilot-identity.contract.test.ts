@@ -90,8 +90,8 @@ describe.runIf(process.env.REQUIRE_PILOT_IDENTITY_CONTRACT === '1')(
     });
 
     it.each([
-      { tenant: 'tenant_mk', pending: true },
-      { tenant: 'tenant_ks', pending: false },
+      { tenant: 'tenant_mk', pending: true, verified: true },
+      { tenant: 'tenant_ks', pending: false, verified: true },
     ])(
       'leaves an ineligible account, credential and sessions intact ($tenant / $pending)',
       async state => {

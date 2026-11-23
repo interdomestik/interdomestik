@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   handlerPost: vi.fn(),
   lookupAccount: vi.fn(),
   isPublicIntakeOpen: vi.fn(),
+  revokeSession: vi.fn(),
 }));
 
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: mocks.enforceRateLimit }));
@@ -27,7 +28,7 @@ vi.mock('@/lib/audit.core', () => ({
   }),
 }));
 vi.mock('@/lib/auth', () => ({
-  auth: { api: { getSession: mocks.getSession, revokeSession: vi.fn() } },
+  auth: { api: { getSession: mocks.getSession, revokeSession: mocks.revokeSession } },
 }));
 vi.mock('better-auth/next-js', () => ({
   toNextJsHandler: () => ({ GET: vi.fn(), POST: mocks.handlerPost }),
@@ -75,14 +76,17 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
         )
       );
     mocks.lookupAccount.mockReset().mockResolvedValue({
+      id: 'user-1',
+      emailVerified: true,
       tenantId: 'tenant_ks',
       tenantClassificationPending: true,
     });
     mocks.isPublicIntakeOpen.mockReset().mockResolvedValue(false);
+    mocks.revokeSession.mockReset().mockResolvedValue({ status: true });
   });
   afterEach(() => vi.unstubAllEnvs());
 
-  it('C07 checks a known eligible account after both limits and forwards only matching hints', async () => {
+  it('C07 verifies a known verified pending account after both limits and forwards only matching hints', async () => {
     const request = verifyRequest({
       onboarding: { tenant: 'tenant_ks', mode: 'deferred' },
       role: 'admin',
@@ -93,6 +97,8 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
     const response = await POST(request);
 
     expect(response.status).toBe(200);
+    expect(response.headers.get('set-cookie')).toContain('better-auth.session_token=signed');
+    expect(mocks.revokeSession).not.toHaveBeenCalled();
     expect(mocks.lookupAccount).toHaveBeenCalledWith('member@example.com');
     expect(mocks.isPublicIntakeOpen).not.toHaveBeenCalled();
     expect(mocks.enforceOtpRateLimits.mock.invocationCallOrder[0]).toBeLessThan(
@@ -210,9 +216,20 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
 
   it.each([
     null,
-    { tenantId: 'tenant_mk', tenantClassificationPending: true },
-    { tenantId: 'tenant_ks', tenantClassificationPending: false },
-    { tenantId: null, tenantClassificationPending: true },
+    {
+      id: 'user-1',
+      emailVerified: false,
+      tenantId: 'tenant_ks',
+      tenantClassificationPending: true,
+    },
+    { id: 'user-1', emailVerified: true, tenantId: 'tenant_mk', tenantClassificationPending: true },
+    {
+      id: 'user-1',
+      emailVerified: true,
+      tenantId: 'tenant_ks',
+      tenantClassificationPending: false,
+    },
+    { id: 'user-1', emailVerified: true, tenantId: null, tenantClassificationPending: true },
   ])(
     'returns INVALID_OTP without Better Auth for a closed or ineligible account (%j)',
     async account => {
@@ -222,12 +239,47 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
       );
       expect(response.status).toBe(400);
       expect(await response.json()).toEqual({ code: 'INVALID_OTP', message: 'Invalid OTP' });
+      expect(response.headers.get('set-cookie')).toBeNull();
       expect(mocks.handlerPost).not.toHaveBeenCalled();
       expect(mocks.getSession).not.toHaveBeenCalled();
+      expect(mocks.revokeSession).not.toHaveBeenCalled();
       if (!account) expect(mocks.isPublicIntakeOpen).toHaveBeenCalledExactlyOnceWith('tenant_ks');
       else expect(mocks.isPublicIntakeOpen).not.toHaveBeenCalled();
     }
   );
+
+  it('revokes a same-tenant session for a different account and returns INVALID_OTP without cookies', async () => {
+    mocks.lookupAccount.mockResolvedValueOnce({
+      id: 'admitted-user',
+      emailVerified: true,
+      tenantId: 'tenant_ks',
+      tenantClassificationPending: true,
+    });
+    const response = await POST(
+      verifyRequest({ onboarding: { tenant: 'tenant_ks', mode: 'deferred' }, userId: 'user-1' })
+    );
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ code: 'INVALID_OTP', message: 'Invalid OTP' });
+    expect(response.headers.get('set-cookie')).toBeNull();
+    expect(mocks.revokeSession).toHaveBeenCalledTimes(1);
+    const [revocation] = mocks.revokeSession.mock.calls[0];
+    expect(revocation.body).toEqual({ token: 'new-session-token' });
+    expect(revocation.headers.get('cookie')).toBe('better-auth.session_token=signed');
+  });
+
+  it('allows an absent account through to Better Auth when public intake is open', async () => {
+    mocks.lookupAccount.mockResolvedValueOnce(null);
+    mocks.isPublicIntakeOpen.mockResolvedValueOnce(true);
+    const response = await POST(
+      verifyRequest({ onboarding: { tenant: 'tenant_ks', mode: 'deferred' } })
+    );
+
+    expect(mocks.isPublicIntakeOpen).toHaveBeenCalledExactlyOnceWith('tenant_ks');
+    expect(mocks.handlerPost).toHaveBeenCalledTimes(1);
+    expect(response.status).toBe(200);
+    expect(response.headers.get('set-cookie')).toContain('better-auth.session_token=signed');
+  });
 
   it('throttles verify before looking up the account or calling Better Auth', async () => {
     mocks.enforceOtpRateLimits.mockImplementation(async ({ dimensions }) =>
