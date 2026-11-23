@@ -1,6 +1,5 @@
 // The request rules of the fixed configuration (the WP-05 flip, D-1): which request forms and
-// module requests the model covers, the reviewed exceptions, and the description-file check. Split
-// from resolution.mjs, unchanged.
+// module requests the model covers, the reviewed exceptions, and the description-file check.
 import fs from 'node:fs';
 import path from 'node:path';
 
@@ -18,13 +17,11 @@ export function assertModelledRequest(specifier) {
     refuse(`the request ${specifier} is a form D-1 does not model`);
 }
 
-// Module requests that are not a literal specifier (webpack builds a context module, or loads a
-// file by URL, or the request escapes the bundler): a non-literal `import()` or `require()`, any
-// other use of `require` (`require.context`, `require.resolve`, `require.ensure`, a bare
-// `require`), AMD `define(…)`, `createRequire(…)`, `import.meta.<x>` other than `url`, and
-// `new X(…, import.meta.url)` (an asset or worker). Only the reviewed occurrences below, by file
-// and exact source text, are accepted; each loads no source file of a layer (message catalogues,
-// test helpers, and Node-only database tooling), and none yields a target.
+// Requests that can build a webpack context module, load a file by URL, or escape the bundler
+// need review. This includes non-literal module requests, value edges to Node's `module` builtin,
+// and member accesses to `getBuiltinModule` or `mainModule`. The twelve reviewed entries below
+// match exact source text in specific files. They cover message catalogues, test helpers and
+// Node-only database tooling.
 const REVIEWED_DYNAMIC_REQUESTS = Object.freeze({
   'apps/web/src/app/[locale]/_core.entry.tsx': ['import(`@/messages/${locale}/metadata.json`)'],
   'apps/web/src/i18n/messages.ts': [
@@ -36,6 +33,7 @@ const REVIEWED_DYNAMIC_REQUESTS = Object.freeze({
     'import(WORKER_MODULE)',
   ],
   'packages/database/src/migration-callback-source-verifier.ts': [
+    "import { createRequire } from 'node:module';",
     'createRequire(import.meta.url)',
     'import.meta.resolve',
     'import(url)',

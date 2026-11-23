@@ -104,8 +104,8 @@ function jsdocEdges(origin) {
 
 // Every module edge of an ESTree program: static import, `export … from`, literal `import()`,
 // literal `require()`, `import x = require()` and `import('p').T`. Kind: import | type |
-// dynamic | require. A module request that is not a literal specifier is refused unless it is a
-// reviewed occurrence in `origin.rel` (its exact text from `origin.sourceCode`), and yields no edge.
+// dynamic | require. A value edge to Node's `module` builtin and any unmodelled request form
+// must be reviewed by file (`origin.rel`) and exact source text (`origin.sourceCode`).
 export function edgesOfProgram(program, visitorKeys, origin = null) {
   const out = jsdocEdges(origin);
   const free = freeModuleIdentifiers(origin);
@@ -115,7 +115,14 @@ export function edgesOfProgram(program, visitorKeys, origin = null) {
     let edge = null;
     if (node.type === 'CallExpression') edge = requireEdge(node, isFreeModule);
     else if (Object.hasOwn(EDGE_OF, node.type)) edge = EDGE_OF[node.type](node);
-    if (edge) out.push(edge);
+    if (edge) {
+      if (edge.kind !== 'type' && (edge.specifier === 'module' || edge.specifier === 'node:module'))
+        assertReviewedDynamicRequest(
+          origin?.rel ?? null,
+          origin?.sourceCode?.getText(edge.node) ?? null
+        );
+      out.push(edge);
+    }
     const dynamic = dynamicRequest(node, parent, isFreeModule);
     if (dynamic)
       assertReviewedDynamicRequest(

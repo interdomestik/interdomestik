@@ -1,7 +1,6 @@
-// The module requests D-1 does not model (the WP-05 flip, D-1): non-literal `import()` and
-// `require`, `createRequire` in every form, the CommonJS `module`, AMD `define`, `import.meta.<x>`
-// and `new X(…, import.meta.url)`. `dynamicRequest` names the node whose source text the reviewed
-// exceptions (requests.mjs) compare. Split from specifiers-edges.mjs, unchanged.
+// `dynamicRequest` identifies nodes that need review for unmodelled module requests, including
+// non-literal imports, calls to `createRequire`, and access to other runtime loader entry points.
+// `requests.mjs` checks each node against the reviewed file and source text.
 
 export const literalOf = node => {
   if (node?.type === 'Literal' && typeof node.value === 'string') return node.value;
@@ -10,15 +9,18 @@ export const literalOf = node => {
   return null;
 };
 
+function memberName(node) {
+  if (node.computed) return literalOf(node.property);
+  return node.property.type === 'Identifier' ? node.property.name : null;
+}
+
 // A member of `module`: `'require'` for `module.require` or `module['require']` (r6, r7), which
 // webpack also records as a CommonJS dependency when called with a literal; `'unknown'` for a
 // computed member whose name is not a literal (`module[k]`); else null.
 export function moduleMember(node) {
   if (node?.type !== 'MemberExpression' || node.object?.type !== 'Identifier') return null;
   if (node.object.name !== 'module') return null;
-  let name = null;
-  if (node.computed) name = literalOf(node.property);
-  else if (node.property.type === 'Identifier') name = node.property.name;
+  const name = memberName(node);
   if (name === null) return node.computed ? 'unknown' : null;
   return name === 'require' ? 'require' : null;
 }
@@ -92,85 +94,40 @@ export function freeModuleIdentifiers(origin) {
   return out;
 }
 
-// A module request that is not a literal specifier (resolution.mjs, `REVIEWED_DYNAMIC_REQUESTS`):
-// the node whose source text names it, or null. `parent` is the node's parent; `isFreeModule`
-// tells whether a `module` identifier is the CommonJS one.
 const hasOneLiteralArgument = call =>
   call?.arguments.length === 1 && literalOf(call.arguments[0]) !== null;
 const isDirectCall = (node, parent) => parent?.type === 'CallExpression' && parent.callee === node;
-const isCreateRequireName = (node, computed = false) =>
-  (!computed && isIdentifier(node, 'createRequire')) || literalOf(node) === 'createRequire';
-const aliasesCreateRequire = (from, to) => isCreateRequireName(from) && !isCreateRequireName(to);
 
 function callRequest(node) {
   const { callee } = node;
   if (isIdentifier(callee, 'require')) return hasOneLiteralArgument(node) ? null : node;
   if (isIdentifier(callee, 'define') || isIdentifier(callee, 'createRequire')) return node;
-  // Keep checking an identifier named `createRequire` in either member syntax on a call.
-  if (callee.type === 'MemberExpression' && isCreateRequireName(callee.property)) return node;
+  if (
+    callee.type === 'MemberExpression' &&
+    (isIdentifier(callee.property, 'createRequire') ||
+      literalOf(callee.property) === 'createRequire')
+  )
+    return node;
   return null;
 }
 
 function memberRequest(node, parent, isFreeModule) {
   if (isIdentifier(node.object, 'require')) return node;
-  if (isCreateRequireName(node.property, node.computed) && !isDirectCall(node, parent)) return node;
-  // `module[k]` with a computed name, and `module.require` other than called with one literal
-  // (`const r = module.require`, r7: also `module['require']`).
+  const name = memberName(node);
+  if (name === 'getBuiltinModule' || name === 'mainModule') return node;
+  // `module.require` other than called with one literal (`const r = module.require`, r7: also
+  // `module['require']`). Any other member of the CommonJS `module` than `exports`, a computed one
+  // included, can reach its loader (`module.constructor`, `module[k]`), so it is refused too.
   if (isFreeModule(node.object)) {
-    if (moduleMember(node) === 'unknown') return node;
     if (isModuleRequire(node))
       return isDirectCall(node, parent) && hasOneLiteralArgument(parent) ? null : node;
+    return name === 'exports' ? null : node;
   }
   if (isImportMeta(node.object) && !isImportMetaUrl(node)) return node;
   return null;
 }
 
-function createRequirePropertyRequest(node, parent) {
-  if (parent?.type === 'ObjectPattern') {
-    const aliased =
-      isCreateRequireName(node.key, node.computed) && !isIdentifier(node.value, 'createRequire');
-    return aliased ? node : null;
-  }
-  return isIdentifier(node.value, 'createRequire') ? node.value : null;
-}
-
-function createRequireIdentifierRequest(node, parent) {
-  switch (parent?.type) {
-    case 'ImportSpecifier':
-    case 'ImportDefaultSpecifier':
-    case 'ImportNamespaceSpecifier':
-    case 'ExportSpecifier':
-    case 'TSImportEqualsDeclaration':
-    case 'TSTypeReference':
-    case 'ArrayPattern':
-    case 'RestElement':
-      return null;
-    case 'AssignmentPattern':
-      return parent.left === node ? null : node;
-    case 'MemberExpression':
-      return parent.property === node && !parent.computed ? null : node;
-    case 'Property':
-      // The property check distinguishes a destructuring binding from an object value.
-      if (parent.value === node) return null;
-      break;
-    default:
-      break;
-  }
-  return BARE_REQUIRE_OK(node, parent) ? null : node;
-}
-
-function importEqualsRequest(node) {
-  if (node.importKind === 'type') return null;
-  let reference = node.moduleReference;
-  while (reference.type === 'TSQualifiedName') {
-    if (isIdentifier(reference.right, 'createRequire')) return node;
-    reference = reference.left;
-  }
-  return isIdentifier(reference, 'createRequire') ? node : null;
-}
-
 function identifierRequest(node, parent, isFreeModule) {
-  if (isIdentifier(node, 'createRequire')) return createRequireIdentifierRequest(node, parent);
   // A bare `require` that is neither called, nor a member's object or name, nor a declared name or
   // type query (`const r = require` is refused; `declare function require` is not a request).
   if (isIdentifier(node, 'require')) return BARE_REQUIRE_OK(node, parent) ? null : node;
@@ -185,14 +142,6 @@ function identifierRequest(node, parent, isFreeModule) {
 
 export function dynamicRequest(node, parent, isFreeModule) {
   switch (node.type) {
-    case 'ImportSpecifier':
-      return aliasesCreateRequire(node.imported, node.local) ? node : null;
-    case 'ExportSpecifier':
-      return aliasesCreateRequire(node.local, node.exported) ? node : null;
-    case 'Property':
-      return createRequirePropertyRequest(node, parent);
-    case 'TSImportEqualsDeclaration':
-      return importEqualsRequest(node);
     case 'ImportExpression':
       return literalOf(node.source) === null ? node : null;
     case 'CallExpression':

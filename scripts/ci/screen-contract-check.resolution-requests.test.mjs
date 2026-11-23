@@ -144,6 +144,8 @@ test('D-1: a module request that is not a literal specifier is refused unless re
     'export const r = require;',
     "define(['./x'], x => x);",
     "import { createRequire } from 'node:module'; export const r = createRequire(import.meta.url);",
+    'export const r = createRequire(import.meta.url);',
+    'export const r = mod.createRequire(import.meta.url);',
     "export const ctx = import.meta.webpackContext('./');",
     "export const w = () => new Worker(new URL('./x.ts', import.meta.url));",
     "export const u = new URL('../../../../packages/database/src/index.ts', import.meta.url);",
@@ -162,46 +164,6 @@ test('D-1: a module request that is not a literal specifier is refused unless re
     'export async function load(locale: string, namespace: string) { return import(`../messages/${locale}/${namespace}.json`); }';
   assert.ok(await lintWith(`${W}/i18n/messages.ts`, reviewed));
   await assert.rejects(lintWith(`${W}/i18n/other.ts`, reviewed), refused);
-});
-
-test('D-1: createRequire aliases and value references are refused', async t => {
-  const refused = /loads a module by .*, a request D-1 does not model; .*scanner PR first/u;
-  const imported = "import { createRequire } from 'node:module';";
-  for (const body of [
-    "import { createRequire as makeRequire } from 'node:module'; const load = makeRequire(import.meta.url); load('@interdomestik/database');",
-    "import { 'createRequire' as makeRequire } from 'other-module';",
-    "export { createRequire as makeRequire } from 'node:module';",
-    `${imported} export { createRequire as makeRequire };`,
-    'const { createRequire: makeRequire } = mod;',
-    "const { ['createRequire']: makeRequire } = mod;",
-    'const { createRequire = fallback } = mod;',
-    'const makeRequire = mod.createRequire;',
-    "const makeRequire = mod['createRequire'];",
-    "const load = mod['createRequire'](import.meta.url);",
-    'const load = mod.createRequire(import.meta.url);',
-    `${imported} const makeRequire = createRequire;`,
-    `${imported} const methods = { createRequire };`,
-    `${imported} const makeRequire = createRequire.bind(null);`,
-    'import makeRequire = mod.createRequire;',
-  ])
-    await assert.rejects(lint(tree(t, { [`${W}/components/f.tsx`]: body })), refused, body);
-});
-
-test('D-1: the reviewed direct createRequire call is accepted by file and exact text', async t => {
-  const refused = /loads a module by .*, a request D-1 does not model; .*scanner PR first/u;
-  const screen = `${W}/components/f.tsx`;
-  const reviewedFile = 'packages/database/src/migration-callback-source-verifier.ts';
-  const imported = "import { createRequire } from 'node:module';\n";
-  const reviewed = `${imported}const requireFromHere = createRequire(import.meta.url);`;
-  const lintWith = (rel, body) => lint(tree(t, { [rel]: body }));
-  assert.ok(await lintWith(screen, imported));
-  assert.ok(await lintWith(screen, 'const { createRequire } = mod;'));
-  assert.ok(await lintWith(reviewedFile, reviewed));
-  await assert.rejects(lintWith(screen, reviewed), refused);
-  await assert.rejects(
-    lintWith(reviewedFile, reviewed.replace('import.meta.url', ' import.meta.url ')),
-    refused
-  );
 });
 
 // r6: a relative request through node_modules can follow a pnpm workspace link to tracked source,
