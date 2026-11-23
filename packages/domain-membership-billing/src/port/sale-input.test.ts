@@ -26,7 +26,7 @@ describe('individual payment port input', () => {
   const invalidTextIssue = {
     code: 'invalid_format',
     format: 'regex',
-    pattern: String.raw`/^[^\u0000\uD800-\uDFFF]+$/u`,
+    pattern: String.raw`/^[^\0\uD800-\uDFFF]+$/u`,
     path: ['termsVersion'],
   };
 

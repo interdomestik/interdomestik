@@ -202,7 +202,7 @@ export const membershipSales = pgTable(
     check('membership_sales_request_hash_check', sql`${table.requestHash} ~ '^[0-9a-f]{64}$'`),
     check(
       'membership_sales_plan_tier_check',
-      sql`${table.planTier} is null or ${table.planTier} in ('basic', 'standard', 'family', 'business')`
+      sql`${table.planTier} is null or ${table.planTier} = any (enum_range(null::public.membership_tier)::text[])`
     ),
     check(
       'membership_sales_individual_buyer_check',

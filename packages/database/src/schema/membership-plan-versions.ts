@@ -67,7 +67,7 @@ export const membershipPlanVersions = pgTable(
     }),
     check(
       'membership_plan_versions_tier_check',
-      sql`${table.tier} in ('basic', 'standard', 'family', 'business')`
+      sql`${table.tier} = any (enum_range(null::public.membership_tier)::text[])`
     ),
     check(
       'membership_plan_versions_terms_check',

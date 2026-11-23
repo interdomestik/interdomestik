@@ -16,7 +16,7 @@ CREATE TABLE "membership_plan_versions" (
 	"withdrawn_by" text,
 	CONSTRAINT "membership_plan_versions_number_uq" UNIQUE("tenant_id","plan_id","version"),
 	CONSTRAINT "membership_plan_versions_sale_snapshot_uq" UNIQUE("tenant_id","id","plan_id","legal_entity_id","list_price_minor","price_currency","tier","members_included"),
-	CONSTRAINT "membership_plan_versions_tier_check" CHECK (tier IN ('basic', 'standard', 'family', 'business')),
+	CONSTRAINT "membership_plan_versions_tier_check" CHECK (tier = ANY (enum_range(NULL::public.membership_tier)::text[])),
 	CONSTRAINT "membership_plan_versions_terms_check" CHECK (
       "membership_plan_versions"."tier" <> 'family' and "membership_plan_versions"."interval" = 'year'
       and "membership_plan_versions"."price_currency" = 'EUR' and "membership_plan_versions"."list_price_minor" > 0)
@@ -102,7 +102,7 @@ CREATE TABLE "membership_sales" (
       "membership_sales"."amount_mkd_minor" = round("membership_sales"."price_minor"::numeric * "membership_sales"."rate" * 0.01) * 100),
 	CONSTRAINT "membership_sales_positive_check" CHECK ("membership_sales"."price_minor" > 0 and "membership_sales"."amount_mkd_minor" > 0),
 	CONSTRAINT "membership_sales_request_hash_check" CHECK (request_hash ~ '^[0-9a-f]{64}$'),
-	CONSTRAINT "membership_sales_plan_tier_check" CHECK (plan_tier IS NULL OR plan_tier IN ('basic', 'standard', 'family', 'business')),
+	CONSTRAINT "membership_sales_plan_tier_check" CHECK (plan_tier IS NULL OR plan_tier = ANY (enum_range(NULL::public.membership_tier)::text[])),
 	CONSTRAINT "membership_sales_individual_buyer_check" CHECK (
       "membership_sales"."kind" <> 'individual' or ("membership_sales"."buyer_kind" is not null and (
         ("membership_sales"."buyer_kind" = 'lead' and "membership_sales"."lead_id" is not null and "membership_sales"."member_user_id" is null)

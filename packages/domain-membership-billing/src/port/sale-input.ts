@@ -4,7 +4,7 @@ import { z } from 'zod';
 const text = z
   .string()
   .min(1)
-  .regex(/^[^\u0000\uD800-\uDFFF]+$/u);
+  .regex(/^[^\0\uD800-\uDFFF]+$/u);
 
 export const publishPlanVersionInputSchema = z.strictObject({
   planId: text,

@@ -12307,7 +12307,7 @@
       "checkConstraints": {
         "membership_plan_versions_tier_check": {
           "name": "membership_plan_versions_tier_check",
-          "value": "\"membership_plan_versions\".\"tier\" in ('basic', 'standard', 'family', 'business')"
+          "value": "\"membership_plan_versions\".\"tier\" = any (enum_range(null::public.membership_tier)::text[])"
         },
         "membership_plan_versions_terms_check": {
           "name": "membership_plan_versions_terms_check",
@@ -13012,7 +13012,7 @@
         },
         "membership_sales_plan_tier_check": {
           "name": "membership_sales_plan_tier_check",
-          "value": "\"membership_sales\".\"plan_tier\" is null or \"membership_sales\".\"plan_tier\" in ('basic', 'standard', 'family', 'business')"
+          "value": "\"membership_sales\".\"plan_tier\" is null or \"membership_sales\".\"plan_tier\" = any (enum_range(null::public.membership_tier)::text[])"
         },
         "membership_sales_individual_buyer_check": {
           "name": "membership_sales_individual_buyer_check",
