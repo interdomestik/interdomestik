@@ -6,6 +6,8 @@ Module contract, adopted from the review of 2026-11-13 (run A). Paths that begin
 
 Declares the schema (46 schema files, 99 `pgTable` calls — MEASURED, `rg -c 'pgTable\(' packages/database/src/schema/*.ts` — for 97 table names, because `claim_messages` and `claim_counters` are declared twice, DATA-09), owns the two connection pools, and is the only place that opens a tenant transaction with the row-security settings. It also owns migrations, seeds, the seed-target guard and the pilot switch settings.
 
+The seed runner uses the internal `src/seed-receipt.ts` module to build and print receipts. The module uses no database client.
+
 ## Public API
 
 `package.json:7-30` declares 22 subpath exports (recounted in R3) (root `./src/index.ts`, plus `./schema`, `./db`, `./tenant-authority`, `./tenant-security`, `./ingress`, `./testing/tenant-authority`, …). The entries other code should use: `withTenantAuthority` (`src/tenant-authority-context.ts:12-18`), `withTenantContext` / `withTenantDb` (`src/tenant.ts:23-55`), `dbAdmin` and `dbRls` (`src/db.ts:244-251`), `withTenant` (`src/tenant-security.ts:22-37`).

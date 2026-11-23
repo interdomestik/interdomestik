@@ -23,6 +23,8 @@ export default defineConfig({
     },
   },
   test: {
+    // The opt-in pilot identity files snapshot and restore the same tenant's switch rows.
+    fileParallelism: process.env.REQUIRE_PILOT_IDENTITY_CONTRACT !== '1',
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],

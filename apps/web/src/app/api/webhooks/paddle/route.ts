@@ -9,7 +9,9 @@ import { handlePaddleWebhookCore } from './_core';
 import { closedPaddleWebhookResponse } from './closed-response';
 
 export async function POST(req: NextRequest) {
-  if (PADDLE_CLOSED) return closedPaddleWebhookResponse();
+  if (PADDLE_CLOSED) {
+    return closedPaddleWebhookResponse();
+  }
 
   const limited = await enforceRateLimit({
     name: 'api/webhooks/paddle',

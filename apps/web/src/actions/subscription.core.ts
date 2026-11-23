@@ -11,14 +11,18 @@ import { subscriptionClosedFailure } from './subscription/paddle-closed';
 const MEMBER_MEMBERSHIP_PATH = '/[locale]/(app)/member/membership';
 
 export async function getPaymentUpdateUrl(subscriptionId: string) {
-  if (PADDLE_CLOSED) return { ...(await subscriptionClosedFailure()), url: undefined };
+  if (PADDLE_CLOSED) {
+    return { ...(await subscriptionClosedFailure()), url: undefined };
+  }
 
   const { session, authority } = await getActionContext();
   return getPaymentUpdateUrlCore({ session, authority, subscriptionId });
 }
 
 export async function cancelSubscription(subscriptionId: string, idempotencyKey?: string) {
-  if (PADDLE_CLOSED) return subscriptionClosedFailure();
+  if (PADDLE_CLOSED) {
+    return subscriptionClosedFailure();
+  }
 
   const { session, authority } = await getActionContext();
   const result = await cancelSubscriptionCore(

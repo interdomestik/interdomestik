@@ -16,7 +16,9 @@ type WebhookRouteContext = {
 };
 
 export async function POST(req: NextRequest, context: WebhookRouteContext) {
-  if (PADDLE_CLOSED) return closedPaddleWebhookResponse();
+  if (PADDLE_CLOSED) {
+    return closedPaddleWebhookResponse();
+  }
 
   const limited = await enforceRateLimit({
     name: 'api/webhooks/paddle',

@@ -118,7 +118,9 @@ async function confirmCurrentTenant(
         )
       )
       .returning({ id: user.id });
-    if (updated.length !== 1) return 'EMAIL_NOT_PROVEN';
+    if (updated.length !== 1) {
+      return 'EMAIL_NOT_PROVEN';
+    }
 
     return { previousPending: currentUser.tenantClassificationPending === true };
   });

@@ -127,7 +127,9 @@ export async function verifyCashAttemptCore(
     if (attempt.status !== 'pending' && attempt.status !== 'needs_info') {
       return repeatedDecision(attempt, decision);
     }
-    if (decision === 'approve') await assertLeadSalesOpen(tx, tenantId);
+    if (decision === 'approve') {
+      await assertLeadSalesOpen(tx, tenantId);
+    }
 
     // D. Status
     const newStatus = DECISION_STATUS[decision];
@@ -210,7 +212,9 @@ export async function verifyCashAttemptCore(
           )
         )
         .returning({ id: memberLeads.id });
-      if (paid.length !== 1) throw actionFailure('CONFLICT');
+      if (paid.length !== 1) {
+        throw actionFailure('CONFLICT');
+      }
     }
 
     return { success: true, status: newStatus, leadId: attempt.leadId, decision };

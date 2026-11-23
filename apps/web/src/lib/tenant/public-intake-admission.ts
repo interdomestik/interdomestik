@@ -14,13 +14,20 @@ import type { TenantId } from './tenant-hosts';
 export async function authorizeOpenPublicIntake(
   tenantId: TenantId | null
 ): Promise<TenantAuthority | null> {
-  if (!tenantId) return null;
+  if (!tenantId) {
+    return null;
+  }
 
   try {
     const authority = await authorizePublicSiteTenant(tenantId);
-    if (!authority) return null;
+    if (!authority) {
+      return null;
+    }
 
-    return (await readOpenSwitch(authority, 'public_intake')) ? authority : null;
+    if (await readOpenSwitch(authority, 'public_intake')) {
+      return authority;
+    }
+    return null;
   } catch (error) {
     Sentry.captureException(error, { tags: { operation: 'pilot.publicIntakeAdmission' } });
     return null;
@@ -30,7 +37,8 @@ export async function authorizeOpenPublicIntake(
 function readOpenSwitch(authority: TenantAuthority, key: 'public_intake' | 'new_sales') {
   const { accessTenantId } = readTenantAuthority(authority);
   return withTenantAuthority(authority, async tx => {
-    return (await readPilotSwitch(tx, accessTenantId, key)).state === 'open';
+    const admission = await readPilotSwitch(tx, accessTenantId, key);
+    return admission.state === 'open';
   });
 }
 

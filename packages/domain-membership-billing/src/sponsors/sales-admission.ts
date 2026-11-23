@@ -5,7 +5,9 @@ export async function assertSponsorSalesOpen(tx: TenantTransaction, tenantId: st
   try {
     await assertNewSalesOpen(tx, tenantId);
   } catch (error) {
-    if (error instanceof SalesClosedError) throw error;
+    if (error instanceof SalesClosedError) {
+      throw error;
+    }
     console.error('[Sponsors] Failed to read new sales admission', error);
     throw new SalesClosedError();
   }

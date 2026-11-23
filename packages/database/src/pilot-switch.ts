@@ -19,10 +19,16 @@ export type PilotSwitchState = {
 
 function parsePilotSwitch(value: unknown): PilotSwitchState {
   const closed: PilotSwitchState = { state: 'closed', revision: 0, wellFormed: false };
-  if (!value || typeof value !== 'object') return closed;
+  if (!value || typeof value !== 'object') {
+    return closed;
+  }
   const prototype = Object.getPrototypeOf(value);
-  if (prototype !== Object.prototype && prototype !== null) return closed;
-  if (Reflect.ownKeys(value).length !== 2) return closed;
+  if (prototype !== Object.prototype && prototype !== null) {
+    return closed;
+  }
+  if (Reflect.ownKeys(value).length !== 2) {
+    return closed;
+  }
 
   const enabled: unknown = Object.getOwnPropertyDescriptor(value, 'enabled')?.value;
   const revision: unknown = Object.getOwnPropertyDescriptor(value, 'revision')?.value;
@@ -34,11 +40,17 @@ function parsePilotSwitch(value: unknown): PilotSwitchState {
   ) {
     return closed;
   }
-  return { state: enabled ? 'open' : 'closed', revision, wellFormed: true };
+  let state: PilotSwitchState['state'] = 'closed';
+  if (enabled) {
+    state = 'open';
+  }
+  return { state, revision, wellFormed: true };
 }
 
 function pilotSwitchWhere(tenantId: string, key: PilotSwitchKey) {
-  if (!PILOT_SWITCH_KEYS.includes(key)) throw new TypeError('Unknown pilot switch key');
+  if (!PILOT_SWITCH_KEYS.includes(key)) {
+    throw new TypeError('Unknown pilot switch key');
+  }
   return withTenant(
     tenantId,
     tenantSettings.tenantId,
@@ -58,7 +70,12 @@ export async function readPilotSwitch(
     .from(tenantSettings)
     .where(where)
     .limit(1);
-  const [row] = await (options.lock === 'share' ? query.for('share') : query);
+  let row: { value: unknown } | undefined;
+  if (options.lock === 'share') {
+    [row] = await query.for('share');
+  } else {
+    [row] = await query;
+  }
   return parsePilotSwitch(row?.value);
 }
 
@@ -73,7 +90,9 @@ export class SalesClosedError extends Error {
 
 export async function assertNewSalesOpen(tx: TenantTransaction, tenantId: string): Promise<void> {
   const admission = await readPilotSwitch(tx, tenantId, 'new_sales', { lock: 'share' });
-  if (admission.state === 'closed') throw new SalesClosedError();
+  if (admission.state === 'closed') {
+    throw new SalesClosedError();
+  }
 }
 
 export type PilotSwitchChange = {
@@ -98,8 +117,12 @@ export async function changePilotSwitch(
   if (principal?.role !== 'super_admin' && principal?.role !== 'tenant_admin') {
     return { ok: false, code: 'FORBIDDEN' };
   }
-  if (enabled && principal.role !== 'super_admin') return { ok: false, code: 'FORBIDDEN' };
-  if (enabled && !approvalReference?.trim()) return { ok: false, code: 'APPROVAL_REQUIRED' };
+  if (enabled && principal.role !== 'super_admin') {
+    return { ok: false, code: 'FORBIDDEN' };
+  }
+  if (enabled && !approvalReference?.trim()) {
+    return { ok: false, code: 'APPROVAL_REQUIRED' };
+  }
 
   const where = pilotSwitchWhere(tenantId, key);
   const [row] = await tx
@@ -114,23 +137,31 @@ export async function changePilotSwitch(
   }
 
   const value = { enabled, revision: previous.revision + 1 };
-  const changed = row
-    ? await tx
-        .update(tenantSettings)
-        .set({ value })
-        .where(eq(tenantSettings.id, row.id))
-        .returning({ id: tenantSettings.id })
-    : await tx
-        .insert(tenantSettings)
-        .values({ id: randomUUID(), tenantId, category: PILOT_SWITCH_CATEGORY, key, value })
-        .onConflictDoNothing({
-          target: [tenantSettings.tenantId, tenantSettings.category, tenantSettings.key],
-        })
-        .returning({ id: tenantSettings.id });
-  const [saved] = changed;
-  if (!saved) return { ok: false, code: 'CONFLICT' };
+  let saved: { id: string } | undefined;
+  if (row) {
+    [saved] = await tx
+      .update(tenantSettings)
+      .set({ value })
+      .where(eq(tenantSettings.id, row.id))
+      .returning({ id: tenantSettings.id });
+  } else {
+    [saved] = await tx
+      .insert(tenantSettings)
+      .values({ id: randomUUID(), tenantId, category: PILOT_SWITCH_CATEGORY, key, value })
+      .onConflictDoNothing({
+        target: [tenantSettings.tenantId, tenantSettings.category, tenantSettings.key],
+      })
+      .returning({ id: tenantSettings.id });
+  }
+  if (!saved) {
+    return { ok: false, code: 'CONFLICT' };
+  }
 
   const state = parsePilotSwitch(value);
+  const malformed: { observedMalformedValue?: unknown } = {};
+  if (row && !previous.wellFormed) {
+    malformed.observedMalformedValue = row.value;
+  }
   await tx.insert(auditLog).values({
     id: randomUUID(),
     tenantId,
@@ -147,7 +178,7 @@ export async function changePilotSwitch(
       toRevision: state.revision,
       reason,
       approvalReference: approvalReference ?? null,
-      ...(row && !previous.wellFormed ? { observedMalformedValue: row.value } : {}),
+      ...malformed,
     },
   });
   return { ok: true, switch: state };

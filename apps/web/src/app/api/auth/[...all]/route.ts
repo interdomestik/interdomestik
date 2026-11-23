@@ -88,8 +88,13 @@ export async function POST(req: Request) {
   }
   const emailSignIn = isEmailSignInUrl(req.url);
   const emailSignUp = isEmailSignUpUrl(req.url);
-  const admissionTenant = emailSignUp ? resolvePublicAdmissionTenant(req.headers) : null;
-  if (emailSignUp && !admissionTenant) return refuseEmailSignUp();
+  let admissionTenant: ReturnType<typeof resolvePublicAdmissionTenant> = null;
+  if (emailSignUp) {
+    admissionTenant = resolvePublicAdmissionTenant(req.headers);
+  }
+  if (emailSignUp && !admissionTenant) {
+    return refuseEmailSignUp();
+  }
   const authBody = emailSignIn || emailSignUp ? await parseAuthJsonBody(req) : null;
   const postRateLimitConfig = getAuthRateLimitConfig('POST', req.url);
 

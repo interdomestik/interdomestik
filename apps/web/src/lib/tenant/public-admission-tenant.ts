@@ -20,20 +20,31 @@ export function resolvePublicAdmissionTenant(
   env: Readonly<Record<string, string | undefined>> = process.env
 ): TenantId | null {
   const authority = requestHeaders.get('host')?.toLowerCase();
-  if (!authority) return null;
+  if (!authority) {
+    return null;
+  }
 
   const forwarded = requestHeaders.get('x-forwarded-host');
-  if (forwarded !== null && forwarded.toLowerCase() !== authority) return null;
+  if (forwarded !== null && forwarded.toLowerCase() !== authority) {
+    return null;
+  }
 
   // Strip only a port. The exact ingress table rejects URLs, suffixes and combined headers.
   const host = authority.replace(/:\d+$/, '');
   const release = releaseClass(env);
-  const ingress =
-    release === 'production'
-      ? hostedAuthHosts('production').includes(host)
-        ? 'door'
-        : null
-      : (release === 'staging' ? STAGING_INGRESS : LOCAL_INGRESS).get(host);
+  let ingress: TenantId | 'door' | null | undefined;
+  if (release === 'production') {
+    if (hostedAuthHosts('production').includes(host)) {
+      ingress = 'door';
+    }
+  } else if (release === 'staging') {
+    ingress = STAGING_INGRESS.get(host);
+  } else {
+    ingress = LOCAL_INGRESS.get(host);
+  }
 
-  return ingress === 'door' ? coerceTenantId(env.DEFAULT_PUBLIC_TENANT_ID) : (ingress ?? null);
+  if (ingress === 'door') {
+    return coerceTenantId(env.DEFAULT_PUBLIC_TENANT_ID);
+  }
+  return ingress ?? null;
 }

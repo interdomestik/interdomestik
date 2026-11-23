@@ -30,7 +30,9 @@ export async function verifyCashAttemptAction(input: unknown) {
   return runAuthenticatedAction(async ctx => {
     const data = verifyCashSchema.parse(input);
     return verifyCashAttemptCore(ctx, data).catch(error => {
-      if (isActionFailure(error)) return error;
+      if (isActionFailure(error)) {
+        return error;
+      }
       return leadSalesClosedFailure(error);
     });
   });

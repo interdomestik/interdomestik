@@ -20,7 +20,9 @@ export async function sponsorAction(
     }
     return result;
   } catch (error) {
-    if (error instanceof SalesClosedError) return { ok: false, error: 'CLOSED' };
+    if (error instanceof SalesClosedError) {
+      return { ok: false, error: 'CLOSED' };
+    }
     return { ok: false, error: 'unavailable' };
   }
 }

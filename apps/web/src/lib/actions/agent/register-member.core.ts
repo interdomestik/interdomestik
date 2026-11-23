@@ -86,7 +86,9 @@ export async function registerMemberCore(
           try {
             await assertNewSalesOpen(tx, tenantId);
           } catch (error) {
-            if (error instanceof SalesClosedError) throw error;
+            if (error instanceof SalesClosedError) {
+              throw error;
+            }
             console.error('Sponsored registration could not read the sales switch:', error);
             throw new SalesClosedError();
           }

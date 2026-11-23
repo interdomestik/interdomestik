@@ -66,14 +66,15 @@ async function runTenant(
   // The tenant switch gates only new provisioning; every other job always runs (§3.1).
   await step('provisioning', async () => {
     const provisioning = await runSponsorProvisioning(authority, { now });
-    result.provisioning = {
+    const summary: NonNullable<SponsorCronTenantResult['provisioning']> = {
       processed: provisioning.processed,
       failed: provisioning.failed,
       disabled: provisioning.disabled === true,
-      ...(provisioning.outcomes.sales_closed
-        ? { salesClosed: provisioning.outcomes.sales_closed }
-        : {}),
     };
+    if (provisioning.outcomes.sales_closed) {
+      summary.salesClosed = provisioning.outcomes.sales_closed;
+    }
+    result.provisioning = summary;
   });
   await step('handovers', async () => {
     const handovers = await runSponsorHandovers(

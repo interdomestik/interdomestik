@@ -55,20 +55,29 @@ export function hasPositiveProductionSignal(
 export function releaseClass(
   env: Readonly<NodeJS.Dict<string>> = process.env
 ): 'local-e2e' | 'development' | 'staging' | 'production' {
-  if (hasPositiveProductionSignal(env)) return 'production';
+  if (hasPositiveProductionSignal(env)) {
+    return 'production';
+  }
 
   const target = env.INTERDOMESTIK_DEPLOY_ENV;
   if (isHostedDeployment(env)) {
-    return hostedAuthEnvironmentOf(env) === 'staging' &&
+    if (
+      hostedAuthEnvironmentOf(env) === 'staging' &&
       (target === undefined || target === 'staging' || target === 'preview')
-      ? 'staging'
-      : 'production';
+    ) {
+      return 'staging';
+    }
+    return 'production';
   }
 
-  if (!readDisposableTargetClass(env)) return 'production';
+  if (!readDisposableTargetClass(env)) {
+    return 'production';
+  }
   if (isLocalE2ERuntime(env) && (target === undefined || target === 'development')) {
     return 'local-e2e';
   }
-  if (env.NODE_ENV === 'development' || env.NODE_ENV === 'test') return 'development';
+  if (env.NODE_ENV === 'development' || env.NODE_ENV === 'test') {
+    return 'development';
+  }
   return 'production';
 }

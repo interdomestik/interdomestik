@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => {
     set,
     where,
     startPayment: vi.fn(),
+    assertNewSalesOpen: vi.fn(),
     revalidatePath: vi.fn(),
     and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
     eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
@@ -54,8 +55,13 @@ vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: mocks.ensureTenantId,
 }));
 
-vi.mock('@interdomestik/domain-leads', () => ({
+vi.mock('@interdomestik/domain-leads/payment', () => ({
   startPayment: mocks.startPayment,
+}));
+
+vi.mock('@interdomestik/database/pilot-switch', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database/pilot-switch')>()),
+  assertNewSalesOpen: mocks.assertNewSalesOpen,
 }));
 
 vi.mock('drizzle-orm', async original => ({
@@ -93,6 +99,7 @@ function resetActionMocks() {
   mocks.set.mockClear();
   mocks.where.mockClear();
   mocks.startPayment.mockReset();
+  mocks.assertNewSalesOpen.mockReset().mockResolvedValue(undefined);
   mocks.revalidatePath.mockReset();
 
   mocks.headers.mockResolvedValue(new Headers());

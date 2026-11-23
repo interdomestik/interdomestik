@@ -1,6 +1,7 @@
 import { inArray, sponsorRosterEntries, type TenantTransaction } from '@interdomestik/database';
+import { assertNewSalesOpen, SalesClosedError } from '@interdomestik/database/pilot-switch';
 import { lockSponsorPerson } from '@interdomestik/database/sponsor-locks';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { auditTransaction } from './audit-test-support';
 import { bindEntryIdentity } from './provisioning-identity';
@@ -12,6 +13,10 @@ vi.mock('@interdomestik/database', async importOriginal => {
 vi.mock('@interdomestik/database/sponsor-locks', () => ({
   lockSponsorEntryIdentity: vi.fn(),
   lockSponsorPerson: vi.fn(),
+}));
+vi.mock('@interdomestik/database/pilot-switch', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database/pilot-switch')>()),
+  assertNewSalesOpen: vi.fn(),
 }));
 
 const entry = {
@@ -32,6 +37,10 @@ const bind = (tx: TenantTransaction): ReturnType<typeof bindEntryIdentity> =>
   });
 
 describe('bindEntryIdentity after an insert conflict', () => {
+  beforeEach(() => {
+    vi.mocked(assertNewSalesOpen).mockReset().mockResolvedValue(undefined);
+  });
+
   it.each([
     ['binds a same-tenant signup that committed meanwhile', [{ id: 'usr_signup' }], 'bound'],
     ['reports an address taken outside the tenant as foreign', [], 'foreign'],
@@ -52,6 +61,16 @@ describe('bindEntryIdentity after an insert conflict', () => {
     const db = auditTransaction({ selects: [[{ userId: null }], [], []] });
     const result = await bind(db.tx);
     expect(result).toMatchObject({ kind: 'bound', created: true });
+  });
+
+  it('refuses closed sales before inserting an account or writing the binding', async () => {
+    const db = auditTransaction({ selects: [[{ userId: null }], []] });
+    vi.mocked(assertNewSalesOpen).mockRejectedValueOnce(new SalesClosedError());
+
+    await expect(bind(db.tx)).rejects.toBeInstanceOf(SalesClosedError);
+    expect(assertNewSalesOpen).toHaveBeenCalledExactlyOnceWith(db.tx, 'tenant');
+    expect(db.tx.insert).not.toHaveBeenCalled();
+    expect(db.tx.update).not.toHaveBeenCalled();
   });
 
   it('takes lock 2, terms and entries before it writes the binding (retention order)', async () => {

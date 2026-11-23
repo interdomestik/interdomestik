@@ -36,11 +36,16 @@ function buildAgentLeadWhere(scope: AgentLeadScope): LeadScopeCondition {
 
 // Lead statuses an agent's status-only write may not leave from, given the requested status.
 function lockedFrom(requested: LeadStatus): NonNullable<LeadStatus>[] {
-  return requested === 'converted' ? ['paid', 'payment_pending'] : ['paid'];
+  if (requested === 'converted') {
+    return ['paid', 'payment_pending'];
+  }
+  return ['paid'];
 }
 
 function isCashLocked(current: LeadStatus | null | undefined, requested: LeadStatus): boolean {
-  if (requested === 'paid' || current === 'paid') return true;
+  if (requested === 'paid' || current === 'paid') {
+    return true;
+  }
   return requested === 'converted' && current === 'payment_pending';
 }
 
@@ -69,7 +74,9 @@ export async function updateScopedAgentLeadStatus(params: {
   }
   // Only payment verification marks a lead paid, and only member conversion completes a lead
   // whose cash payment is in verification or verified.
-  if (isCashLocked(lead.status, status)) throw cashLockedError();
+  if (isCashLocked(lead.status, status)) {
+    throw cashLockedError();
+  }
 
   if (status === 'payment_pending') {
     await startPayment(
@@ -81,14 +88,17 @@ export async function updateScopedAgentLeadStatus(params: {
       {
         leadId: scope.leadId,
         method: 'cash',
-        amountCents: 15000,
+        amountCents: 15_000,
         priceId: 'default_membership',
       }
     );
     return { success: true as const };
   }
 
-  const updatedNotes = notes ? [lead.notes, notes].filter(Boolean).join('\n') : lead.notes;
+  let updatedNotes = lead.notes;
+  if (notes) {
+    updatedNotes = [updatedNotes, notes].filter(Boolean).join('\n');
+  }
 
   // The same rule is re-checked in the write itself, so a concurrent approval cannot be overwritten.
   // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
@@ -108,7 +118,9 @@ export async function updateScopedAgentLeadStatus(params: {
       .where(and(scopedWhere, notInArray(memberLeads.status, lockedFrom(status))))
       .returning({ id: memberLeads.id });
   });
-  if (written.length === 0) throw cashLockedError();
+  if (written.length === 0) {
+    throw cashLockedError();
+  }
 
   return { success: true as const };
 }

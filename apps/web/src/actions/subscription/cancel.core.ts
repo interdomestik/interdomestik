@@ -20,7 +20,9 @@ export async function cancelSubscriptionCore(
   },
   deps: SubscriptionDeps = {}
 ) {
-  if (PADDLE_CLOSED) return subscriptionClosedFailure();
+  if (PADDLE_CLOSED) {
+    return subscriptionClosedFailure();
+  }
 
   if (!params.session?.user || !params.authority) {
     return { error: 'Unauthorized', success: undefined };

@@ -138,7 +138,6 @@ function loadEnvManual(envPath: string) {
   });
 }
 envPaths.forEach(loadEnvManual);
-
 function envOrFallback(name: string, fallback: string): string {
   const rawValue = process.env[name];
   if (typeof rawValue !== 'string') {
@@ -204,7 +203,6 @@ process.env.IDA_HOST = IDA_HOST;
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
 
 const restrictedServerPrefix = configureE2eDatabaseEnv();
-
 const useExternalWebServer = process.env.PW_EXTERNAL_SERVER === '1';
 
 export default defineConfig({

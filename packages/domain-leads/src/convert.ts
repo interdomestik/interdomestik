@@ -127,7 +127,9 @@ export async function convertLeadToMember(
         await assertLeadSalesOpen(tx, tenantId);
         break;
       case 'verified_cash': {
-        if (locked.status !== 'paid') throw new Error('Lead payment is not verified');
+        if (locked.status !== 'paid') {
+          throw new Error('Lead payment is not verified');
+        }
         // db-access-guard: tenant-scoped -- reason: evidence must belong to the locked lead and the authority tenant
         const attempt = await tx.query.leadPaymentAttempts.findFirst({
           columns: { leadId: true, method: true, status: true, verifiedBy: true },

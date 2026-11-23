@@ -405,7 +405,6 @@ export function getPaddleAndConfigForEntity(
   const environment = resolvePaddleEnvironment();
   const cacheKey = buildPaddleClientCacheKey(config, environment);
   const existing = paddleEntityClients.get(entity);
-
   if (existing && existing.cacheKey === cacheKey) {
     return {
       paddle: existing.client,
@@ -417,7 +416,6 @@ export function getPaddleAndConfigForEntity(
     environment,
   });
   paddleEntityClients.set(entity, { cacheKey, client: paddle });
-
   return {
     paddle,
     config,
@@ -435,7 +433,6 @@ export function getPaddleForEntity(
 export function getPaddle(options: GetPaddleOptions = {}): Paddle {
   assertPaddleOpen();
   const allowLegacyFallback = shouldAllowLegacyFallback(options);
-
   if (!allowLegacyFallback) {
     assertBillingEntityEnvConfigured({ allowLegacyFallback: false });
   }

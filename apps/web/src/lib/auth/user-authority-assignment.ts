@@ -44,7 +44,9 @@ export async function assignUserAuthorityBeforeCreate(
 ): Promise<{ data: Record<string, unknown> }> {
   const headers = contextHeaders(context);
   const tenantId = resolvePublicAdmissionTenant(headers);
-  if (!tenantId) throw invalidOnboardingError();
+  if (!tenantId) {
+    throw invalidOnboardingError();
+  }
   const intent = await canonicalIntent(context, headers);
   if (intent.tenant !== tenantId || !(await isPublicIntakeOpenForTenant(tenantId))) {
     throw invalidOnboardingError();

@@ -1,6 +1,6 @@
 import { releaseClass } from './runtime-environment';
 
-const PRODUCTION_REFUSALS = [
+const PRODUCTION_REFUSALS = new Set([
   'GITHUB_CLIENT_ID',
   'GITHUB_CLIENT_SECRET',
   'E2E_API_SECRET',
@@ -14,11 +14,11 @@ const PRODUCTION_REFUSALS = [
   'INTERDOMESTIK_E2E_FAKE_STORAGE_SIGNING',
   'BILLING_TEST_MODE',
   'NEXT_PUBLIC_BILLING_TEST_MODE',
-];
+]);
 
 function refusesNonEmptyValue(name: string): boolean {
   return (
-    PRODUCTION_REFUSALS.includes(name) ||
+    PRODUCTION_REFUSALS.has(name) ||
     name.startsWith('PADDLE_') ||
     name.startsWith('NEXT_PUBLIC_PADDLE_')
   );
@@ -26,7 +26,9 @@ function refusesNonEmptyValue(name: string): boolean {
 
 export function refusedPilotEnvNames(env: Readonly<NodeJS.Dict<string>>): string[] {
   const refused = Object.keys(env).filter(name => env[name] && refusesNonEmptyValue(name));
-  if (env.IDENTITY_PUBLIC_SIGN_UP === 'open') refused.push('IDENTITY_PUBLIC_SIGN_UP');
+  if (env.IDENTITY_PUBLIC_SIGN_UP === 'open') {
+    refused.push('IDENTITY_PUBLIC_SIGN_UP');
+  }
   return refused.sort();
 }
 
@@ -55,7 +57,9 @@ export function assertPilotDeploymentEnv(
   env: Readonly<NodeJS.Dict<string>>,
   buildManifest: string | undefined
 ): void {
-  if (releaseClass(env) !== 'production') return;
+  if (releaseClass(env) !== 'production') {
+    return;
+  }
 
   const refused = new Set([...readBuildManifest(buildManifest), ...refusedPilotEnvNames(env)]);
   if (refused.size > 0) {

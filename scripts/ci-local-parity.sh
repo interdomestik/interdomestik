@@ -218,7 +218,6 @@ wait_for_postgres() {
     pg_isready -h ci-postgres -p 5432 -U postgres >/dev/null 2>&1 && return 0
     sleep 1
   done
-
   echo "Postgres did not become ready at ci-postgres:5432." >&2
   exit 1
 }
@@ -228,7 +227,6 @@ resolve_ci_base_ref() {
     echo "${CI_LOCAL_BASE_REF:-origin/main}"
     return 0
   fi
-
   echo 'HEAD~1'
 }
 

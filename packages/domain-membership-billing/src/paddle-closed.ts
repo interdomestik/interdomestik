@@ -10,5 +10,7 @@ export class PaddleClosedError extends Error {
 }
 
 export function assertPaddleOpen(): void {
-  if (PADDLE_CLOSED) throw new PaddleClosedError();
+  if (PADDLE_CLOSED) {
+    throw new PaddleClosedError();
+  }
 }

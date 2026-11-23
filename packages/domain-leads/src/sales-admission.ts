@@ -5,7 +5,9 @@ export async function assertLeadSalesOpen(tx: TenantTransaction, tenantId: strin
   try {
     await assertNewSalesOpen(tx, tenantId);
   } catch (error) {
-    if (error instanceof SalesClosedError) throw error;
+    if (error instanceof SalesClosedError) {
+      throw error;
+    }
     console.error('Lead sales switch read failed', error);
     throw new SalesClosedError();
   }

@@ -11,7 +11,11 @@ export function register() {
       process.env.CSP_NONCE_MODE
     );
   } catch (error) {
-    console.error(error instanceof Error ? error.message : 'Invalid startup configuration.');
+    let message = 'Invalid startup configuration.';
+    if (error instanceof Error) {
+      message = error.message;
+    }
+    console.error(message);
     if (process.env.NEXT_RUNTIME === 'nodejs') {
       process.exit(1);
     }

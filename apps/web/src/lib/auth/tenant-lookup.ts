@@ -19,14 +19,16 @@ export async function lookupNeutralOtpAccountByEmail(email: string): Promise<{
     .limit(1);
 
   const [account] = rows;
-  return account
-    ? {
-        tenantId: coerceTenantId(account.tenantId),
-        tenantClassificationPending: account.tenantClassificationPending === true,
-      }
-    : null;
+  if (!account) {
+    return null;
+  }
+  return {
+    tenantId: coerceTenantId(account.tenantId),
+    tenantClassificationPending: account.tenantClassificationPending === true,
+  };
 }
 
 export async function lookupUserTenantByEmail(email: string): Promise<TenantId | null> {
-  return (await lookupNeutralOtpAccountByEmail(email))?.tenantId ?? null;
+  const account = await lookupNeutralOtpAccountByEmail(email);
+  return account?.tenantId ?? null;
 }

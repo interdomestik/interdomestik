@@ -5,7 +5,9 @@ import { SalesClosedError } from '@interdomestik/database/pilot-switch';
 import { getTranslations } from 'next-intl/server';
 
 export async function leadSalesClosedFailure(error: unknown) {
-  if (!(error instanceof SalesClosedError)) throw error;
+  if (!(error instanceof SalesClosedError)) {
+    throw error;
+  }
   const t = await getTranslations('pricing');
   return actionFailure(error.code, t('CLOSED'));
 }

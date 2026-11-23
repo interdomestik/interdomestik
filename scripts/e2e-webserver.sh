@@ -3,10 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 bash "${SCRIPT_DIR}/node-guard.sh"
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WEB_DIR="${ROOT_DIR}/apps/web"
-
 cd "${WEB_DIR}"
 
 PORT="${PORT:-3000}"
@@ -76,7 +74,6 @@ load_env_file() {
 
 # Standalone `node .next/standalone/.../server.js` does not auto-load .env files.
 # Ensure local dev env is available for the runtime server process.
-
 load_env_file "${ROOT_DIR}/.env"
 load_env_file "${ROOT_DIR}/.env.local"
 load_env_file "${WEB_DIR}/.env"

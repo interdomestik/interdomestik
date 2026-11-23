@@ -68,7 +68,10 @@ export async function resolveTenantClassification(params: {
       throw new Error(String(result.error));
     }
   });
-  return outcome.success ? { success: true } : outcome;
+  if (outcome.success) {
+    return { success: true };
+  }
+  return outcome;
 }
 
 export async function getUsers(

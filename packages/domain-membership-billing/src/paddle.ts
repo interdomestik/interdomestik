@@ -10,7 +10,9 @@ export type PublicPaddleInitConfig = Readonly<{
 }>;
 
 export async function getPaddleInstance(config?: PublicPaddleInitConfig) {
-  if (PADDLE_CLOSED) return null;
+  if (PADDLE_CLOSED) {
+    return null;
+  }
 
   const clientToken = config?.clientToken ?? process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
   const environment =

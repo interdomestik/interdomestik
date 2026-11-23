@@ -9,7 +9,9 @@ import * as Sentry from '@sentry/nextjs';
 export async function loadPilotSwitches(userId: string) {
   try {
     const authority = await authorizeSessionUserTenant(userId);
-    if (!authority) return null;
+    if (!authority) {
+      return null;
+    }
     const { accessTenantId } = readTenantAuthority(authority);
     return await withTenantAuthority(authority, async tx => {
       const switches = [];

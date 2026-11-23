@@ -49,7 +49,9 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
       try {
         await assertNewSalesOpen(tx, tenantId);
       } catch (error) {
-        if (error instanceof SalesClosedError) throw error;
+        if (error instanceof SalesClosedError) {
+          throw error;
+        }
         Sentry.captureException(error, { tags: { operation: 'pilot.billingTestAdmission' } });
         throw new SalesClosedError();
       }
@@ -69,7 +71,9 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
         });
     });
   } catch (error) {
-    if (!(error instanceof SalesClosedError)) throw error;
+    if (!(error instanceof SalesClosedError)) {
+      throw error;
+    }
     const t = await getTranslations('pricing');
     return { success: false, code: 'CLOSED', error: t('CLOSED') } as const;
   }

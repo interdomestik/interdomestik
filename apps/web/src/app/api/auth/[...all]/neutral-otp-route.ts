@@ -26,12 +26,16 @@ function sanitizedRequest(args: {
   tenantId: string;
 }): Request {
   const otp = recordValue(args.body)?.otp;
+  let validOtp: string | undefined;
+  if (typeof otp === 'string') {
+    validOtp = otp;
+  }
   const body =
     args.kind === 'send'
       ? { email: args.email, type: 'sign-in' }
       : {
           email: args.email,
-          otp: typeof otp === 'string' ? otp : undefined,
+          otp: validOtp,
           onboarding: { tenant: args.tenantId, mode: 'deferred' },
         };
   const headers = new Headers(args.request.headers);
@@ -98,10 +102,15 @@ export async function handleNeutralOtpPost(args: {
   if (limited) return limited;
 
   const account = await lookupNeutralOtpAccountByEmail(email);
-  const eligible = account
-    ? account.tenantId === admissionTenant && account.tenantClassificationPending === true
-    : await isPublicIntakeOpenForTenant(admissionTenant);
-  if (!eligible) return refuseNeutralOtpAccount(kind);
+  let eligible: boolean;
+  if (account) {
+    eligible = account.tenantId === admissionTenant && account.tenantClassificationPending === true;
+  } else {
+    eligible = await isPublicIntakeOpenForTenant(admissionTenant);
+  }
+  if (!eligible) {
+    return refuseNeutralOtpAccount(kind);
+  }
 
   const response = await handler(sanitizedRequest({ request, body, email, kind, tenantId }));
   if (kind === 'send' || !response.ok) return response;

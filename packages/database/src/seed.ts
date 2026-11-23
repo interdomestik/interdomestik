@@ -17,6 +17,7 @@ import { seedGolden } from './seed-golden';
 import { TENANTS } from './seed-golden/constants';
 import { seedAgentPack } from './seed-packs/agent-pack';
 import { seedKsWorkflowPack } from './seed-packs/ks-workflow-pack';
+import { buildReceipt, logReceipt, type SeedReceipt } from './seed-receipt';
 import { createSeedConfig, type SeedMode } from './seed-types';
 import { SEED_VERSION } from './seed-version';
 import { seedWorkload } from './seed-workload';
@@ -46,15 +47,6 @@ loadEnvFromRoot();
 /** Deterministic base time for seeding (ensures reproducible timestamps). */
 const E2E_SEED_BASE_TIME = new Date('2026-01-01T00:00:00Z');
 
-interface SeedReceipt {
-  version: string;
-  mode: SeedMode;
-  gitSha: string | null;
-  seedBaseTime: Date;
-  runAt: Date;
-  runBy: string;
-}
-
 /**
  * Get current git SHA (short) if available
  */
@@ -64,36 +56,6 @@ function getGitSha(): string | null {
   } catch {
     return null;
   }
-}
-
-/**
- * Build seed receipt for logging
- */
-function buildReceipt(mode: SeedMode, seedBaseTime: Date): SeedReceipt {
-  return {
-    version: SEED_VERSION,
-    mode,
-    gitSha: getGitSha(),
-    seedBaseTime,
-    runAt: new Date(),
-    runBy: process.env.CI ? 'ci' : 'local',
-  };
-}
-
-/**
- * Log seed receipt to console
- */
-function logReceipt(receipt: SeedReceipt): void {
-  console.log('\n📋 ═══════════════════════════════════════════');
-  console.log('   SEED RECEIPT');
-  console.log('═══════════════════════════════════════════════');
-  console.log(`   VERSION:    ${receipt.version}`);
-  console.log(`   MODE:       ${receipt.mode}`);
-  console.log(`   GIT SHA:    ${receipt.gitSha || 'N/A'}`);
-  console.log(`   BASE TIME:  ${receipt.seedBaseTime.toISOString()}`);
-  console.log(`   RUN AT:     ${receipt.runAt.toISOString()}`);
-  console.log(`   RUN BY:     ${receipt.runBy}`);
-  console.log('═══════════════════════════════════════════════\n');
 }
 
 /**
@@ -262,10 +224,12 @@ async function main() {
     await exitSeed(1);
   }
   assertSeedModeAllowed(mode, targetClassification);
-  if (mode === 'e2e') assertDisposableTarget(process.env);
+  if (mode === 'e2e') {
+    assertDisposableTarget(process.env);
+  }
 
   const seedBaseTime = resolveSeedBaseTime(mode);
-  const receipt = buildReceipt(mode, seedBaseTime);
+  const receipt = buildReceipt(mode, seedBaseTime, getGitSha());
   logReceipt(receipt);
 
   // Dynamic imports after env is loaded

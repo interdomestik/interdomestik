@@ -152,8 +152,13 @@ export function createAccountDraftWriteQueue(
     wasCreate: boolean
   ): void {
     if (wasCreate && (thrown || code === UNCERTAIN_CREATE_CODE)) uncertainCreate = written;
-    if (!wasCreate && !thrown && code === 'conflict') failed = 'conflict';
-    else failed = thrown ? 'error' : draftFailureState(code);
+    if (!wasCreate && !thrown && code === 'conflict') {
+      failed = 'conflict';
+    } else if (thrown) {
+      failed = 'error';
+    } else {
+      failed = draftFailureState(code);
+    }
     emitState(failed);
     if (!thrown) notify(() => options.onRefused?.(code));
   }

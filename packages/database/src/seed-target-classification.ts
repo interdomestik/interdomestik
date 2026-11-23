@@ -53,7 +53,10 @@ function production(value: string | undefined): boolean {
 
 function parse(value: string | undefined): URL | null {
   try {
-    return value ? new URL(value) : null;
+    if (value) {
+      return new URL(value);
+    }
+    return null;
   } catch {
     return null;
   }
@@ -84,18 +87,25 @@ function rejectProduction(
       .map(([, value]) => value),
   ]);
   // Scan all query values: unknown startup keys must not hide production evidence.
-  const urlMarkers = urls.flatMap(url =>
-    url ? [url.hostname, url.username, url.pathname, ...url.searchParams.values()] : []
-  );
+  const urlMarkers = urls.flatMap(url => {
+    if (!url) {
+      return [];
+    }
+    return [url.hostname, url.username, url.pathname, ...url.searchParams.values()];
+  });
   // Also catch production in malformed/multi-host authorities before the validity refusal.
   const authorities = [env.DATABASE_URL, env.DATABASE_URL_RLS].map(value =>
     value?.split('://')[1]?.split(/[/?]/)[0]?.split('@').at(-1)
   );
-  if ([...markers, ...urlMarkers, ...authorities].some(production)) refuse('production');
+  if ([...markers, ...urlMarkers, ...authorities].some(production)) {
+    refuse('production');
+  }
 }
 
 function literalHost(value: string): string {
-  if (!LITERAL_HOST.test(value)) refuse('ambiguous');
+  if (!LITERAL_HOST.test(value)) {
+    refuse('ambiguous');
+  }
   return value.toLowerCase();
 }
 
@@ -109,12 +119,16 @@ function userRef(user: string): string | undefined {
 
 function unique(values: string[]): string | undefined {
   const distinct = new Set(values);
-  if (distinct.size > 1) refuse('ambiguous');
+  if (distinct.size > 1) {
+    refuse('ambiguous');
+  }
   return values[0];
 }
 
 function databaseTarget(url: URL, env: SeedEnvironment): string {
-  if (!['postgres:', 'postgresql:'].includes(url.protocol)) refuse('invalid');
+  if (!['postgres:', 'postgresql:'].includes(url.protocol)) {
+    refuse('invalid');
+  }
   // Never decode hosts. The driver connects to the literal URL host, else PGHOST, else localhost;
   // it ignores PGHOSTADDR, which may therefore only agree with that host.
   const driverHost = url.hostname || env.PGHOST || 'localhost';
@@ -127,21 +141,34 @@ function databaseTarget(url: URL, env: SeedEnvironment): string {
     .map(value => value.toLowerCase());
   for (const [key, value] of url.searchParams) {
     // The driver sends query host keys as startup parameters, never as the connection host.
-    if (HOST_KEYS.has(key)) refuse('ambiguous');
+    if (HOST_KEYS.has(key)) {
+      refuse('ambiguous');
+    }
     // URLSearchParams already decoded the value once; `username` is only a startup parameter.
-    else if (key === 'user') users.push(value.toLowerCase());
-    else if (!TRANSPORT_QUERY_KEYS.has(key)) refuse('ambiguous');
+    else if (key === 'user') {
+      users.push(value.toLowerCase());
+    } else if (!TRANSPORT_QUERY_KEYS.has(key)) {
+      refuse('ambiguous');
+    }
   }
   // options/service/socket overrides have no safely resolved single target here.
-  if (env.PGOPTIONS || env.PGSERVICE || env.PGSERVICEFILE) refuse('ambiguous');
+  if (env.PGOPTIONS || env.PGSERVICE || env.PGSERVICEFILE) {
+    refuse('ambiguous');
+  }
   const host = unique(hosts);
   unique(users);
-  if (!host || /[,/\s]/.test(host)) refuse('ambiguous');
+  if (!host || /[,/\s]/.test(host)) {
+    refuse('ambiguous');
+  }
   // Require explicit user identity: do not silently delegate to os.userInfo().username.
-  if (!users.length) refuse('invalid');
+  if (!users.length) {
+    refuse('invalid');
+  }
   const refs = [...hosts.map(hostRef), ...users.map(userRef)].filter((ref): ref is string => !!ref);
   const ref = unique(refs);
-  if (ref && hostRef(host) !== ref && !host.endsWith('.pooler.supabase.com')) refuse('ambiguous');
+  if (ref && hostRef(host) !== ref && !host.endsWith('.pooler.supabase.com')) {
+    refuse('ambiguous');
+  }
   return ref ?? host;
 }
 
@@ -159,12 +186,18 @@ function driverTarget(url: URL, env: SeedEnvironment): SeedDriverTarget {
 // postgres 3.4.9 parseUrl takes the host after the FIRST '@' (decoded; ',' = multihost) while
 // WHATWG URL uses the last '@'. Refuse any authority the guard and the driver could read differently.
 function assertDriverAuthority(raw: string, url: URL): void {
-  if (/[#\\\s]/.test(raw)) refuse('ambiguous');
+  if (/[#\\\s]/.test(raw)) {
+    refuse('ambiguous');
+  }
   const authority = raw.slice(raw.indexOf('://') + 3).split(/[?/]/)[0];
   const parts = authority.split('@');
   const host = parts.at(-1) ?? '';
-  if (parts.length > 2 || /[,%$]/.test(host)) refuse('ambiguous');
-  if (host.replace(/:\d*$/, '').toLowerCase() !== url.hostname.toLowerCase()) refuse('ambiguous');
+  if (parts.length > 2 || /[,%$]/.test(host)) {
+    refuse('ambiguous');
+  }
+  if (host.replace(/:\d*$/, '').toLowerCase() !== url.hostname.toLowerCase()) {
+    refuse('ambiguous');
+  }
 }
 
 type ClassifiedTarget = Readonly<{
@@ -179,18 +212,30 @@ export function classifySeedTarget(env: SeedEnvironment, nodeEnv?: string): Clas
   const advisory = [parse(env.SUPABASE_URL), parse(env.NEXT_PUBLIC_SUPABASE_URL)];
   rejectProduction(env, [database, rls, ...advisory], nodeEnv);
   // db.ts keeps a defined-but-empty RLS URL, which the driver resolves to localhost defaults.
-  if (!database || (env.DATABASE_URL_RLS !== undefined && !rls)) refuse('invalid');
+  if (!database || (env.DATABASE_URL_RLS !== undefined && !rls)) {
+    refuse('invalid');
+  }
   assertDriverAuthority(env.DATABASE_URL ?? '', database);
-  if (rls) assertDriverAuthority(env.DATABASE_URL_RLS ?? '', rls);
+  if (rls) {
+    assertDriverAuthority(env.DATABASE_URL_RLS ?? '', rls);
+  }
   const target = databaseTarget(database, env);
   const targets = [target];
-  if (rls) targets.push(databaseTarget(rls, env));
+  if (rls) {
+    targets.push(databaseTarget(rls, env));
+  }
   unique(targets);
   const expected = { admin: driverTarget(database, env), rls: driverTarget(rls ?? database, env) };
-  if (LOOPBACK_HOSTS.has(target)) return { expected, classification: 'local' };
-  if (env.SEED_TARGET_CONFIRM !== `plan070:${target}`) refuse('non-local-unconfirmed');
+  if (LOOPBACK_HOSTS.has(target)) {
+    return { expected, classification: 'local' };
+  }
+  if (env.SEED_TARGET_CONFIRM !== `plan070:${target}`) {
+    refuse('non-local-unconfirmed');
+  }
   // Only the exact, confirmed CI container keeps the local fixture-password and plaintext policy.
-  if (target === CI_CONTAINER_HOST) return { expected, classification: 'confirmed-ci' };
+  if (target === CI_CONTAINER_HOST) {
+    return { expected, classification: 'confirmed-ci' };
+  }
   return { expected, classification: 'confirmed-non-local' };
 }
 
@@ -209,9 +254,13 @@ export function requireDisposableTargetClass(
   const { classification } = classifySeedTarget(env, nodeEnv);
   // The driver decodes these fields and refuses what does not decode: refuse first, by name.
   for (const raw of [env.DATABASE_URL, env.DATABASE_URL_RLS]) {
-    if (raw !== undefined && !driverDecodable(new URL(raw))) refuse('invalid');
+    if (raw !== undefined && !driverDecodable(new URL(raw))) {
+      refuse('invalid');
+    }
   }
-  if (classification !== 'local' && classification !== 'confirmed-ci') refuse('non-disposable');
+  if (classification !== 'local' && classification !== 'confirmed-ci') {
+    refuse('non-disposable');
+  }
   return classification;
 }
 
@@ -232,7 +281,9 @@ function driverDecodable(url: URL): boolean {
 export function readDisposableTargetClass(
   env: SeedEnvironment
 ): DisposableTargetClassification | null {
-  if (!env.DATABASE_URL || !env.DATABASE_URL_RLS) return null;
+  if (!env.DATABASE_URL || !env.DATABASE_URL_RLS) {
+    return null;
+  }
 
   try {
     return requireDisposableTargetClass(env);

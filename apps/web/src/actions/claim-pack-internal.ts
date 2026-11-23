@@ -74,21 +74,21 @@ const generateClaimPackSchema = z.discriminatedUnion('claimType', [
     answers: vehicleAnswersSchema,
     locale: z.string().trim().min(2).max(8).optional(),
     uploadedFileCount: z.number().int().nonnegative().max(25).optional(),
-    generatedAt: z.string().datetime().optional(),
+    generatedAt: z.string().check(z.iso.datetime()).optional(),
   }),
   z.strictObject({
     claimType: z.literal('property'),
     answers: propertyAnswersSchema,
     locale: z.string().trim().min(2).max(8).optional(),
     uploadedFileCount: z.number().int().nonnegative().max(25).optional(),
-    generatedAt: z.string().datetime().optional(),
+    generatedAt: z.string().check(z.iso.datetime()).optional(),
   }),
   z.strictObject({
     claimType: z.literal('injury'),
     answers: injuryAnswersSchema,
     locale: z.string().trim().min(2).max(8).optional(),
     uploadedFileCount: z.number().int().nonnegative().max(25).optional(),
-    generatedAt: z.string().datetime().optional(),
+    generatedAt: z.string().check(z.iso.datetime()).optional(),
   }),
 ]);
 
@@ -134,7 +134,7 @@ export async function generateClaimPackCore(params: {
       success: false,
       error: 'Validation failed',
       code: 'INVALID_PAYLOAD',
-      issues: formatFieldErrors(parsed.error.flatten().fieldErrors),
+      issues: formatFieldErrors(z.flattenError(parsed.error).fieldErrors),
     };
   }
 

@@ -134,7 +134,9 @@ async function withOpenDraftIntake<T>(
   operation: (session: Extract<FreeStartDraftSessionResult, { ok: true }>) => Promise<T>
 ) {
   const session = await dependencies.resolveSession(requestHeaders);
-  if (!session.ok) return session;
+  if (!session.ok) {
+    return session;
+  }
 
   let open = false;
   try {
@@ -176,7 +178,9 @@ export async function createFreeStartDraftCore(
 ) {
   return withOpenDraftIntake(requestHeaders, dependencies, async session => {
     const parsed = createSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, code: 'invalid' } as const;
+    if (!parsed.success) {
+      return { ok: false, code: 'invalid' } as const;
+    }
     const { clientRequestId } = parsed.data;
     return runWithContext(
       session,
@@ -238,7 +242,9 @@ export async function updateFreeStartDraftCore(
 ) {
   return withOpenDraftIntake(requestHeaders, dependencies, async session => {
     const parsed = updateSchema.safeParse(input);
-    if (!parsed.success) return { ok: false, code: 'invalid' } as const;
+    if (!parsed.success) {
+      return { ok: false, code: 'invalid' } as const;
+    }
     const { expectedVersion, id } = parsed.data;
     return runWithContext(
       session,

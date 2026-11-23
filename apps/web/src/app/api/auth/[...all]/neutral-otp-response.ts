@@ -56,7 +56,8 @@ export function accountStop(headers: Headers): Response {
 }
 
 export function refuseNeutralOtpAccount(kind: NeutralOtpKind): Response {
-  return kind === 'send'
-    ? Response.json({ success: true })
-    : Response.json({ code: 'INVALID_OTP', message: 'Invalid OTP' }, { status: 400 });
+  if (kind === 'send') {
+    return Response.json({ success: true });
+  }
+  return Response.json({ code: 'INVALID_OTP', message: 'Invalid OTP' }, { status: 400 });
 }

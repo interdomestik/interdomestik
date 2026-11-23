@@ -26,7 +26,7 @@ const submitBusinessMembershipLeadSchema = z.strictObject({
   firstName: z.string().trim().min(1, 'First name is required'),
   lastName: z.string().trim().min(1, 'Last name is required'),
   companyName: z.string().trim().min(1, 'Company name is required'),
-  email: z.string().trim().email('Enter a valid business email'),
+  email: z.string().trim().check(z.email('Enter a valid business email')),
   phone: z.string().trim().min(5, 'Phone number is required'),
   teamSize: z.string().trim().min(1, 'Team size is required'),
   notes: z.string().trim().max(2000, 'Notes are too long').optional(),
@@ -53,7 +53,10 @@ function readOptionalString(value: FormDataEntryValue | null): string | undefine
   }
 
   const trimmed = value.trim();
-  return trimmed.length > 0 ? trimmed : undefined;
+  if (trimmed.length > 0) {
+    return trimmed;
+  }
+  return undefined;
 }
 
 function serializeLeadNotes(args: {
@@ -88,7 +91,7 @@ function invalidPayload(error: z.ZodError): SubmitBusinessMembershipLeadResult {
     success: false,
     error: 'Validation failed',
     code: 'INVALID_PAYLOAD',
-    issues: formatFieldErrors(error.flatten().fieldErrors),
+    issues: formatFieldErrors(z.flattenError(error).fieldErrors),
   };
 }
 
@@ -144,7 +147,9 @@ export async function submitBusinessMembershipLeadCore(params: {
 
   const { data, idempotencyKey } = params.readInput();
   const parsed = submitBusinessMembershipLeadSchema.safeParse(data);
-  if (!parsed.success) return invalidPayload(parsed.error);
+  if (!parsed.success) {
+    return invalidPayload(parsed.error);
+  }
 
   try {
     if (classifyAnonymousLead(parsed.data.classification) !== tenantId) {

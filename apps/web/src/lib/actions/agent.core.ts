@@ -206,7 +206,8 @@ export async function importMembers(prevState: unknown, formData: FormData) {
 
   const closed = 'code' in result && result.code === 'CLOSED';
   if (!closed || result.summary.imported > 0) {
-    const locale = resolveLocaleFromReferer((await headers()).get('referer'));
+    const requestHeaders = await headers();
+    const locale = resolveLocaleFromReferer(requestHeaders.get('referer'));
     revalidatePath(`/${locale}/agent/clients`);
   }
 

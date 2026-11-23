@@ -35,10 +35,10 @@ export async function submitFreeStartIntakeCore(params: {
   data: SubmitFreeStartIntakeInput;
 }): Promise<SubmitFreeStartIntakeResult> {
   const tenantId = resolvePublicAdmissionTenant(params.requestHeaders);
-  const authority =
-    tenantId === 'tenant_ks' || tenantId === 'tenant_mk'
-      ? await authorizeOpenPublicIntake(tenantId)
-      : null;
+  let authority: Awaited<ReturnType<typeof authorizeOpenPublicIntake>> = null;
+  if (tenantId === 'tenant_ks' || tenantId === 'tenant_mk') {
+    authority = await authorizeOpenPublicIntake(tenantId);
+  }
   if (!authority) {
     const t = await getTranslations('freeStart');
     return { success: false, code: 'CLOSED', error: t('CLOSED') };

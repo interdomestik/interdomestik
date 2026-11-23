@@ -51,57 +51,37 @@ export async function importMembersCore({
         ok: false,
         error: 'Validation failed',
       });
-      continue;
-    }
+    } else {
+      const formData = new FormData();
+      formData.set('fullName', validated.data.fullName);
+      formData.set('email', validated.data.email);
+      formData.set('phone', validated.data.phone);
+      formData.set('planId', validated.data.planId);
 
-    const formData = new FormData();
-    formData.set('fullName', validated.data.fullName);
-    formData.set('email', validated.data.email);
-    formData.set('phone', validated.data.phone);
-    formData.set('planId', validated.data.planId);
-
-    const result = await registerMemberCore(agent, authority, branchId, formData, {
-      membershipMode: 'sponsored',
-    });
-
-    if (result.ok) {
-      results.push({
-        index,
-        email: validated.data.email,
-        fullName: validated.data.fullName,
-        ok: true,
+      const result = await registerMemberCore(agent, authority, branchId, formData, {
+        membershipMode: 'sponsored',
       });
-      continue;
-    }
 
-    if ('code' in result && result.code === 'CLOSED') {
-      results.push({
-        index,
-        email: validated.data.email,
-        fullName: validated.data.fullName,
-        ok: false,
-        code: result.code,
-      });
-      closed = true;
-      break;
+      const member = { index, email: validated.data.email, fullName: validated.data.fullName };
+      if (result.ok) {
+        results.push({ ...member, ok: true });
+      } else if ('code' in result && result.code === 'CLOSED') {
+        results.push({ ...member, ok: false, code: result.code });
+        closed = true;
+        break;
+      } else {
+        results.push({ ...member, ok: false, error: result.error });
+      }
     }
-
-    results.push({
-      index,
-      email: validated.data.email,
-      fullName: validated.data.fullName,
-      ok: false,
-      error: result.error,
-    });
   }
 
-  return {
-    summary: {
-      total: rows.length,
-      imported: results.filter(result => result.ok).length,
-      failed: results.filter(result => !result.ok).length,
-    },
-    results,
-    ...(closed ? { code: 'CLOSED' as const } : {}),
+  const summary = {
+    total: rows.length,
+    imported: results.filter(result => result.ok).length,
+    failed: results.filter(result => !result.ok).length,
   };
+  if (closed) {
+    return { summary, results, code: 'CLOSED' as const };
+  }
+  return { summary, results };
 }

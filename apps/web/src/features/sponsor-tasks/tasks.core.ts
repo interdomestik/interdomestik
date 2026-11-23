@@ -103,7 +103,9 @@ export async function runSponsorTaskAction(input: unknown): Promise<TaskActionRe
     });
     return result.ok ? { ok: true } : result;
   } catch (error) {
-    if (error instanceof PaddleClosedError) return { ok: false, error: 'CLOSED' };
+    if (error instanceof PaddleClosedError) {
+      return { ok: false, error: 'CLOSED' };
+    }
     return { ok: false, error: 'error' };
   }
 }
