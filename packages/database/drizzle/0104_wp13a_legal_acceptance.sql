@@ -27,6 +27,7 @@ CREATE TABLE "legal_document_versions" (
 	CONSTRAINT "legal_document_versions_review_status_check" CHECK ("legal_document_versions"."review_status" in ('legal_review_pending', 'approved'))
 );
 --> statement-breakpoint
+ALTER TABLE "legal_document_versions" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 ALTER TABLE "legal_acceptances" ADD CONSTRAINT "legal_acceptances_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "legal_acceptances" ADD CONSTRAINT "legal_acceptances_subject_fk" FOREIGN KEY ("tenant_id","subject_user_id") REFERENCES "public"."user"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "legal_acceptances" ADD CONSTRAINT "legal_acceptances_text_fk" FOREIGN KEY ("document_kind","document_version","locale","text_sha256") REFERENCES "public"."legal_document_versions"("kind","version","locale","text_sha256") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -39,6 +40,7 @@ CREATE POLICY "legal_acceptances_insert" ON "legal_acceptances" AS PERMISSIVE FO
         and "legal_acceptances"."subject_user_id" = nullif(current_setting('app.current_actor_id', true), '')
         and current_setting('app.current_actor_role', true) in ('member', 'user'));
 --> statement-breakpoint
+CREATE POLICY "legal_document_versions_read" ON "legal_document_versions" AS PERMISSIVE FOR SELECT TO public USING (true);--> statement-breakpoint
 ALTER TABLE public.legal_document_versions
   ADD CONSTRAINT legal_document_versions_pkey PRIMARY KEY (kind, version, locale);
 --> statement-breakpoint

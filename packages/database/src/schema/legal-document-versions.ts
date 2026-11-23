@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
+import { check, pgPolicy, pgTable, text, timestamp, unique } from 'drizzle-orm/pg-core';
 
 export const legalDocumentVersions = pgTable(
   'legal_document_versions',
@@ -30,5 +30,11 @@ export const legalDocumentVersions = pgTable(
       'legal_document_versions_review_status_check',
       sql`${table.reviewStatus} in ('legal_review_pending', 'approved')`
     ),
+    pgPolicy('legal_document_versions_read', {
+      as: 'permissive',
+      for: 'select',
+      to: 'public',
+      using: sql`true`,
+    }),
   ]
-);
+).enableRLS();

@@ -1,5 +1,5 @@
 {
-  "id": "fe12dc79-b573-47ab-b735-d129f8f0c9d4",
+  "id": "d4e6f759-cec4-4b45-b8e9-cc2b5e1785bd",
   "prevId": "ccc8f4ad-6910-498a-a5a2-7d7d15d9e3e0",
   "version": "7",
   "dialect": "postgresql",
@@ -20051,7 +20051,17 @@
           ]
         }
       },
-      "policies": {},
+      "policies": {
+        "legal_document_versions_read": {
+          "name": "legal_document_versions_read",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "true"
+        }
+      },
       "checkConstraints": {
         "legal_document_versions_kind_check": {
           "name": "legal_document_versions_kind_check",
@@ -20070,7 +20080,7 @@
           "value": "\"legal_document_versions\".\"review_status\" in ('legal_review_pending', 'approved')"
         }
       },
-      "isRLSEnabled": false
+      "isRLSEnabled": true
     }
   },
   "enums": {

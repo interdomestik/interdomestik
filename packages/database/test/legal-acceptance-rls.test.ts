@@ -141,6 +141,22 @@ async function provePolicy(t: TestContext, admin: postgres.Sql) {
   }
 }
 
+async function proveRegistryRead(admin: postgres.Sql, role: string) {
+  await restricted(admin, role, [], async tx => {
+    const [posture] = await tx`
+      select relrowsecurity, row_security_active(oid::regclass) as active
+      from pg_class where oid = 'public.legal_document_versions'::regclass
+    `;
+    assert.deepEqual(posture, { relrowsecurity: true, active: true }, role);
+
+    const rows = await tx`
+      select text_sha256 from public.legal_document_versions
+      where kind = ${version.kind} and version = ${version.version} and locale = ${version.locale}
+    `;
+    assert.deepEqual([...rows], [{ text_sha256: version.textSha256 }], role);
+  });
+}
+
 async function proveMutationDenials(t: TestContext, admin: postgres.Sql, role: string) {
   const privileges = await admin`
     select table_name, privilege, has_table_privilege(${role}, table_name, privilege) as granted
@@ -184,8 +200,10 @@ test('WP-13a journal policies and append-only controls under restricted roles', 
       );
       await seedSubjects(admin);
       await provePolicy(t, admin);
-      await proveMutationDenials(t, admin, runtime);
-      await proveMutationDenials(t, admin, e2e);
+      for (const role of [runtime, e2e]) {
+        await proveRegistryRead(admin, role);
+        await proveMutationDenials(t, admin, role);
+      }
       const [cleanupRole] =
         await admin`select 1 from pg_roles where rolname = 'interdomestik_seed_cleanup'`;
       if (!cleanupRole) {
