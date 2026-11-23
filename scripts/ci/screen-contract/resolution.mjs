@@ -108,8 +108,13 @@ const UNMODELLED_OPTIONS = Object.freeze([
 // one reviewed configuration and refuses every other. Each refusal names its reason and that a
 // change needs a scanner PR first, which reviews the new configuration and updates the pin here.
 const SCANNER_PR = 'a change to it needs a scanner PR first (WP-05 flip, D-1 fixed configuration)';
+// The refusal text is also kept as `refusal`: ESLint appends to a rule's error message in place,
+// and the lint reports this text unchanged (Sol r2).
 export const refuse = what => {
-  throw new ScanError(`${what}; ${SCANNER_PR}`);
+  const message = `${what}; ${SCANNER_PR}`;
+  const error = new ScanError(message);
+  error.refusal = message;
+  throw error;
 };
 const sha256 = text => createHash('sha256').update(text).digest('hex');
 // JSON with sorted object keys, arrays in order: one text per value.

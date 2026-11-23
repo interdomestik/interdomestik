@@ -242,6 +242,7 @@ export async function lintTree(root, files, { configFile } = {}) {
     // after it, so the reported refusal would no longer end with its scanner-PR sentence. The cut is
     // at ESLint's own (last) suffix, so the same words inside a request do not shorten it (Sol r1).
     if (error instanceof ScanError) {
+      if (typeof error.refusal === 'string') throw new ScanError(error.refusal);
       const message = String(error.message);
       const cut = message.lastIndexOf('\nOccurred while linting ');
       throw new ScanError(cut === -1 ? message : message.slice(0, cut));

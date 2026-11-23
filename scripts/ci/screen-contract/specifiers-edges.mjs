@@ -48,11 +48,14 @@ function moduleMember(node) {
 }
 const isModuleRequire = callee => moduleMember(callee) === 'require';
 
-function requireEdge(node) {
+// `isFreeModule` tells whether a `module` identifier is the CommonJS one (Sol r2: a local binding's
+// `module.require('…')` is an ordinary method call, no request).
+function requireEdge(node, isFreeModule = () => true) {
   const value = node.arguments.length === 1 ? literalOf(node.arguments[0]) : null;
   const { callee } = node;
   const isRequire =
-    (callee.type === 'Identifier' && callee.name === 'require') || isModuleRequire(callee);
+    (callee.type === 'Identifier' && callee.name === 'require') ||
+    (isModuleRequire(callee) && isFreeModule(callee.object));
   if (isRequire && value !== null) return { specifier: value, kind: 'require', node };
   return null;
 }
@@ -150,16 +153,33 @@ const BARE_REQUIRE_OK = (node, parent) => {
   }
 };
 
-// The identifiers that name the free CommonJS `module` (no declaration in scope; a configured global
-// has none either): a local binding named `module` (`import * as module`, a parameter) is not it
-// (Sol r1). Without a scope manager every `module` counts as free (fail closed).
+// A declaration the compiled code keeps: not ambient (`declare …`, a `declare module` or namespace
+// block, an overload signature) and not a type-only import, which the emit erases (Sol r2).
+function isAmbient(node) {
+  for (let at = node; at; at = at.parent)
+    if (at.declare === true || at.type === 'TSDeclareFunction' || at.type === 'TSModuleDeclaration')
+      return true;
+  return false;
+}
+const isRuntimeDef = def =>
+  def.type !== 'Type' &&
+  !(
+    def.type === 'ImportBinding' &&
+    (def.parent?.importKind === 'type' || def.node?.importKind === 'type')
+  ) &&
+  !isAmbient(def.node);
+
+// The identifiers that name the free CommonJS `module`: no runtime declaration in scope (a
+// configured global has none either). A local binding named `module` (`import * as module`, a
+// parameter) is not it (Sol r1); an ambient or type-only one is (Sol r2). Without a scope manager
+// every `module` counts as free (fail closed).
 function freeModuleIdentifiers(origin) {
   const manager = origin?.sourceCode?.scopeManager;
   if (!manager) return null;
   const out = new Set();
   for (const scope of manager.scopes)
     for (const ref of scope.references)
-      if (ref.identifier.name === 'module' && (!ref.resolved || ref.resolved.defs.length === 0))
+      if (ref.identifier.name === 'module' && !(ref.resolved?.defs ?? []).some(isRuntimeDef))
         out.add(ref.identifier);
   return out;
 }
@@ -216,7 +236,9 @@ export function edgesOfProgram(program, visitorKeys, origin = null) {
   const isFreeModule = node => isIdentifier(node, 'module') && (free === null || free.has(node));
   const visit = (node, parent) => {
     if (!node || typeof node.type !== 'string') return;
-    const edge = Object.hasOwn(EDGE_OF, node.type) ? EDGE_OF[node.type](node) : null;
+    let edge = null;
+    if (node.type === 'CallExpression') edge = requireEdge(node, isFreeModule);
+    else if (Object.hasOwn(EDGE_OF, node.type)) edge = EDGE_OF[node.type](node);
     if (edge) out.push(edge);
     const dynamic = dynamicRequest(node, parent, isFreeModule);
     if (dynamic)

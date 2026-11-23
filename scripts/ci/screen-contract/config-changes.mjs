@@ -22,7 +22,7 @@ export const BUILD_CONFIG_RE =
   /(?:^|\/)(?:next\.config\.[^/]*|\.babelrc(?:\.[^/]*)?|babel\.config\.[^/]*|tsconfig[^/]*\.json|jsconfig[^/]*\.json|\.swcrc)$/u;
 
 // path -> the reviewed states it may change to (sha256 of the text, or `absent`); for a wrapper's
-// lockfile record, `pnpm-lock.yaml#<name>` -> its reviewed records as `describe` prints them. Empty:
+// lockfile record, `pnpm-lock.yaml#<name>` -> its reviewed records as `stateOf` prints them. Empty:
 // today's configuration is the fixed one.
 const REVIEWED_CONFIG_CHANGES = Object.freeze({});
 
@@ -47,26 +47,28 @@ const LOCKFILE = 'pnpm-lock.yaml';
 const wrappersAt = (repo, sha) => {
   const text = showAt(repo, sha, LOCKFILE);
   if (text === null) return null;
-  let data;
   try {
-    data = parseLockfile(text, `${LOCKFILE} at ${sha}`);
+    return wrapperRecords(
+      parseLockfile(text, `${LOCKFILE} at ${sha}`),
+      Object.keys(REVIEWED_WRAPPERS)
+    );
   } catch (error) {
-    // Sol r1: a malformed lockfile is a refusal of the fixed configuration too.
+    // Sol r1, r2: a malformed lockfile or entry is a refusal of the fixed configuration too.
     if (error instanceof ScanError) refuse(error.message);
     throw error;
   }
-  return wrapperRecords(data, Object.keys(REVIEWED_WRAPPERS));
 };
-// The whole record (Sol r1): version, own patch hash, `patchedDependencies` entries, integrity.
-const describe = record =>
+// The compared state (Sol r2): the whole record as canonical JSON, so no two different records
+// share it, whatever their strings hold. It is also the state an admission names.
+const stateOf = record =>
   record === null || record === undefined
     ? 'absent'
-    : [
+    : JSON.stringify([
         record.version,
-        `patch=${record.patch ?? 'none'}`,
-        `patchedDependencies=[${record.patched.join('; ')}]`,
-        record.integrity ?? 'no-integrity',
-      ].join(' ');
+        record.patch,
+        record.patched.map(({ key, hash, path }) => [key, hash, path]),
+        record.integrity,
+      ]);
 
 // The reviewed wrappers whose lockfile record differs between base and head, each as
 // `pnpm-lock.yaml <name> (<base> -> <head>)`.
@@ -75,8 +77,8 @@ function wrapperChanges(repo, baseSha, headSha) {
   const head = wrappersAt(repo, headSha);
   const out = [];
   for (const name of Object.keys(REVIEWED_WRAPPERS)) {
-    const before = describe(base?.[name]);
-    const after = describe(head?.[name]);
+    const before = stateOf(base?.[name]);
+    const after = stateOf(head?.[name]);
     const admitted = (REVIEWED_CONFIG_CHANGES[`${LOCKFILE}#${name}`] ?? []).includes(after);
     if (before !== after && !admitted) out.push(`${LOCKFILE} ${name} (${before} -> ${after})`);
   }

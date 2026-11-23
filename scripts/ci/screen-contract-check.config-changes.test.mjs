@@ -109,13 +109,13 @@ test('config: a wrapper lockfile record change is refused; another lockfile chan
   assert.match(bumped.report.errors.join('\n'), REFUSED);
   assert.match(
     bumped.report.errors.join('\n'),
-    /pnpm-lock\.yaml next-intl \(4\.14\.5 patch=none patchedDependencies=\[\] sha512-.* -> 4\.15\.0 /u
+    /pnpm-lock\.yaml next-intl \(\["4\.14\.5",null,\[\],"sha512-[^"]+"\] -> \["4\.15\.0",/u
   );
   const added = enforced(t, { 'pnpm-lock.yaml': lock });
   assert.equal(added.code, 2);
   assert.match(
     added.report.errors.join('\n'),
-    /pnpm-lock\.yaml @sentry\/nextjs \(absent -> 10\.75\.2 /u
+    /pnpm-lock\.yaml @sentry\/nextjs \(absent -> \["10\.75\.2",/u
   );
   const other = enforced(
     t,
@@ -148,5 +148,34 @@ test('config: a wrapper patch-hash change and a malformed lockfile are refused',
   assert.match(
     malformed.report.errors.join('\n'),
     /pnpm-lock\.yaml at [0-9a-f]+ is not parseable; a change to it needs a scanner PR first/u
+  );
+});
+
+// Sol r2: records are compared as canonical JSON, so a patch path holding a delimiter cannot make two
+// different patch lists equal; a malformed patch entry is a refusal with the scanner-PR sentence.
+test('config: patch lists compare exactly; a malformed patch entry is a refusal', t => {
+  const lock = fs.readFileSync('pnpm-lock.yaml', 'utf8');
+  const withPatches = entries =>
+    lock.replace(/^patchedDependencies:\n/mu, `patchedDependencies:\n${entries}`);
+  const h = 'c'.repeat(64);
+  // Two entries whose old display strings ("key hash path; key hash path") were the same.
+  const a = withPatches(
+    `  next-intl@4.14.5:\n    hash: ${h}\n    path: 'p; next-intl@4.14.6 ${h} q'\n`
+  );
+  const b = withPatches(
+    `  next-intl@4.14.5:\n    hash: ${h}\n    path: p\n  next-intl@4.14.6:\n    hash: ${h}\n    path: q\n`
+  );
+  const changed = enforced(t, { 'pnpm-lock.yaml': b }, { 'pnpm-lock.yaml': a });
+  assert.equal(changed.code, 2);
+  assert.match(changed.report.errors.join('\n'), /pnpm-lock\.yaml next-intl \(/u);
+  const malformed = enforced(
+    t,
+    { 'pnpm-lock.yaml': withPatches('  next-intl@4.14.5:\n    hash: [1]\n') },
+    { 'pnpm-lock.yaml': lock }
+  );
+  assert.equal(malformed.code, 2);
+  assert.match(
+    malformed.report.errors.join('\n'),
+    /patchedDependencies entry next-intl@4\.14\.5 is malformed; a change to it needs a scanner PR first/u
   );
 });

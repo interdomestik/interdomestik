@@ -29,9 +29,21 @@ export function parseLockfile(text, label = 'pnpm-lock.yaml') {
   return data;
 }
 
+// A `patchedDependencies` entry as `{ key, hash, path }`: an object with a string `hash` (and a
+// string `path`, if any), or a bare hash string. Anything else is malformed (Sol r2).
+function patchEntry(key, entry) {
+  if (typeof entry === 'string') return { key, hash: entry, path: null };
+  const valid =
+    isObject(entry) &&
+    typeof entry.hash === 'string' &&
+    (entry.path === undefined || typeof entry.path === 'string');
+  if (!valid) throw new ScanError(`pnpm-lock.yaml patchedDependencies entry ${key} is malformed`);
+  return { key, hash: entry.hash, path: entry.path ?? null };
+}
+
 // name -> { version, patch, integrity, patched } for each named package as `apps/web` resolves it,
-// where `patched` lists the package's `patchedDependencies` entries (`key hash path`, sorted); a
-// package listed in no or more than one dependency section is `null`.
+// where `patched` lists the package's `patchedDependencies` entries (`{ key, hash, path }`, by key);
+// a package listed in no or more than one dependency section is `null`.
 export function wrapperRecords(data, names) {
   const web = isObject(data.importers) ? data.importers['apps/web'] : null;
   const packages = isObject(data.packages) ? data.packages : {};
@@ -55,10 +67,8 @@ export function wrapperRecords(data, names) {
       integrity: typeof integrity === 'string' ? integrity : null,
       patched: Object.entries(patchedDependencies)
         .filter(([key]) => key === name || key.startsWith(`${name}@`))
-        .map(([key, entry]) =>
-          isObject(entry) ? `${key} ${entry.hash ?? ''} ${entry.path ?? ''}` : `${key} ${entry}`
-        )
-        .sort(),
+        .map(([key, entry]) => patchEntry(key, entry))
+        .sort((a, b) => (a.key < b.key ? -1 : a.key > b.key ? 1 : 0)),
     };
   }
   return out;

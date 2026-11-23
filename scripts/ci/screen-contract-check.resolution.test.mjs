@@ -792,6 +792,22 @@ test('D-1: module[require] is an edge; module[k] and a bare module value are ref
       refused,
       body
     );
+  // Sol r2: an ambient or type-only `module` is erased by the emit, so the runtime one is read.
+  for (const body of [
+    'declare const module: { require(id: string): unknown }; export const m = module;',
+    'declare global { var module: unknown } export const m = module;',
+    "import type module from './x'; export const m = module;",
+  ])
+    await assert.rejects(
+      lint(
+        tree(t, {
+          [`${W}/components/f.ts`]: `${body}\nexport const F = () => null;\n`,
+          [`${W}/components/x.ts`]: X,
+        })
+      ),
+      refused,
+      body
+    );
   for (const body of [
     "export const load = () => import('./x').then(module => module.x);",
     "export async function load() { const module = await import('./x'); return module.x; }",
@@ -800,6 +816,8 @@ test('D-1: module[require] is an edge; module[k] and a bare module value are ref
     "import * as module from './x'; export const m = module; export const n = module['x'];",
     'export const p = () => Promise.resolve(1).then(module => Promise.resolve(module));',
     'export function q(module: Record<string, unknown>, k: string) { return module[k]; }',
+    // Sol r2: a local binding's `module.require('…')` is a method call, no request or edge.
+    "import * as module from './x'; export const r = module.require('./label?short');",
   ])
     assert.ok(
       await lint(

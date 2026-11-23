@@ -17,12 +17,12 @@ Created on 2026-11-23 for the WP-05 flip (PR-A, the flip-ready scanner). R-19 as
 
 ## Invariants
 
-- **The fixed configuration (owner, decision B, 2026-11-23).** Module resolution (`resolution.mjs`, `specifiers.mjs`) models one build configuration, today's, and refuses every other with exit 2 and the sentence "a change to it needs a scanner PR first (WP-05 flip, D-1 fixed configuration)". It pins:
-  - each tsconfig's `@/*` mapping and its `{ baseUrl, paths }` value, on every tree;
+- **The fixed configuration (owner, decision B, 2026-11-23).** Module resolution (`resolution.mjs`, `specifiers.mjs`) models one build configuration, today's, as far as the inputs listed here go; a listed input with another value is refused with exit 2 and the sentence "a change to it needs a scanner PR first (WP-05 flip, D-1 fixed configuration)". Inputs outside this list are named residuals (below). It pins:
+  - the two caller tsconfigs, `apps/web/tsconfig.json` (for `apps/web/**`) and `tsconfig.json` (for `packages/**`): no `extends`, `moduleResolution` `bundler`, none of the options the resolver does not model, the `@/*` mapping and the `{ baseUrl, paths }` value, on every tree;
   - **when `apps/web/next.config.mjs` exists** (an absent one is Next's defaults, which load no wrapper): that file and its helper by sha256, and the four Next wrappers' lockfile records (version, own patch, `patchedDependencies`, integrity), read with a YAML parser (`lockfile.mjs`). Whatever the Next config's state, a change of those records is refused under enforcement by the configuration-change refusal below;
   - no query, fragment, backslash or `node_modules` segment in a relative or `@/` request, except the two reviewed `?raw` edges;
-  - no request form other than relative, `@/`, workspace, a bare package name or a `node:` built-in;
-  - no non-literal module request (`import()`, `require`, `module.require` or `module[…]`, a bare value of the free CommonJS `module`, `createRequire`, `import.meta.<x>`, `new X(…, import.meta.url)`), except eleven reviewed occurrences in six files, by file and exact text; a local binding named `module` is not the CommonJS one;
+  - no request form other than relative, `@/`, workspace, a bare package name or one that starts with `node:` (accepted by its prefix);
+  - no non-literal module request (`import()`, `require`, `module.require` or `module[…]`, a bare value of the free CommonJS `module`, `createRequire`, `import.meta.<x>` other than a standalone `import.meta.url`, `new X(…, import.meta.url)`), except the eleven reviewed file-and-text entries in six files (twelve occurrences: one entry covers two identical calls in `messages.ts`); a runtime local binding named `module` is not the CommonJS one, but an ambient (`declare`) or type-only one is;
   - no `browser` field in a tracked `package.json` outside `node_modules`, `.git`, `.next` and `.turbo` directories (residual 7).
 - **The configuration-change refusal (owner, narrowed bar, 2026-11-23; `config-changes.mjs`).** Under `--enforcing`, a base→head change of any of these is a scanner error, unless `REVIEWED_CONFIG_CHANGES` admits the resulting state. Only a scanner PR can add an admission, and the list is empty today.
   - Files named `next.config.*`, `.babelrc`, `.babelrc.*`, `babel.config.*`, `tsconfig*.json`, `jsconfig*.json` or `.swcrc`, at any level and under any new name of these kinds. An addition, a removal and an edit all count.
@@ -42,7 +42,7 @@ These are outside the scanner's listed inputs (Astra round 6; the owner's bar, 2
    - Noticed: any `tsconfig*.json` change is refused under enforcement. The admitting scanner PR reviews whether it changes a resolution.
 4. **`jsxImportSource`.** A relative JSX runtime source creates a request that no source line shows.
    - Noticed: it is a tsconfig change (refused under enforcement), or a pragma comment in a source file, which review sees in the diff.
-5. **Reviewed dynamic requests.** The eleven reviewed occurrences are pinned by their text, in six files:
+5. **Reviewed dynamic requests.** The eleven reviewed entries pin each occurrence's text and file, in six files:
    - `apps/web/src/app/[locale]/_core.entry.tsx`;
    - `apps/web/src/i18n/messages.ts`;
    - `apps/web/src/features/help-now/sw-test-utils.ts`;
@@ -50,8 +50,11 @@ These are outside the scanner's listed inputs (Astra round 6; the owner's bar, 2
    - `packages/database/src/migration-corpus-root.ts`;
    - `packages/domain-communications/src/messages/public-reply-concurrency.runtime-fixture.ts`.
 
-   The values their text uses (the template variables, the service-worker module constants that name the imported paths) and later uses of what they bind (`requireFromHere`) are not followed.
-   - Noticed: by review of any diff to those six files, the only files where the exception applies.
+   What the pinned text does not show is not followed:
+   - the values it uses, in the same file or imported into it: the template variables, `routing.defaultLocale` from `apps/web/src/i18n/routing.ts`, the service-worker module constants, the manifest that `migration-callback-source-verifier.ts` imports from `migration-callback-plan-manifest.ts`;
+   - later uses of what they bind (`requireFromHere`).
+
+   Noticed: by review of any diff to those six files (the only files where the exception applies) or to a module they import those values from (each file's import lines name them).
 
 6. **The wrappers' own dependencies.** The wrapper's record is pinned, but a dependency of a wrapper can change version under it.
    - Noticed: by review of the lockfile diff, in the dependency PR that changes it.
