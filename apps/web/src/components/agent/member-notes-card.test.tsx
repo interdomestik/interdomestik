@@ -222,9 +222,7 @@ describe('MemberNotesCard', () => {
   });
 
   it('is one instance per member: the card is keyed by the member id', () => {
-    // The key is the guarantee: a late answer for the previous member can reach only that
-    // member's unmounted instance, even in the window between a commit and its effects, which
-    // jsdom's act() cannot open (it flushes effects before any answer settles).
+    // The key is the guarantee: jsdom's act() cannot open the commit-to-effect window.
     const element = MemberNotesCard({ memberId: 'm1', memberName: 'Member One' });
     expect(element.key).toBe('m1');
   });
