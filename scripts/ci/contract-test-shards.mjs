@@ -226,17 +226,18 @@ async function waitForShards(running, onResult = outcome => outcome) {
 
 // Runs every shard concurrently without fail-fast. Each shard is still serialized internally and
 // the run fails unless every shard exits 0. `select` (the pre-push selector) keeps a subset of
-// each shard's files; a shard left empty is not started, so `node --test` never auto-discovers.
+// each shard's files; with it, a shard left empty is not started, so `node --test` never
+// auto-discovers. Without it (the hosted command) every shard runs exactly as planned.
 export async function runParallel({
   root = REPO_ROOT,
   write = text => process.stdout.write(text),
-  select = files => files,
+  select,
 } = {}) {
   const { shards, skipArgs } = contractTestPlan(root);
   const grouped = process.env.GITHUB_ACTIONS === 'true';
   const running = Object.entries(shards)
-    .map(([name, files]) => [name, select(files)])
-    .filter(([, files]) => files.length > 0)
+    .map(([name, files]) => [name, select ? select(files) : files])
+    .filter(([, files]) => !select || files.length > 0)
     .map(([name, files]) => runShard(root, name, files, { capture: true, skipArgs }));
   const { outcomes, interrupted } = await waitForShards(running, outcome => {
     write(grouped ? `::group::contract shard ${outcome.name}\n` : `--- shard ${outcome.name}\n`);
