@@ -1,4 +1,3 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 import { randomUUID } from 'node:crypto';
 import {
   dbAdmin,
@@ -219,10 +218,6 @@ test(
         'RECORDS_SQL_PROOF: strict role; 2 tenant-safe rows; 3 unread -> one aggregate/latest claim; timestamp tie, read and staff exclusions passed'
       );
     } finally {
-      await cleanupClaimNotificationRows(dbAdmin, { claimIds: [oldClaim, newClaim, foreignClaim] });
-      await cleanupClaimNotificationRows(dbAdmin, {
-        userIds: [memberId, emptyId, foreignId, staffId],
-      });
       await dbAdmin
         .delete(claimMessages)
         .where(inArray(claimMessages.claimId, [oldClaim, newClaim, foreignClaim]));

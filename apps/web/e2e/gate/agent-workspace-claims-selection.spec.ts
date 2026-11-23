@@ -1,15 +1,6 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
-import {
-  E2E_USERS,
-  agentClients,
-  claimMessages,
-  claims,
-  db,
-  dbAdmin,
-  user,
-} from '@interdomestik/database';
+import { E2E_USERS, agentClients, claimMessages, claims, db, user } from '@interdomestik/database';
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
-import { and, desc, eq, inArray, like } from 'drizzle-orm';
+import { and, desc, eq, like } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
@@ -89,7 +80,6 @@ async function cleanupFallbackClaim(claimId: string, wasCreatedFallback: boolean
   if (!wasCreatedFallback) return;
 
   try {
-    await cleanupClaimNotificationRows(dbAdmin, { claimIds: [claimId] });
     await db.delete(claims).where(eq(claims.id, claimId));
   } catch (error) {
     console.warn(
@@ -103,22 +93,21 @@ const MESSAGE_PERSISTENCE_PREFIX = 'E2E persistence agent-workspace-claims-selec
 
 async function cleanupPersistenceMessages(claimId: string, content?: string): Promise<void> {
   try {
-    const predicate = and(
-      eq(claimMessages.claimId, claimId),
-      content
-        ? eq(claimMessages.content, content)
-        : like(claimMessages.content, `${MESSAGE_PERSISTENCE_PREFIX}%`)
-    );
-    await dbAdmin.transaction(async tx => {
-      const messages = await tx
-        .select({ id: claimMessages.id })
-        .from(claimMessages)
-        .where(predicate);
-      const messageIds = messages.map(({ id }) => id);
-      if (messageIds.length === 0) return;
-      await cleanupClaimNotificationRows(tx, { messageIds });
-      await tx.delete(claimMessages).where(inArray(claimMessages.id, messageIds));
-    });
+    if (content) {
+      await db
+        .delete(claimMessages)
+        .where(and(eq(claimMessages.claimId, claimId), eq(claimMessages.content, content)));
+      return;
+    }
+
+    await db
+      .delete(claimMessages)
+      .where(
+        and(
+          eq(claimMessages.claimId, claimId),
+          like(claimMessages.content, `${MESSAGE_PERSISTENCE_PREFIX}%`)
+        )
+      );
   } catch (error) {
     console.warn(
       `[agent-workspace-e2e] Failed to cleanup persistence messages for claim ${claimId}:`,

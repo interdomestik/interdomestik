@@ -9,8 +9,9 @@ import { assertSeedTargetAllowed, importSeedDatabase } from '../seed-target-guar
  * - This preserves the historical non-transactional seed flow. Each extracted
  *   step uses the same shared db client and awaits sequentially in this file.
  */
-import { sql } from 'drizzle-orm';
+import { inArray, sql } from 'drizzle-orm';
 import type { SeedConfig } from '../seed-types';
+import { cleanupByPrefixes } from '../seed-utils/cleanup';
 import { seedAgentAssignments } from './agent-assignments';
 import { seedAgentSettings } from './agent-settings';
 import { seedClaims } from './claims';
@@ -53,12 +54,11 @@ export interface SeedGoldenModules {
 }
 
 export const seedGoldenModules: SeedGoldenModules = {
-  cleanup: async () => {
-    await importSeedDatabase();
-    const { cleanupSeedPrefixes, cleanupSeedClaimNumbers } =
-      await import('../seed-utils/run-cleanup');
-    await cleanupSeedPrefixes(['golden_', 'pack_ks_', 'member_']);
-    await cleanupSeedClaimNumbers(['CLM-MK-2026-000001', 'CLM-XK-2026-800001']);
+  cleanup: async ({ db, schema }) => {
+    await cleanupByPrefixes(db, schema, ['golden_', 'pack_ks_', 'member_']);
+    await db
+      .delete(schema.claims)
+      .where(inArray(schema.claims.claimNumber, ['CLM-MK-2026-000001', 'CLM-XK-2026-800001']));
   },
   tenants: seedTenants,
   branches: seedBranches,

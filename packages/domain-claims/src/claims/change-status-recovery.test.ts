@@ -87,6 +87,7 @@ describe('claim recovery status prerequisites', () => {
         'insert:service_usage',
         'insert:audit_log',
         'insert:notifications',
+        'insert:notification_preview_restrictions',
         'read:user_notification_preferences',
         'read:push_subscriptions',
         'update:claim_response_requests',

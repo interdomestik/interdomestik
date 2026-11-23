@@ -5,7 +5,7 @@ export {
   refundNotificationAttempt,
   writeNotificationTransport,
 } from './store';
-export { renderDelivery, renderDeliveryPush } from './render';
+export { parseDeliveryFacts, renderDelivery, renderDeliveryPush } from './render';
 export { chooseTransport, deliveryFailure } from './transport';
 export type {
   AttemptResult,

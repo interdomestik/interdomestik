@@ -1,7 +1,12 @@
-import { claimResponseRequests, supportHandoffs } from '@interdomestik/database';
+import {
+  claimResponseRequests,
+  supportHandoffFirstResponses,
+  supportHandoffs,
+} from '@interdomestik/database';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { and, eq } from 'drizzle-orm';
 import { z } from 'zod';
 
 import { answeredOnTime } from './service-level';
@@ -57,9 +62,16 @@ export async function getServiceLevelReport(
     const handoffs = await tx
       .select({
         requestedAt: supportHandoffs.createdAt,
-        answeredAt: supportHandoffs.firstPublicResponseAt,
+        answeredAt: supportHandoffFirstResponses.firstPublicResponseAt,
       })
       .from(supportHandoffs)
+      .leftJoin(
+        supportHandoffFirstResponses,
+        and(
+          eq(supportHandoffFirstResponses.tenantId, supportHandoffs.tenantId),
+          eq(supportHandoffFirstResponses.handoffId, supportHandoffs.id)
+        )
+      )
       .where(withTenant(actor.tenantId, supportHandoffs.tenantId));
     return {
       ok: true,

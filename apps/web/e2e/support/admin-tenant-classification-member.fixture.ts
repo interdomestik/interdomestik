@@ -1,4 +1,3 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 import { db, dbAdmin, eq, user } from '@interdomestik/database';
 import type { TestInfo } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
@@ -37,6 +36,5 @@ export async function preparePendingTenantClassificationMember(params: {
 }
 
 export async function resetPendingTenantClassificationMember(memberId: string) {
-  await cleanupClaimNotificationRows(dbAdmin, { userIds: [memberId] });
   await db.delete(user).where(eq(user.id, memberId));
 }

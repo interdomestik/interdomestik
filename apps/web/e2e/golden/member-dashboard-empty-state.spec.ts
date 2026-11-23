@@ -1,6 +1,5 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 // prettier-ignore
-import { account, db, dbAdmin, E2E_PASSWORD, eq, session as authSession, user } from '@interdomestik/database';
+import { account, db, E2E_PASSWORD, eq, session as authSession, user } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
@@ -48,7 +47,6 @@ test.describe('Empty portal', () => {
       if (userId) {
         await db.delete(authSession).where(eq(authSession.userId, userId));
         await db.delete(account).where(eq(account.userId, userId));
-        await cleanupClaimNotificationRows(dbAdmin, { userIds: [userId] });
         await db.delete(user).where(eq(user.id, userId));
       }
     }

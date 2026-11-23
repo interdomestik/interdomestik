@@ -1,6 +1,5 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 // prettier-ignore
-import { account, db, dbAdmin, E2E_PASSWORD, eq, session as authSession, subscriptions, user } from '@interdomestik/database';
+import { account, db, E2E_PASSWORD, eq, session as authSession, subscriptions, user } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
 import type { Page, TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
@@ -109,7 +108,6 @@ test.describe('Unified Member Portal', () => {
       if (uid) {
         await db.delete(authSession).where(eq(authSession.userId, uid));
         await db.delete(account).where(eq(account.userId, uid));
-        await cleanupClaimNotificationRows(dbAdmin, { userIds: [uid] });
         await db.delete(user).where(eq(user.id, uid));
       }
     }

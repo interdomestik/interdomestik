@@ -1,4 +1,3 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 import {
   and,
   auditLog,
@@ -9,7 +8,6 @@ import {
   claimStageHistory,
   createAdminClient,
   db,
-  dbAdmin,
   eq,
   inArray,
 } from '@interdomestik/database';
@@ -41,7 +39,7 @@ export async function cleanupInformationRequest(claimId: string, tenantId: strin
       if (paths.length) await createAdminClient().storage.from(bucket).remove(paths);
     }
   }
-  await dbAdmin.transaction(async tx => {
+  await db.transaction(async tx => {
     if (requests.length) {
       await tx.delete(auditLog).where(
         and(
@@ -75,7 +73,6 @@ export async function cleanupInformationRequest(claimId: string, tenantId: strin
     await tx
       .delete(claimStageHistory)
       .where(and(eq(claimStageHistory.tenantId, tenantId), eq(claimStageHistory.claimId, claimId)));
-    await cleanupClaimNotificationRows(tx, { tenantId, claimIds: [claimId] });
     await tx.delete(claims).where(and(eq(claims.tenantId, tenantId), eq(claims.id, claimId)));
   });
   expect(

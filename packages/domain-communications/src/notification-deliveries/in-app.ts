@@ -1,5 +1,5 @@
 import type { TenantTransaction } from '@interdomestik/database';
-import { notifications } from '@interdomestik/database/schema';
+import { notificationPreviewRestrictions, notifications } from '@interdomestik/database/schema';
 import { INSERT_BATCH_ROWS } from './enqueue';
 
 type InboxNotification = Pick<
@@ -12,9 +12,15 @@ export async function enqueueClaimInboxNotification(
   notification: InboxNotification
 ): Promise<void> {
   // db-access-guard: tenant-scoped -- reason: tenant from the command's transaction and recipient from a scoped read
-  await tx.insert(notifications).values(notification).onConflictDoNothing({
-    target: notifications.id,
-  });
+  await insertInboxBatches(tx, [notification], 0);
+}
+
+function inboxRow({ previewRestricted: _flag, ...row }: InboxNotification) {
+  return row;
+}
+
+function flagRow(row: InboxNotification) {
+  return { tenantId: row.tenantId, notificationId: row.id, restricted: row.previewRestricted };
 }
 
 /**
@@ -37,6 +43,20 @@ async function insertInboxBatches(
   const batch = rows.slice(from, from + INSERT_BATCH_ROWS);
   if (batch.length === 0) return;
   // db-access-guard: tenant-scoped -- reason: tenant from the command's transaction and recipients from a scoped read
-  await tx.insert(notifications).values(batch).onConflictDoNothing({ target: notifications.id });
+  const inserted = await tx
+    .insert(notifications)
+    .values(batch.map(inboxRow))
+    .onConflictDoNothing({ target: notifications.id })
+    .returning({ id: notifications.id });
+  // A conflicting id is an earlier row (possibly a flagless legacy row): it keeps its own state.
+  const created = new Set(inserted.map(row => row.id));
+  const flags = batch.filter(row => created.has(row.id)).map(flagRow);
+  if (flags.length > 0) {
+    // db-access-guard: tenant-scoped -- reason: flags only for the inbox rows this batch created
+    await tx
+      .insert(notificationPreviewRestrictions)
+      .values(flags)
+      .onConflictDoNothing({ target: notificationPreviewRestrictions.notificationId });
+  }
   await insertInboxBatches(tx, rows, from + INSERT_BATCH_ROWS);
 }

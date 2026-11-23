@@ -37,6 +37,26 @@
       "migration": "0099_acq3b_sponsor_seats"
     },
     {
+      "key": "fk [\"public\",\"claim_response_requests\",[\"answered_by\"],\"public\",\"user\",[\"id\"]]",
+      "value": "delete=set null update=no action match=s",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"claim_response_requests\",[\"tenant_id\",\"claim_id\",\"answer_message_id\"],\"public\",\"claim_messages\",[\"tenant_id\",\"claim_id\",\"id\"]]",
+      "value": "delete=cascade update=no action match=s",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"claim_response_requests\",[\"tenant_id\",\"claim_id\",\"source_message_id\"],\"public\",\"claim_messages\",[\"tenant_id\",\"claim_id\",\"id\"]]",
+      "value": "delete=cascade update=no action match=s",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"claim_response_requests\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=cascade update=no action match=s",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
       "key": "fk [\"public\",\"crm_deals\",[\"membership_plan_id\"],\"public\",\"membership_plans\",[\"id\"]]",
       "value": "delete=no action update=no action match=s",
       "migration": "0001_long_shaman"
@@ -45,6 +65,36 @@
       "key": "fk [\"public\",\"crm_leads\",[\"branch_id\"],\"public\",\"branches\",[\"id\"]]",
       "value": "delete=no action update=no action match=s",
       "migration": "0058_redundant_tinkerer"
+    },
+    {
+      "key": "fk [\"public\",\"notification_deliveries\",[\"tenant_id\",\"claim_id\",\"subject_message_id\"],\"public\",\"claim_messages\",[\"tenant_id\",\"claim_id\",\"id\"]]",
+      "value": "delete=cascade update=no action match=s",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"notification_deliveries\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=cascade update=no action match=s",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"notification_deliveries\",[\"tenant_id\",\"recipient_user_id\"],\"public\",\"user\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=cascade update=no action match=s",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"notification_preview_restrictions\",[\"tenant_id\",\"notification_id\"],\"public\",\"notifications\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=cascade update=no action match=s",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"support_handoff_first_responses\",[\"tenant_id\",\"handoff_id\"],\"public\",\"support_handoffs\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=cascade update=no action match=s",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"user_locale_preferences\",[\"tenant_id\",\"user_id\"],\"public\",\"user\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=cascade update=no action match=s",
+      "migration": "0102_wp11_notification_deliveries"
     },
     {
       "key": "function [\"public\",\"billing_invoices_scope_guard_fn()\"]",
@@ -137,6 +187,11 @@
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"claim\",\"claim_tenant_id_id_uq\"]",
+      "value": "unique btree (tenant_id, id)",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
       "key": "index [\"public\",\"claim\",\"idx_claim_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
@@ -145,6 +200,11 @@
       "key": "index [\"public\",\"claim_documents\",\"idx_claim_documents_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"claim_messages\",\"claim_messages_tenant_claim_id_uq\"]",
+      "value": "unique btree (tenant_id, claim_id, id)",
+      "migration": "0102_wp11_notification_deliveries"
     },
     {
       "key": "index [\"public\",\"claim_messages\",\"idx_claim_messages_tenant_id\"]",
@@ -207,6 +267,11 @@
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"notifications\",\"notifications_tenant_id_id_uq\"]",
+      "value": "unique btree (tenant_id, id)",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
       "key": "index [\"public\",\"nps_survey_responses\",\"idx_nps_survey_responses_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
@@ -255,6 +320,11 @@
       "key": "index [\"public\",\"subscriptions\",\"idx_subscriptions_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"support_handoffs\",\"support_handoffs_tenant_id_id_uq\"]",
+      "value": "unique btree (tenant_id, id)",
+      "migration": "0102_wp11_notification_deliveries"
     },
     {
       "key": "index [\"public\",\"user\",\"idx_user_branch_id\"]",
@@ -1287,6 +1357,11 @@
       "migration": "0102_wp11_notification_deliveries"
     },
     {
+      "key": "rls-force [\"public\",\"notification_preview_restrictions\"]",
+      "value": "forced",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
       "key": "rls-force [\"public\",\"sponsor_handover_cancel_attempts\"]",
       "value": "forced",
       "migration": "0099_acq3b_sponsor_seats"
@@ -1330,6 +1405,16 @@
       "key": "rls-force [\"public\",\"sponsors\"]",
       "value": "forced",
       "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "rls-force [\"public\",\"support_handoff_first_responses\"]",
+      "value": "forced",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
+      "key": "rls-force [\"public\",\"user_locale_preferences\"]",
+      "value": "forced",
+      "migration": "0102_wp11_notification_deliveries"
     },
     {
       "key": "trigger [\"public\",\"billing_invoices\",\"billing_invoices_scope_guard_trg\"]",

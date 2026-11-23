@@ -1,5 +1,5 @@
 {
-  "id": "faaf6dce-e434-4757-9a7a-97685d8f356a",
+  "id": "3129da39-09cf-4275-b1d3-0fa905f48b2f",
   "prevId": "9232b7a7-ac50-4b3a-8703-72c843e2a870",
   "version": "7",
   "dialect": "postgresql",
@@ -1236,12 +1236,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "preferred_locale": {
-          "name": "preferred_locale",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "residence_country": {
           "name": "residence_country",
           "type": "text",
@@ -1441,10 +1435,6 @@
       },
       "policies": {},
       "checkConstraints": {
-        "user_preferred_locale_check": {
-          "name": "user_preferred_locale_check",
-          "value": "\"user\".\"preferred_locale\" in ('sq', 'en', 'sr', 'mk', 'de')"
-        },
         "user_residence_country_check": {
           "name": "user_residence_country_check",
           "value": "\"user\".\"residence_country\" IS NULL OR \"user\".\"residence_country\" ~ '^[A-Z]{2}$'"
@@ -4445,35 +4435,7 @@
           "default": "now()"
         }
       },
-      "indexes": {
-        "claim_messages_tenant_claim_id_uq": {
-          "name": "claim_messages_tenant_claim_id_uq",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "claim_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
         "claim_messages_tenant_id_tenants_id_fk": {
           "name": "claim_messages_tenant_id_tenants_id_fk",
@@ -5402,27 +5364,6 @@
             }
           ],
           "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "claim_tenant_id_id_uq": {
-          "name": "claim_tenant_id_id_uq",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -10102,12 +10043,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "first_public_response_at": {
-          "name": "first_public_response_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "public_response_by_id": {
           "name": "public_response_by_id",
           "type": "text",
@@ -14547,12 +14482,6 @@
         "action_url": {
           "name": "action_url",
           "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "preview_restricted": {
-          "name": "preview_restricted",
-          "type": "boolean",
           "primaryKey": false,
           "notNull": false
         },
@@ -19261,55 +19190,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "notification_deliveries_recipient_fk": {
-          "name": "notification_deliveries_recipient_fk",
-          "tableFrom": "notification_deliveries",
-          "tableTo": "user",
-          "columnsFrom": [
-            "tenant_id",
-            "recipient_user_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "notification_deliveries_claim_fk": {
-          "name": "notification_deliveries_claim_fk",
-          "tableFrom": "notification_deliveries",
-          "tableTo": "claim",
-          "columnsFrom": [
-            "tenant_id",
-            "claim_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "notification_deliveries_message_fk": {
-          "name": "notification_deliveries_message_fk",
-          "tableFrom": "notification_deliveries",
-          "tableTo": "claim_messages",
-          "columnsFrom": [
-            "tenant_id",
-            "claim_id",
-            "subject_message_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "claim_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
@@ -19450,70 +19331,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "claim_response_requests_answered_by_user_id_fk": {
-          "name": "claim_response_requests_answered_by_user_id_fk",
-          "tableFrom": "claim_response_requests",
-          "tableTo": "user",
-          "columnsFrom": [
-            "answered_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "claim_response_requests_claim_fk": {
-          "name": "claim_response_requests_claim_fk",
-          "tableFrom": "claim_response_requests",
-          "tableTo": "claim",
-          "columnsFrom": [
-            "tenant_id",
-            "claim_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "claim_response_requests_source_fk": {
-          "name": "claim_response_requests_source_fk",
-          "tableFrom": "claim_response_requests",
-          "tableTo": "claim_messages",
-          "columnsFrom": [
-            "tenant_id",
-            "claim_id",
-            "source_message_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "claim_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "claim_response_requests_answer_fk": {
-          "name": "claim_response_requests_answer_fk",
-          "tableFrom": "claim_response_requests",
-          "tableTo": "claim_messages",
-          "columnsFrom": [
-            "tenant_id",
-            "claim_id",
-            "answer_message_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "claim_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
@@ -19538,6 +19356,210 @@
           "value": "(\"claim_response_requests\".\"kind\" = 'member_message') = (\"claim_response_requests\".\"source_message_id\" is not null)"
         }
       },
+      "isRLSEnabled": true
+    },
+    "public.user_locale_preferences": {
+      "name": "user_locale_preferences",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "locale": {
+          "name": "locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "user_locale_preferences_user_uq": {
+          "name": "user_locale_preferences_user_uq",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "user_locale_preferences_tenant_policy": {
+          "name": "user_locale_preferences_tenant_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"user_locale_preferences\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"user_locale_preferences\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {
+        "user_locale_preferences_locale_check": {
+          "name": "user_locale_preferences_locale_check",
+          "value": "\"user_locale_preferences\".\"locale\" in ('sq', 'en', 'sr', 'mk', 'de')"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.support_handoff_first_responses": {
+      "name": "support_handoff_first_responses",
+      "schema": "",
+      "columns": {
+        "handoff_id": {
+          "name": "handoff_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_public_response_at": {
+          "name": "first_public_response_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "support_handoff_first_responses_handoff_uq": {
+          "name": "support_handoff_first_responses_handoff_uq",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "handoff_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "support_handoff_first_responses_tenant_policy": {
+          "name": "support_handoff_first_responses_tenant_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"support_handoff_first_responses\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"support_handoff_first_responses\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.notification_preview_restrictions": {
+      "name": "notification_preview_restrictions",
+      "schema": "",
+      "columns": {
+        "notification_id": {
+          "name": "notification_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "restricted": {
+          "name": "restricted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "notification_preview_restrictions_notification_uq": {
+          "name": "notification_preview_restrictions_notification_uq",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "notification_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "notification_preview_restrictions_tenant_policy": {
+          "name": "notification_preview_restrictions_tenant_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"notification_preview_restrictions\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"notification_preview_restrictions\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {},
       "isRLSEnabled": true
     }
   },

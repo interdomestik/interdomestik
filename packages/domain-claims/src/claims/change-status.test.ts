@@ -121,6 +121,13 @@ describe('changeClaimStatus', () => {
     expect(result.writes.notifications).toEqual([
       expect.objectContaining({ userId: owner.id, type: 'claim_status_changed' }),
     ]);
+    expect(result.writes.notification_preview_restrictions).toEqual([
+      {
+        tenantId: 'tenant-1',
+        notificationId: result.writes.notifications?.[0]?.id,
+        restricted: false,
+      },
+    ]);
     expect(result.writes.notification_deliveries).toEqual([
       expect.objectContaining({
         recipientUserId: owner.id,

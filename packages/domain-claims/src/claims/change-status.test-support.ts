@@ -87,14 +87,15 @@ export function statusTransaction(rows: Store) {
     },
   });
   const insert = (table: Table) => ({
-    values: (value: Data) => {
+    values: (value: Data | Data[]) => {
       const name = getTableName(table);
       operations.push(`insert:${name}`);
       if (name === failingInsert) throw new Error(`failed insert into ${name}`);
+      const rows = Array.isArray(value) ? value : [value];
       pending[name] ??= [];
-      pending[name].push(value);
+      pending[name].push(...rows);
       const chain = {
-        returning: () => Promise.resolve([{ id: value.id }]),
+        returning: () => Promise.resolve(rows.map(row => ({ id: row.id }))),
         onConflictDoNothing: () => chain,
       };
       return chain;

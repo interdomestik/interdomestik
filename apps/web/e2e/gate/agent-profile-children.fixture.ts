@@ -1,4 +1,3 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 import {
   agentClients,
   dbAdmin,
@@ -280,7 +279,6 @@ export async function cleanupProfileChildren(plan: ProfileChildFixture): Promise
         .delete(subscriptions)
         .where(inArray(subscriptions.id, [plan.subscription.id, plan.subscription.foreignId])),
     () => dbAdmin.delete(agentClients).where(inArray(agentClients.id, [plan.emptyAssignmentId])),
-    () => cleanupClaimNotificationRows(dbAdmin, { userIds }),
     () => dbAdmin.delete(user).where(inArray(user.id, userIds)),
   ];
   let failure: unknown;

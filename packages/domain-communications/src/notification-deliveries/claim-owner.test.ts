@@ -1,5 +1,9 @@
 import type { TenantTransaction } from '@interdomestik/database';
-import { notificationDeliveries, notifications } from '@interdomestik/database/schema';
+import {
+  notificationDeliveries,
+  notificationPreviewRestrictions,
+  notifications,
+} from '@interdomestik/database/schema';
 import { describe, expect, it, vi } from 'vitest';
 import { CLAIM_MAIL_COPY } from '../claim-mail';
 import {
@@ -29,11 +33,23 @@ function setup(results: object[][] = []) {
       },
     }),
   }));
-  const values = vi.fn().mockImplementation(row => ({
-    onConflictDoNothing: () => ({ returning: () => Promise.resolve([{ id: row.id }]) }),
+  const values = vi.fn().mockImplementation((rows: { id?: string } | Array<{ id?: string }>) => ({
+    onConflictDoNothing: () => ({
+      returning: () =>
+        Promise.resolve((Array.isArray(rows) ? rows : [rows]).map(row => ({ id: row.id }))),
+    }),
   }));
-  const insert = vi.fn(() => ({ values }));
+  const insert = vi.fn((_table: unknown) => ({ values }));
   return { tx: { select, insert } as unknown as TenantTransaction, insert, values, lock };
+}
+
+/** The rows written to `table`, in statement order (a statement may write one row or a batch). */
+function rowsFor(h: ReturnType<typeof setup>, table: unknown): unknown[] {
+  return h.insert.mock.calls.flatMap(([target], index) => {
+    if (target !== table) return [];
+    const written: unknown = h.values.mock.calls[index][0];
+    return Array.isArray(written) ? written : [written];
+  });
 }
 
 describe('claim owner notification producers', () => {
@@ -52,17 +68,20 @@ describe('claim owner notification producers', () => {
       recipient: { ...recipient, emailVerified: false },
     });
     expect(ids).toEqual([]);
-    expect(h.insert).toHaveBeenCalledExactlyOnceWith(notifications);
-    expect(h.values).toHaveBeenCalledWith(
+    expect(h.insert.mock.calls).toEqual([[notifications], [notificationPreviewRestrictions]]);
+    expect(rowsFor(h, notifications)).toEqual([
       expect.objectContaining({
         id: 'ntf_claim-submitted:claim:in_app',
         userId: recipient.id,
         type: 'claim_submitted',
         actionUrl: '/member/claims/claim',
         content: 'Update on: Owner claim title',
-        previewRestricted: false,
-      })
-    );
+      }),
+    ]);
+    expect(rowsFor(h, notifications)[0]).not.toHaveProperty('previewRestricted');
+    expect(rowsFor(h, notificationPreviewRestrictions)).toEqual([
+      { tenantId: 'tenant', notificationId: 'ntf_claim-submitted:claim:in_app', restricted: false },
+    ]);
   });
 
   it('records a status change for the owner of any role and one push delivery per subscription', async () => {
@@ -75,18 +94,19 @@ describe('claim owner notification producers', () => {
     });
     expect(h.insert.mock.calls).toEqual([
       [notifications],
+      [notificationPreviewRestrictions],
       [notificationDeliveries],
       [notificationDeliveries],
       [notificationDeliveries],
     ]);
-    expect(h.values.mock.calls[0][0]).toMatchObject({
+    expect(rowsFor(h, notifications)[0]).toMatchObject({
       id: 'ntf_claim-status:claim:2:in_app',
       userId: recipient.id,
       type: 'claim_status_changed',
       actionUrl: '/member/claims/claim',
       content: 'Update on: Owner claim title',
     });
-    expect(h.values.mock.calls.slice(1).map(([row]) => row)).toMatchObject(
+    expect(rowsFor(h, notificationDeliveries)).toMatchObject(
       ['email', 'push:one', 'push:two'].map((channel, index) => ({
         id: ids[index],
         recipientUserId: recipient.id,
@@ -116,13 +136,13 @@ describe('claim owner notification producers', () => {
       decision: 'declined',
       decisionDomainEventId: 'event',
     });
-    expect(h.values.mock.calls[0][0]).toMatchObject({
+    expect(rowsFor(h, notifications)[0]).toMatchObject({
       id: 'ntf_claim-recovery-decision:event:in_app',
       type: 'escalation_declined',
       actionUrl: '/member/claims/claim',
       title: 'Recovery declined',
     });
-    expect(h.values.mock.calls[1][0]).toMatchObject({
+    expect(rowsFor(h, notificationDeliveries)[0]).toMatchObject({
       facts: { decision: 'declined' },
       idempotencyKey: 'claim-recovery-decision:event:email',
     });
@@ -135,13 +155,15 @@ describe('claim owner notification producers', () => {
       recipient: { ...recipient, role: 'branch_manager' },
       messageId: 'reply',
     });
-    expect(h.values.mock.calls[0][0]).toMatchObject({
+    expect(rowsFor(h, notificationPreviewRestrictions)).toEqual([
+      { tenantId: 'tenant', notificationId: 'ntf_new_message_reply', restricted: true },
+    ]);
+    expect(rowsFor(h, notifications)[0]).toMatchObject({
       id: 'ntf_new_message_reply',
-      previewRestricted: true,
       title: CLAIM_MAIL_COPY.mk.messages.claim_message_to_member.restricted.heading,
       content: CLAIM_MAIL_COPY.mk.messages.claim_message_to_member.restricted.body,
     });
-    expect(h.values.mock.calls[1][0]).toMatchObject({
+    expect(rowsFor(h, notificationDeliveries)[0]).toMatchObject({
       facts: { previewRestricted: true },
       idempotencyKey: 'claim-message:reply:email',
     });
@@ -154,12 +176,14 @@ describe('claim owner notification producers', () => {
       recipient: { ...recipient, role: 'member' },
       messageId: 'reply',
     });
-    expect(h.values.mock.calls[0][0]).toMatchObject({
+    expect(rowsFor(h, notificationPreviewRestrictions)).toEqual([
+      { tenantId: 'tenant', notificationId: 'ntf_new_message_reply', restricted: false },
+    ]);
+    expect(rowsFor(h, notifications)[0]).toMatchObject({
       id: 'ntf_new_message_reply',
-      previewRestricted: false,
       content: 'Update on: Owner claim title',
     });
-    expect(h.values.mock.calls[1][0]).toMatchObject({
+    expect(rowsFor(h, notificationDeliveries)[0]).toMatchObject({
       facts: { previewRestricted: false },
       idempotencyKey: 'claim-message:reply:email',
     });
@@ -171,16 +195,24 @@ describe('claim owner notification producers', () => {
       id: 'handoff',
       responseVersion: 3,
     });
-    expect(h.insert).toHaveBeenCalledExactlyOnceWith(notifications);
-    expect(h.values).toHaveBeenCalledExactlyOnceWith({
-      id: 'ntf_support_handoff_tenant_handoff_3',
-      tenantId: 'tenant',
-      userId: 'owner',
-      type: 'support_handoff_public_response',
-      actionUrl: '/mk/member/help?handoffId=handoff',
-      title: 'Staff update available',
-      content: 'A staff update is available on your support request.',
-      previewRestricted: false,
-    });
+    expect(h.insert.mock.calls).toEqual([[notifications], [notificationPreviewRestrictions]]);
+    expect(rowsFor(h, notifications)).toEqual([
+      {
+        id: 'ntf_support_handoff_tenant_handoff_3',
+        tenantId: 'tenant',
+        userId: 'owner',
+        type: 'support_handoff_public_response',
+        actionUrl: '/mk/member/help?handoffId=handoff',
+        title: 'Staff update available',
+        content: 'A staff update is available on your support request.',
+      },
+    ]);
+    expect(rowsFor(h, notificationPreviewRestrictions)).toEqual([
+      {
+        tenantId: 'tenant',
+        notificationId: 'ntf_support_handoff_tenant_handoff_3',
+        restricted: false,
+      },
+    ]);
   });
 });

@@ -54,7 +54,11 @@ export const UNIQUE_KEYS: Record<string, readonly UniqueKey[]> = {
     key('pk', 'id'),
     key('claim_messages_tenant_claim_id_uq', 'tenantId', 'claimId', 'id'),
   ],
-  notifications: [key('pk', 'id')],
+  notifications: [key('pk', 'id'), key('notifications_tenant_id_id_uq', 'tenantId', 'id')],
+  notificationPreviewRestrictions: [
+    key('pk', 'notificationId'),
+    key('notification_preview_restrictions_notification_uq', 'tenantId', 'notificationId'),
+  ],
   notificationDeliveries: [
     key('pk', 'id'),
     key('notification_deliveries_tenant_id_uq', 'tenantId', 'id'),

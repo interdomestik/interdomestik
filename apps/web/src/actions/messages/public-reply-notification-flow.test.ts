@@ -32,6 +32,15 @@ for (const mode of ['restricted', 'permissive'] as const) {
         recipientUserId: ids.member,
         kind: 'claim_message_to_member',
       });
+      // The member may see the preview: the inbox flag and the delivery facts agree.
+      expect(state.rows.notificationDeliveries[0].facts).toEqual({ previewRestricted: false });
+      expect(state.rows.notificationPreviewRestrictions).toEqual([
+        expect.objectContaining({
+          tenantId: ids.tenant,
+          notificationId: state.rows.notifications[0].id,
+          restricted: false,
+        }),
+      ]);
       expect(state.external).toHaveLength(1);
       expect(state.external[0]).toMatchObject({
         kind: 'delivery',

@@ -12,7 +12,7 @@ import {
 } from './tenant-context.integration-fixture';
 import { asActor } from './message-rls-actors.test-support';
 import { registerRecipientBatchCases } from './message-recipient.test-support';
-import { E2E_USERS } from '@interdomestik/database/testing/message-fixtures';
+import { E2E_USERS } from '../../../../database/src/e2e-users';
 const memberAuthority = () =>
   mintTestTenantAuthority(homeTenantId, { userId: ids.member, role: 'member' });
 const suite = process.env.MESSAGE_RLS_INTEGRATION === '1' ? describe : describe.skip;

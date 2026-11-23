@@ -16,6 +16,26 @@ const registry = JSON.parse(
 
 const sorted = (values: readonly string[]) => [...values].sort((a, b) => a.localeCompare(b));
 
+/** The top-level comma-separated parts of a registry index rendering `unique btree (...)`. */
+function registryIndexParts(value: string): string[] {
+  const body = value.slice(value.indexOf('(') + 1, value.lastIndexOf(')'));
+  const parts: string[] = [];
+  let depth = 0;
+  let current = '';
+  for (const char of body) {
+    if (char === ',' && depth === 0) {
+      parts.push(current.trim());
+      current = '';
+      continue;
+    }
+    if (char === '(') depth++;
+    if (char === ')') depth--;
+    current += char;
+  }
+  parts.push(current.trim());
+  return parts;
+}
+
 /** The column keys (sorted property names) and partial and expression unique indexes of a table. */
 function schemaKeys(table: PgTable) {
   const property = new Map(
@@ -40,7 +60,12 @@ function schemaKeys(table: PgTable) {
   for (const entry of registry.objects) {
     if (!entry.key.startsWith('index ') || !entry.value.startsWith('unique')) continue;
     const [, tableName, indexName] = JSON.parse(entry.key.slice('index '.length)) as string[];
-    if (tableName === config.name) expressions.push(indexName);
+    if (tableName !== config.name) continue;
+    // `unique btree (a, b)` is a column key; any other part makes it an expression key.
+    const parts = registryIndexParts(entry.value);
+    if (parts.every(part => /^[a-z_][a-z0-9_]*$/u.test(part)))
+      columns.add(names(parts.map(name => ({ name }))));
+    else expressions.push(indexName);
   }
   return { columns, partial: sorted(partial), expressions: sorted(expressions) };
 }

@@ -1,4 +1,11 @@
-import { and, desc, eq, sql, supportHandoffs } from '@interdomestik/database';
+import {
+  and,
+  desc,
+  eq,
+  sql,
+  supportHandoffFirstResponses,
+  supportHandoffs,
+} from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -115,7 +122,6 @@ export async function updateSupportHandoffPublicResponseCore(
         .set({
           publicResponse,
           publicResponseAt: now,
-          ...(expectedVersion === 0 ? { firstPublicResponseAt: now } : {}),
           publicResponseById: staffSession.user.id,
           publicResponseVersion: sql`${supportHandoffs.publicResponseVersion} + 1`,
           updatedAt: now,
@@ -127,6 +133,17 @@ export async function updateSupportHandoffPublicResponseCore(
           publicResponseVersion: supportHandoffs.publicResponseVersion,
           tenantId: supportHandoffs.tenantId,
         });
+      if (updated && expectedVersion === 0) {
+        // db-access-guard: tenant-scoped -- reason: the locked handoff's tenant and id.
+        await tx
+          .insert(supportHandoffFirstResponses)
+          .values({
+            tenantId: updated.tenantId,
+            handoffId: updated.handoffId,
+            firstPublicResponseAt: now,
+          })
+          .onConflictDoNothing({ target: supportHandoffFirstResponses.handoffId });
+      }
       if (updated) {
         await enqueueSupportHandoffResponseNotification(tx, tenantId, updated.memberId, {
           id: updated.handoffId,

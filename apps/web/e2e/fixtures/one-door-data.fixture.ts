@@ -1,4 +1,3 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 import { randomUUID } from 'node:crypto';
 import {
   and,
@@ -7,7 +6,6 @@ import {
   commercialActionIdempotency,
   createAdminClient,
   db,
-  dbAdmin,
   E2E_USER_IDS,
   E2E_USERS,
   eq,
@@ -110,7 +108,6 @@ export async function removeDoorClaim(claim: DoorClaim, realStorage: boolean): P
     if (removed.error) throw removed.error;
   }
   await db.delete(claimDocuments).where(eq(claimDocuments.claimId, claim.id));
-  await cleanupClaimNotificationRows(dbAdmin, { claimIds: [claim.id] });
   await db.delete(claims).where(eq(claims.id, claim.id));
 }
 

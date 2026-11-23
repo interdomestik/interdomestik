@@ -12,6 +12,7 @@ import type { sendEmailOutcome } from '@interdomestik/domain-communications/emai
 import type { sendPushOutcome } from '@interdomestik/domain-communications/push';
 import { resolveRecipientLocale } from '@interdomestik/domain-communications/recipient-locale';
 import {
+  parseDeliveryFacts,
   readDeliveryUnderLease,
   renderDelivery,
   renderDeliveryPush,
@@ -121,8 +122,12 @@ export async function prepareNotificationDelivery(
     return { skip: 'recipient_out_of_scope' };
   }
 
+  // Only an explicit `false` lifts the restriction; kinds without the fact stay restricted.
+  const facts = parseDeliveryFacts(row.kind, row.facts);
   const previewRestricted =
-    row.facts.previewRestricted !== false || recipient.role === ROLES.branch_manager;
+    !('previewRestricted' in facts) ||
+    facts.previewRestricted ||
+    recipient.role === ROLES.branch_manager;
 
   if (row.channel === 'push') {
     return preparePushDelivery(

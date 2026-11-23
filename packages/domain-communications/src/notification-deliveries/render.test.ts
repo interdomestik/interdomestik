@@ -2,7 +2,7 @@ import type { TenantTransaction } from '@interdomestik/database';
 import { describe, expect, it } from 'vitest';
 import { CLAIM_MAIL_COPY } from '../claim-mail';
 import type { ClaimMailLocale } from '../claim-mail/types';
-import { renderDelivery, renderDeliveryPush } from './render';
+import { parseDeliveryFacts, renderDelivery, renderDeliveryPush } from './render';
 import type { Delivery } from './types';
 
 function delivery(changes: Partial<Delivery> = {}): Delivery {
@@ -159,5 +159,54 @@ describe('notification rendering', () => {
     expect(mail.subject).toBe(
       CLAIM_MAIL_COPY.mk.messages.claim_message_to_member.restricted.subject
     );
+  });
+});
+
+describe('delivery facts', () => {
+  it('parses the facts each kind stores', () => {
+    expect(
+      parseDeliveryFacts('claim_status_changed', { fromStatus: 'submitted', toStatus: 'resolved' })
+    ).toEqual({ fromStatus: 'submitted', toStatus: 'resolved' });
+    expect(parseDeliveryFacts('claim_recovery_decision', { decision: 'accepted' })).toEqual({
+      decision: 'accepted',
+    });
+    expect(parseDeliveryFacts('claim_message_to_member', { previewRestricted: false })).toEqual({
+      previewRestricted: false,
+    });
+    expect(parseDeliveryFacts('staff_member_message', {})).toEqual({});
+  });
+
+  it.each([
+    ['claim_status_changed', { fromStatus: 'submitted' }],
+    ['claim_status_changed', { fromStatus: 'submitted', toStatus: 'unknown' }],
+    ['claim_recovery_decision', { decision: 'maybe' }],
+    ['claim_message_to_member', {}],
+    ['claim_message_to_member', { previewRestricted: 'no' }],
+    ['claim_submitted', { extra: true }],
+    ['staff_claim_submitted', null],
+    ['claim_message_to_member', []],
+  ] as const)('refuses malformed %s facts %j', (kind, facts) => {
+    expect(() => parseDeliveryFacts(kind, facts)).toThrow();
+  });
+
+  it('refuses to render status mail from malformed facts', async () => {
+    const tx = {
+      select: () => ({
+        from: () => ({ where: () => Promise.resolve([{ title: 'Member claim' }]) }),
+      }),
+    } as unknown as TenantTransaction;
+    const render = (facts: Record<string, unknown>) =>
+      renderDelivery(
+        tx,
+        { ...delivery({ facts }), leaseUntil: 'lease' },
+        'en',
+        'https://example.test',
+        'flight',
+        null,
+        false
+      );
+    // The same call renders well-formed facts, so the refusal below is the parser's.
+    await expect(render({ fromStatus: 'submitted', toStatus: 'resolved' })).resolves.toBeDefined();
+    await expect(render({ fromStatus: 'submitted' })).rejects.toThrow(/toStatus/);
   });
 });

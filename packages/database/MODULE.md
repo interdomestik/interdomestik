@@ -8,11 +8,7 @@ Declares the schema (46 schema files, 99 `pgTable` calls — MEASURED, `rg -c 'p
 
 ## Public API
 
-The support handoff table is declared in `src/schema/crm.ts`. Its acknowledgement and member reply columns are defined together in `src/schema/support-handoff-response-columns.ts`.
-
 `package.json:7-30` declares 22 subpath exports (recounted in R3) (root `./src/index.ts`, plus `./schema`, `./db`, `./tenant-authority`, `./tenant-security`, `./ingress`, `./testing/tenant-authority`, …). The entries other code should use: `withTenantAuthority` (`src/tenant-authority-context.ts:12-18`), `withTenantContext` / `withTenantDb` (`src/tenant.ts:23-55`), `dbAdmin` and `dbRls` (`src/db.ts:244-251`), `withTenant` (`src/tenant-security.ts:22-37`).
-
-The `./testing/*` exports are for tests only. `./testing/claim-notification-cleanup` (WP-11, `src/testing/claim-notification-cleanup.ts`) deletes the notification deliveries, response requests and inbox rows of given claims, messages or users before a test or the seed cleanup deletes them. Only browser specs and their fixtures (`apps/web/e2e/**`), `*.test.*` files and the three seed cleanups (`src/seed-utils/cleanup.ts`, `src/seed-utils/run-cleanup.ts`, `src/seed-full/cleanup.ts`, by relative import) may import it. `test/testing-export-importers.test.ts` fails on any other import, by the export or by a relative path, including from this package's own sources. It parses every tracked source file of the repository and counts any string literal that names the helper, so comments are ignored and re-exports, `import()`, `require()` and `createRequire` are covered. It runs in `test:rls` (the hosted E2E gate job) and in `test:unit`. The helper is not exported under `./seed-utils`, so importing it no longer needs a seed-module path (`seeding.no_seed_imports_outside_database`).
 
 ## Owned tables
 
@@ -46,9 +42,25 @@ Declare it in a schema file with its tenant column, its policy and `.enableRLS()
 
 `exchange_rate_books` and `exchange_rates` are owned by the membership billing payment port. Legal entities are created through the admin path by seeds and migrations. The book provisioning trigger runs with the inserting role's privileges. Migration `0101` backfills existing entities before forcing RLS on both tables and sets the runtime privileges when the role exists. The book lock requires column-level `UPDATE` on `id`. A trigger rejects updates, deletes and truncation on both tables.
 
-## Tests to run
+WP-11 adds five tables, each declared in its own module appended at the tail of `src/schema/index.ts`:
 
-The seed cleanup export removes WP-11 delivery and response-request rows by the exact claim, message or user scope of a seed or test fixture before it deletes the parent rows.
+- `notification_deliveries` and `claim_response_requests`;
+- `user_locale_preferences`: the recipient locale, one row per user;
+- `support_handoff_first_responses`: the first public response time, one row per handoff;
+- `notification_preview_restrictions`: the sticky preview flag, one row per inbox notification that WP-11 created.
+
+No WP-11 column is added to an existing table. The owning domain is `domain-communications` for deliveries, locale preferences and preview restrictions, and `domain-claims` for response requests and first responses.
+
+Their foreign keys and the composite unique indexes they target, on `claim`, `claim_messages`, `notifications` and `support_handoffs`, are SQL-managed:
+
+- They are declared only in migration `0102`, not in Drizzle.
+- Each is registered in `scripts/ci/sql-managed-objects.json`.
+- Each deletes with its parent (`ON DELETE CASCADE`), so seed and test cleanups need no extra step.
+- The exception is `claim_response_requests.answered_by`, which is set to null when its user is deleted.
+
+The five tables force RLS. The runtime role has no `DELETE` on any of them. It has no `UPDATE` on first responses or preview restrictions, so a restriction never changes once written.
+
+## Tests to run
 
 From `package.json:31-48`: `pnpm --filter @interdomestik/database test:unit`; `test:rls` (an explicit list of 24 test files at `:42`, the row-security and tenant-authority suite; the other 124 of the 148 files run in no workflow, TEST-03); `test:migration-runtime-role`; `test:journal-parity` (needs a disposable PostgreSQL 16 server); `type-check`; `seed:assert-e2e`. `test:rls` runs in CI (`.github/workflows/ci.yml:196`, `pnpm db:rls:test`, with `REQUIRE_RLS_INTEGRATION=1` and `REQUIRE_RLS_COVERAGE=1`) and `seed:assert-e2e` in the same job; no workflow step runs this package's `test:unit`, `test:migration-runtime-role` or `type-check` (the unit's search of the workflows, which agrees with TEST-03); `A/modules/data-layer.md:246` records that no workflow has a migration step (DATA-03).
 

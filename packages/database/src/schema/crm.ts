@@ -17,7 +17,6 @@ import {
 import { user } from './auth';
 import { claims } from './claims';
 import { branches } from './rbac';
-import { supportHandoffResponseColumns } from './support-handoff-response-columns';
 import { tenants } from './tenants';
 
 export const crmLeads = pgTable(
@@ -779,10 +778,16 @@ export const supportHandoffs = pgTable(
     lifecycleVersion: integer('lifecycle_version').notNull().default(0),
     publicResponse: text('public_response'),
     publicResponseAt: timestamp('public_response_at'),
-    firstPublicResponseAt: timestamp('first_public_response_at', { withTimezone: true }),
     publicResponseById: text('public_response_by_id').references(() => user.id),
     publicResponseVersion: integer('public_response_version').notNull().default(0),
-    ...supportHandoffResponseColumns(),
+    publicResponseAcknowledgedAt: timestamp('public_response_acknowledged_at'),
+    publicResponseAcknowledgedById: text('public_response_acknowledged_by_id').references(
+      () => user.id
+    ),
+    publicResponseAcknowledgedVersion: integer('public_response_acknowledged_version'),
+    memberReply: text('member_reply'),
+    memberReplyAt: timestamp('member_reply_at'),
+    memberReplyResponseVersion: integer('member_reply_response_version'),
     createdAt: timestamp('created_at').defaultNow().notNull(),
     updatedAt: timestamp('updated_at')
       .defaultNow()

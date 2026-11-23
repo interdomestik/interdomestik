@@ -20,7 +20,10 @@ const CRITICAL_TABLES = [
   'documents',
   'free_start_drafts',
   'notification_deliveries',
+  'notification_preview_restrictions',
+  'support_handoff_first_responses',
   'user',
+  'user_locale_preferences',
 ] as const;
 
 test('critical tables keep row level security enabled', async t => {

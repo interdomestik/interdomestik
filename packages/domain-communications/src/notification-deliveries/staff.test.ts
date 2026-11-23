@@ -1,5 +1,10 @@
 import type { TenantTransaction } from '@interdomestik/database';
-import { auditLog, notificationDeliveries, notifications } from '@interdomestik/database/schema';
+import {
+  auditLog,
+  notificationDeliveries,
+  notificationPreviewRestrictions,
+  notifications,
+} from '@interdomestik/database/schema';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { describe, expect, it, vi } from 'vitest';
 import { INSERT_BATCH_ROWS } from './enqueue';
@@ -42,7 +47,10 @@ function builderHarness() {
   const builder = drizzle.mock();
   const statements: Array<{ rows: number; params: number }> = [];
   const queued: string[] = [];
-  const insert = (table: typeof notifications | typeof notificationDeliveries) => ({
+  const insert = (
+    table:
+      typeof notifications | typeof notificationPreviewRestrictions | typeof notificationDeliveries
+  ) => ({
     values: (rows: Array<{ id: string }>) => ({
       onConflictDoNothing: (
         config: Parameters<
@@ -70,7 +78,11 @@ describe('staff claim notifications', () => {
       candidates[0],
       { ...candidates[1], emailVerified: false },
     ]);
-    expect(h.insert.mock.calls).toEqual([[notifications], [notificationDeliveries]]);
+    expect(h.insert.mock.calls).toEqual([
+      [notifications],
+      [notificationPreviewRestrictions],
+      [notificationDeliveries],
+    ]);
     expect(h.values.mock.calls[0][0]).toEqual([
       {
         tenantId: 'tenant',
@@ -80,14 +92,28 @@ describe('staff claim notifications', () => {
         title: '—',
         content: 'other',
         actionUrl: '/staff/claims/claim',
-        previewRestricted: false,
       },
       expect.objectContaining({
         userId: 'same-branch',
         id: 'ntf_staff:staff_member_message:message:same-branch:in_app',
       }),
     ]);
-    expect(h.values.mock.calls[1][0]).toEqual([
+    expect(h.values.mock.calls[1][0]).toEqual(
+      expect.arrayContaining([
+        {
+          tenantId: 'tenant',
+          notificationId: 'ntf_staff:staff_member_message:message:assignee:in_app',
+          restricted: false,
+        },
+        {
+          tenantId: 'tenant',
+          notificationId: 'ntf_staff:staff_member_message:message:same-branch:in_app',
+          restricted: false,
+        },
+      ])
+    );
+    expect(h.values.mock.calls[1][0]).toHaveLength(2);
+    expect(h.values.mock.calls[2][0]).toEqual([
       expect.objectContaining({
         id: ids[0],
         recipientUserId: 'assignee',
@@ -105,7 +131,7 @@ describe('staff claim notifications', () => {
       staff('same-branch', 'a'),
       staff('admin'),
     ]);
-    const queued = h.values.mock.calls[1][0] as Array<{ id: string; recipientUserId: string }>;
+    const queued = h.values.mock.calls[2][0] as Array<{ id: string; recipientUserId: string }>;
     expect(queued.map(row => row.recipientUserId)).toEqual(['assignee', 'same-branch', 'admin']);
     expect(ids).toEqual([queued[0].id, queued[2].id]);
   });
@@ -115,7 +141,7 @@ describe('staff claim notifications', () => {
     const ids = await enqueueStaffClaimNotification(h.tx, claim, source, [
       { ...staff('assignee'), emailVerified: false },
     ]);
-    expect(h.insert.mock.calls).toEqual([[notifications]]);
+    expect(h.insert.mock.calls).toEqual([[notifications], [notificationPreviewRestrictions]]);
     expect(ids).toEqual([]);
   });
 
@@ -125,8 +151,9 @@ describe('staff claim notifications', () => {
     const ids = await enqueueStaffClaimNotification(h.tx, claim, source, recipients);
     // The ceiling is pinned here, not read back from the constant under test.
     expect(INSERT_BATCH_ROWS).toBe(1000);
-    expect(h.statements).toHaveLength(40);
-    expect(h.statements.reduce((total, statement) => total + statement.rows, 0)).toBe(40_000);
+    // 20 inbox, 20 preview-restriction and 20 delivery statements.
+    expect(h.statements).toHaveLength(60);
+    expect(h.statements.reduce((total, statement) => total + statement.rows, 0)).toBe(60_000);
     expect(Math.max(...h.statements.map(statement => statement.rows))).toBe(1000);
     expect(Math.max(...h.statements.map(statement => statement.params))).toBeLessThan(65_535);
     expect(ids).toHaveLength(recipients.length);

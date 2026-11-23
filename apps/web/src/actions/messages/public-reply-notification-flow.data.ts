@@ -78,6 +78,8 @@ const columns = [
   'sourceMessageId',
   'referralCode',
   'memberNumber',
+  'notificationId',
+  'restricted',
 ];
 export const tables = Object.fromEntries(
   [
@@ -86,6 +88,7 @@ export const tables = Object.fromEntries(
     'agentClients',
     'claimMessages',
     'notifications',
+    'notificationPreviewRestrictions',
     'notificationDeliveries',
     'claimResponseRequests',
     'auditLog',
@@ -163,6 +166,7 @@ export function seedRows(): Record<string, Row[]> {
     ],
     claimMessages: [],
     notifications: [],
+    notificationPreviewRestrictions: [],
     notificationDeliveries: [],
     claimResponseRequests: [],
     auditLog: [],

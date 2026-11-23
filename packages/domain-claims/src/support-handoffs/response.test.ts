@@ -107,6 +107,8 @@ describe('support handoff public response', () => {
       })
     );
     expect(mocks.updateSet.mock.calls[0][0]).not.toHaveProperty('firstPublicResponseAt');
+    // Only the version-0 update is a first response.
+    expect(mocks.db.insert).not.toHaveBeenCalled();
     expect(mocks.enqueue).toHaveBeenCalledWith(mocks.db, 'tenant-1', 'member-1', {
       id: 'handoff-1',
       responseVersion: 2,
@@ -171,8 +173,23 @@ describe('support handoff public response', () => {
         error: 'Public response could not be saved',
       });
       const patch = mocks.updateSet.mock.calls[0][0];
-      expect(patch.firstPublicResponseAt).toEqual(new Date('2026-11-22T10:00:00Z'));
-      expect(patch.firstPublicResponseAt).toBe(patch.publicResponseAt);
+      expect(patch).not.toHaveProperty('firstPublicResponseAt');
+      expect(mocks.db.insert).toHaveBeenCalledExactlyOnceWith(mocks.supportHandoffFirstResponses);
+      expect(mocks.insertValues).toHaveBeenCalledExactlyOnceWith({
+        tenantId: 'tenant-1',
+        handoffId: 'handoff-1',
+        firstPublicResponseAt: new Date('2026-11-22T10:00:00Z'),
+      });
+      expect(mocks.insertValues.mock.calls[0][0].firstPublicResponseAt).toBe(
+        patch.publicResponseAt
+      );
+      expect(mocks.insertConflict).toHaveBeenCalledExactlyOnceWith({
+        target: mocks.supportHandoffFirstResponses.handoffId,
+      });
+      // The first-response row is written in the transaction that the failed enqueue rolls back.
+      expect(mocks.insertValues.mock.invocationCallOrder[0]).toBeLessThan(
+        mocks.enqueue.mock.invocationCallOrder[0]
+      );
       expect(mocks.selectLock).toHaveBeenCalledWith('no key update');
       expect(mocks.selectLock.mock.invocationCallOrder[0]).toBeLessThan(
         mocks.selectLimit.mock.invocationCallOrder[0]

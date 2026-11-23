@@ -1,9 +1,7 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 import {
   auditLog,
   crmLeads,
   db,
-  dbAdmin,
   eq,
   freeStartDrafts,
   inArray,
@@ -56,7 +54,6 @@ export async function cleanupOtpJourney(args: {
         await db.delete(freeStartDrafts).where(eq(freeStartDrafts.ownerUserId, owner.id));
         await db.delete(authSession).where(eq(authSession.userId, owner.id));
         await db.execute(sql`delete from account where "userId" = ${owner.id}`);
-        await cleanupClaimNotificationRows(dbAdmin, { userIds: [owner.id] });
         await db.delete(user).where(eq(user.id, owner.id));
       },
       () =>

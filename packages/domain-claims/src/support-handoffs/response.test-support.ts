@@ -3,11 +3,13 @@ import { vi } from 'vitest';
 
 const mocks: {
   and: Mock;
-  db: { select: Mock; update: Mock };
+  db: { insert: Mock; select: Mock; update: Mock };
   desc: Mock;
   ensureTenantId: Mock;
   eq: Mock;
   inArray: Mock;
+  insertConflict: Mock;
+  insertValues: Mock;
   isNotNull: Mock;
   logAuditEvent: Mock;
   enqueue: Mock;
@@ -18,6 +20,11 @@ const mocks: {
   selectOrderBy: Mock;
   selectWhere: Mock;
   sql: Mock;
+  supportHandoffFirstResponses: {
+    firstPublicResponseAt: string;
+    handoffId: string;
+    tenantId: string;
+  };
   supportHandoffs: {
     branchId: string;
     claimId: string;
@@ -50,10 +57,13 @@ const mocks: {
   const selectOrderBy = vi.fn(() => ({ limit: selectLimit }));
   const selectWhere = vi.fn(() => ({ orderBy: selectOrderBy }));
   const selectFrom = vi.fn(() => ({ where: selectWhere }));
+  const insertConflict = vi.fn(() => Promise.resolve());
+  const insertValues = vi.fn(() => ({ onConflictDoNothing: insertConflict }));
 
   return {
     and: vi.fn((...conditions) => ({ conditions, op: 'and' })),
     db: {
+      insert: vi.fn(() => ({ values: insertValues })),
       select: vi.fn(() => ({ from: selectFrom })),
       update: vi.fn(() => ({ set: updateSet })),
     },
@@ -61,6 +71,8 @@ const mocks: {
     ensureTenantId: vi.fn(() => 'tenant-1'),
     eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
     inArray: vi.fn((left, right) => ({ left, op: 'inArray', right })),
+    insertConflict,
+    insertValues,
     isNotNull: vi.fn(column => ({ column, op: 'isNotNull' })),
     logAuditEvent: vi.fn(),
     enqueue: vi.fn(),
@@ -75,6 +87,11 @@ const mocks: {
       strings,
       values,
     })),
+    supportHandoffFirstResponses: {
+      firstPublicResponseAt: 'support_handoff_first_responses.first_public_response_at',
+      handoffId: 'support_handoff_first_responses.handoff_id',
+      tenantId: 'support_handoff_first_responses.tenant_id',
+    },
     supportHandoffs: {
       branchId: 'support_handoffs.branch_id',
       claimId: 'support_handoffs.claim_id',
@@ -108,6 +125,7 @@ vi.mock('@interdomestik/database', () => ({
   desc: mocks.desc,
   eq: mocks.eq,
   sql: mocks.sql,
+  supportHandoffFirstResponses: mocks.supportHandoffFirstResponses,
   supportHandoffs: mocks.supportHandoffs,
 }));
 vi.mock('@interdomestik/database/tenant-security', () => ({

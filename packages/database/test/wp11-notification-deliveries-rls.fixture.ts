@@ -80,8 +80,9 @@ async function install(client: postgres.Sql) {
   await migration();
 
   await writeLegacyPreview(client, legacyOwner, rollout);
-  await client.unsafe(`grant select (id, preview_restricted) on public.notifications to ${role}`);
-  return { tenant: legacyOwner.tenant, existing, rollout };
+  // The runtime inbox writer and the handoff cleanup read, insert and delete inbox rows.
+  await client.unsafe(`grant select, insert, delete on public.notifications to ${role}`);
+  return { ...legacyOwner, existing, rollout };
 }
 
 async function seedOwner(client: postgres.Sql, group: string, userRole: string) {
@@ -109,7 +110,19 @@ async function seed(client: postgres.Sql, group: string) {
     values (${delivery}, ${tenant}, ${delivery}, 'claim_message_to_member', 'email', ${user}, ${claim}, ${message}, '{"previewRestricted":true}')`;
   await client`insert into claim_response_requests (id, tenant_id, claim_id, kind, requested_at)
     values (${request}, ${tenant}, ${claim}, 'claim_submitted', clock_timestamp())`;
-  return { tenant, user, claim, message, delivery, request };
+  const handoff = `${tenant}-handoff`;
+  const notification = `${tenant}-notification`;
+  await client`insert into support_handoffs (id, tenant_id, member_id, subject, message, urgency, trust_risk)
+    values (${handoff}, ${tenant}, ${user}, 'Subject', 'Message', 'normal', 'low')`;
+  await client`insert into support_handoff_first_responses (handoff_id, tenant_id, first_public_response_at)
+    values (${handoff}, ${tenant}, now())`;
+  await client`insert into notifications (id, tenant_id, user_id, type, title, content, action_url)
+    values (${notification}, ${tenant}, ${user}, 'new_message', 'New Message', 'Update', '/member')`;
+  await client`insert into notification_preview_restrictions (notification_id, tenant_id, restricted)
+    values (${notification}, ${tenant}, true)`;
+  await client`insert into user_locale_preferences (user_id, tenant_id, locale)
+    values (${user}, ${tenant}, 'sq')`;
+  return { tenant, user, claim, message, delivery, request, handoff, notification };
 }
 
 export function restricted<T>(
@@ -127,7 +140,7 @@ export function restricted<T>(
 }
 
 export type Rows = Awaited<ReturnType<typeof seed>>;
-type LegacyPreviews = Awaited<ReturnType<typeof install>>;
+export type LegacyPreviews = Awaited<ReturnType<typeof install>>;
 
 export async function withNotificationDeliveriesFixture(
   t: TestContext,

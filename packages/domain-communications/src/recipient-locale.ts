@@ -1,5 +1,5 @@
 import type { TenantTransaction } from '@interdomestik/database';
-import { recipientLocales, user } from '@interdomestik/database/schema';
+import { user, userLocalePreferences } from '@interdomestik/database/schema';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -9,7 +9,7 @@ import type { SessionWithTenant } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 import { preferredLocaleForTenant } from './tenant-locale';
 
-export { recipientLocales };
+export const recipientLocales = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 type RecipientLocale = (typeof recipientLocales)[number];
 
 export async function resolveRecipientLocale(
@@ -18,9 +18,11 @@ export async function resolveRecipientLocale(
   userId: string
 ): Promise<RecipientLocale> {
   const [recipient] = await tx
-    .select({ locale: user.preferredLocale })
-    .from(user)
-    .where(and(eq(user.tenantId, tenantId), eq(user.id, userId)));
+    .select({ locale: userLocalePreferences.locale })
+    .from(userLocalePreferences)
+    .where(
+      and(eq(userLocalePreferences.tenantId, tenantId), eq(userLocalePreferences.userId, userId))
+    );
   return recipient?.locale ?? preferredLocaleForTenant(tenantId);
 }
 
@@ -42,11 +44,19 @@ export async function savePreferredLocale(
   }
 
   return withTenantAuthority(authority, async tx => {
-    const rows = await tx
-      .update(user)
-      .set({ preferredLocale: locale })
+    const [profile] = await tx
+      .select({ id: user.id })
+      .from(user)
       .where(and(eq(user.id, userId), eq(user.tenantId, tenantId)))
-      .returning({ id: user.id });
-    return rows.length === 1 ? 'saved' : 'conflict';
+      .for('key share');
+    if (!profile) return 'conflict';
+    await tx
+      .insert(userLocalePreferences)
+      .values({ tenantId, userId, locale })
+      .onConflictDoUpdate({
+        target: [userLocalePreferences.tenantId, userLocalePreferences.userId],
+        set: { locale, updatedAt: new Date() },
+      });
+    return 'saved';
   });
 }

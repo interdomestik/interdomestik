@@ -13,6 +13,34 @@ const statusFacts = z.strictObject({
   toStatus: z.enum(CLAIM_STATUSES),
 });
 const decisionFacts = z.strictObject({ decision: z.enum(['accepted', 'declined']) });
+const messageFacts = z.strictObject({ previewRestricted: z.boolean() });
+const noFacts = z.strictObject({});
+const deliveryFacts = {
+  claim_submitted: noFacts,
+  claim_status_changed: statusFacts,
+  claim_recovery_decision: decisionFacts,
+  claim_message_to_member: messageFacts,
+  staff_claim_submitted: noFacts,
+  staff_member_message: noFacts,
+} satisfies Record<ClaimedDelivery['kind'], z.ZodType>;
+type DeliveryFacts = z.output<(typeof deliveryFacts)[ClaimedDelivery['kind']]>;
+
+/**
+ * Parses a delivery's stored `facts` for its kind. It throws on a malformed value; the runner
+ * records that as the delivery's `facts_unavailable` failure and calls no provider.
+ */
+export function parseDeliveryFacts(
+  kind: 'claim_status_changed',
+  facts: unknown
+): z.output<typeof statusFacts>;
+export function parseDeliveryFacts(
+  kind: 'claim_recovery_decision',
+  facts: unknown
+): z.output<typeof decisionFacts>;
+export function parseDeliveryFacts(kind: ClaimedDelivery['kind'], facts: unknown): DeliveryFacts;
+export function parseDeliveryFacts(kind: ClaimedDelivery['kind'], facts: unknown): DeliveryFacts {
+  return deliveryFacts[kind].parse(facts);
+}
 
 export async function renderDelivery(
   tx: TenantTransaction,
@@ -42,9 +70,9 @@ export async function renderDelivery(
     case 'claim_submitted':
       return renderClaimMail(kind, locale, { ...facts, category });
     case 'claim_status_changed':
-      return renderClaimMail(kind, locale, { ...facts, ...statusFacts.parse(row.facts) });
+      return renderClaimMail(kind, locale, { ...facts, ...parseDeliveryFacts(kind, row.facts) });
     case 'claim_recovery_decision':
-      return renderClaimMail(kind, locale, { ...facts, ...decisionFacts.parse(row.facts) });
+      return renderClaimMail(kind, locale, { ...facts, ...parseDeliveryFacts(kind, row.facts) });
     case 'claim_message_to_member': {
       const message = await getMessagePreview(tx, row, CLAIM_MAIL_COPY[locale].genericSender);
       return renderClaimMail(kind, locale, {
@@ -104,7 +132,7 @@ export async function renderDeliveryPush(
     return { title: messages.full.heading, body: `${senderName}: ${excerpt.slice(0, 100)}`, url };
   }
 
-  const { fromStatus, toStatus } = statusFacts.parse(row.facts);
+  const { fromStatus, toStatus } = parseDeliveryFacts('claim_status_changed', row.facts);
   const title = await getClaimTitle(tx, row);
   return {
     title: copy.pushStatusHeading,

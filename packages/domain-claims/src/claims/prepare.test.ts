@@ -182,6 +182,10 @@ describe('prepareNotificationDelivery', () => {
         kind,
         channel: 'push' as const,
         pushSubscriptionId: 'subscription',
+        facts:
+          kind === 'claim_message_to_member'
+            ? { previewRestricted: false }
+            : { fromStatus: 'submitted', toStatus: 'evaluation' },
       };
       const h = setup([
         [row],
@@ -200,4 +204,20 @@ describe('prepareNotificationDelivery', () => {
       expect(h.select).toHaveBeenCalledTimes(4);
     }
   );
+
+  it('rejects malformed stored facts, which the runner records as facts_unavailable', async () => {
+    const row = {
+      ...original,
+      kind: 'claim_message_to_member' as const,
+      facts: { previewRestricted: 'no' },
+    };
+    const h = setup([
+      [row],
+      [{ ownerId: row.recipientUserId, category: 'vehicle', claimNumber: null }],
+      [{ id: row.recipientUserId, role: 'member', emailVerified: true }],
+    ]);
+    await expect(prepareNotificationDelivery(h.tx, row, h.deps)).rejects.toThrow(
+      /previewRestricted/
+    );
+  });
 });

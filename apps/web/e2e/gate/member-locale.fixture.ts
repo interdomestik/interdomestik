@@ -1,4 +1,3 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 // prettier-ignore
 import { account, db, dbAdmin, E2E_PASSWORD, eq, session as authSession, subscriptions, user } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
@@ -62,7 +61,6 @@ export function startThrowawayMember(page: Page, testInfo: TestInfo): ThrowawayM
     if (!member) return;
     await db.delete(authSession).where(eq(authSession.userId, member.id));
     await db.delete(account).where(eq(account.userId, member.id));
-    await cleanupClaimNotificationRows(dbAdmin, { userIds: [member.id] });
     await db.delete(user).where(eq(user.id, member.id));
   };
   return { ready, remove };

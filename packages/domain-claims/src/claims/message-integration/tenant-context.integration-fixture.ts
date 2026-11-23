@@ -91,12 +91,12 @@ export function registerMessageRlsFixture(): void {
     fixtureRoleCreated = true;
     await adminClient.unsafe(`grant usage on schema public to "${fixtureRole}"`);
     await adminClient.unsafe(
-      `grant select on table "user", claim, claim_messages, agent_clients, notifications, user_notification_preferences, push_subscriptions, audit_log, notification_deliveries, claim_response_requests to "${fixtureRole}"`
+      `grant select on table "user", claim, claim_messages, agent_clients, notifications, user_notification_preferences, push_subscriptions, audit_log, notification_deliveries, claim_response_requests, notification_preview_restrictions to "${fixtureRole}"`
     );
     await adminClient.unsafe(`grant insert, update on table claim_messages to "${fixtureRole}"`);
     // A least-privilege subset of scripts/ci/export-e2e-rls.sh, never a production grant claim.
     await adminClient.unsafe(
-      `grant insert on table notifications, audit_log, notification_deliveries, claim_response_requests to "${fixtureRole}"`
+      `grant insert on table notifications, audit_log, notification_deliveries, claim_response_requests, notification_preview_restrictions to "${fixtureRole}"`
     );
     await adminClient.unsafe(`grant update (id) on table "user", claim to "${fixtureRole}"`);
     await adminClient.unsafe(

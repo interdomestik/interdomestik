@@ -1,7 +1,5 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 import {
   db,
-  dbAdmin,
   E2E_USERS,
   eq,
   leadPaymentAttempts,
@@ -59,7 +57,7 @@ export async function insertOwnedMemberLead(
  */
 export async function removeOwnedMemberLead(lead: OwnedLead | undefined): Promise<void> {
   if (!lead) return;
-  await dbAdmin.transaction(async tx => {
+  await db.transaction(async tx => {
     const [row] = await tx
       .select({ convertedUserId: memberLeads.convertedUserId })
       .from(memberLeads)
@@ -70,7 +68,6 @@ export async function removeOwnedMemberLead(lead: OwnedLead | undefined): Promis
     if (!memberId) return;
     await tx.delete(membershipCards).where(eq(membershipCards.userId, memberId));
     await tx.delete(subscriptions).where(eq(subscriptions.userId, memberId));
-    await cleanupClaimNotificationRows(tx, { userIds: [memberId] });
     await tx.delete(user).where(eq(user.id, memberId));
   });
 }

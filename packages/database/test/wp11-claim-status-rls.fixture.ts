@@ -55,6 +55,8 @@ export async function withStatusFixture(
     const added = [
       'grant select, insert, update on notification_deliveries',
       'grant select, insert on claim_response_requests',
+      // The inbox writer flags the rows it creates; flags are never updated or deleted.
+      'grant select, insert on notification_preview_restrictions',
     ];
     await runSequentially([...existing, ...added], async grant => {
       await adminDb.execute(sql.raw(`${grant} to ${role}`));
