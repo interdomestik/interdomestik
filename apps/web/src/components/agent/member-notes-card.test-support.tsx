@@ -107,7 +107,3 @@ export function deferred<T>() {
   });
   return { promise, resolve };
 }
-
-beforeEach(() => {
-  vi.resetAllMocks();
-});
