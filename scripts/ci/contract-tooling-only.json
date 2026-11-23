@@ -1,6 +1,6 @@
 {
-  "derivedOn": "24fc15046",
-  "evidence": "D7.1 design section 3: read trace v3 and classifier v6 on 24fc15046; the 19 files with repeated launches re-traced with v4 (one record per launch), all reconciled",
+  "derivedOn": "fcabe5c85",
+  "evidence": "D7.1 design section 3: read trace v4 (one record per launch) and classifier v6 on fcabe5c85, all five shards; every listed test stays eligible; three eligible new tests of this change are left unlisted and run on every PR",
   "files": [
     "scripts/ci/actions-check-supersession.test.mjs",
     "scripts/ci/ai-eval-surface.test.mjs",
