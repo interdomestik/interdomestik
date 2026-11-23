@@ -1,7 +1,13 @@
 import { ScanError } from '../server-mutation/ast.mjs';
 import { evaluateCheck, evaluateRetired, selectChecks, selectRetired } from './evaluate.mjs';
 import { EXPECTS } from './lint.mjs';
-import { readLanes, registryFor, registryTamper, testEvidence } from './registry.mjs';
+import {
+  frozenEntries,
+  readLanes,
+  registryFor,
+  registryTamper,
+  testEvidence,
+} from './registry.mjs';
 import { roleOf } from './roles.mjs';
 import { pairTransfers, rebuiltDeclarationErrors, rebuiltRemovals } from './transfer.mjs';
 
@@ -26,6 +32,8 @@ function chk22Extra(root, files, inputs, base, head) {
         });
   const isRendered = entry => present.has(entry.file);
   const tamper = registryTamper(inputs.baseRegistry, registry, base, head, isRendered);
+  const enforced = baseline => baseline?.checks?.['CHK-22']?.mode === 'fail';
+  if (enforced(base) || enforced(head)) tamper.push(...frozenEntries(registry));
   return { findings, tamper };
 }
 

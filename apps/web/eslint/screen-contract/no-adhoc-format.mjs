@@ -1,6 +1,11 @@
 // CHK-09, first part (R-09, R-23f): a screen formats dates, numbers and money only through the
-// shared helpers (design §2; B7, B13, B19). It flags calls, never imports.
+// shared helpers (design §2; B7, B13, B19). It flags calls, never imports. A bound formatter (a
+// date-fns function or namespace, a next-intl formatter factory, formatter or method) is matched
+// through the variable its callee resolves to by ESLint's scope analysis, never by its spelling, so
+// a parameter or local that shadows it is not that formatter (WP-05 flip, L6). Translators keep
+// matching by name: a translator received as a prop still marks a display position.
 import { fileOf, report, rule, unitCounter } from './common.mjs';
+import { variableOf } from './consent-control-registered-scope.mjs';
 
 const TO_LOCALE = new Set(['toLocaleString', 'toLocaleDateString', 'toLocaleTimeString']);
 const TO_DIGITS = new Set(['toFixed', 'toPrecision']);
@@ -63,11 +68,12 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
   const { rel, role } = fileOf(context);
   if (role !== 'screen') return {};
   const units = unitCounter(context, 'CHK-09');
-  const dateFnsFunctions = new Map(); // local -> imported format name
-  const dateFnsNamespaces = new Set();
-  const formatterFactories = new Set();
-  const formatters = new Set();
-  const formatterMethods = new Map(); // local -> next-intl method
+  // Keyed by the ESLint variable a binding declares (L6), never by name.
+  const dateFnsFunctions = new Map(); // variable -> imported format name
+  const dateFnsNamespaces = new Set(); // variables
+  const formatterFactories = new Set(); // variables
+  const formatters = new Set(); // variables
+  const formatterMethods = new Map(); // variable -> next-intl method
   const translatorFactories = new Set();
   const translators = new Set(['t']);
   const calls = [];
@@ -78,6 +84,13 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
       `CHK-09|${rel}|${callee}`,
       `${callee} formats by hand; use the shared helpers`
     );
+
+  // The variable an identifier node resolves to, or null (not an identifier, or unbound).
+  const varOf = node => (node?.type === 'Identifier' ? variableOf(context, node) : null);
+  const addVar = (set, node) => {
+    const variable = varOf(node);
+    if (variable) set.add(variable);
+  };
 
   const isTranslator = callee => {
     if (nameOf(callee) && translators.has(callee.name)) return true;
@@ -114,9 +127,10 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
     return false;
   }
 
-  function bindDateFns(local, imported, subpath) {
+  function bindDateFns(localNode, imported, subpath) {
     const name = imported ?? subpath?.split('/').pop() ?? null;
-    if (name && isFormatName(name)) dateFnsFunctions.set(local, name);
+    const variable = varOf(localNode);
+    if (variable && name && isFormatName(name)) dateFnsFunctions.set(variable, name);
   }
 
   // A format call on a load that is not bound first (r1 H4): `require('date-fns').format(…)`,
@@ -131,7 +145,7 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
       method &&
       NEXT_INTL_FORMAT.has(method) &&
       factory?.type === 'CallExpression' &&
-      formatterFactories.has(nameOf(factory.callee))
+      formatterFactories.has(varOf(factory.callee))
     )
       return `next-intl.${method}`;
     return null;
@@ -140,11 +154,14 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
   // A call of a formatter bound earlier in the file: date-fns functions or namespaces, next-intl
   // formatters or their destructured methods.
   function boundFormat(callee, method) {
-    const name = nameOf(callee);
-    if (name && dateFnsFunctions.has(name)) return `date-fns.${dateFnsFunctions.get(name)}`;
-    if (name && formatterMethods.has(name)) return `next-intl.${formatterMethods.get(name)}`;
+    const variable = varOf(callee);
+    if (variable && dateFnsFunctions.has(variable))
+      return `date-fns.${dateFnsFunctions.get(variable)}`;
+    if (variable && formatterMethods.has(variable))
+      return `next-intl.${formatterMethods.get(variable)}`;
     if (!method) return null;
-    const object = nameOf(callee.object);
+    const object = varOf(callee.object);
+    if (!object) return null;
     if (isFormatName(method) && dateFnsNamespaces.has(object)) return `date-fns.${method}`;
     if (NEXT_INTL_FORMAT.has(method) && formatters.has(object)) return `next-intl.${method}`;
     return null;
@@ -163,16 +180,16 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
   }
 
   function bindDateFnsImport(spec, subpath) {
-    const local = spec.local.name;
-    if (spec.type === 'ImportNamespaceSpecifier') dateFnsNamespaces.add(local);
-    else if (spec.type === 'ImportDefaultSpecifier') bindDateFns(local, null, subpath);
-    else bindDateFns(local, spec.imported.name ?? spec.imported.value);
+    if (spec.type === 'ImportNamespaceSpecifier') addVar(dateFnsNamespaces, spec.local);
+    else if (spec.type === 'ImportDefaultSpecifier') bindDateFns(spec.local, null, subpath);
+    else bindDateFns(spec.local, spec.imported.name ?? spec.imported.value);
   }
 
   function bindNextIntlImport(spec) {
     const local = spec.local.name;
     const imported = spec.imported.name ?? spec.imported.value;
-    if (imported === 'useFormatter' || imported === 'getFormatter') formatterFactories.add(local);
+    if (imported === 'useFormatter' || imported === 'getFormatter')
+      addVar(formatterFactories, spec.local);
     if (imported === 'useTranslations' || imported === 'getTranslations')
       translatorFactories.add(local);
   }
@@ -180,21 +197,21 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
   // `const x = require('date-fns/…')`, `const { format } = require('date-fns')`.
   function bindRequiredDateFns(id, subpath) {
     if (id.type === 'Identifier') {
-      if (subpath) bindDateFns(id.name, null, subpath);
-      else dateFnsNamespaces.add(id.name);
+      if (subpath) bindDateFns(id, null, subpath);
+      else addVar(dateFnsNamespaces, id);
     } else if (id.type === 'ObjectPattern')
       for (const p of id.properties)
         if (p.type === 'Property' && nameOf(p.key) && nameOf(p.value))
-          bindDateFns(p.value.name, p.key.name);
+          bindDateFns(p.value, p.key.name);
   }
 
   // `const format = useFormatter()`, `const { dateTime } = await getFormatter()`.
   function bindFormatter(id) {
-    if (id.type === 'Identifier') formatters.add(id.name);
+    if (id.type === 'Identifier') addVar(formatters, id);
     else if (id.type === 'ObjectPattern')
       for (const p of id.properties)
-        if (p.type === 'Property' && NEXT_INTL_FORMAT.has(nameOf(p.key)) && nameOf(p.value))
-          formatterMethods.set(p.value.name, p.key.name);
+        if (p.type === 'Property' && NEXT_INTL_FORMAT.has(nameOf(p.key)) && varOf(p.value))
+          formatterMethods.set(varOf(p.value), p.key.name);
   }
 
   return {
@@ -218,8 +235,9 @@ export default rule('A screen formats only through the shared helpers (CHK-09)',
         bindRequiredDateFns(node.id, dateFns[1]);
         return;
       }
-      const factory = init?.type === 'CallExpression' ? nameOf(init.callee) : null;
-      if (factory && formatterFactories.has(factory)) bindFormatter(node.id);
+      const callee = init?.type === 'CallExpression' ? init.callee : null;
+      const factory = nameOf(callee);
+      if (callee && formatterFactories.has(varOf(callee))) bindFormatter(node.id);
       if (factory && translatorFactories.has(factory) && node.id.type === 'Identifier')
         translators.add(node.id.name);
     },

@@ -12,7 +12,7 @@ const TEST_DIR_RE = /(?:^|\/)__tests__\//u;
 const isTestPath = rel =>
   TEST_NAME_RE.test(rel.slice(rel.lastIndexOf('/') + 1)) ||
   TEST_DIR_RE.test(rel) ||
-  rel.endsWith('.d.ts');
+  /\.d\.[cm]?ts$/u.test(rel); // a declaration file of any module kind (the WP-05 flip, D-1)
 const SUPPORT_DIRS = new Set([
   'adapters',
   'config',

@@ -42,9 +42,12 @@ export default rule('An import reaches a package only through its exports (CHK-1
 
   function checkPathEdge(resolver, ownDir, edge, key) {
     units.add(`edge:${edge.kind}`);
-    const file = resolver.resolveFile(rel, edge.specifier);
-    const dir = file && resolver.packageDirOf(file);
-    if (dir && dir !== ownDir)
+    // Every file the path can name (the WP-05 flip, D-1), reported once per edge.
+    const dir = resolver
+      .resolveTargets(rel, edge.specifier, edge.kind)
+      .map(file => resolver.packageDirOf(file))
+      .find(found => found && found !== ownDir);
+    if (dir)
       report(context, edge.node, key, `${edge.specifier} reaches into ${dir} past its exports`);
   }
 

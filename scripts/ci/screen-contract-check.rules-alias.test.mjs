@@ -15,9 +15,9 @@ import { has, lacks } from './fixtures/screen-contract-check/rules-fixtures.mjs'
 test('F7: an @/* entry without * is a fixed fallback for every @/ specifier, in order', async t => {
   const root = tree(t, {
     'tsconfig.json':
-      '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["apps/web/src/*", "apps/web/src/fallback.ts"] } }\n}\n',
+      '{\n  "compilerOptions": { "moduleResolution": "bundler", "baseUrl": ".", "paths": { "@/*": ["apps/web/src/*", "apps/web/src/fallback.ts"] } }\n}\n',
     'apps/web/tsconfig.json':
-      '{\n  "compilerOptions": { "paths": { "@/*": ["./src/*", "./src"] } },\n}\n',
+      '{\n  "compilerOptions": { "moduleResolution": "bundler", "paths": { "@/*": ["./src/*", "./src"] } },\n}\n',
     [`${W}/fallback.ts`]: "'use server';\nexport async function fb() {}\n",
     [`${W}/index.ts`]: 'export const ix = 1;\n',
     [`${W}/components/view.tsx`]: 'export const View = () => null;\n',

@@ -17,10 +17,14 @@ export default rule('A screen file does not import the database (CHK-15c)', cont
       units.add('file');
       for (const edge of edgesOfProgram(program, context.sourceCode.visitorKeys)) {
         units.add(`edge:${edge.kind}`);
+        // Every file a relative or `@/` path can name (the WP-05 flip, D-1), reported once.
         const local = ['relative', 'alias'].includes(kindOfSpecifier(edge.specifier))
-          ? resolver.resolveFile(rel, edge.specifier)
-          : null;
-        if (DATABASE_RE.test(edge.specifier) || local?.startsWith('packages/database/'))
+          ? resolver.resolveTargets(rel, edge.specifier, edge.kind)
+          : [];
+        if (
+          DATABASE_RE.test(edge.specifier) ||
+          local.some(file => file.startsWith('packages/database/'))
+        )
           report(
             context,
             edge.node,

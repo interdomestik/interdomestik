@@ -43,6 +43,7 @@ import { judge } from './screen-contract/cli-judge.mjs';
 import {
   BASELINE_PATH,
   SCRIPT_PATH,
+  allEnforcingErrors,
   exitCode,
   selectChecks,
   toolVersions,
@@ -52,14 +53,20 @@ import { assertNoLinks, readInside } from './screen-contract/paths.mjs';
 import { preAdoptionBase, replaySummary, synthesizeInputs } from './screen-contract/replay.mjs';
 
 const DEFAULT_REPORT = 'tmp/screen-contract-check/report.json';
-const FLAGS = new Set(['--enforcing', '--advisory', '--replay']);
+const FLAGS = new Set(['--enforcing', '--advisory', '--replay', '--require-all-enforcing']);
 const OPTIONS = new Set(['--base', '--head', '--check', '--report', '--repo']);
 
 export function parseArgs(argv) {
-  const args = { enforcing: false, replay: false, report: DEFAULT_REPORT };
+  const args = {
+    enforcing: false,
+    replay: false,
+    requireAllEnforcing: false,
+    report: DEFAULT_REPORT,
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
     if (flag === '--replay') args.replay = true;
+    else if (flag === '--require-all-enforcing') args.requireAllEnforcing = true;
     else if (FLAGS.has(flag)) args.enforcing = flag === '--enforcing';
     else if (OPTIONS.has(flag) && typeof argv[i + 1] === 'string' && argv[i + 1] !== '') {
       i += 1;
@@ -68,6 +75,8 @@ export function parseArgs(argv) {
   }
   if (!args.base) throw new ScanError('--base <sha> is required');
   if (args.check && args.enforcing) throw new ScanError('--check and --enforcing are exclusive');
+  if (args.requireAllEnforcing && !args.enforcing)
+    throw new ScanError('--require-all-enforcing needs --enforcing');
   if (args.replay && (!args.head || args.check || args.enforcing))
     throw new ScanError('--replay needs --head and takes neither --check nor --enforcing');
   return args;
@@ -165,6 +174,10 @@ export async function run(argv, cwd = process.cwd()) {
     report.invocation = invocationOf(args);
     const repo = path.resolve(cwd, args.repo ?? '.');
     results = await scan(args, repo, report);
+    if (args.requireAllEnforcing) {
+      const missing = allEnforcingErrors(results);
+      if (missing.length) throw new ScanError(missing.join('; '));
+    }
   } catch (error) {
     report.errors.push(
       error instanceof ScanError ? error.message : `scanner failure: ${error?.stack ?? error}`

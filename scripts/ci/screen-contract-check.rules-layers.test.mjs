@@ -94,9 +94,9 @@ test('CHK-15a: a value edge resolves under the value conditions, a type edge und
 test('CHK-15a: a package caller resolves @/ through the root tsconfig, a web caller through the web one (H7)', async t => {
   const root = tree(t, {
     'tsconfig.json':
-      '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["apps/web/src/*"] } }\n}\n',
+      '{\n  "compilerOptions": { "moduleResolution": "bundler", "baseUrl": ".", "paths": { "@/*": ["apps/web/src/*"] } }\n}\n',
     'apps/web/tsconfig.json':
-      '{\n  // web\n  "compilerOptions": { "paths": { "@/*": ["./src/components/*"] } },\n}\n',
+      '{\n  // web\n  "compilerOptions": { "moduleResolution": "bundler", "paths": { "@/*": ["./src/components/*"] } },\n}\n',
     [`${W}/actions/a.ts`]: "'use server';\nexport async function a() {}\n",
     [`${W}/components/view.tsx`]: 'export const View = () => null;\n',
     // Root mapping: apps/web/src/actions/a (layer 2). The web mapping would name a missing file.
@@ -114,7 +114,11 @@ test('CHK-15a: the root tsconfig and its @/* mapping are required inputs (§5)',
   await assert.rejects(lint(tree(t, { 'tsconfig.json': null })), /tsconfig\.json is missing/u);
   await assert.rejects(lint(tree(t, { 'tsconfig.json': '' })), /tsconfig\.json is empty/u);
   await assert.rejects(
-    lint(tree(t, { 'tsconfig.json': '{ "compilerOptions": { "paths": {} } }' })),
+    lint(
+      tree(t, {
+        'tsconfig.json': '{ "compilerOptions": { "moduleResolution": "bundler", "paths": {} } }',
+      })
+    ),
     /tsconfig\.json has no @\/\* mapping/u
   );
 });
@@ -170,9 +174,9 @@ test('CHK-15a: every @/* mapping is tried in order, the first existing file wins
   const root = tree(t, {
     // The first root mapping names a support directory, the second the web sources.
     'tsconfig.json':
-      '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["apps/web/src/lib/*", "apps/web/src/*"] } }\n}\n',
+      '{\n  "compilerOptions": { "moduleResolution": "bundler", "baseUrl": ".", "paths": { "@/*": ["apps/web/src/lib/*", "apps/web/src/*"] } }\n}\n',
     'apps/web/tsconfig.json':
-      '{\n  "compilerOptions": { "paths": { "@/*": ["./src/lib/*", "./src/*"] } },\n}\n',
+      '{\n  "compilerOptions": { "moduleResolution": "bundler", "paths": { "@/*": ["./src/lib/*", "./src/*"] } },\n}\n',
     [`${W}/actions/only.ts`]: "'use server';\nexport async function only() {}\n",
     [`${W}/actions/both.ts`]: "'use server';\nexport async function both() {}\n",
     [`${W}/lib/actions/both.ts`]: 'export async function both() {}\n',
@@ -197,7 +201,7 @@ test('CHK-15a: an @/* mapping that is empty, or has an entry that is not a strin
   const mappings = ['[]', '["apps/web/src/*", 3]', '["apps/web/src/*/*"]'];
   await Promise.all(
     mappings.map(mapping => {
-      const config = `{ "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ${mapping} } } }`;
+      const config = `{ "compilerOptions": { "moduleResolution": "bundler", "baseUrl": ".", "paths": { "@/*": ${mapping} } } }`;
       return assert.rejects(
         lint(tree(t, { 'tsconfig.json': config })),
         /tsconfig\.json has no usable @\/\* mapping/u,

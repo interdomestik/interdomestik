@@ -166,6 +166,33 @@ export function evaluateCheck(check, scan, { base, head, pairedHead, shas, rebui
   };
 }
 
+// The six checks the flip makes required (the WP-05 flip, D-6; r3-B5): a fixed list, not the
+// scanner's catalogue, so a later scanner that retires one cannot shrink what the pinned workflow
+// demands. Changing it is a scanner change reviewed like any other, and the owner's pin decision.
+export const REQUIRED_CHECKS = Object.freeze([
+  'CHK-15a',
+  'CHK-15b',
+  'CHK-15c',
+  'CHK-09',
+  'CHK-22',
+  'A11Y',
+]);
+
+// The precondition of the pinned required workflow (D-6, r2-B7): every required check has a
+// current result (not a retired one), enforced, with its head settings in `fail` mode and an
+// evaluator digest. Without it, two report-mode baselines select no check and pass, and an
+// authorized removal or a lowered mode would pass with a check absent from the head.
+export function allEnforcingErrors(results) {
+  return REQUIRED_CHECKS.flatMap(id => {
+    const result = results.find(r => r.id === id && !r.retired);
+    if (!result) return [`--require-all-enforcing: ${id} has no result`];
+    const ok = result.enforcing && result.mode?.head === 'fail' && Boolean(result.digest);
+    return ok
+      ? []
+      : [`--require-all-enforcing: ${id} is not enforced with fail-mode head settings`];
+  });
+}
+
 // 2 on any error; 1 when an enforcing check has new, fixed or tamper findings; else 0.
 export function exitCode(results, errors) {
   if (errors.length) return 2;

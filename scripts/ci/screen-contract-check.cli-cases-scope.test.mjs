@@ -93,7 +93,7 @@ test('CLI case 6: @/x follows the root tsconfig for a package and the web one fo
     judgeHead(t, {
       // Root: @/x is packages/database/src/x.ts (layer 4). Web: @/x is apps/web/src/x.ts (layer 1).
       'tsconfig.json':
-        '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["packages/database/src/*"] } }\n}\n',
+        '{\n  "compilerOptions": { "moduleResolution": "bundler", "baseUrl": ".", "paths": { "@/*": ["packages/database/src/*"] } }\n}\n',
       'packages/database/src/x.ts': 'export const x = 4;\n',
       [`${W}/x.ts`]: 'export const x = 1;\n',
       // Layer 3 importing layer 4: allowed. Under the web mapping it would import layer 1.
