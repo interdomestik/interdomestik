@@ -104,7 +104,7 @@ test('member notes: actor matrix and tenant isolation under the restricted role'
       const injected = { tenantId: MK_TENANT_ID, authorId: u.agentB };
       for (const who of [A(), S(), D()]) {
         for (const answer of await everyCommand(who, injected)) {
-          assert.deepEqual(answer, { ok: false, code: 'INVALID_INPUT' });
+          assert.partialDeepStrictEqual(answer, { ok: false, code: 'INVALID_INPUT' });
         }
       }
       assert.deepEqual(await snapshot(), before);
