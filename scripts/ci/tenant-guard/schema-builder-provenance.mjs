@@ -23,7 +23,7 @@ const ARTIFACTS = [
   ],
 ];
 
-export function provenanceProblem(anchor, before, after) {
+export function provenanceProblem(before, after) {
   for (const specifier of REVIEWED_BUILDERS) {
     for (const tree of [before, after]) {
       if (
@@ -43,7 +43,7 @@ export function provenanceProblem(anchor, before, after) {
         return `workspace builder candidate ${specifier}`;
     }
   }
-  return builderArtifactProblem(anchor, before, after);
+  return builderArtifactProblem(after);
 }
 
 const LOCK = 'pnpm-lock.yaml';
@@ -91,21 +91,13 @@ function manifestLoaderFields(file, text) {
   return inputs.length ? JSON.stringify(inputs) : undefined;
 }
 
-function builderInput(tree, file) {
+/** The resolver-relevant projection of one input file (undefined when it projects to nothing). */
+export function builderInput(tree, file) {
   if (isResolverConfig(file)) return tree.resolution.configInputs.get(file);
   const text = tree.inputs.get(file);
   if (file.endsWith('/package.json') || file === 'package.json')
     return manifestLoaderFields(file, text);
   return text;
-}
-
-function changedInput(anchor, after) {
-  for (const file of new Set([...anchor.inputs.keys(), ...after.inputs.keys()])) {
-    if (file === LOCK || anchor.inputs.get(file) === after.inputs.get(file)) continue;
-    if (builderInput(anchor, file) !== builderInput(after, file))
-      return `resolver input changed ${file}`;
-  }
-  return null;
 }
 
 function drizzleImporterEntries(importer) {
@@ -118,7 +110,8 @@ function drizzleImporterEntries(importer) {
   });
 }
 
-function reviewedLockBlocks(text) {
+/** The Drizzle-relevant lock projection: settings, Drizzle importers and Drizzle artifacts. */
+export function reviewedLockBlocks(text) {
   const settings = [];
   const imports = [];
   const artifacts = [];
@@ -150,14 +143,10 @@ function hasReviewedArtifact(blocks, manifest, name, version, integrity) {
   );
 }
 
-function builderArtifactProblem(anchor, before, after) {
-  const change = changedInput(anchor, before) ?? changedInput(anchor, after);
-  if (change) return change;
+// Resolver inputs and the Drizzle lock projection are bound by the reviewed resolver state
+// (rules-resolver-state.mjs), checked on every base and candidate before this proof runs.
+function builderArtifactProblem(after) {
   const current = reviewedLockBlocks(after.inputs.get(LOCK) ?? '');
-  const previous = JSON.stringify(reviewedLockBlocks(anchor.inputs.get(LOCK) ?? ''));
-  const prior = reviewedLockBlocks(before.inputs.get(LOCK) ?? '');
-  if (JSON.stringify(current) !== previous || JSON.stringify(prior) !== previous)
-    return 'unreviewed Drizzle lock resolution';
   const manifest = JSON.parse(after.inputs.get(DB_MANIFEST) ?? '{}');
   for (const [name, version, integrity] of ARTIFACTS) {
     if (!hasReviewedArtifact(current, manifest, name, version, integrity))

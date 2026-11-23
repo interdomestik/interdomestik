@@ -1,20 +1,17 @@
 // Model workspace resolver inputs and bind admitted builders to reviewed artifacts.
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 import { byCodeUnit } from './rules-digest.mjs';
 
-const GIT = '/usr/bin/git';
-
 // Module resolution inputs are candidate data, not guard authority. Every tsconfig/jsconfig in the
 // workspace is parsed as data (never executed) and its `baseUrl` and `paths` become resolution
 // alternatives, so an alias cannot hide a privileged module as an external package. Resolver
-// options the guard does not model are refused, and the JavaScript bundler configuration, which
-// can only be executed, is admitted only unchanged from the trusted tree.
+// options the guard does not model are refused. The JavaScript bundler configuration, which can
+// only be executed, is bound with its local import closure by the reviewed resolver state
+// (bundler-closure.mjs, rules-resolver-state.mjs).
 
 const CONFIG = /^[jt]sconfig(?:\..+)?\.json$/u;
-const BUNDLER_CONFIG = /^next\.config\.[cm]?[jt]s$/u;
 const GENERATED = /(^|\/)(node_modules|dist|build|coverage|test-results|\.next|\.turbo)(\/|$)/u;
 const UNMODELED_OPTIONS = [
   'rootDirs',
@@ -254,35 +251,4 @@ export function workspaceGlobViolations(repoRoot) {
           `workspace globs ${JSON.stringify(globs)} are not ${JSON.stringify(WORKSPACE_GLOBS)}`
         ),
       ];
-}
-
-/** Executable bundler configs (next.config.*) must equal the trusted tree's bytes. */
-export function bundlerConfigViolations(repoRoot, commit) {
-  const violations = [];
-  for (const dir of workspaceDirs(repoRoot)) {
-    for (const name of fs.readdirSync(path.join(repoRoot, dir))) {
-      if (!BUNDLER_CONFIG.test(name)) continue;
-      const file = `${dir}/${name}`;
-      const current = fs.readFileSync(path.join(repoRoot, file));
-      let trusted = null;
-      try {
-        trusted = execFileSync(GIT, ['cat-file', 'blob', `${commit}:${file}`], {
-          cwd: repoRoot,
-          stdio: ['ignore', 'pipe', 'ignore'],
-          maxBuffer: 16 * 1024 * 1024,
-        });
-      } catch {
-        trusted = null;
-      }
-      if (!trusted?.equals(current)) {
-        violations.push(
-          violation(
-            file,
-            'bundler configuration differs from the trusted tree; review and move the pin'
-          )
-        );
-      }
-    }
-  }
-  return violations;
 }

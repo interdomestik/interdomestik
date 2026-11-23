@@ -226,36 +226,3 @@ test('resolution configs are parsed as data; unmodeled options, foreign extends 
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
-
-test('an executable bundler config is admitted only unchanged from the trusted tree', async () => {
-  const fs = await import('node:fs');
-  const os = await import('node:os');
-  const path = await import('node:path');
-  const { execFileSync } = await import('node:child_process');
-  const { bundlerConfigViolations } = await import('./tenant-guard/resolution.mjs');
-  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'tenant-guard-bundler-'));
-  const git = (...args) =>
-    execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@example.com', ...args], {
-      cwd: root,
-      encoding: 'utf8',
-    }).trim();
-  try {
-    fs.mkdirSync(path.join(root, 'apps/web'), { recursive: true });
-    fs.writeFileSync(path.join(root, 'apps/web/next.config.mjs'), 'export default {};\n');
-    git('init', '-q');
-    git('add', '.');
-    git('commit', '-q', '-m', 'trusted');
-    const commit = git('rev-parse', 'HEAD');
-    assert.deepEqual(bundlerConfigViolations(root, commit), []);
-
-    fs.writeFileSync(
-      path.join(root, 'apps/web/next.config.mjs'),
-      "export default { webpack: c => ({ ...c, resolve: { alias: { x: '../../packages/database/src/db.ts' } } }) };\n"
-    );
-    fs.writeFileSync(path.join(root, 'apps/web/next.config.ts'), 'export default {};\n');
-    const changed = bundlerConfigViolations(root, commit).map(violation => violation.file);
-    assert.deepEqual(changed, ['apps/web/next.config.mjs', 'apps/web/next.config.ts']);
-  } finally {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-});
