@@ -1,19 +1,7 @@
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import {
-  A,
-  B,
-  D,
-  DENIED_ROLES,
-  KS,
-  MK,
-  S,
-  actor,
-  at,
-  notesSnapshot,
-  seed,
-} from '../test/member-notes-fixture';
+import { A, DENIED_ROLES, KS, MK, actor, seed } from '../test/member-notes-fixture';
 import { memberNoteActorOf, memberNoteScope } from './access';
 import { sanitizeNoteContent } from './schema';
 

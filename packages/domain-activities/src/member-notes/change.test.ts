@@ -1,19 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { store } from '../test/member-notes-db';
-import {
-  A,
-  B,
-  D,
-  DENIED_ROLES,
-  KS,
-  MK,
-  S,
-  actor,
-  at,
-  notesSnapshot,
-  seed,
-} from '../test/member-notes-fixture';
+import { A, D, S, at, notesSnapshot, seed } from '../test/member-notes-fixture';
 import { deleteMemberNote, toggleMemberNotePin, updateMemberNote } from './change';
 
 // The fake authority registry first, then the in-memory database and its transaction runner.
