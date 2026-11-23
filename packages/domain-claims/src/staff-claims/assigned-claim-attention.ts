@@ -1,6 +1,5 @@
 import {
   and,
-  claimCorrespondence,
   claimInformationRequestEvidence,
   claimInformationRequests,
   claims,
@@ -15,8 +14,6 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { not } from 'drizzle-orm';
-import { hasCorrespondenceReply } from '../claims/correspondence-read';
 import { claimLifecycleStatusNotIn } from '../claims/lifecycle-read-sql';
 import type { ClaimsSession } from '../claims/types';
 
@@ -101,17 +98,26 @@ function readCaseFollowUps(
   staffId: string,
   claimIds: readonly string[]
 ) {
-  const unanswered = sql<Date | null>`(
-    select min(${claimCorrespondence.followUpAt}) from ${claimCorrespondence}
-    where ${and(
-      eq(claimCorrespondence.tenantId, claims.tenantId),
-      eq(claimCorrespondence.claimId, claims.id),
-      eq(claimCorrespondence.direction, 'outbound'),
-      not(hasCorrespondenceReply())
-    )}
-  )`.mapWith(claimCorrespondence.followUpAt);
   return tx
-    .select({ claimId: claims.id, caseDueAt: claims.caseFollowUpAt, outboundDueAt: unanswered })
+    .select({
+      claimId: claims.id,
+      caseDueAt: claims.caseFollowUpAt,
+      // The earliest follow-up of an outbound entry that no inbound reply answers. Outer columns
+      // are written qualified (Drizzle renders interpolated columns unqualified here).
+      outboundDueAt: sql<Date | null>`(
+        select min(outbound.follow_up_at) from "claim_correspondence" as outbound
+        where outbound.tenant_id = "claim"."tenant_id"
+          and outbound.claim_id = "claim"."id"
+          and outbound.direction = 'outbound'
+          and not exists (
+            select 1 from "claim_correspondence" as correspondence_reply
+            where correspondence_reply.tenant_id = outbound.tenant_id
+              and correspondence_reply.claim_id = outbound.claim_id
+              and correspondence_reply.in_reply_to_id = outbound.id
+              and correspondence_reply.direction = 'inbound'
+          )
+      )`.mapWith((value: string | Date) => new Date(value)),
+    })
     .from(claims)
     .where(
       withTenant(

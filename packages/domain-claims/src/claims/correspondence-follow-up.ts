@@ -1,10 +1,10 @@
-import { claimCorrespondence, eq, isNull } from '@interdomestik/database';
+import { and, claimCorrespondence, eq, sql } from '@interdomestik/database';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { z } from 'zod';
 import {
   lockCaseForRegister,
-  registerChildWhere,
   registerClaimInput,
   registerFailure,
   registerForbidden,
@@ -23,21 +23,38 @@ export const setCorrespondenceFollowUpInputSchema = registerClaimInput.extend({
 type FollowUp = z.infer<typeof setCorrespondenceFollowUpInputSchema>;
 
 async function setFollowUp({ tx, tenantId }: LockedRegister, input: FollowUp) {
-  const id = eq(claimCorrespondence.id, input.correspondenceId);
-  const outbound = eq(claimCorrespondence.direction, 'outbound');
   const [entry] = await tx
     .select({ id: claimCorrespondence.id })
     .from(claimCorrespondence)
-    .where(registerChildWhere(claimCorrespondence, tenantId, input.claimId, id, outbound))
+    .where(
+      withTenant(
+        tenantId,
+        claimCorrespondence.tenantId,
+        and(
+          eq(claimCorrespondence.claimId, input.claimId),
+          eq(claimCorrespondence.id, input.correspondenceId),
+          eq(claimCorrespondence.direction, 'outbound')
+        )
+      )
+    )
     .for('update');
   if (!entry) return { ok: false, code: 'invalid_state' } as const;
-  const expected = input.expectedFollowUpAt
-    ? eq(claimCorrespondence.followUpAt, new Date(input.expectedFollowUpAt))
-    : isNull(claimCorrespondence.followUpAt);
+  // The follow-up the editor saw is repeated as the update condition (R-17).
   const [updated] = await tx
     .update(claimCorrespondence)
     .set({ followUpAt: input.followUpAt ? new Date(input.followUpAt) : null })
-    .where(registerChildWhere(claimCorrespondence, tenantId, input.claimId, id, outbound, expected))
+    .where(
+      withTenant(
+        tenantId,
+        claimCorrespondence.tenantId,
+        and(
+          eq(claimCorrespondence.claimId, input.claimId),
+          eq(claimCorrespondence.id, input.correspondenceId),
+          eq(claimCorrespondence.direction, 'outbound'),
+          sql`${claimCorrespondence.followUpAt} is not distinct from ${input.expectedFollowUpAt}::timestamptz`
+        )
+      )
+    )
     .returning({ id: claimCorrespondence.id });
   return updated
     ? ({ ok: true, correspondenceId: updated.id } as const)

@@ -1,6 +1,7 @@
-import { asc, claimAuthorities, eq, inArray, sql } from '@interdomestik/database';
+import { and, asc, claimAuthorities, eq, inArray, sql } from '@interdomestik/database';
 import { z } from 'zod';
-import { registerChildWhere, registerId, type LockedRegister } from './case-register-access';
+import { withTenant } from '@interdomestik/database/tenant-security';
+import { registerId, type LockedRegister } from './case-register-access';
 
 export const caseAuthorityScopes = {
   recovery_agreement: 'recovery',
@@ -76,13 +77,15 @@ export async function lockOutboundAuthorities(
     .select()
     .from(claimAuthorities)
     .where(
-      registerChildWhere(
-        claimAuthorities,
+      withTenant(
         tenantId,
-        claimId,
-        inArray(
-          claimAuthorities.id,
-          bases.map(basis => basis.id)
+        claimAuthorities.tenantId,
+        and(
+          eq(claimAuthorities.claimId, claimId),
+          inArray(
+            claimAuthorities.id,
+            bases.map(basis => basis.id)
+          )
         )
       )
     )
@@ -125,17 +128,20 @@ export async function outboundAuthoritiesAreValid(
   }
   const sharingBasis = rows.find(row => row.id === input.sharingAuthorityId);
   if (input.sharingAuthorityId && !sharingBasis?.purpose?.trim()) return false;
-  const where = registerChildWhere(
-    claimAuthorities,
-    tenantId,
-    input.claimId,
-    eq(claimAuthorities.id, input.representationAuthorityId)
-  );
   const [rule] = await tx
     .select({
       appropriate: sql<boolean>`public.claim_basis_jurisdiction_appropriate(${claimAuthorities.tenantId}, ${claimAuthorities.claimId}, ${claimAuthorities.id})`,
     })
     .from(claimAuthorities)
-    .where(where);
+    .where(
+      withTenant(
+        tenantId,
+        claimAuthorities.tenantId,
+        and(
+          eq(claimAuthorities.claimId, input.claimId),
+          eq(claimAuthorities.id, input.representationAuthorityId)
+        )
+      )
+    );
   return rule?.appropriate === true;
 }

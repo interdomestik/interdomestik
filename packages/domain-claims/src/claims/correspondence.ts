@@ -1,11 +1,16 @@
-import { claimCorrespondence, claimCorrespondenceDocuments, eq } from '@interdomestik/database';
+import {
+  and,
+  claimCorrespondence,
+  claimCorrespondenceDocuments,
+  eq,
+} from '@interdomestik/database';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { z } from 'zod';
 import {
   lockCaseForRegister,
   lockRegisterDocuments,
-  registerChildWhere,
   registerClaimInput,
   registerDecisionTime,
   registerFailure,
@@ -111,11 +116,13 @@ async function replayEntry(
     .select({ documentId: claimCorrespondenceDocuments.claimDocumentId })
     .from(claimCorrespondenceDocuments)
     .where(
-      registerChildWhere(
-        claimCorrespondenceDocuments,
+      withTenant(
         tenantId,
-        input.claimId,
-        eq(claimCorrespondenceDocuments.correspondenceId, row.id)
+        claimCorrespondenceDocuments.tenantId,
+        and(
+          eq(claimCorrespondenceDocuments.claimId, input.claimId),
+          eq(claimCorrespondenceDocuments.correspondenceId, row.id)
+        )
       )
     );
   const requested = new Set(input.sharedDocumentIds);
@@ -125,13 +132,19 @@ async function replayEntry(
 }
 
 async function findCorrelation({ tx, tenantId }: LockedRegister, input: Inbound | Outbound) {
-  const where = registerChildWhere(
-    claimCorrespondence,
-    tenantId,
-    input.claimId,
-    eq(claimCorrespondence.correlationId, input.correlationId)
-  );
-  const [existing] = await tx.select().from(claimCorrespondence).where(where);
+  const [existing] = await tx
+    .select()
+    .from(claimCorrespondence)
+    .where(
+      withTenant(
+        tenantId,
+        claimCorrespondence.tenantId,
+        and(
+          eq(claimCorrespondence.claimId, input.claimId),
+          eq(claimCorrespondence.correlationId, input.correlationId)
+        )
+      )
+    );
   return existing;
 }
 
@@ -221,12 +234,14 @@ async function canReply({ tx, tenantId }: LockedRegister, input: Inbound) {
     .select({ id: claimCorrespondence.id })
     .from(claimCorrespondence)
     .where(
-      registerChildWhere(
-        claimCorrespondence,
+      withTenant(
         tenantId,
-        input.claimId,
-        eq(claimCorrespondence.id, input.inReplyToId),
-        eq(claimCorrespondence.direction, 'outbound')
+        claimCorrespondence.tenantId,
+        and(
+          eq(claimCorrespondence.claimId, input.claimId),
+          eq(claimCorrespondence.id, input.inReplyToId),
+          eq(claimCorrespondence.direction, 'outbound')
+        )
       )
     )
     .for('share');

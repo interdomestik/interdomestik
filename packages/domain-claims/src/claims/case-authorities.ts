@@ -1,4 +1,5 @@
 import {
+  and,
   asc,
   claimAuthorities,
   eq,
@@ -8,11 +9,11 @@ import {
 } from '@interdomestik/database';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { z } from 'zod';
 import {
   lockCaseForRegister,
   lockRegisterDocuments,
-  registerChildWhere,
   registerClaimInput,
   registerDecisionTime,
   registerFailure,
@@ -97,13 +98,19 @@ function replayAuthority(
 
 async function insertAuthority({ tx, tenantId, actorId }: LockedRegister, input: RecordAuthority) {
   const fields = toGrantFields(input);
-  const where = registerChildWhere(
-    claimAuthorities,
-    tenantId,
-    input.claimId,
-    eq(claimAuthorities.correlationId, input.correlationId)
-  );
-  const [existing] = await tx.select().from(claimAuthorities).where(where);
+  const [existing] = await tx
+    .select()
+    .from(claimAuthorities)
+    .where(
+      withTenant(
+        tenantId,
+        claimAuthorities.tenantId,
+        and(
+          eq(claimAuthorities.claimId, input.claimId),
+          eq(claimAuthorities.correlationId, input.correlationId)
+        )
+      )
+    );
   if (existing) return replayAuthority(existing, fields, actorId);
 
   const documents = await lockRegisterDocuments(tx, tenantId, input.claimId, [
@@ -131,7 +138,19 @@ async function insertAuthority({ tx, tenantId, actorId }: LockedRegister, input:
     .onConflictDoNothing({ target: [claimAuthorities.tenantId, claimAuthorities.correlationId] })
     .returning({ id: claimAuthorities.id });
   if (created) return { ok: true, authorityId: created.id } as const;
-  const [concurrent] = await tx.select().from(claimAuthorities).where(where);
+  const [concurrent] = await tx
+    .select()
+    .from(claimAuthorities)
+    .where(
+      withTenant(
+        tenantId,
+        claimAuthorities.tenantId,
+        and(
+          eq(claimAuthorities.claimId, input.claimId),
+          eq(claimAuthorities.correlationId, input.correlationId)
+        )
+      )
+    );
   return replayAuthority(concurrent, fields, actorId);
 }
 
@@ -154,16 +173,16 @@ export async function recordCaseAuthority(
 }
 
 async function revokeAuthority({ tx, tenantId, actorId }: LockedRegister, input: RevokeAuthority) {
-  const where = registerChildWhere(
-    claimAuthorities,
-    tenantId,
-    input.claimId,
-    eq(claimAuthorities.id, input.authorityId)
-  );
   const [existing] = await tx
     .select({ id: claimAuthorities.id, revokedBy: claimAuthorities.revokedByUserId })
     .from(claimAuthorities)
-    .where(where)
+    .where(
+      withTenant(
+        tenantId,
+        claimAuthorities.tenantId,
+        and(eq(claimAuthorities.claimId, input.claimId), eq(claimAuthorities.id, input.authorityId))
+      )
+    )
     .for('update');
   if (!existing) return { ok: false, code: 'authority_invalid' } as const;
   if (existing.revokedBy === actorId) return { ok: true, authorityId: existing.id } as const;
@@ -175,12 +194,14 @@ async function revokeAuthority({ tx, tenantId, actorId }: LockedRegister, input:
       revokedByUserId: actorId,
     })
     .where(
-      registerChildWhere(
-        claimAuthorities,
+      withTenant(
         tenantId,
-        input.claimId,
-        eq(claimAuthorities.id, input.authorityId),
-        isNull(claimAuthorities.revokedAt)
+        claimAuthorities.tenantId,
+        and(
+          eq(claimAuthorities.claimId, input.claimId),
+          eq(claimAuthorities.id, input.authorityId),
+          isNull(claimAuthorities.revokedAt)
+        )
       )
     )
     .returning({ id: claimAuthorities.id });
@@ -227,7 +248,9 @@ async function readAuthorities(tx: TenantTransaction, tenantId: string, claimId:
       createdAt: claimAuthorities.createdAt,
     })
     .from(claimAuthorities)
-    .where(registerChildWhere(claimAuthorities, tenantId, claimId))
+    .where(
+      withTenant(tenantId, claimAuthorities.tenantId, and(eq(claimAuthorities.claimId, claimId)))
+    )
     .orderBy(asc(claimAuthorities.createdAt), asc(claimAuthorities.id));
   return {
     authorities: rows.map(row => ({

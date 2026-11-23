@@ -1,4 +1,5 @@
 import {
+  and,
   asc,
   claimDocuments,
   claims,
@@ -14,8 +15,6 @@ import {
   type TenantAuthorityPrincipal,
 } from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { and, type SQL } from 'drizzle-orm';
-import type { PgColumn } from 'drizzle-orm/pg-core';
 import { ROLES } from '@interdomestik/shared-auth';
 import { z } from 'zod';
 import { buildStaffClaimReadScope } from '../staff-claims/scope';
@@ -186,17 +185,6 @@ export function registerFailure(error: unknown): RegisterDenied {
   throw error;
 }
 
-type RegisterChild = { tenantId: PgColumn; claimId: PgColumn };
-
-export function registerChildWhere(
-  table: RegisterChild,
-  tenantId: string,
-  claimId: string,
-  ...extra: SQL[]
-) {
-  return withTenant(tenantId, table.tenantId, and(eq(table.claimId, claimId), ...extra));
-}
-
 export async function lockRegisterDocuments(
   tx: TenantTransaction,
   tenantId: string,
@@ -204,12 +192,6 @@ export async function lockRegisterDocuments(
   ids: readonly string[]
 ) {
   if (ids.length === 0) return [];
-  const where = registerChildWhere(
-    claimDocuments,
-    tenantId,
-    claimId,
-    inArray(claimDocuments.id, ids)
-  );
   const rows = await tx
     .select({
       id: claimDocuments.id,
@@ -218,7 +200,13 @@ export async function lockRegisterDocuments(
       citationRef: claimDocuments.citationRef,
     })
     .from(claimDocuments)
-    .where(where)
+    .where(
+      withTenant(
+        tenantId,
+        claimDocuments.tenantId,
+        and(eq(claimDocuments.claimId, claimId), inArray(claimDocuments.id, ids))
+      )
+    )
     .orderBy(asc(claimDocuments.id))
     .for('share');
   if (rows.length !== ids.length) return null;
@@ -227,7 +215,13 @@ export async function lockRegisterDocuments(
       eligible: sql<boolean>`bool_and(public.claim_document_provenance_ok(${claimDocuments.tenantId}, ${claimDocuments.claimId}, ${claimDocuments.id}))`,
     })
     .from(claimDocuments)
-    .where(where);
+    .where(
+      withTenant(
+        tenantId,
+        claimDocuments.tenantId,
+        and(eq(claimDocuments.claimId, claimId), inArray(claimDocuments.id, ids))
+      )
+    );
   return eligible ? rows : null;
 }
 

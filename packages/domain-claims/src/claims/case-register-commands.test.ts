@@ -236,7 +236,10 @@ describe('correspondence decisions', () => {
     expect(queryWhere(1).params).toEqual([tenantId, claimId, ids.outbound, 'outbound']);
     db.results = [admitted, [{ id: ids.outbound }], []];
     expect(await setCorrespondenceFollowUp(session, authority, followUpInput)).toEqual(conflict);
-    expect(queryWhere(4).sql).toContain('"claim_correspondence"."follow_up_at" is null');
+    expect(queryWhere(4).sql).toContain(
+      '"claim_correspondence"."follow_up_at" is not distinct from $5::timestamptz'
+    );
+    expect(queryWhere(4).params).toEqual([tenantId, claimId, ids.outbound, 'outbound', null]);
   });
 
   it('leaves date alerting to the read and suppresses the replied and inbound entries', async () => {

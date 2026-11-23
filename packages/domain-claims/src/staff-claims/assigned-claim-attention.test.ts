@@ -63,11 +63,6 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
     mocks.and(mocks.eq(column, tenantId), condition),
 }));
 
-vi.mock('../claims/correspondence-read', async () => {
-  const { sql } = await import('drizzle-orm');
-  return { hasCorrespondenceReply: () => sql`answered` };
-});
-
 import {
   deriveAssignedClaimAttention,
   getAssignedStaffClaimAttention,

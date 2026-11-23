@@ -8,11 +8,10 @@ import {
 } from '@interdomestik/database';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { alias } from 'drizzle-orm/pg-core';
+import { withTenant } from '@interdomestik/database/tenant-security';
 import { sql } from 'drizzle-orm';
 import {
   lockCaseForRegister,
-  registerChildWhere,
   registerClaimInput,
   registerForbidden,
   resolveRegisterRead,
@@ -21,20 +20,6 @@ import type { ClaimsSession } from './types';
 
 export const listClaimCorrespondenceInputSchema = registerClaimInput;
 export const getClaimCorrespondenceSummaryInputSchema = registerClaimInput;
-
-const reply = alias(claimCorrespondence, 'correspondence_reply');
-
-export function hasCorrespondenceReply() {
-  return sql<boolean>`exists (
-    select 1 from ${claimCorrespondence} as ${sql.identifier('correspondence_reply')}
-    where ${and(
-      eq(reply.tenantId, claimCorrespondence.tenantId),
-      eq(reply.claimId, claimCorrespondence.claimId),
-      eq(reply.inReplyToId, claimCorrespondence.id),
-      eq(reply.direction, 'inbound')
-    )}
-  )`;
-}
 
 function groupDocumentIds(links: { correspondenceId: string; documentId: string }[]) {
   const byEntry = new Map<string, string[]>();
@@ -68,10 +53,24 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, claim
       decidedAt: claimCorrespondence.decidedAt,
       recordedByStaffId: claimCorrespondence.recordedByStaffId,
       createdAt: claimCorrespondence.createdAt,
-      answered: hasCorrespondenceReply(),
+      // Outer columns are written qualified: Drizzle renders an interpolated column of a
+      // single-table select unqualified, which the subquery would resolve to its own table.
+      answered: sql<boolean>`exists (
+        select 1 from "claim_correspondence" as correspondence_reply
+        where correspondence_reply.tenant_id = "claim_correspondence"."tenant_id"
+          and correspondence_reply.claim_id = "claim_correspondence"."claim_id"
+          and correspondence_reply.in_reply_to_id = "claim_correspondence"."id"
+          and correspondence_reply.direction = 'inbound'
+      )`,
     })
     .from(claimCorrespondence)
-    .where(registerChildWhere(claimCorrespondence, tenantId, claimId))
+    .where(
+      withTenant(
+        tenantId,
+        claimCorrespondence.tenantId,
+        and(eq(claimCorrespondence.claimId, claimId))
+      )
+    )
     .orderBy(asc(claimCorrespondence.occurredAt), asc(claimCorrespondence.id));
   const links = await tx
     .select({
@@ -79,7 +78,13 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, claim
       documentId: claimCorrespondenceDocuments.claimDocumentId,
     })
     .from(claimCorrespondenceDocuments)
-    .where(registerChildWhere(claimCorrespondenceDocuments, tenantId, claimId))
+    .where(
+      withTenant(
+        tenantId,
+        claimCorrespondenceDocuments.tenantId,
+        and(eq(claimCorrespondenceDocuments.claimId, claimId))
+      )
+    )
     .orderBy(asc(claimCorrespondenceDocuments.claimDocumentId));
   const byEntry = groupDocumentIds(links);
   const now = Date.now();
@@ -125,7 +130,13 @@ async function readSummary(tx: TenantTransaction, tenantId: string, claimId: str
   const rows = await tx
     .select({ occurredAt: claimCorrespondence.occurredAt })
     .from(claimCorrespondence)
-    .where(registerChildWhere(claimCorrespondence, tenantId, claimId))
+    .where(
+      withTenant(
+        tenantId,
+        claimCorrespondence.tenantId,
+        and(eq(claimCorrespondence.claimId, claimId))
+      )
+    )
     .orderBy(asc(claimCorrespondence.occurredAt));
   return { summary: { total: rows.length, dates: rows.map(row => row.occurredAt.toISOString()) } };
 }
