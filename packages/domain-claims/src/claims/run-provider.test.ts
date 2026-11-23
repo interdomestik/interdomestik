@@ -12,7 +12,12 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   withTenantAuthority: mocks.withAuthority,
 }));
 vi.mock('./prepare-notification-delivery', () => ({ prepareNotificationDelivery: mocks.prepare }));
-vi.mock('nodemailer', () => ({ createTransport: () => ({ sendMail: mocks.sendMail }) }));
+// domain-communications owns the nodemailer dependency and its email transport imports nodemailer's
+// ESM entry; the mock targets that exact module. If an upgrade moves the entry, the mock no longer
+// binds and the sendMail assertion below fails.
+vi.mock('../../../domain-communications/node_modules/nodemailer/dist/esm/nodemailer.js', () => ({
+  createTransport: () => ({ sendMail: mocks.sendMail }),
+}));
 
 afterEach(() => {
   vi.unstubAllEnvs();
