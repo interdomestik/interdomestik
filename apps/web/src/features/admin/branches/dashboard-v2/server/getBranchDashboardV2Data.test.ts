@@ -92,6 +92,27 @@ describe('getBranchDashboardV2Data branch-manager guard', () => {
   );
 });
 
+describe('getBranchDashboardV2Data role allow-list', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  // Only the admin-portal roles (admin, super_admin, tenant_admin, branch_manager) pass; every
+  // other role, a missing role included, is refused before any scope or tenant read.
+  it.each(['member', 'user', 'agent', 'staff', 'promoter', 'auditor', 'global_support', ''])(
+    'refuses role %j before any tenant read',
+    async role => {
+      authorizeAs({ role, tenantId: 'tenant-a', branchId: 'branch-a' });
+
+      await expect(getBranchDashboardV2Data('branch-a')).resolves.toBeNull();
+      expect(hoisted.scopeFilterMock).not.toHaveBeenCalled();
+      expect(hoisted.delegateBranchOwnerMock).not.toHaveBeenCalled();
+      expect(hoisted.withTenantContextMock).not.toHaveBeenCalled();
+      expect(hoisted.branchFindFirstMock).not.toHaveBeenCalled();
+    }
+  );
+});
+
 describe('getBranchDashboardV2Data tenant scoping', () => {
   const branch = { id: 'branch-id-1', name: 'Branch One', code: 'b1', isActive: true };
 
@@ -178,6 +199,24 @@ describe('getBranchDashboardV2Data tenant scoping', () => {
     const contexts = hoisted.withTenantContextMock.mock.calls.map(call => call[0]);
     expect(contexts.every(ctx => ctx === sessionAuthority)).toBe(true);
     expect(contexts.every(ctx => tenantOf(ctx) === 'tenant-session')).toBe(true);
+  });
+
+  it('binds a branch manager to its assigned branch id, never a branch code', async () => {
+    authorizeAs({ role: 'branch_manager', branchId: 'branch-id-1', tenantId: 'tenant-session' });
+    hoisted.scopeFilterMock.mockReturnValue({
+      tenantId: 'tenant-session',
+      isCrossTenantScope: false,
+    });
+
+    const data = await getBranchDashboardV2Data('branch-id-1');
+
+    expect(data?.branch.id).toBe('branch-id-1');
+    const { where } = hoisted.branchFindFirstMock.mock.calls[0][0];
+    const compiled = compile(where);
+    // The manager's assignment names one row: tenant plus id, no id-or-code match.
+    expect(compiled.sql).not.toContain(' or ');
+    expect(compiled.sql).not.toContain('"code"');
+    expect(compiled.params).toEqual(['tenant-session', 'branch-id-1']);
   });
 
   it('returns null when the branch is not found inside the tenant context', async () => {

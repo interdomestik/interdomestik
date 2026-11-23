@@ -1,245 +1,214 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({
-  and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
-  execute: vi.fn(),
-  withTenantContext: vi.fn(),
-  findAssignment: vi.fn(),
-  findMember: vi.fn(),
-  findMany: vi.fn(),
-  eq: vi.fn((...args: unknown[]) => ({ op: 'eq', left: args[0], right: args[1] })),
+import { createFakeTx, equalities, type FakeRows } from './test/activity-tx';
+
+const mocks = vi.hoisted(() => ({ withTenantAuthority: vi.fn(), execute: vi.fn() }));
+const { execute } = mocks;
+
+// The probe double is hoisted: vi.resetModules() re-creates the support module between tests.
+vi.mock('@interdomestik/database', async () => ({
+  ...(await import('./test/activity-tx')).databaseMock,
+  db: { execute: (...args: unknown[]) => mocks.execute(...args) },
+}));
+vi.mock('drizzle-orm', async () => (await import('./test/activity-tx')).drizzleMock);
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: (...args: unknown[]) => mocks.withTenantAuthority(...args),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  and: (...args: unknown[]) => mocks.and(...args),
-  withTenantContext: (ctx: unknown, cb: (tx: unknown) => unknown) => {
-    mocks.withTenantContext(ctx);
-    return cb({
-      query: {
-        agentClients: {
-          findFirst: (...args: unknown[]) => mocks.findAssignment(...args),
-        },
-        user: {
-          findFirst: (...args: unknown[]) => mocks.findMember(...args),
-        },
-        memberActivities: {
-          findMany: (...args: unknown[]) => mocks.findMany(...args),
-        },
-      },
-    });
-  },
-  db: {
-    execute: (...args: unknown[]) => mocks.execute(...args),
-    query: {
-      agentClients: {
-        findFirst: (...args: unknown[]) => mocks.findAssignment(...args),
-      },
-      user: {
-        findFirst: (...args: unknown[]) => mocks.findMember(...args),
-      },
-      memberActivities: {
-        findMany: (...args: unknown[]) => mocks.findMany(...args),
-      },
-    },
-  },
-  // Minimal shape for query builder inputs
-  agentClients: {
-    id: 'agentClients.id',
-    tenantId: 'agentClients.tenantId',
-    agentId: 'agentClients.agentId',
-    memberId: 'agentClients.memberId',
-    status: 'agentClients.status',
-  },
-  desc: (x: unknown) => x,
-  eq: (...args: unknown[]) => mocks.eq(...args),
-  memberActivities: {
-    memberId: 'memberActivities.memberId',
-    tenantId: 'memberActivities.tenantId',
-    occurredAt: 'memberActivities.occurredAt',
-  },
-  user: {
-    id: 'user.id',
-    tenantId: 'user.tenantId',
-  },
-}));
-
-// The core is re-imported after vi.resetModules(), so the authority is minted in the same module
-// registry the core reads it from.
+// The core caches a confirmed probe answer, so each test re-imports it after vi.resetModules();
+// the authority is minted in the same module registry the core reads it from.
 async function loadCore() {
   const [{ getMemberActivitiesCore }, { mintTestTenantAuthority }] = await Promise.all([
     import('./get-member'),
     import('@interdomestik/database/testing/tenant-authority'),
   ]);
-  return { getMemberActivitiesCore, authority: mintTestTenantAuthority('tenant-1') };
+  const actorAs = (role: string, id = 'actor-1') => ({
+    session: { user: { id, role, tenantId: 'tenant-1' } },
+    authority: mintTestTenantAuthority('tenant-1', { userId: id, role }),
+  });
+  return { getMemberActivitiesCore, actorAs };
 }
+
+function useTx(rows: FakeRows) {
+  const fake = createFakeTx(rows);
+  mocks.withTenantAuthority.mockImplementation(
+    (_authority: unknown, callback: (tx: unknown) => unknown) => Promise.resolve(callback(fake.tx))
+  );
+  return fake;
+}
+
+const TABLE_PRESENT = [{ regclass: 'member_activities' }];
+const FEED = { memberActivities: [{ id: 'a1' }] };
 
 describe('getMemberActivitiesCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     vi.resetModules();
-    mocks.findMember.mockResolvedValue({
-      id: 'member-1',
-      tenantId: 'tenant-1',
-      agentId: 'agent-1',
-    });
-    mocks.findAssignment.mockResolvedValue(null);
+    execute.mockResolvedValue(TABLE_PRESENT);
   });
 
-  it('returns [] without querying when member_activities table is absent', async () => {
-    mocks.execute.mockResolvedValue([{ regclass: null }]);
-
-    const { getMemberActivitiesCore, authority } = await loadCore();
+  it('returns [] without a tenant read when the member_activities table is confirmed absent', async () => {
+    execute.mockResolvedValue([{ regclass: null }]);
+    const { getMemberActivitiesCore, actorAs } = await loadCore();
 
     const result = await getMemberActivitiesCore({
-      session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } },
-      authority,
+      ...actorAs('agent', 'agent-1'),
       memberId: 'member-1',
     });
 
     expect(result).toEqual([]);
-    expect(mocks.findMany).not.toHaveBeenCalled();
+    expect(mocks.withTenantAuthority).not.toHaveBeenCalled();
   });
 
-  it('queries tenant-scoped activities for the assigned agent', async () => {
-    mocks.execute.mockResolvedValue([{ regclass: 'member_activities' }]);
-    mocks.findMany.mockResolvedValue([{ id: 'a1' }]);
-
-    const { getMemberActivitiesCore, authority } = await loadCore();
-
-    const result = await getMemberActivitiesCore({
-      session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } },
-      authority,
-      memberId: 'member-1',
+  it('reads tenant-scoped activities for an agent with an active assignment, both rows locked', async () => {
+    const fake = useTx({
+      locked: { user: [{ agentId: 'legacy-agent' }], agentClients: [{ id: 'assignment-1' }] },
+      feed: FEED,
     });
+    const { getMemberActivitiesCore, actorAs } = await loadCore();
+    const actor = actorAs('agent', 'agent-1');
 
-    expect(mocks.findMany).toHaveBeenCalled();
-    expect(mocks.withTenantContext).toHaveBeenCalledWith(authority);
-    expect(mocks.findMany).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          op: 'and',
-          args: expect.arrayContaining([
-            expect.objectContaining({
-              op: 'eq',
-              left: 'memberActivities.memberId',
-              right: 'member-1',
-            }),
-            expect.objectContaining({
-              op: 'eq',
-              left: 'memberActivities.tenantId',
-              right: 'tenant-1',
-            }),
-          ]),
-        }),
-      })
-    );
+    const result = await getMemberActivitiesCore({ ...actor, memberId: 'member-1' });
+
     expect(result).toEqual([{ id: 'a1' }]);
+    expect(mocks.withTenantAuthority).toHaveBeenCalledTimes(1);
+    expect(mocks.withTenantAuthority.mock.calls[0][0]).toBe(actor.authority);
+    expect(fake.lockedReads.map(read => [read.table, read.lock])).toEqual([
+      ['user', 'share'],
+      ['agentClients', 'share'],
+    ]);
+    expect(equalities(fake.lockedReads[0].where)).toEqual({
+      'user.id': 'member-1',
+      'user.tenantId': 'tenant-1',
+    });
+    expect(equalities(fake.lockedReads[1].where)).toEqual({
+      'agentClients.tenantId': 'tenant-1',
+      'agentClients.agentId': 'agent-1',
+      'agentClients.memberId': 'member-1',
+      'agentClients.status': 'active',
+    });
+    expect(equalities(fake.feedReads[0].args.where)).toEqual({
+      'memberActivities.memberId': 'member-1',
+      'memberActivities.tenantId': 'tenant-1',
+    });
   });
 
-  it('denies unassigned agent reads before querying activities', async () => {
-    mocks.execute.mockResolvedValue([{ regclass: 'member_activities' }]);
-    mocks.findMember.mockResolvedValue({
-      id: 'member-1',
-      tenantId: 'tenant-1',
-      agentId: 'agent-2',
-    });
+  // The referring agent (user.agentId) is not an admission: only the active assignment is.
+  // After the assignment moves to another agent, the referrer has no active row and is refused.
+  it('refuses the referring agent without an active assignment, without reading activities', async () => {
+    const fake = useTx({ locked: { user: [{ agentId: 'agent-1' }] }, feed: FEED });
+    const { getMemberActivitiesCore, actorAs } = await loadCore();
 
-    const { getMemberActivitiesCore, authority } = await loadCore();
+    await expect(
+      getMemberActivitiesCore({ ...actorAs('agent', 'agent-1'), memberId: 'member-1' })
+    ).rejects.toThrow('Permission denied');
+    expect(fake.lockedReads.map(read => [read.table, read.lock])).toEqual([
+      ['user', 'share'],
+      ['agentClients', 'share'],
+    ]);
+    expect(equalities(fake.lockedReads[1].where)).toMatchObject({
+      'agentClients.agentId': 'agent-1',
+      'agentClients.status': 'active',
+    });
+    expect(fake.feedReads).toEqual([]);
+  });
+
+  it('denies an unassigned agent without reading activities', async () => {
+    const fake = useTx({ locked: { user: [{ agentId: 'agent-2' }] }, feed: FEED });
+    const { getMemberActivitiesCore, actorAs } = await loadCore();
+
+    await expect(
+      getMemberActivitiesCore({ ...actorAs('agent', 'agent-1'), memberId: 'member-1' })
+    ).rejects.toThrow('Permission denied');
+    expect(fake.feedReads).toEqual([]);
+  });
+
+  it('denies a member that is not in the tenant without reading activities', async () => {
+    const fake = useTx({ feed: FEED });
+    const { getMemberActivitiesCore, actorAs } = await loadCore();
+
+    await expect(
+      getMemberActivitiesCore({ ...actorAs('staff', 'staff-1'), memberId: 'member-mk' })
+    ).rejects.toThrow('Permission denied');
+    expect(fake.feedReads).toEqual([]);
+  });
+
+  it('propagates a failure of the access check instead of answering with no activities', async () => {
+    const failure = new Error('lookup failed');
+    mocks.withTenantAuthority.mockRejectedValue(failure);
+    const { getMemberActivitiesCore, actorAs } = await loadCore();
+
+    await expect(
+      getMemberActivitiesCore({ ...actorAs('agent', 'agent-1'), memberId: 'member-1' })
+    ).rejects.toBe(failure);
+  });
+
+  it.each(['member', 'user'])(
+    'lets a %s read its own activities without a member lookup',
+    async role => {
+      const fake = useTx({ feed: FEED });
+      const { getMemberActivitiesCore, actorAs } = await loadCore();
+
+      const result = await getMemberActivitiesCore({
+        ...actorAs(role, 'member-1'),
+        memberId: 'member-1',
+      });
+
+      expect(result).toEqual([{ id: 'a1' }]);
+      expect(fake.lockedReads).toEqual([]);
+    }
+  );
+
+  it.each(['member', 'user'])(
+    "refuses a %s reading another member's activities before any read",
+    async role => {
+      const { getMemberActivitiesCore, actorAs } = await loadCore();
+
+      await expect(
+        getMemberActivitiesCore({ ...actorAs(role, 'member-2'), memberId: 'member-1' })
+      ).rejects.toThrow('Permission denied');
+      expect(execute).not.toHaveBeenCalled();
+      expect(mocks.withTenantAuthority).not.toHaveBeenCalled();
+    }
+  );
+
+  it.each(['branch_manager', 'promoter', 'auditor', 'global_support', 'unknown_role'])(
+    'refuses role %j before the table probe or any read',
+    async role => {
+      const { getMemberActivitiesCore, actorAs } = await loadCore();
+
+      await expect(
+        getMemberActivitiesCore({ ...actorAs(role), memberId: 'member-1' })
+      ).rejects.toThrow('Permission denied');
+      expect(execute).not.toHaveBeenCalled();
+      expect(mocks.withTenantAuthority).not.toHaveBeenCalled();
+    }
+  );
+
+  it('refuses a session that names another user than the authority principal', async () => {
+    const { getMemberActivitiesCore, actorAs } = await loadCore();
+    const { authority } = actorAs('staff', 'staff-2');
 
     await expect(
       getMemberActivitiesCore({
-        session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } },
+        session: { user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' } },
         authority,
         memberId: 'member-1',
       })
-    ).rejects.toThrow('Permission denied');
-
-    expect(mocks.findMany).not.toHaveBeenCalled();
+    ).rejects.toThrow('Unauthorized');
+    expect(execute).not.toHaveBeenCalled();
   });
 
-  it('allows active agent-client assignments when user.agentId is not mirrored', async () => {
-    mocks.execute.mockResolvedValue([{ regclass: 'member_activities' }]);
-    mocks.findMember.mockResolvedValue({
-      id: 'member-1',
-      tenantId: 'tenant-1',
-      agentId: 'legacy-agent',
-    });
-    mocks.findAssignment.mockResolvedValue({
-      id: 'assignment-1',
-    });
-    mocks.findMany.mockResolvedValue([{ id: 'a1' }]);
+  it.each(['staff', 'admin', 'tenant_admin', 'super_admin'])(
+    'lets %s read a member of its tenant without an agent assignment',
+    async role => {
+      const fake = useTx({ locked: { user: [{ agentId: 'someone' }] }, feed: FEED });
+      const { getMemberActivitiesCore, actorAs } = await loadCore();
 
-    const { getMemberActivitiesCore, authority } = await loadCore();
+      const result = await getMemberActivitiesCore({ ...actorAs(role), memberId: 'member-1' });
 
-    const result = await getMemberActivitiesCore({
-      session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } },
-      authority,
-      memberId: 'member-1',
-    });
-
-    expect(result).toEqual([{ id: 'a1' }]);
-    expect(mocks.findAssignment).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: expect.objectContaining({
-          op: 'and',
-          args: expect.arrayContaining([
-            expect.objectContaining({
-              op: 'eq',
-              left: 'agentClients.tenantId',
-              right: 'tenant-1',
-            }),
-            expect.objectContaining({
-              op: 'eq',
-              left: 'agentClients.agentId',
-              right: 'agent-1',
-            }),
-            expect.objectContaining({
-              op: 'eq',
-              left: 'agentClients.memberId',
-              right: 'member-1',
-            }),
-            expect.objectContaining({
-              op: 'eq',
-              left: 'agentClients.status',
-              right: 'active',
-            }),
-          ]),
-        }),
-      })
-    );
-  });
-
-  it('skips member lookup for self-service member reads', async () => {
-    mocks.execute.mockResolvedValue([{ regclass: 'member_activities' }]);
-    mocks.findMany.mockResolvedValue([{ id: 'a1' }]);
-
-    const { getMemberActivitiesCore, authority } = await loadCore();
-
-    const result = await getMemberActivitiesCore({
-      session: { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
-      authority,
-      memberId: 'member-1',
-    });
-
-    expect(result).toEqual([{ id: 'a1' }]);
-    expect(mocks.findMember).not.toHaveBeenCalled();
-    expect(mocks.findAssignment).not.toHaveBeenCalled();
-  });
-
-  it('denies cross-tenant reads before querying activities', async () => {
-    mocks.execute.mockResolvedValue([{ regclass: 'member_activities' }]);
-    mocks.findMember.mockResolvedValue(null);
-
-    const { getMemberActivitiesCore, authority } = await loadCore();
-
-    await expect(
-      getMemberActivitiesCore({
-        session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } },
-        authority,
-        memberId: 'member-1',
-      })
-    ).rejects.toThrow('Permission denied');
-
-    expect(mocks.findMany).not.toHaveBeenCalled();
-  });
+      expect(result).toEqual([{ id: 'a1' }]);
+      expect(fake.lockedReads.map(read => read.table)).toEqual(['user']);
+    }
+  );
 });
