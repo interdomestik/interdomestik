@@ -8,6 +8,9 @@ vi.mock('@interdomestik/database/tenant-security', async () =>
   (await import('./submit-test-support')).tenantSecurityModuleMock()
 );
 vi.mock('drizzle-orm', async () => (await import('./submit-test-support')).drizzleModuleMock());
+vi.mock('@interdomestik/database/claim-evidence-object-lock', async () => ({
+  lockClaimEvidenceObjects: (await import('./submit-test-support')).lockClaimEvidenceObjectsMock,
+}));
 vi.mock('@interdomestik/database/claim-number', async () => ({
   generateClaimNumber: (await import('./submit-test-support')).generateClaimNumberMock,
 }));
