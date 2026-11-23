@@ -5,6 +5,13 @@ import { execFileSync } from 'node:child_process';
 import test from 'node:test';
 import { tmp } from './db-access-required-git.mjs';
 import { KERNEL_ANCHOR, LEGACY, LEGACY_PINS } from './tenant-guard/manifest.mjs';
+import {
+  ACQ_TUPLE,
+  CURRENT_TUPLE,
+  PRE_CUTOVER_V2,
+  WP_SUCCESSOR,
+  recordFor,
+} from './tenant-guard-schema-test-support.mjs';
 import { kernelAnchorPins } from './tenant-guard/rules-schema-admission.mjs';
 import { evaluate } from './tenant-guard/rules.mjs';
 import { readSchemaTree, schemaTreeFromBlobs, trustedSources } from './tenant-guard/sources.mjs';
@@ -31,35 +38,6 @@ const ACQ_NEW = ref('51739130e');
 const WP_OLD = ref('faff03119');
 const WP_NEW = ref('1b592d7eb');
 const PRE_CUTOVER = ref('44033ca8c');
-const CURRENT_TUPLE = [
-  'd5a48cd0122819d13b21c018aa2728d7f675de0d2306b379fbc21330ffe7b5d9',
-  '7a219887513dba5ff0b88241b9926b13c010d51ceaee7a020e4ab1f8dfb2d988',
-  '3cbacb145c83aa637e232999b07dd4f10131ba23dec5dc62282c8f5e0a1ad671',
-];
-const ACQ_TUPLE = [
-  [
-    '97650c0c5409095be3aedf0c68ecd4bde4bb898a9264b892f2d61a6bff691e37',
-    '92e239c86942fe9c17d22826b9e0c64ed0e132f2e57d1408e26289988ccc16eb',
-  ],
-  [
-    '0a9dacf96cfdce1a57a728efee7b3a723802f8cc5fd8a8c6346eabea33597f8f',
-    '40c646fcae0b203d0337dbb0e5ceb46091f2403cf9f89f6065878d4c504c76e7',
-  ],
-  [
-    'f6030648819e130f965138672b666c115e78791f5997a6395069e7adcbda8d92',
-    '93c5c961056320a272ed82e9e5cc8822715a76ce4b79bc53e8d7ab7f14fb74df',
-  ],
-];
-const WP_SUCCESSOR = [
-  '1d75e1be9ef39be8b7e1fd522f5f62d5e34479a67d2b61af5d6c0d9985ff5c60',
-  '692e1867c412c7d42112590cbea6a94d11a6e8d0a0832427204bf19cfcf29ba9',
-  '66891cd8aa8f554c2bb6c95204833b02a6b47b756d137db25f4bca9abf2b66ed',
-];
-const PRE_CUTOVER_V2 = [
-  'v2:cd510b832702e29d8fa20a134032be27c071ce90544137cf18df2f42378f4602',
-  'v2:e3667d8a8207b7689dd1ab9cd1d54185aa54eade9186abe908888631d4cc8739',
-  'v2:96900df444bd7d695798af14354847399dc609f0470c1f24edae0a5f77ec782e',
-];
 const pins = tuple => new Map([...LEGACY.keys()].map((key, index) => [key, tuple[index]]));
 const trusted = trustedSources(ROOT, TRUSTED);
 const predecessor = readSchemaTree(ROOT, PRE_CUTOVER, 'historical');
@@ -76,7 +54,10 @@ test('the pinned anchor reproduces the complete v2 tuple and the historical v1 t
   assert.deepEqual(kernelAnchorPins(anchor), LEGACY_PINS);
   const exact = evaluateTree(predecessor, { legacyPins: null });
   assert.deepEqual(exact.legacyDigests, Object.fromEntries(pins(CURRENT_TUPLE)));
-  const v2 = evaluateTree(anchor, { schemaAdmission: { anchor, base: anchor, candidate: anchor } });
+  const v2 = evaluateTree(anchor, {
+    schemaAdmission: { anchor, base: anchor, candidate: anchor },
+    resolverRecord: recordFor(anchor),
+  });
   assert.equal(v2.schemaAdmission.ok, true, v2.schemaAdmission.reason);
   assert.deepEqual(v2.legacyDigests, Object.fromEntries(LEGACY_PINS));
   assert.deepEqual(v2.pinnedModules, evaluateTree(anchor, { legacyPins: null }).pinnedModules);
@@ -94,14 +75,16 @@ function evaluateWpTail(blobs) {
   return evaluateTree(candidate, {
     legacyPins: pins(PRE_CUTOVER_V2),
     schemaAdmission: { anchor: predecessor, base: predecessor, candidate },
+    resolverRecord: recordFor(predecessor),
   });
 }
 
 for (const [file, change] of [
   ['scripts/pilot/import-pilot-database.ts', text => text + ' '],
-  ['scripts/pilot/scenario_helpers.ts', text => text.replace(
-    "'./import-pilot-database'", "'./import-pilot-databasf'"
-  )],
+  [
+    'scripts/pilot/scenario_helpers.ts',
+    text => text.replace("'./import-pilot-database'", "'./import-pilot-databasf'"),
+  ],
 ]) {
   test(`a one-byte change to ${file} refuses the tail append`, () => {
     const blobs = wpTailBlobs();
@@ -112,7 +95,10 @@ for (const [file, change] of [
     blobs.set(file, changed.toString());
     const result = evaluateWpTail(blobs);
     assert.equal(result.schemaAdmission.ok, false);
-    assert.equal(result.schemaAdmission.reason, `candidate: schema forward outside scan roots ${file}`);
+    assert.equal(
+      result.schemaAdmission.reason,
+      `candidate: schema forward outside scan roots ${file}`
+    );
   });
 }
 
@@ -122,7 +108,10 @@ test('a third outside forwarder in scripts/pilot refuses the tail append', () =>
   blobs.set(file, blobs.get('scripts/pilot/import-pilot-database.ts'));
   const result = evaluateWpTail(blobs);
   assert.equal(result.schemaAdmission.ok, false);
-  assert.equal(result.schemaAdmission.reason, `candidate: schema forward outside scan roots ${file}`);
+  assert.equal(
+    result.schemaAdmission.reason,
+    `candidate: schema forward outside scan roots ${file}`
+  );
 });
 
 test('WP-07 appended at the tail binds all three v2 pins with exact historical consumers', () => {
@@ -184,6 +173,7 @@ test('ACQ-3b edits four existing schema modules and the structural path refuses'
   const result = evaluateTree(candidate, {
     legacyPins: kernelAnchorPins(base),
     schemaAdmission: { anchor: base, base, candidate },
+    resolverRecord: recordFor(base),
   });
   assert.equal(result.schemaAdmission.ok, false);
   assert.match(
@@ -255,10 +245,19 @@ for (const preexisting of [false, true]) {
       candidate.graph.resolveSpecifier(WP_MODULE, 'drizzle-orm/pg-core').external,
       'drizzle-orm/pg-core'
     );
-    const result = evaluateTree(candidate, {
-      legacyPins: pins(PRE_CUTOVER_V2),
-      schemaAdmission: { anchor: predecessor, base, candidate },
-    });
+    const scan = resolverRecord =>
+      evaluateTree(candidate, {
+        legacyPins: pins(PRE_CUTOVER_V2),
+        schemaAdmission: { anchor: predecessor, base, candidate },
+        resolverRecord,
+      });
+    if (!preexisting)
+      assert.equal(
+        scan(recordFor(base)).schemaAdmission.reason,
+        'candidate: resolver input changed tsconfig.alias.json'
+      );
+    // Even as an exact reviewed resolver transition, the builder alias still refuses.
+    const result = scan(preexisting ? recordFor(base) : recordFor(base, candidate));
     assert.equal(result.schemaAdmission.ok, false);
     assert.equal(
       result.schemaAdmission.reason,
@@ -287,6 +286,7 @@ test('a workspace builder candidate under an outside-roots baseUrl is refused', 
   const result = evaluateTree(candidate, {
     legacyPins: pins(PRE_CUTOVER_V2),
     schemaAdmission: { anchor: predecessor, base, candidate },
+    resolverRecord: recordFor(base),
   });
   assert.equal(
     result.schemaAdmission.reason,

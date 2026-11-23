@@ -36,6 +36,7 @@ export function evaluate({
   contracts = CONTRACTS,
   legacyPins = LEGACY_PINS,
   schemaAdmission = null,
+  resolverRecord = undefined,
   stateContracts = STATE_CONTRACTS,
   admissions = C1_ADMISSIONS,
   lifetimeRunners = LIFETIME_RUNNERS,
@@ -43,7 +44,9 @@ export function evaluate({
   const violations = [];
   const accepted = [];
   const telemetry = { legacyAccepted: 0, legacySinks: 0, files: 0, contractsUsed: 0 };
-  const versioned = schemaAdmission || legacyPins === LEGACY_PINS ||
+  const versioned =
+    schemaAdmission ||
+    legacyPins === LEGACY_PINS ||
     [...(legacyPins?.values() ?? [])].some(pin => typeof pin === 'string' && pin.startsWith('v2:'));
   const violate = (file, node, sourceFile, rule, detail) => {
     const { line } = sourceFile.getLineAndCharacterOfPosition(node.getStart(sourceFile));
@@ -61,7 +64,9 @@ export function evaluate({
     graph,
     seedTls,
     legacyPins,
-    schemaAdmission: versioned ? proveSchemaAdmission(schemaAdmission, legacyPins, graph, sources) : null,
+    schemaAdmission: versioned
+      ? proveSchemaAdmission(schemaAdmission, legacyPins, graph, sources, resolverRecord)
+      : null,
     lifetimeRunners,
     sources,
     stateContracts,

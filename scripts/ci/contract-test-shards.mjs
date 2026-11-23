@@ -24,6 +24,11 @@ export const GUARD_TRUST_SHARDS = Object.freeze({
     'scripts/ci/tenant-guard-s2-workflow.isolation.test.mjs',
     'scripts/ci/tenant-guard-s2-workflow.test.mjs',
   ]),
+  'resolver-state': Object.freeze([
+    'scripts/ci/tenant-guard.bundler-closure.test.mjs',
+    'scripts/ci/tenant-guard.resolver-transitions.test.mjs',
+    'scripts/ci/tenant-guard.resolver-trial.test.mjs',
+  ]),
 });
 
 // Legacy DB-access guard assertions retired by the owner-authorized switch to the S″ tenant guard
