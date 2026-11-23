@@ -68,6 +68,15 @@ Also named limits:
 - A non-ambient `namespace` or `module` declaration named `module` that holds only types counts as a runtime binding, though the emit erases it (Sol confirmation round, 2026-11-23). A `declare` one is treated as ambient and is not affected. With such a declaration, a `module.require('…')` call beside it yields no edge, so a CommonJS request can go unchecked. A namespace can also become types-only through an edit to its body alone.
   - Today: `git ls-files` with a multi-line search of all tracked sources (`rg -lU '\b(namespace|module)\s+module\b'`) finds no such declaration, and there is no `.cts` file (2026-11-23).
   - Noticed: by review that runs the same multi-line search over the head tree, not only over the diff.
+- Runtime code evaluation and runtime loader APIs are outside a static lint (#2126 review, Sol, 2026-11-24; this class predates the PR). The scanner refuses value requests of Node's `module` builtin, `getBuiltinModule` and `mainModule` members, and members of the CommonJS `module` other than `exports`, but cannot see a loader reached at runtime:
+  - `getBuiltinModule` through an alias, destructuring, a computed key or `Reflect.get`;
+  - the CommonJS wrapper's arguments (`arguments[1]`), or a `var module` redeclaration;
+  - a `.cts` `import x = module.require`;
+  - `eval`, `node:vm`, `node:repl`, the `Function` constructor;
+  - webpack's `__non_webpack_require__`.
+  - Today: in the non-test sources of `apps/web/src` and `packages/*/src`, the only instance is `packages/database/src/db.ts:131` (`new Function('specifier', 'return import(specifier)')`, an optional runtime import).
+  - Noticed: by review, and by a tree search (`rg -n -e '\beval\s*\(' -e 'new Function\s*\(' -e "from ['\"](node:)?(vm|repl|process)['\"]" -e '__non_webpack_require__' -e '\barguments\s*\[' -e 'getBuiltinModule|mainModule' apps/web/src packages/*/src`).
+- One false refusal in an erased type position: a computed key in a type, such as `{ [settings.mainModule]: string }` or an ambient `module.id` used as a unique-symbol key, is refused though the emit erases it. Not present in today's tree; such a refusal is visible as a scanner error and goes through a scanner PR.
 - A later Next that changes its built-in aliases is not detected by the scanner. The oracle test pins only `resolve.extensions` and the absence of `mainFiles`. Such a change is noticed by review of the Next upgrade PR, whose `next` lockfile change is a dependency PR reviewed on its own.
 
 ## Tests to run
