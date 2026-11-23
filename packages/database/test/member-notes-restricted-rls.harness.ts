@@ -88,6 +88,14 @@ async function buildProof(
   };
 }
 
+async function recordFailure(failures: unknown[], step: () => Promise<unknown>): Promise<void> {
+  try {
+    await step();
+  } catch (error) {
+    failures.push(error);
+  }
+}
+
 export type NotesProof = Awaited<ReturnType<typeof buildProof>>;
 
 export async function withNotesProof(
@@ -105,13 +113,9 @@ export async function withNotesProof(
   } catch (error) {
     failures.push(error);
   } finally {
-    for (const cleanup of [() => cleanupNotes(session.adminDb, seed), () => session.close()]) {
-      try {
-        await cleanup();
-      } catch (error) {
-        failures.push(error);
-      }
-    }
+    // Rows first, then the clients; each step runs even when the one before it failed.
+    await recordFailure(failures, () => cleanupNotes(session.adminDb, seed));
+    await recordFailure(failures, () => session.close());
   }
   for (const error of failures.slice(1)) {
     t.diagnostic(`Additional cleanup failure: ${inspect(error)}`);
