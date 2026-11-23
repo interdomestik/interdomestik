@@ -261,3 +261,58 @@ test('concurrent provisioning across sibling databases converges on one credenti
     await cluster.end({ timeout: 1 });
   }
 });
+
+// WP-12: the bulk DML grant must not widen the migration's narrowed grants (Astra r12 H2).
+test('the E2E runtime role keeps the narrowed grants of the case register tables', async t => {
+  const adminUrl = process.env.DATABASE_URL;
+  if (!adminUrl) {
+    if (required) assert.fail('DATABASE_URL is required.');
+    t.skip('DATABASE_URL is required for the narrowed grants test');
+    return;
+  }
+  const role = `interdomestik_e2e_runtime_g${suffix}`;
+  const database = `e2e_role_grants_${suffix}`;
+  const cluster = postgres(adminUrl, { max: 1, onnotice: () => {} });
+  await cluster.unsafe(`create database ${database}`);
+  const scratchUrl = Object.assign(new URL(adminUrl), { pathname: `/${database}` }).toString();
+  const admin = postgres(scratchUrl, { max: 1, onnotice: () => {} });
+  try {
+    await admin.unsafe(`
+      create table public.claim_case_fields(
+        tenant_id text not null, claim_id text not null, insurance_proof_reference text,
+        other_vehicle_country_code text, outside_handling_party text,
+        coverage_verification_status text, case_follow_up_at timestamptz,
+        updated_by_staff_id text, updated_at timestamptz);
+      alter table public.claim_case_fields enable row level security;
+      alter table public.claim_case_fields force row level security;
+      create policy p on public.claim_case_fields
+        using (tenant_id = current_setting('app.current_access_tenant_id', true));`);
+    await provisionE2eRuntimeRole({ adminUrl: scratchUrl, env: {}, role });
+    const [privileges] = await admin`
+      select
+        has_table_privilege(${role}, 'public.claim_case_fields', 'SELECT') as "select",
+        has_table_privilege(${role}, 'public.claim_case_fields', 'INSERT') as "insert",
+        has_table_privilege(${role}, 'public.claim_case_fields', 'DELETE') as "delete",
+        has_table_privilege(${role}, 'public.claim_case_fields', 'TRUNCATE') as "truncate",
+        has_column_privilege(${role}, 'public.claim_case_fields', 'insurance_proof_reference', 'UPDATE') as "fieldUpdate",
+        has_column_privilege(${role}, 'public.claim_case_fields', 'claim_id', 'UPDATE') as "keyUpdate",
+        has_column_privilege(${role}, 'public.claim_case_fields', 'tenant_id', 'UPDATE') as "tenantUpdate"`;
+    assert.deepEqual(
+      { ...privileges },
+      {
+        select: true,
+        insert: true,
+        delete: false,
+        truncate: false,
+        fieldUpdate: true,
+        keyUpdate: false,
+        tenantUpdate: false,
+      }
+    );
+  } finally {
+    await admin.end({ timeout: 1 });
+    await cluster.unsafe(`drop database if exists ${database} with (force)`);
+    await cluster.unsafe(`drop role if exists ${role}`);
+    await cluster.end({ timeout: 1 });
+  }
+});

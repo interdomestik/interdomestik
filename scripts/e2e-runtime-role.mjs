@@ -16,6 +16,26 @@ const ROLE_FLAGS = 'LOGIN NOSUPERUSER NOBYPASSRLS NOINHERIT NOCREATEDB NOCREATER
 const ALTER_ROLE_FLAGS = 'LOGIN NOINHERIT NOCREATEDB NOCREATEROLE';
 const TENANT_GUCS = ['app.current_tenant_id', 'app.current_access_tenant_id', 'app.user_role'];
 
+/**
+ * Tables whose migration narrows the runtime role's writes: no DELETE and UPDATE only on these
+ * columns (WP-12 migration 0104). The bulk DML grant below must not widen them, so provisioning
+ * re-applies the migration's grants. A test pins this list to the migration's own GRANT lines.
+ */
+export const NARROWED_TABLE_GRANTS = Object.freeze({
+  claim_authorities: ['revoked_at', 'revoked_by_user_id'],
+  claim_correspondence: ['follow_up_at'],
+  claim_correspondence_documents: [],
+  claim_case_fields: [
+    'other_vehicle_country_code',
+    'insurance_proof_reference',
+    'outside_handling_party',
+    'coverage_verification_status',
+    'case_follow_up_at',
+    'updated_by_staff_id',
+    'updated_at',
+  ],
+});
+
 /** Errors whose message is safe to print: they never carry SQL text or credentials. */
 export class RuntimeRoleError extends Error {}
 
@@ -140,6 +160,15 @@ async function provisionRole(sql, role, password) {
         tx.unsafe(`GRANT ${privileges} ${targets.join(', ')} TO ${role}`)
       )
     );
+    const tables = new Set(names(['r', 'p']));
+    for (const [table, columns] of Object.entries(NARROWED_TABLE_GRANTS)) {
+      const target = `public.${table}`;
+      if (!tables.has(target)) continue;
+      await tx.unsafe(`REVOKE UPDATE, DELETE, TRUNCATE ON TABLE ${target} FROM ${role}`);
+      if (columns.length > 0) {
+        await tx.unsafe(`GRANT UPDATE (${columns.join(', ')}) ON TABLE ${target} TO ${role}`);
+      }
+    }
   });
 }
 
