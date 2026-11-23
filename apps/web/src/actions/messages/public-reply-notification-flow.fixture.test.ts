@@ -123,6 +123,10 @@ describe('reply-flow fixture insert model', () => {
     });
     const insert = (row: ReturnType<typeof request>) =>
       withTenantContext(scope, tx => tx.insert(tables.claimResponseRequests).values(row));
+    // The source messages exist first, as the (tenant, claim, source message) foreign key requires.
+    await withTenantContext(scope, tx =>
+      tx.insert(tables.claimMessages).values([message('m1'), message('m2')])
+    );
     await insert(request('r1', 'member_message', 'm1'));
     await expect(insert(request('r2', 'member_message', 'm1'))).rejects.toThrow(
       'Duplicate fixture key'
