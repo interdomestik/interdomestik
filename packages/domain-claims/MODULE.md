@@ -85,6 +85,8 @@ This section records the approved WP-12 contract, design v14.1 (appended tables;
 
 ### Reads
 
+The register access module re-exports input validation and normalization from `case-register-input`. The correspondence reader delegates its bounded date query to `correspondence-summary` within the same tenant transaction.
+
 - The correspondence register is read in pages (20 per page, at most 50) through the shared page clamp; replies are read for the page's entries only. The branch summary reads the total and the latest 50 dates. Authorities need no page: at most one row per kind.
 
 ### Named limits

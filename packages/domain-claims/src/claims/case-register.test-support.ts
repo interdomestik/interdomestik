@@ -178,6 +178,20 @@ export const outboundInput = {
   recoveryAuthorityId: ids.recovery,
   representationAuthorityId: ids.representation,
 };
+export const recorded = {
+  ...inboundInput,
+  id: ids.outbound,
+  occurredAt: new Date(occurredAt),
+  recordedByStaffId: actorId,
+  partyReference: null,
+  partyContactName: null,
+  followUpAt: new Date(occurredAt),
+  direction: 'outbound',
+  recoveryAuthorityId: ids.recovery,
+  representationAuthorityId: ids.representation,
+  sharingAuthorityId: null,
+  sharedDocumentCount: 0,
+};
 export const grantInput = {
   claimId,
   correlationId: ids.correlation,

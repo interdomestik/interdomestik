@@ -69,7 +69,12 @@ test('every de catalog has an explicit modularity owner', () => {
       name
     );
   }
-  for (const name of ['agent.json', 'freeStart.json', 'pricing.json']) {
+  for (const name of [
+    'agent.json',
+    'freeStart.json',
+    'pricing.json',
+    'staff-correspondence.json',
+  ]) {
     assert.notEqual(structuredArtifactOwner(`apps/web/src/messages/en/${name}`), null, name);
   }
 });
@@ -83,8 +88,8 @@ test('every de catalog file has an explicit owner-registry entry', () => {
     assert.ok(catalogNames('de').includes(key.slice(3)), `${key} names no de catalog`);
     assert.ok(!keys.has(key.slice(3)), `${key} duplicates a locale-wide entry`);
   }
-  // Toolkit and entity disclosure now have shared five-locale feature ownership.
-  assert.equal(LOCALE_CATALOG_OWNER_KEYS.filter(entry => entry.startsWith('de/')).length, 46);
+  // Staff correspondence has an exact entry for each locale.
+  assert.equal(LOCALE_CATALOG_OWNER_KEYS.filter(entry => entry.startsWith('de/')).length, 47);
 });
 
 test('unknown de catalogs and unknown locales stay unowned', () => {

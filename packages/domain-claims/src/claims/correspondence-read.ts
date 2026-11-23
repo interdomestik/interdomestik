@@ -25,9 +25,12 @@ import {
   resolveRegisterRead,
 } from './case-register-access';
 import { recordInboundCorrespondenceInputSchema } from './correspondence';
+import { readSummary } from './correspondence-summary';
 import { caseAuthorityScopes, MAX_SHARED_DOCUMENTS } from './outward-action-requirements';
 import { filterRegisterCitationNames } from './register-citation-access';
 import type { ClaimsSession } from './types';
+
+export { SUMMARY_DATE_LIMIT } from './correspondence-summary';
 
 export const listClaimCorrespondenceInputSchema = registerPageInput;
 export const getClaimCorrespondenceSummaryInputSchema = registerClaimInput;
@@ -276,27 +279,6 @@ export async function listClaimCorrespondence(
     }
     return { ...(await readCorrespondence(tx, tenantId, data)), ok: true as const };
   });
-}
-
-/** The branch summary: the total and the latest dates only (bounded read). */
-export const SUMMARY_DATE_LIMIT = 50;
-
-async function readSummary(tx: TenantTransaction, tenantId: string, claimId: string) {
-  const [{ total }] = await tx
-    .select({ total: sql<number>`count(*)::int` })
-    .from(claimCorrespondence)
-    .where(
-      withTenant(tenantId, claimCorrespondence.tenantId, eq(claimCorrespondence.claimId, claimId))
-    );
-  const rows = await tx
-    .select({ occurredAt: claimCorrespondence.occurredAt })
-    .from(claimCorrespondence)
-    .where(
-      withTenant(tenantId, claimCorrespondence.tenantId, eq(claimCorrespondence.claimId, claimId))
-    )
-    .orderBy(desc(claimCorrespondence.occurredAt))
-    .limit(SUMMARY_DATE_LIMIT);
-  return { summary: { total, dates: rows.map(row => row.occurredAt.toISOString()) } };
 }
 
 export async function getClaimCorrespondenceSummary(

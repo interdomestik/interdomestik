@@ -4,8 +4,6 @@ import { BranchManagerStatusHistory } from '@/features/claims/communication/bran
 import { getInformationRequests, getStaffClaimDetail } from '@interdomestik/domain-claims';
 import { ClaimInformationRequestForm } from '@/features/staff/claims/components/ClaimInformationRequestForm';
 import { ClaimInformationRequests } from '@/features/member/claims/components/ClaimInformationRequests';
-import { caseRegister } from '@/features/staff/claims/components/StaffClaimCaseRegister';
-import { clampPage } from '@/lib/pagination';
 import { StaffClaimContext } from '@/features/staff/claims/components/StaffClaimContext';
 import { StaffClaimWorkspaceHeader } from '@/features/staff/claims/components/StaffClaimWorkspaceHeader';
 import {
@@ -28,28 +26,20 @@ import { notFound } from 'next/navigation';
 
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
-import { StaffClaimDocumentsSection } from './staff-claim-documents-section';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { getMessagesForClaimCore } from '@/actions/messages/get.core';
-import { parameterFreeFailure } from '@/actions/staff-claims/register-failure';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { authorizeStaffClaimPage } from '@/features/staff/claims/server/authorize-staff-claim-page';
-import {
-  getAssignedStaffClaimDocuments,
-  getRegisterPickerDocuments,
-} from '@/features/staff/claims/server/get-assigned-claim-documents';
-import * as Sentry from '@sentry/nextjs';
 import { getPublicStatusHistoryCore } from './_core';
+import {
+  prepareStaffClaimRegister,
+  readStaffClaimRegisterPages,
+  type StaffClaimRegisterSearchParams,
+} from './staff-claim-register';
 
 interface PageProps {
-  params: Promise<{
-    locale: string;
-    id: string;
-  }>;
-  searchParams?: Promise<{
-    correspondencePage?: string | string[];
-    evidencePage?: string | string[];
-  }>;
+  params: Promise<{ locale: string; id: string }>;
+  searchParams?: Promise<StaffClaimRegisterSearchParams>;
 }
 
 function toClaimStatus(value: unknown): ClaimStatus {
@@ -82,13 +72,7 @@ export default async function StaffClaimDetailsPage({
   searchParams,
 }: Readonly<PageProps>): Promise<React.JSX.Element> {
   const { id, locale } = await params;
-  const query = await searchParams;
-  const correspondencePage = clampPage(
-    Number(typeof query?.correspondencePage === 'string' ? query.correspondencePage : 1)
-  );
-  const evidencePage = clampPage(
-    Number(typeof query?.evidencePage === 'string' ? query.evidencePage : 1)
-  );
+  const pages = readStaffClaimRegisterPages(await searchParams);
   setRequestLocale(locale);
   const tClaims = await getTranslations({ locale, namespace: 'agent-claims.claims' });
   const tStatus = await getTranslations({ locale, namespace: 'claims-tracking.status' });
@@ -131,28 +115,15 @@ export default async function StaffClaimDetailsPage({
     initialMessagesResult.success === true &&
     Array.isArray((initialMessagesResult as { messages?: unknown }).messages);
   const initialReadFailed = isStaff && !serverReadSucceeded;
-  // The document reader rechecks exact assignment inside its tenant transaction.
-  const readDocuments = { claimId: id, session, authority };
-  const [evidence, picker] = isAssignedStaff
-    ? await Promise.allSettled([
-        getAssignedStaffClaimDocuments({ ...readDocuments, page: evidencePage }),
-        getRegisterPickerDocuments(readDocuments),
-      ])
-    : [null, null];
-  if (evidence?.status === 'rejected') {
-    Sentry.captureException(parameterFreeFailure(evidence.reason, 'claim evidence read'));
-  }
-  if (picker?.status === 'rejected') {
-    Sentry.captureException(parameterFreeFailure(picker.reason, 'register picker read'));
-  }
-  const evidenceResult = evidence?.status === 'fulfilled' ? evidence.value : null;
-  function evidenceHref(page: number) {
-    const params = new URLSearchParams();
-    if (correspondencePage > 1) params.set('correspondencePage', String(correspondencePage));
-    if (page > 1) params.set('evidencePage', String(page));
-    const search = params.size > 0 ? `?${params}` : '';
-    return `/${locale}/staff/claims/${encodeURIComponent(id)}${search}`;
-  }
+  const { readRegister, renderEvidence } = await prepareStaffClaimRegister({
+    session,
+    authority,
+    claim: detail.claim,
+    claimId: id,
+    locale,
+    isAssignedStaff,
+    pages,
+  });
   // The information-request card owns real member duties; generic phase copy stays neutral.
   const slaPhaseLabel = isVerificationGuidancePhase(claimStatus, slaPhase)
     ? tClaims('details.verification_guidance')
@@ -196,15 +167,7 @@ export default async function StaffClaimDetailsPage({
     updatedAt: detail.claim.updatedAt,
   });
 
-  const register = await caseRegister(
-    session,
-    authority,
-    detail.claim,
-    picker?.status === 'fulfilled' ? picker.value : null,
-    locale,
-    correspondencePage,
-    evidenceResult?.page ?? evidencePage
-  );
+  const register = await readRegister();
   return (
     <div
       className="min-w-0 space-y-6 [&_section]:scroll-mt-80 md:[&_section]:scroll-mt-20"
@@ -276,26 +239,7 @@ export default async function StaffClaimDetailsPage({
           claimId={id}
           requests={informationRequests}
         />
-        <StaffClaimDocumentsSection
-          documents={evidenceResult?.documents ?? null}
-          emptyLabel={tEvidence('detail.documentsEmpty')}
-          errorLabel={tCommon('errors.generic')}
-          isAssignedStaff={isAssignedStaff}
-          nextPage={
-            evidenceResult?.hasNextPage
-              ? { href: evidenceHref(evidenceResult.page + 1), label: tCommon('next') }
-              : undefined
-          }
-          previousPage={
-            evidenceResult && evidenceResult.page > 1
-              ? { href: evidenceHref(evidenceResult.page - 1), label: tCommon('previous') }
-              : undefined
-          }
-          retryHref={evidenceHref(evidencePage)}
-          retryLabel={tCommon('tryAgain')}
-          title={tEvidence('detail.evidence')}
-          viewLabel={tEvidence('informationRequests.download')}
-        />
+        {renderEvidence(tEvidence, tCommon)}
       </section>
 
       {isStaff ? (

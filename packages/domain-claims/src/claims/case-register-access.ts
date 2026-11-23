@@ -16,10 +16,22 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ROLES } from '@interdomestik/shared-auth';
-import { z } from 'zod';
+import type { z } from 'zod';
 import { buildStaffClaimReadScope } from '../staff-claims/scope';
 import { claimLifecycleStatusNotIn } from './lifecycle-read-sql';
+import { registerClaimInput } from './case-register-input';
 import type { ClaimsSession } from './types';
+
+export {
+  REGISTER_MAX_PAGE_SIZE,
+  normalizeRegisterInput,
+  registerClaimInput,
+  registerId,
+  registerPageInput,
+  registerText,
+  registerTimestamp,
+  registerUuid,
+} from './case-register-input';
 
 export type CaseRegisterError =
   'invalid' | 'forbidden' | 'invalid_state' | 'authority_invalid' | 'document_invalid' | 'conflict';
@@ -30,65 +42,6 @@ export type CaseRegisterResult<T extends object> =
 type RegisterMode = 'write' | 'full' | 'summary';
 export type RegisterActor = Pick<TenantAuthorityPrincipal, 'userId' | 'role' | 'branchId'>;
 export type LockedRegister = { tx: TenantTransaction; tenantId: string; actorId: string };
-
-// The action schema form admits checks, not transforms: commands trim after parsing.
-export function registerText(maxLength: number) {
-  return z
-    .string()
-    .min(1)
-    .max(maxLength)
-    .regex(/\S/)
-    .refine(value => !value.includes('\u0000'));
-}
-
-export const registerTimestamp = z.iso
-  .datetime({ offset: true })
-  .refine(value => Number.isFinite(Date.parse(value)));
-export const registerId = z
-  .string()
-  .min(1)
-  .refine(value => !value.includes('\u0000'));
-export const registerUuid = z.uuid();
-
-const registerUuidFields = [
-  'correlationId',
-  'inReplyToId',
-  'recoveryAuthorityId',
-  'representationAuthorityId',
-  'sharingAuthorityId',
-  'authorityId',
-  'correspondenceId',
-] as const;
-
-const registerDisplayTextFields = [
-  'partyOrganisation',
-  'partyReference',
-  'partyContactName',
-  'body',
-  'version',
-  'purpose',
-  'insuranceProofReference',
-  'outsideHandlingParty',
-] as const;
-
-/**
- * Each write command normalizes its parsed input (the action schema form admits no transform):
- * display text is trimmed, and UUIDs are lower-cased because PostgreSQL returns them in lower case and
- * replay and basis lookups compare them as strings.
- */
-export function normalizeRegisterInput<T extends object>(input: T): T {
-  const result = { ...input } as Record<string, unknown>;
-  for (const field of registerUuidFields) {
-    const value = result[field];
-    if (typeof value === 'string') result[field] = value.toLowerCase();
-  }
-  for (const field of registerDisplayTextFields) {
-    const value = result[field];
-    if (typeof value === 'string') result[field] = value.trim();
-  }
-  return result as T;
-}
-export const registerClaimInput = z.object({ claimId: registerId }).strict();
 
 // Read at call time: importers may load this module under a partial shared-auth mock.
 function isAdminRole(role: string | null | undefined) {
@@ -234,13 +187,6 @@ export function resolveRegisterRead<I extends { claimId: string } = { claimId: s
 ) {
   return resolveRegisterAccess(session, authority, input, mode, schema);
 }
-
-/** The largest register page; the web clamps request values to it before calling (R-20). */
-export const REGISTER_MAX_PAGE_SIZE = 50;
-export const registerPageInput = registerClaimInput.extend({
-  page: z.number().int().min(1).max(100_000),
-  perPage: z.number().int().min(1).max(REGISTER_MAX_PAGE_SIZE),
-});
 
 function sqlState(error: unknown, depth = 0): string | undefined {
   if (!error || typeof error !== 'object' || depth > 3) return undefined;
