@@ -65,6 +65,9 @@ These are outside the scanner's listed inputs (Astra round 6; the owner's bar, 2
 Also named limits:
 
 - Turbopack (`next dev`) is not modelled.
+- A `namespace` or `module` declaration named `module` that holds only types counts as a runtime binding, though the emit erases it (Sol confirmation round, 2026-11-23). A `module.require('…')` call beside it then yields no edge, so a CommonJS request can go unchecked.
+  - Today: no such declaration exists in the tree, and there is no `.cts` file.
+  - Noticed: a declaration named `module` shows in the PR diff, and review refuses it (`rg -n '\b(namespace|module)\s+module\b'`).
 - A later Next that changes its built-in aliases is not detected by the scanner. The oracle test pins only `resolve.extensions` and the absence of `mainFiles`. Such a change is noticed by review of the Next upgrade PR, whose `next` lockfile change is a dependency PR reviewed on its own.
 
 ## Tests to run

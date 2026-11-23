@@ -155,8 +155,9 @@ const BARE_REQUIRE_OK = (node, parent) => {
 
 // A declaration the compiled code keeps: not ambient (`declare …`, inside a `declare module`,
 // `declare namespace` or `declare global` block, an overload signature) and not a type-only
-// import, which the emit erases (Sol r2). A plain `namespace` is emitted, so its bindings are kept
-// (Sol r3).
+// import, which the emit erases (Sol r2). A plain `namespace` counts as kept (Sol r3); one that holds
+// only types is erased by the emit, which this check does not tell apart: a named limit (MODULE.md,
+// "Also named limits").
 function isAmbient(node) {
   for (let at = node; at; at = at.parent)
     if (at.declare === true || at.type === 'TSDeclareFunction') return true;
