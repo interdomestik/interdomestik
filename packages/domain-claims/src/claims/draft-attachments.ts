@@ -1,4 +1,11 @@
-import { and, claimDocuments, eq, inArray, type TenantTransaction } from '@interdomestik/database';
+import {
+  and,
+  claimDocuments,
+  claims,
+  eq,
+  inArray,
+  type TenantTransaction,
+} from '@interdomestik/database';
 import { lockClaimEvidenceObjects } from '@interdomestik/database/claim-evidence-object-lock';
 
 import type { CreateClaimValues } from '../validators/claims';
@@ -49,21 +56,16 @@ export async function lockEvidenceObjects(
 }
 
 /**
- * Reads the tenant's document rows that point at any of the requested paths: of one claim when
- * `claimId` is given, else on whichever claim they belong to. The caller decides per
- * (bucket, path) whether the object is this claim's own, another claim's, or not attached.
+ * Reads the tenant's document rows that point at any of the requested paths, on whichever claim
+ * they belong to. The caller decides per (bucket, path) whether the object is this claim's own,
+ * another claim's, or not attached.
  */
 export async function readAttachedObjects(
   tx: TenantTransaction,
-  params: { claimId?: string; tenantId: string; files: readonly EvidenceObject[] }
+  params: { tenantId: string; files: readonly EvidenceObject[] }
 ): Promise<AttachedObject[]> {
   if (params.files.length === 0) return [];
   const paths = [...new Set(params.files.map(file => file.path))];
-  const scope = and(
-    eq(claimDocuments.tenantId, params.tenantId),
-    inArray(claimDocuments.filePath, paths),
-    params.claimId === undefined ? undefined : eq(claimDocuments.claimId, params.claimId)
-  );
   return tx
     .select({
       bucket: claimDocuments.bucket,
@@ -71,7 +73,41 @@ export async function readAttachedObjects(
       filePath: claimDocuments.filePath,
     })
     .from(claimDocuments)
-    .where(scope);
+    .where(
+      and(eq(claimDocuments.tenantId, params.tenantId), inArray(claimDocuments.filePath, paths))
+    );
+}
+
+/**
+ * The requested paths already attached to `claimId`, read only while `ownerId` owns that claim:
+ * ownership and attachments come from one statement, one snapshot, so a claim that changes hands
+ * between the caller's ownership check and this read yields no rows for the former owner.
+ */
+export async function readOwnedDraftAttachments(
+  tx: TenantTransaction,
+  params: { claimId: string; ownerId: string; tenantId: string; files: readonly EvidenceObject[] }
+): Promise<AttachedObject[]> {
+  if (params.files.length === 0) return [];
+  const paths = [...new Set(params.files.map(file => file.path))];
+  return tx
+    .select({
+      bucket: claimDocuments.bucket,
+      claimId: claimDocuments.claimId,
+      filePath: claimDocuments.filePath,
+    })
+    .from(claimDocuments)
+    .innerJoin(
+      claims,
+      and(eq(claims.id, claimDocuments.claimId), eq(claims.tenantId, claimDocuments.tenantId))
+    )
+    .where(
+      and(
+        eq(claimDocuments.tenantId, params.tenantId),
+        eq(claimDocuments.claimId, params.claimId),
+        eq(claims.userId, params.ownerId),
+        inArray(claimDocuments.filePath, paths)
+      )
+    );
 }
 
 /** True when every one of `files` is still a document of `claimId` in `attached`. */

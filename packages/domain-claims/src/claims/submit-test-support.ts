@@ -27,17 +27,17 @@ export const readTenantLocaleMetadataMock: Mock = vi.fn();
 /** Each tenant transaction the submission opens gets the next number; 0 = none open. */
 let currentContext = 0;
 let contextSequence = 0;
-/** What ran inside which tenant transaction: proves writes that must commit together share one. */
-export const txCalls: { context: number; op: string }[] = [];
-const recordTxCall = (op: string): void => {
-  txCalls.push({ context: currentContext, op });
+/**
+ * What ran, through which transaction handle, while which tenant transaction was open: proves
+ * that writes which must commit together use the one live handle.
+ */
+export const txCalls: { context: number; handle: number; op: string }[] = [];
+const recordTxCall = (handle: number, op: string): void => {
+  txCalls.push({ context: currentContext, handle, op });
 };
 
 export const txInsertValues: Mock = vi.fn();
-export const txInsert: Mock = vi.fn((table?: { __name?: string }) => {
-  recordTxCall(`insert:${table?.__name ?? '?'}`);
-  return { values: txInsertValues };
-});
+export const txInsert: Mock = vi.fn(() => ({ values: txInsertValues }));
 export const txQuery: Record<'agentClients' | 'tenantSettings' | 'user', { findFirst: Mock }> = {
   agentClients: { findFirst: vi.fn() },
   tenantSettings: { findFirst: vi.fn() },
@@ -46,13 +46,10 @@ export const txQuery: Record<'agentClients' | 'tenantSettings' | 'user', { findF
 export const txExecute: Mock = vi.fn(() => Promise.resolve([]));
 /** Rows the in-transaction evidence-object read returns (default: none attached). */
 export const txSelectRows: Mock = vi.fn(() => Promise.resolve([]));
-export const txSelect: Mock = vi.fn(() => {
-  recordTxCall('select');
-  return { from: () => ({ where: txSelectRows }) };
-});
+export const txSelect: Mock = vi.fn(() => ({ from: () => ({ where: txSelectRows }) }));
 /** The database package's object lock; its SQL is proven on a real database. */
-export const lockClaimEvidenceObjectsMock: Mock = vi.fn(() => {
-  recordTxCall('lock');
+export const lockClaimEvidenceObjectsMock: Mock = vi.fn((tx?: { handle?: number }) => {
+  recordTxCall(tx?.handle ?? -1, 'lock');
   return Promise.resolve();
 });
 export const submitTx: {
@@ -69,6 +66,24 @@ export const submitTx: {
   transaction: vi.fn(),
 };
 
+export type SubmitTxHandle = typeof submitTx & { handle: number };
+
+/** A distinct handle per tenant transaction, sharing the mocks above, that records its use. */
+function openTxHandle(handle: number): SubmitTxHandle {
+  return {
+    ...submitTx,
+    handle,
+    insert: (table?: { __name?: string }) => {
+      recordTxCall(handle, `insert:${table?.__name ?? '?'}`);
+      return txInsert(table);
+    },
+    select: (...args: unknown[]) => {
+      recordTxCall(handle, 'select');
+      return txSelect(...args);
+    },
+  } as SubmitTxHandle;
+}
+
 /** A `sql` tag double that keeps the statement text and its bound values. */
 export const sqlMock: Mock = vi.fn((strings: TemplateStringsArray, ...values: unknown[]) => ({
   __op: 'sql',
@@ -81,7 +96,7 @@ export const tenantContexts: unknown[] = [];
 let openContexts = 0;
 
 export const withTenantContextMock = vi.fn(
-  async (context: unknown, action: (tx: typeof submitTx) => Promise<unknown>) => {
+  async (context: unknown, action: (tx: SubmitTxHandle) => Promise<unknown>) => {
     if (openContexts > 0) {
       throw new Error('nested tenant context transaction is forbidden');
     }
@@ -91,7 +106,7 @@ export const withTenantContextMock = vi.fn(
     tenantContexts.push(context);
     tenantContextOrder.push('context:open');
     try {
-      return await action(submitTx);
+      return await action(openTxHandle(currentContext));
     } finally {
       openContexts -= 1;
       currentContext = 0;

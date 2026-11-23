@@ -214,6 +214,19 @@ describe('updateDraftClaim attachments — refused without a verified upload int
     expectNothingWritten();
   });
 
+  it('answers a former owner the same whether or not the draft holds the path', async () => {
+    // The draft changes hands after the ownership check: the joined read and the update see it.
+    const file = withoutToken(initialFile());
+    db.callerOwnsAtRead = false;
+    db.updateMatches = false;
+    const absent = await update([file]);
+    db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }];
+
+    await expect(update([file])).resolves.toEqual(absent);
+    expect(absent).toMatchObject({ success: false, code: 'INVALID_PATH' });
+    expectNothingWritten();
+  });
+
   it('rolls back with a conflict when a no-op row moved to another claim before the write', async () => {
     const file = withoutToken(initialFile());
     db.nextReads = [

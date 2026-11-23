@@ -92,9 +92,11 @@ describe('submitClaimCore', () => {
     ];
     const calls = txCalls.filter(call => writes.includes(call.op));
     expect(calls.map(call => call.op)).toEqual(writes);
-    // One open tenant transaction for all of them: an earlier, already committed one would not do.
-    expect(new Set(calls.map(call => call.context))).toEqual(new Set([calls[0]?.context]));
-    expect(calls[0]?.context).toBeGreaterThan(0);
+    // One open tenant transaction for all of them, each through that transaction's live handle:
+    // an earlier, already committed transaction or a stale handle would not do.
+    const live = calls[0]?.context ?? 0;
+    expect(live).toBeGreaterThan(0);
+    expect(calls).toEqual(writes.map(op => ({ context: live, handle: live, op })));
   });
 
   it('refuses, typed, an evidence object that is already the document of a claim', async () => {

@@ -15,7 +15,8 @@ export function claimEvidenceObjectLockKey(tenantId: string, object: ClaimEviden
  * The caller re-reads the document rows after this returns and relies on seeing a commit made by
  * the previous holder: that holds only under READ COMMITTED (a REPEATABLE READ snapshot taken
  * earlier in the transaction would miss it), so any other isolation level is refused before a
- * lock is taken. Locks are taken one at a time in ascending order of the 64-bit lock ids
+ * lock is taken, also when `objects` is empty (a caller whose decision rests on the re-read alone
+ * still calls this). Locks are taken one at a time in ascending order of the 64-bit lock ids
  * themselves, the same order in every process, so writers never wait on each other in a cycle;
  * keys whose hashes collide share one lock.
  */
@@ -24,8 +25,9 @@ export async function lockClaimEvidenceObjects(
   tenantId: string,
   objects: readonly ClaimEvidenceObject[]
 ): Promise<void> {
-  if (objects.length === 0) return;
+  // Checked even with nothing to lock: a caller that only re-reads rows depends on it too.
   await assertReadCommitted(tx);
+  if (objects.length === 0) return;
   const keys = [...new Set(objects.map(object => claimEvidenceObjectLockKey(tenantId, object)))];
   const values = sql.join(
     keys.map(key => sql`(${key}::text)`),

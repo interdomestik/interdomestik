@@ -19,6 +19,8 @@ export const db = {
   /** When set, consumed by the next document read instead of the stored rows. */
   nextReads: [] as DocumentRow[][],
   updatedClaims: 0,
+  /** False models a draft that changed hands after the ownership check, before the joined read. */
+  callerOwnsAtRead: true,
   /** The transaction that updated the claim, once one did. */
   writeTxId: 0,
   txSequence: 0,
@@ -30,6 +32,10 @@ export const db = {
  * A transaction double that keeps the rows the command reads and writes. Writes are staged and
  * applied only when the callback returns, so a thrown refusal leaves nothing behind (rollback).
  */
+function nextRows(): DocumentRow[] {
+  return (db.nextReads.shift() ?? db.documents).map(row => ({ ...row }));
+}
+
 export async function withTenantAuthorityDouble(
   _authority: unknown,
   callback: (tx: unknown) => unknown
@@ -46,8 +52,15 @@ export async function withTenantAuthorityDouble(
     execute: () => Promise.reject(new Error('unexpected raw statement')),
     select: () => ({
       from: () => ({
-        where: () =>
-          Promise.resolve((db.nextReads.shift() ?? db.documents).map(row => ({ ...row }))),
+        // Tenant-wide read of the rows holding the requested paths.
+        where: () => Promise.resolve(nextRows()),
+        // Owner-joined read: this draft's rows, only while the caller still owns it.
+        innerJoin: () => ({
+          where: () =>
+            Promise.resolve(
+              db.callerOwnsAtRead ? nextRows().filter(row => row.claimId === CLAIM) : []
+            ),
+        }),
       }),
     }),
     update: () => ({

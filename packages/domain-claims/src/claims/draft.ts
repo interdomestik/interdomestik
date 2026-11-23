@@ -16,6 +16,7 @@ import {
   lockEvidenceObjects,
   planDraftAttachments,
   readAttachedObjects,
+  readOwnedDraftAttachments,
   type DraftAttachmentPlan,
   type DraftClaimFile,
 } from './draft-attachments';
@@ -53,8 +54,9 @@ function refusal(error: ClaimValidationError): UpdateDraftClaimResult {
 /**
  * Verifies every file before anything is written. Objects already attached to this claim are
  * no-ops; every other file must pass the same signed-intent verification as claim submission.
- * Only this claim's rows are read here: whether another case holds a path is decided after the
- * caller proved an intent for it, inside the write transaction, so a refusal never depends on it.
+ * Only this claim's rows are read here, and only while the caller owns it (one statement):
+ * whether another case holds a path is decided after the caller proved an intent for it, inside
+ * the write transaction, so a refusal never depends on it.
  */
 async function verifyDraftFiles(params: {
   authority: TenantAuthority;
@@ -66,8 +68,9 @@ async function verifyDraftFiles(params: {
 }): Promise<DraftAttachmentPlan> {
   const { authority, claimId, deps, files, session, tenantId } = params;
   assertDistinctEvidenceObjects(files);
+  if (files.length === 0) return { alreadyAttached: [], newFiles: [] };
   const attached = await withTenantAuthority(authority, tx =>
-    readAttachedObjects(tx, { claimId, tenantId, files })
+    readOwnedDraftAttachments(tx, { claimId, ownerId: session.user.id, tenantId, files })
   );
   const ownRows = attached.filter(row => row.claimId === claimId);
   const plan = planDraftAttachments({ attached: ownRows, claimId, files });
@@ -165,7 +168,9 @@ export async function updateDraftClaimCore(
 
       // The claim row lock now serializes updates of this draft and the object locks serialize
       // every writer of these objects; re-read under both before deciding what to insert.
-      await lockEvidenceObjects(tx, { tenantId, files: plan.newFiles });
+      // Called whenever the decision rests on the re-read (re-sends only, too): it also refuses a
+      // transaction that is not READ COMMITTED.
+      if (files.length > 0) await lockEvidenceObjects(tx, { tenantId, files: plan.newFiles });
       const attachedNow = await readAttachedObjects(tx, { tenantId, files });
       // A no-op skipped verification; if its row is no longer this draft's it must not be inserted.
       const noOps = { attached: attachedNow, claimId, files: plan.alreadyAttached };

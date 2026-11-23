@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { sql, type SQL } from 'drizzle-orm';
+import { type SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import postgres from 'postgres';
 
@@ -111,6 +111,25 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
       success: true,
     });
     assert.equal((await h.rowsOf(draftA)).length, 1);
+    // Ownership and this draft's attachments come from one statement: once the draft changes
+    // hands, its former owner reads none of its attachments, whatever an earlier check saw.
+    const ownedRead = (ownerId: string) =>
+      withTenantAuthority(h.authorityOf(session(ownerId)), tx =>
+        attachments.readOwnedDraftAttachments(tx, {
+          claimId: draftA,
+          ownerId,
+          tenantId: KS,
+          files: [fileX],
+        })
+      );
+    assert.equal((await ownedRead(member)).length, 1);
+    await admin`update "claim" set "userId" = ${otherMember} where id = ${draftA}`;
+    try {
+      assert.deepEqual(await ownedRead(member), []);
+      assert.equal((await ownedRead(otherMember)).length, 1);
+    } finally {
+      await admin`update "claim" set "userId" = ${member} where id = ${draftA}`;
+    }
     // The same object on a second draft of the same member is refused.
     assert.deepEqual(await h.update(session(member), draftB, [fileX]), INVALID_PATH_REFUSAL);
     assert.equal(await h.titleOf(draftB), TITLE);
@@ -138,38 +157,52 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
     );
     await assert.rejects(submitCheck, { name: 'ClaimValidationError', code: 'INVALID_PATH' });
 
-    // The lock refuses an isolation level whose snapshot would miss the previous holder's commit,
-    // before it takes any lock.
+    // The lock only executes statements; this runs them on one postgres.js transaction and keeps
+    // the ids it locks, in the order it locks them.
     const dialect = new PgDialect();
-    await admin.begin('isolation level repeatable read', async rr => {
-      // The lock only executes statements: this runs them in the REPEATABLE READ transaction.
-      const repeatableRead = {
+    const recording = (conn: postgres.TransactionSql) => {
+      const lockedIds: bigint[] = [];
+      const tx = {
         execute: (statement: SQL) => {
           const query = dialect.sqlToQuery(statement);
-          return rr.unsafe(query.sql, query.params as never[]);
+          if (query.sql.includes('pg_advisory_xact_lock')) {
+            lockedIds.push(BigInt(String(query.params[0])));
+          }
+          return conn.unsafe(query.sql, query.params as never[]);
         },
       };
-      const heldLocks = () => rr`select count(*)::int as n from pg_locks
-        where locktype = 'advisory' and pid = pg_backend_pid() and granted`;
-      const [before] = await heldLocks();
-      await assert.rejects(
-        lockClaimEvidenceObjects(repeatableRead as never, KS, [fileZ]),
-        /claim evidence writes require read committed, not repeatable read/
-      );
-      const [after] = await heldLocks();
-      assert.equal(after?.n, before?.n, 'no object lock is taken');
+      return { lockedIds, tx: tx as never };
+    };
+
+    // It refuses an isolation level whose snapshot would miss the previous holder's commit, before
+    // it takes any lock, also when the caller only re-reads (nothing to lock).
+    await admin.begin('isolation level repeatable read', async rr => {
+      const { lockedIds, tx } = recording(rr);
+      for (const objects of [[fileZ], []]) {
+        await assert.rejects(
+          lockClaimEvidenceObjects(tx, KS, objects),
+          /claim evidence writes require read committed, not repeatable read/
+        );
+      }
+      assert.deepEqual(lockedIds, [], 'no object lock is taken');
     });
 
-    // Overlapping batches named in opposite orders lock in one global order: no deadlock.
+    // Batches naming the same objects in opposite orders, with a repeat, lock the same
+    // deduplicated 64-bit ids in ascending numeric order: one global order, no deadlock cycle.
     const pair = [fileY, fileZ];
-    await Promise.all(
-      [pair, [...pair].reverse()].map(objects =>
-        withTenantAuthority(h.authorityOf(session(member)), async tx => {
-          await lockClaimEvidenceObjects(tx, KS, objects);
-          await tx.execute(sql`select pg_sleep(0.2)`);
-        })
-      )
-    );
+    const expectedIds = (
+      await admin`select distinct hashtextextended(k, 0)::text as id
+        from unnest(${pair.map(file => objectLockKey(KS, file.path))}::text[]) as k`
+    )
+      .map(row => BigInt(String(row.id)))
+      .sort((x, y) => (x < y ? -1 : Number(x > y)));
+    for (const objects of [pair, [fileZ, fileY, fileZ]]) {
+      await admin.begin(async rc => {
+        const { lockedIds, tx } = recording(rc);
+        await lockClaimEvidenceObjects(tx, KS, objects);
+        assert.deepEqual(lockedIds, expectedIds);
+      });
+    }
 
     // Two drafts racing for one object: exactly one row.
     const fileW = evidence(initialPath(KS, member, 'w'), 'w');

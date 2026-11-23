@@ -53,6 +53,15 @@ describe('updateDraftClaim attachments — accepted', () => {
     expect(db.writeTxId).toBeGreaterThan(0);
   });
 
+  it('takes the isolation-checking lock call for a re-send-only update too', async () => {
+    const file = withoutToken(initialFile());
+    db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }];
+
+    await expect(update([file])).resolves.toEqual({ success: true });
+    expect(db.locks).toEqual([{ objects: [], tenantId: TENANT, txId: db.writeTxId }]);
+    expect(db.inserted).toHaveLength(0);
+  });
+
   it('ignores identity fields injected into a file entry', async () => {
     const file = {
       ...initialFile(),
