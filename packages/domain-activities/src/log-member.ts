@@ -1,16 +1,16 @@
 import { agentClients, and, db, memberActivities, user } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import { type TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
+import { activityActorOf, memberActivityWriteScope } from './access';
 import { activitySchema, type LogActivityInput } from './schema';
 import type { ActionResult, ActivitySession } from './types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export type { LogActivityInput } from './schema';
+
+const MEMBER_ACCESS_DENIED: ActionResult = { success: false, error: 'Member access denied' };
 
 async function hasMemberActivitiesTable(): Promise<boolean> {
   // Keep this check local to avoid importing extra helpers and to prevent noisy prod errors
@@ -25,29 +25,6 @@ async function hasMemberActivitiesTable(): Promise<boolean> {
   }
 }
 
-/** Same ownership rule as the agent member read: legacy direct link or an active assignment. */
-async function agentOwnsMember(
-  authority: TenantAuthority,
-  agentId: string,
-  member: { id: string; agentId: string | null }
-): Promise<boolean> {
-  if (member.agentId === agentId) return true;
-  const { tenantId } = readTenantAuthority(authority);
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated session authority
-  const assignment = await withTenantAuthority(authority, tx =>
-    tx.query.agentClients.findFirst({
-      where: and(
-        eq(agentClients.tenantId, tenantId),
-        eq(agentClients.agentId, agentId),
-        eq(agentClients.memberId, member.id),
-        eq(agentClients.status, 'active')
-      ),
-      columns: { id: true },
-    })
-  );
-  return Boolean(assignment);
-}
-
 export async function logActivityCore(params: {
   session: ActivitySession | null;
   authority: TenantAuthority | null;
@@ -58,17 +35,21 @@ export async function logActivityCore(params: {
   if (!session) {
     return { success: false, error: 'Unauthorized' };
   }
-
-  if (session.user.role === 'member') {
-    return { success: false, error: 'Permission denied' };
-  }
   if (!session.user.tenantId) {
     return { success: false, error: 'Missing tenantId' };
   }
   if (!authority) {
     return { success: false, error: 'Unauthorized' };
   }
-  const { tenantId } = readTenantAuthority(authority);
+  // The actor is the authority's principal; deny by default before any read or write.
+  const actor = activityActorOf(session, authority);
+  if (!actor) {
+    return { success: false, error: 'Unauthorized' };
+  }
+  const scope = memberActivityWriteScope(actor.role);
+  if (scope === 'denied') {
+    return { success: false, error: 'Permission denied' };
+  }
 
   const result = activitySchema.safeParse(data);
   if (!result.success) {
@@ -82,44 +63,51 @@ export async function logActivityCore(params: {
       return { success: false, error: 'Activity log unavailable' };
     }
 
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    const member = await withTenantAuthority(authority, tx =>
-      tx.query.user.findFirst({
-        where: eq(user.id, memberId),
-      })
-    );
+    // An agent is admitted only by its active agent_clients row; the member's referring agent
+    // (user.agentId) is no admission. The member row and the assignment are read FOR SHARE in the
+    // transaction that inserts the activity, so the access the check saw holds until the insert
+    // commits (R-17).
+    return await withTenantAuthority(authority, async tx => {
+      const [member] = await tx
+        .select({ id: user.id })
+        .from(user)
+        .where(and(eq(user.id, memberId), eq(user.tenantId, actor.tenantId)))
+        .for('share');
+      if (!member) return MEMBER_ACCESS_DENIED;
 
-    if (member?.tenantId !== tenantId) {
-      return { success: false, error: 'Member access denied' };
-    }
+      if (scope === 'assigned') {
+        const [assignment] = await tx
+          .select({ id: agentClients.id })
+          .from(agentClients)
+          .where(
+            and(
+              eq(agentClients.tenantId, actor.tenantId),
+              eq(agentClients.agentId, actor.userId),
+              eq(agentClients.memberId, memberId),
+              eq(agentClients.status, 'active')
+            )
+          )
+          .for('share');
+        if (!assignment) return MEMBER_ACCESS_DENIED;
+      }
 
-    if (
-      session.user.role === 'agent' &&
-      !(await agentOwnsMember(authority, session.user.id, member))
-    ) {
-      return { success: false, error: 'Member access denied' };
-    }
-
-    const newActivity = {
-      id: nanoid(),
-      tenantId,
-      agentId: session.user.id,
-      memberId,
-      type,
-      subject,
-      description,
-      occurredAt: new Date(),
-      createdAt: new Date(),
-      updatedAt: new Date(),
-    };
-
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await withTenantAuthority(authority, tx => tx.insert(memberActivities).values(newActivity));
-
-    return { success: true, error: undefined };
+      const now = new Date();
+      await tx.insert(memberActivities).values({
+        id: nanoid(),
+        tenantId: actor.tenantId,
+        agentId: actor.userId,
+        memberId,
+        type,
+        subject,
+        description,
+        occurredAt: now,
+        createdAt: now,
+        updatedAt: now,
+      });
+      return { success: true, error: undefined } satisfies ActionResult;
+    });
   } catch (error) {
-    // Avoid polluting production error logs when optional activity capture isn't available.
-    console.warn('Failed to log activity:', error);
+    console.error('Failed to log activity:', error);
     return { success: false, error: 'Failed to log activity. Please try again.' };
   }
 }

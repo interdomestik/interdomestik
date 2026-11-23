@@ -58,20 +58,30 @@ describe('extractSubject reads the raw input, never the parsed one', () => {
     expect(form({ claimId: 'c-1' })).toEqual({ type: 'claim', id: 'unknown' });
   });
 
-  it('never runs an accessor or a proxy trap of the input: the target is unknown', () => {
+  it('never runs an accessor or a proxy trap when extracting a refusal subject', () => {
     const getter = vi.fn(() => 'claim_1');
     const accessor = Object.defineProperty({}, 'claimId', { get: getter, enumerable: true });
-    const throwing = new Proxy(
-      {},
-      {
-        getOwnPropertyDescriptor: () => {
-          throw new Error('trap');
-        },
-      }
-    );
+    const trap = vi.fn(() => {
+      throw new Error('trap');
+    });
+    const throwing = new Proxy({}, { getOwnPropertyDescriptor: trap });
+    const proxyForm = new Proxy(new FormData(), { getPrototypeOf: trap, get: trap });
+    const inheritedProxy = Object.create(new Proxy({}, { getPrototypeOf: trap }));
     expect(object(accessor)).toEqual({ type: 'claim', id: 'unknown' });
     expect(getter).not.toHaveBeenCalled();
     expect(object(throwing)).toEqual({ type: 'claim', id: 'unknown' });
+    expect(form(proxyForm)).toEqual({ type: 'claim', id: 'unknown' });
+    expect(form(inheritedProxy)).toEqual({ type: 'claim', id: 'unknown' });
+    expect(trap).not.toHaveBeenCalled();
+  });
+
+  it('extracts the submitted form subject without invoking an own getAll', () => {
+    const raw = new FormData();
+    raw.append('claimId', 'submitted');
+    const getAll = vi.fn(() => ['override']);
+    Object.defineProperty(raw, 'getAll', { value: getAll });
+    expect(form(raw)).toEqual({ type: 'claim', id: 'submitted' });
+    expect(getAll).not.toHaveBeenCalled();
   });
 
   it('self names the actor and none names nothing', () => {

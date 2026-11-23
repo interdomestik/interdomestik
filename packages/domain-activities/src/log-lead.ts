@@ -1,19 +1,15 @@
 import { crmActivities, crmLeads } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
-import { eq } from 'drizzle-orm';
+import { type TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { and, eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
+import { activityActorOf, canAccessLead, isLeadActivityRole } from './access';
 import { leadActivitySchema, type LogLeadActivityInput } from './schema';
 import type { ActionResult, ActivitySession } from './types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 export type { LogLeadActivityInput } from './schema';
 
-// NOSONAR
-/** Roles allowed to log lead activities */
-const ALLOWED_ROLES = new Set(['admin', 'staff', 'agent']);
+const LEAD_ACCESS_DENIED: ActionResult = { success: false, error: 'Lead access denied' };
 
 export async function logLeadActivityCore(params: {
   session: ActivitySession | null;
@@ -25,7 +21,7 @@ export async function logLeadActivityCore(params: {
   if (!session) return { success: false, error: 'Unauthorized' };
 
   // SECURITY: RBAC check
-  if (!ALLOWED_ROLES.has(session.user.role)) {
+  if (!isLeadActivityRole(session.user.role)) {
     return { success: false, error: 'Permission denied: insufficient role' };
   }
 
@@ -36,7 +32,11 @@ export async function logLeadActivityCore(params: {
   if (!authority) {
     return { success: false, error: 'Unauthorized' };
   }
-  const { tenantId } = readTenantAuthority(authority);
+  // SECURITY: the actor is the authority's principal, never the session alone.
+  const actor = activityActorOf(session, authority);
+  if (!actor) {
+    return { success: false, error: 'Unauthorized' };
+  }
 
   const parsed = leadActivitySchema.safeParse(data);
   if (!parsed.success) {
@@ -48,37 +48,34 @@ export async function logLeadActivityCore(params: {
   const { leadId, type, subject, description } = parsed.data;
 
   try {
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    const lead = await withTenantAuthority(authority, tx =>
-      tx.query.crmLeads.findFirst({
-        where: eq(crmLeads.id, leadId),
-      })
-    );
+    // The lead is read FOR SHARE in the transaction that inserts the activity, so the assignment
+    // the check saw holds until the insert commits (R-17).
+    return await withTenantAuthority(authority, async tx => {
+      const [lead] = await tx
+        .select({ agentId: crmLeads.agentId })
+        .from(crmLeads)
+        .where(and(eq(crmLeads.id, leadId), eq(crmLeads.tenantId, actor.tenantId)))
+        .for('share');
 
-    if (lead?.tenantId !== tenantId) {
-      return { success: false, error: 'Lead access denied' };
-    }
+      if (!lead || !canAccessLead({ id: actor.userId, role: actor.role }, lead.agentId)) {
+        return LEAD_ACCESS_DENIED;
+      }
 
-    if (session.user.role === 'agent' && lead.agentId !== session.user.id) {
-      return { success: false, error: 'Lead access denied' };
-    }
+      const now = new Date();
+      await tx.insert(crmActivities).values({
+        id: nanoid(),
+        tenantId: actor.tenantId,
+        agentId: actor.userId,
+        leadId,
+        type: type === 'other' ? 'note' : type,
+        summary: subject,
+        description,
+        occurredAt: now,
+        createdAt: now,
+      });
 
-    const newActivity = {
-      id: nanoid(),
-      tenantId,
-      agentId: session.user.id,
-      leadId,
-      type: type === 'other' ? 'note' : type,
-      summary: subject,
-      description,
-      occurredAt: new Date(),
-      createdAt: new Date(),
-    };
-
-    // db-access-guard: tenant-scoped -- reason: tenantId from validated session or authScope in current call path
-    await withTenantAuthority(authority, tx => tx.insert(crmActivities).values(newActivity));
-
-    return { success: true, error: undefined };
+      return { success: true, error: undefined } satisfies ActionResult;
+    });
   } catch (error) {
     console.error('Failed to log lead activity:', error);
     return { success: false, error: 'Failed to log activity.' };

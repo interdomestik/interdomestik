@@ -13,6 +13,7 @@ import type { ActionResult } from '@/types/actions';
 import { formatControlViolation } from '@interdomestik/domain-membership-billing';
 import { ROLES, scopeFilter } from '@interdomestik/shared-auth';
 
+import { isAllowedInAdmin } from '@/lib/rbac-portals';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { delegateSuperAdminBranchOwner } from '@interdomestik/database';
 import {
@@ -46,19 +47,21 @@ export async function getBranchDashboard(
     // Derive scope from session (NEVER from client input)
     const scope = scopeFilter(session);
 
-    // Branch manager can only access their own branch
+    // Allow-list: only the admin-portal roles see a branch dashboard; every other role is denied.
     const userRole = session.user.role;
+    if (!isAllowedInAdmin(userRole)) {
+      // Expected RBAC denial - do NOT send to Sentry
+      return { success: false, error: 'Insufficient permissions' };
+    }
+
+    // Branch manager can only access their own branch
     if (userRole === ROLES.branch_manager) {
-      if (session.user.branchId !== branchId) {
+      // Exact, as stored: a blank or padded session branch matches no branch.
+      const assignedBranchId = session.user.branchId;
+      if (!assignedBranchId?.trim() || assignedBranchId !== branchId) {
         // Expected RBAC denial - do NOT send to Sentry
         return { success: false, error: 'Access denied to this branch' };
       }
-    }
-
-    // Agents and members cannot access branch dashboard
-    if (userRole === ROLES.agent || userRole === 'user') {
-      // Expected RBAC denial - do NOT send to Sentry
-      return { success: false, error: 'Insufficient permissions' };
     }
 
     // For cross-tenant scope (super_admin), the branch's owning tenant is delegated from the super

@@ -47,7 +47,7 @@
     },
     "e2e-pr": {
       "resourceOwned": true,
-      "commands": ["e2e-gate-pr"]
+      "commands": ["e2e-gate-pr", "e2e-smoke-pr"]
     },
     "e2e-merge": {
       "resourceOwned": true,

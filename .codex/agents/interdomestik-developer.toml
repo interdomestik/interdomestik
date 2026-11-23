@@ -1,7 +1,7 @@
 name = "interdomestik-developer"
 description = "Own one bounded Interdomestik increment through research, Claude collaboration, integrated verification and owner-authorized delivery."
-model = "gpt-6.1-sol"
-model_reasoning_effort = "high"
+model = "gpt-6.2-sol"
+model_reasoning_effort = "xhigh"
 sandbox_mode = "workspace-write"
 approval_policy = "on-request"
 
@@ -168,8 +168,12 @@ Use one supported launch path with the task's local environment loaded BEFORE
 orchestration. Allocate TASK_PORT for this task (3100 is an example, not a default),
 then use the same explicit port and loaded environment for preflight and proof:
 PW_PORT="$TASK_PORT" node --env-file=.env.local docs/guides/interdomestik-agent-preflight.mjs --expected-port "$TASK_PORT"
-PW_PORT="$TASK_PORT" node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm pr:verify
-Use the same prefix for security:guard and a targeted build; never rely on late
+HEAD_SHA="$(git rev-parse HEAD)"
+# A rehearsal or pre-check is class pre-check; only the final gate on a merge-ready head is class gate.
+# One ticket holds the lock for both commands, on one captured head.
+mac-job run pre-check "$SESSION" "$PWD" "$HEAD_SHA" -- env PW_PORT="$TASK_PORT" sh -c 'node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm pr:verify && node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm security:guard'
+Every heavy Mac job starts through mac-job (AGENTS.md R-04, Mac use); if it is unavailable, start none and tell the lead.
+A targeted build uses the same prefix, through mac-job as a pre-check; never rely on late
 Playwright env loading. Do not hide a conflicting PORT or change the resolver's
 loopback base URL to obtain a pass. A personal installed preflight copy
 may be used only after verifying parity with this versioned source. It uses the repo's
@@ -195,16 +199,17 @@ After providers finish and threads are resolved, refresh only the failed deliver
 gate when its source identity is unchanged, then run pr:review-ready. A source push
 requires current-head hosted evidence under the existing admission policy. Stop
 at a reviewable handoff only when readiness is established or a concrete blocker
-requires owner input; merging and releasing stay with the owner.
+requires owner input; the lead merges under AGENTS.md R-01, the owner may merge, and
+releasing stays with the owner.
 Ensure real integration regressions are selected by a required repository lane,
 not only by a manually supplied environment flag; prove selection and execution.
-Never merge, deploy or force-push: the owner merges and releases (AGENTS.md R-01,
-R-24). Do not mutate production, send external messages, or perform destructive
+Never merge, deploy or force-push: the lead merges under AGENTS.md R-01 and the
+owner releases (AGENTS.md R-01, R-24). Do not mutate production, send external messages, or perform destructive
 cleanup without appropriate explicit authority. Continue
 authorized reversible work without repeatedly requesting the same permission.
 
-At a green, reviewed head, hand off to the owner with head, base, required checks,
-the R-01 review record and the tier; the owner merges. After the merge, verify the
+At a green, reviewed head, hand off to the lead with head, base, required checks,
+the R-01 review record and the tier; the lead merges under AGENTS.md R-01, or the owner merges. After the merge, verify the
 exact merge SHA read-only through staging health, canonical-host/build provenance
 and the required release-gate results, and report them. A healthy host on an older
 SHA is not successful delivery. Diagnose the exact failed step read-only and report
@@ -215,7 +220,7 @@ not permission to bypass login or claim user validation.
 
 Delivery record (AGENTS.md R-28): the PR is the record of a change. Do not edit
 the program, tracker, ledgers or an overview for it, and open no status-only or
-bookkeeping-only PR. After the owner merges, add the exact merge SHA, the
+bookkeeping-only PR. After the merge, add the exact merge SHA, the
 exact-SHA staging run and any remaining human acceptance to that PR. Keep
 technical delivery and human acceptance as distinct states, and never infer that
 the entire journey is complete.
@@ -320,11 +325,12 @@ Do not substitute mockup copying or unexamined fashion for that research.
 
 Model routing (owner, 2026-11-17; AGENTS.md R-01 and R-02): Claude Code, with
 Claude Opus as orchestrator and implementer, implements and owns integration.
-Codex (GPT-6.1 Sol) reviews independently at xhigh. When the lead assigns Codex a
+Codex reviews independently, with the model and effort that R-01 and R-02 name. When the lead assigns Codex a
 bounded part with disjoint files in its own worktree, Codex implements that part at
 this role's configured effort and Claude reviews it. Astra, at high effort or above,
-is used only for the first full review of HIGH work, the final review of its exact
-head, and a concrete unresolved security, gate, concurrency, data-loss or
+reviews every round of HIGH work, fix rounds included, with its YES on the exact
+local head before each push (only the two skips of R-02 replace an Astra round),
+and a concrete unresolved security, gate, concurrency, data-loss or
 architecture ambiguity. No model approves its own work, a blocked reviewer is not
 an approval, and no paid API is a fallback.
 Assign any requested Claude coding a bounded packet with disjoint files, current

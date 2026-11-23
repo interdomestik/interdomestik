@@ -4,9 +4,9 @@ import type { TestContext } from 'node:test';
 
 import { inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
 
 import { claimLifecycleFieldsForStatus } from '../src/claim-lifecycle';
+import { openDisposableClient } from '../src/disposable-client';
 import { claimMessages, claims, claimThreads, user } from '../src/schema';
 import {
   applyRlsTestConnectionEnv,
@@ -176,7 +176,12 @@ export async function openS8RestrictedSession(
     t.skip('DATABASE_URL is required for the S8 restricted RLS test');
     return null;
   }
-  const adminSql = postgres(databaseUrl, { max: 1 });
+  // R-13: the admin client comes from the guarded factory (a loopback database or the confirmed CI
+  // container), checked before it connects.
+  const adminSql = openDisposableClient(databaseUrl, {
+    applicationName: 's8-restricted-rls',
+    max: 1,
+  });
   const adminDb = drizzle(adminSql);
   // The admin client is owned from creation: a skip or any setup failure before seeding ends it.
   const endAdmin = () => adminSql.end({ timeout: 1 }).catch(() => undefined);

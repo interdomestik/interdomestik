@@ -157,7 +157,7 @@
     {
       "path": "scripts/run-staff-detail-rls.mjs",
       "kind": "launcher",
-      "reason": "Reads DATABASE_URL to refuse anything but the loopback restricted-lane database, then hands it to the role set-up and to the staff-detail proof; opens no client itself."
+      "reason": "Reads DATABASE_URL to refuse anything but the loopback restricted-lane database, then hands it to the role set-up and to the staff-detail and branch-dashboard proofs; opens no client itself."
     },
     {
       "path": "scripts/run-with-default-db-url.mjs",

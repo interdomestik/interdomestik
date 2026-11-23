@@ -9,6 +9,7 @@
     "./agent-status": "./src/agent-status.ts",
     "./create": "./src/create.ts",
     "./payment": "./src/payment.ts",
+    "./list": "./src/list.ts",
     "./convert": "./src/convert.ts",
     "./member-email-conflict": "./src/member-email-conflict.ts",
     "./sales-admission": "./src/sales-admission.ts"
