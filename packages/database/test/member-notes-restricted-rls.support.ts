@@ -2,32 +2,32 @@ import assert from 'node:assert/strict';
 import { setTimeout as sleep } from 'node:timers/promises';
 
 import { inArray, sql } from 'drizzle-orm';
-import type { drizzle } from 'drizzle-orm/postgres-js';
-import postgres from 'postgres';
 
 import { agentClients, memberNotes, user } from '../src/schema';
-import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
-import { grantRlsTestRole } from './rls-test-grants';
-import { KS_TENANT_ID, MK_TENANT_ID } from './s8-claim-restricted-rls.fixture';
+import { TEST_DB_ROLE } from './rls-test-connection';
+import {
+  KS_TENANT_ID,
+  MK_TENANT_ID,
+  type S8RestrictedSession,
+} from './s8-claim-restricted-rls.fixture';
 
-// Seed, grants and race helpers for member-notes-restricted-rls.test.ts. Every id is unique per
-// run, and cleanup deletes by id, so a failed or partial run leaves nothing behind.
+// Seed and race helpers for the member-notes restricted-role proofs. Every id is unique per run,
+// and cleanup deletes by id, so a failed or partial run leaves nothing behind.
 
-type AdminDb = ReturnType<typeof drizzle>;
+type AdminDb = S8RestrictedSession['adminDb'];
 
 export const NOTE_TABLES = ['member_notes', 'user', 'agent_clients'] as const;
 
 /**
- * The runtime role's privileges on the three tables. Row locks (FOR SHARE, FOR UPDATE) need
- * UPDATE privilege in PostgreSQL, so the role gets UPDATE on `user` and `agent_clients` too; the
- * commands never write either table.
+ * The privileges the commands use, granted for one proof file and revoked after it
+ * (`grantTablePrivileges`). Row locks (FOR SHARE, FOR UPDATE) need UPDATE besides SELECT, so the
+ * role gets UPDATE on `user` and `agent_clients` too; the commands never write either table.
  */
-export async function grantNoteTables(adminDb: AdminDb): Promise<void> {
-  await grantRlsTestRole(adminDb, NOTE_TABLES);
-  const role = quoteIdentifier(TEST_DB_ROLE);
-  await adminDb.execute(sql.raw(`grant update on table "user", "agent_clients" to ${role}`));
-  await adminDb.execute(sql.raw(`grant insert, update, delete on table "member_notes" to ${role}`));
-}
+export const NOTE_GRANTS = [
+  ['select, update', 'user'],
+  ['select, update', 'agent_clients'],
+  ['select, insert, update, delete', 'member_notes'],
+] as const;
 
 export type NoteSeed = ReturnType<typeof noteSeedIds>;
 
@@ -46,6 +46,7 @@ export function noteSeedIds(newId: (prefix: string) => string) {
       m3: id('m3'),
       m4: id('m4'),
       m6: id('m6'),
+      m7: id('m7'),
       mkMember: id('mk_member'),
       mkAgent: id('mk_agent'),
     },
@@ -59,6 +60,11 @@ export function noteSeedIds(newId: (prefix: string) => string) {
       n9: id('n9'),
       nt: id('nt'),
       nm: id('nm'),
+      // On m7, for the delete cases and the delete race.
+      nd1: id('nd1'),
+      nd2: id('nd2'),
+      nd3: id('nd3'),
+      nr: id('nr'),
     },
     assignments: [] as string[],
     created: [] as string[],
@@ -98,6 +104,7 @@ export async function seedNotes(adminDb: AdminDb, seed: NoteSeed): Promise<void>
       person(u.m3, 'member'),
       person(u.m4, 'member'),
       person(u.m6, 'member', KS_TENANT_ID, u.agentA),
+      person(u.m7, 'member'),
       person(u.mkMember, 'member', MK_TENANT_ID),
       person(u.mkAgent, 'agent', MK_TENANT_ID),
     ]);
@@ -116,6 +123,7 @@ export async function seedNotes(adminDb: AdminDb, seed: NoteSeed): Promise<void>
       link(u.agentA, u.m6, 'inactive'),
       link(u.agentB, u.m6, 'active'),
       link(u.agentA, u.staffT, 'active'),
+      link(u.agentA, u.m7, 'active'),
     ]);
   const n = seed.notes;
   const minute = (value: number) => new Date(Date.UTC(2026, 10, 23, 8, value));
@@ -147,6 +155,10 @@ export async function seedNotes(adminDb: AdminDb, seed: NoteSeed): Promise<void>
     // Malformed on purpose: a KS note naming the MK member (no composite key yet, F1).
     note(n.n7, u.mkMember, u.staffS, 8),
     note(n.nm, u.mkMember, u.mkAgent, 9, MK_TENANT_ID),
+    note(n.nd1, u.m7, u.agentA, 10),
+    note(n.nd2, u.m7, u.agentB, 11),
+    note(n.nd3, u.m7, u.staffS, 12),
+    note(n.nr, u.m7, u.staffS, 13),
   ]);
 }
 
@@ -159,54 +171,7 @@ export async function cleanupNotes(adminDb: AdminDb, seed: NoteSeed): Promise<vo
   await adminDb.delete(user).where(inArray(user.id, userIds));
 }
 
-/**
- * A write held open on its own admin connection: `start` runs the statements and keeps the
- * transaction (and its row locks) open until `commit` or `rollback`.
- */
-export async function holdAdminWrite(
-  databaseUrl: string,
-  statements: (tx: postgres.TransactionSql) => Promise<unknown>
-) {
-  const client = postgres(databaseUrl, { max: 1 });
-  let release!: (commit: boolean) => void;
-  const decision = new Promise<boolean>(resolve => {
-    release = resolve;
-  });
-  let pid = 0;
-  let ready!: () => void;
-  const started = new Promise<void>(resolve => {
-    ready = resolve;
-  });
-  const done = client
-    .begin(async tx => {
-      const [row] = await tx<{ pid: number }[]>`select pg_backend_pid() as pid`;
-      pid = row.pid;
-      await statements(tx);
-      ready();
-      if (!(await decision)) throw new RolledBack();
-    })
-    .catch(error => {
-      if (!(error instanceof RolledBack)) throw error;
-    })
-    .finally(() => client.end({ timeout: 1 }));
-  await Promise.race([started, done]);
-  assert.ok(pid > 0, 'the held write started');
-  return {
-    pid,
-    async commit() {
-      release(true);
-      await done;
-    },
-    async rollback() {
-      release(false);
-      await done;
-    },
-  };
-}
-
-class RolledBack extends Error {}
-
-/** Waits until a restricted-role backend is blocked by the given admin backend. */
+/** Waits until a restricted-role backend is blocked by the given backend (read as the admin). */
 export async function waitUntilBlockedBy(
   adminDb: AdminDb,
   holderPid: number,

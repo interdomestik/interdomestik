@@ -114,7 +114,30 @@ describe('MemberNotesCard', () => {
     expect(actions.getMemberNotes).toHaveBeenCalledWith({ memberId: 'm1' });
   });
 
-  it('clears the rows and closes the editor when a refresh is refused', async () => {
+  it('re-reads after a refused edit and, when access ended, clears the rows and the open editor', async () => {
+    actions.getMemberNotes
+      .mockResolvedValueOnce({ success: true, data: [note('n1', 'm1')] })
+      .mockResolvedValueOnce({ success: false, code: 'FORBIDDEN', error: 'Access denied' });
+    actions.updateMemberNote.mockResolvedValue({
+      success: false,
+      code: 'FORBIDDEN',
+      error: 'Not found',
+    });
+    render(<MemberNotesCard memberId="m1" memberName="Member One" />);
+    await screen.findByTestId('note-n1');
+
+    fireEvent.click(screen.getByText('edit n1'));
+    fireEvent.change(screen.getByLabelText('content'), { target: { value: 'late edit' } });
+    fireEvent.click(screen.getByText('submit'));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Not found'));
+    await waitFor(() => expect(screen.queryByTestId('note-n1')).toBeNull());
+    expect(actions.getMemberNotes).toHaveBeenCalledTimes(2);
+    expect(screen.queryByTestId('editor')).toBeNull();
+    expect(screen.getByText('noNotes')).toBeTruthy();
+  });
+
+  it('clears the rows when the refresh after a successful create is refused', async () => {
     actions.getMemberNotes
       .mockResolvedValueOnce({ success: true, data: [note('n1', 'm1')] })
       .mockResolvedValueOnce({ success: false, code: 'FORBIDDEN', error: 'Access denied' });
@@ -126,9 +149,7 @@ describe('MemberNotesCard', () => {
     fireEvent.change(screen.getByLabelText('content'), { target: { value: 'hello' } });
     fireEvent.click(screen.getByText('submit'));
 
-    await waitFor(() => expect(actions.getMemberNotes).toHaveBeenCalledTimes(2));
     await waitFor(() => expect(screen.queryByTestId('note-n1')).toBeNull());
-    expect(screen.queryByTestId('editor')).toBeNull();
     expect(screen.getByText('noNotes')).toBeTruthy();
   });
 
@@ -152,8 +173,10 @@ describe('MemberNotesCard', () => {
       content: 'hello',
       type: 'general',
     });
+    // The list is read again; it still answers, so the editor stays open with its content.
+    await waitFor(() => expect(actions.getMemberNotes).toHaveBeenCalledTimes(2));
     expect(screen.getByTestId('editor')).toBeTruthy();
-    expect(actions.getMemberNotes).toHaveBeenCalledTimes(1);
+    expect(screen.getByLabelText('content')).toHaveProperty('value', 'hello');
   });
 
   it('branches on success first for pin and delete', async () => {
@@ -183,6 +206,49 @@ describe('MemberNotesCard', () => {
     fireEvent.click(screen.getByText('delete n2'));
     await waitFor(() => expect(screen.queryByTestId('note-n2')).toBeNull());
     expect(actions.deleteMemberNote).toHaveBeenCalledWith({ noteId: 'n2' });
+  });
+
+  it('reads the list again when a pin succeeds without its new state', async () => {
+    actions.getMemberNotes
+      .mockResolvedValueOnce({ success: true, data: [note('n1', 'm1')] })
+      .mockResolvedValueOnce({ success: true, data: [note('n1', 'm1', { isPinned: true })] });
+    actions.toggleNotePin.mockResolvedValue({ success: true });
+    render(<MemberNotesCard memberId="m1" memberName="Member One" />);
+    await screen.findByTestId('note-n1');
+
+    fireEvent.click(screen.getByText('pin n1'));
+    await waitFor(() => expect(screen.getByTestId('note-n1').dataset.pinned).toBe('true'));
+    expect(actions.getMemberNotes).toHaveBeenCalledTimes(2);
+  });
+
+  it('is one instance per member: the card is keyed by the member id', () => {
+    // The key is the guarantee: a late answer for the previous member can reach only that
+    // member's unmounted instance, even in the window between a commit and its effects, which
+    // jsdom's act() cannot open (it flushes effects before any answer settles).
+    const element = MemberNotesCard({ memberId: 'm1', memberName: 'Member One' });
+    expect(element.key).toBe('m1');
+  });
+
+  it('never shows the previous member’s late answer while the new member’s list is pending', async () => {
+    const first = deferred<unknown>();
+    const second = deferred<unknown>();
+    actions.getMemberNotes.mockReturnValueOnce(first.promise).mockReturnValueOnce(second.promise);
+    const { rerender } = render(<MemberNotesCard memberId="m1" memberName="Member One" />);
+    rerender(<MemberNotesCard memberId="m2" memberName="Member Two" />);
+
+    await act(async () => {
+      first.resolve({ success: true, data: [note('n1', 'm1')] });
+      await first.promise;
+    });
+    expect(screen.queryByTestId('note-n1')).toBeNull();
+    expect(screen.getByText('loading')).toBeTruthy();
+
+    await act(async () => {
+      second.resolve({ success: true, data: [note('n9', 'm2')] });
+      await second.promise;
+    });
+    expect(screen.getByTestId('note-n9')).toBeTruthy();
+    expect(screen.queryByTestId('note-n1')).toBeNull();
   });
 
   it('drops a superseded list answer when the member changes', async () => {

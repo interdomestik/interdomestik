@@ -82,7 +82,7 @@ Written by this package: `crm_activities`, `member_activities` and `member_notes
 ## Tests to run
 
 - `pnpm --filter @interdomestik/domain-activities test`. The member-notes unit tests run against an in-memory database (`src/test/member-notes-db.ts`).
-- `pnpm db:rls:test` for the restricted-role proofs (R-06), including `packages/database/test/member-notes-restricted-rls.test.ts` (the actor matrix and the cross-tenant cases) and `member-notes-restricted-rls-races.test.ts` (the revocation, member-role change, reassignment, delete and pin races).
+- `pnpm db:rls:test` for the restricted-role proofs (R-06), including `packages/database/test/member-notes-restricted-rls.test.ts` (posture, tenant isolation, the actor and role matrix, list and create), `member-notes-restricted-rls-changes.test.ts` (update, delete and pin by role and target) and `member-notes-restricted-rls-races.test.ts` (the revocation, member-role change, reassignment, delete and pin races).
 
 ## Open follow-ups (outside this module's change)
 

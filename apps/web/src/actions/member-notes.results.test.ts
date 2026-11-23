@@ -1,5 +1,5 @@
 import { authorizedSession } from '@/test/safe-action-harness';
-import { AGENT, NOTE } from './member-notes.test-support';
+import { ADMIN, AGENT, NOTE, STAFF } from './member-notes.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // The domain commands are replaced by name; the schemas stay real, so the wrapper parses input.
@@ -40,6 +40,51 @@ beforeEach(() => {
   vi.resetAllMocks();
   mocks.authorize.mockResolvedValue(authorizedSession(AGENT));
   mocks.write.mockResolvedValue({ ok: true });
+});
+
+describe('the declared basis admits agent, staff and admin to every action', () => {
+  const calls = [
+    ['list', () => getMemberNotes({ memberId: 'member-1' }), domain.listMemberNotes, [NOTE]],
+    [
+      'create',
+      () => createMemberNote({ memberId: 'member-1', content: 'x' }),
+      domain.createMemberNote,
+      NOTE,
+    ],
+    [
+      'update',
+      () => updateMemberNote({ id: 'note-1', content: 'x' }),
+      domain.updateMemberNote,
+      NOTE,
+    ],
+    ['delete', () => deleteMemberNote({ noteId: 'note-1' }), domain.deleteMemberNote, undefined],
+    [
+      'pin',
+      () => toggleNotePin({ noteId: 'note-1' }),
+      domain.toggleMemberNotePin,
+      { isPinned: true },
+    ],
+  ] as const;
+
+  it.each([AGENT, STAFF, ADMIN])('$role reaches each domain command and succeeds', async who => {
+    mocks.authorize.mockResolvedValue(authorizedSession(who));
+    for (const [name, call, command, data] of calls) {
+      command.mockResolvedValue({
+        ok: true,
+        data,
+        audit: name === 'list' ? null : { memberId: 'member-1' },
+      });
+      expect(await call(), name).toMatchObject({ success: true });
+      expect(command, name).toHaveBeenCalledWith(
+        expect.objectContaining({
+          session: expect.objectContaining({
+            user: expect.objectContaining({ id: who.id, role: who.role }),
+          }),
+        })
+      );
+    }
+    expect(refusals()).toEqual([]);
+  });
 });
 
 describe('results and audit events', () => {

@@ -1,4 +1,5 @@
-import { authorizedSession } from '@/test/safe-action-harness';
+import { MANAGER_NO_BRANCH, authorizedSession } from '@/test/safe-action-harness';
+import { MissingTenantError } from '@interdomestik/shared-auth/errors';
 import { AGENT } from './member-notes.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -117,10 +118,35 @@ describe.each(CASES)('$name', c => {
     });
   });
 
-  it('answers UNAUTHORIZED without a session and never calls the command', async () => {
+  it('answers UNAUTHORIZED without a session: one warning, no write, no command', async () => {
     mocks.authorize.mockResolvedValue(null);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     expect(await c.action(c.input)).toMatchObject({ success: false, code: 'UNAUTHORIZED' });
     expect(c.command).not.toHaveBeenCalled();
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(mocks.write).not.toHaveBeenCalled();
+    expect(noteEvents()).toEqual([]);
+  });
+
+  it('answers MISSING_TENANT without a tenant: no write, no command', async () => {
+    mocks.authorize.mockRejectedValue(new MissingTenantError('detail'));
+    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    expect(await c.action(c.input)).toEqual({
+      success: false,
+      code: 'MISSING_TENANT',
+      error: 'Missing tenant context',
+    });
+    expect(c.command).not.toHaveBeenCalled();
+    expect(mocks.write).not.toHaveBeenCalled();
+    expect(noteEvents()).toEqual([]);
+  });
+
+  it('refuses a branch manager without a branch with one recorded refusal', async () => {
+    mocks.authorize.mockResolvedValue(authorizedSession(MANAGER_NO_BRANCH));
+    expect(await c.action(c.input)).toMatchObject({ success: false, code: 'FORBIDDEN_NO_BRANCH' });
+    expect(c.command).not.toHaveBeenCalled();
+    expectOneRefusal(c, 'FORBIDDEN_NO_BRANCH', MANAGER_NO_BRANCH.id);
+    expect(noteEvents()).toEqual([]);
   });
 
   it.each(['member', 'user', 'branch_manager', 'tenant_admin', 'super_admin', 'promoter'])(

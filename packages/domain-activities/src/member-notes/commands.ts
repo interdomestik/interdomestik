@@ -60,11 +60,10 @@ export async function createMemberNote(
   return withTenantAuthority(params.authority, async tx => {
     // One refusal for an unknown, foreign, non-member or out-of-scope target; nothing is inserted.
     if (!(await canActOnMemberNotes(tx, actor, input.memberId))) return fail('FORBIDDEN');
+    // The identity and tenant columns come from the server context, set last (R-05).
     const note = {
       id: nanoid(),
-      tenantId: actor.tenantId,
       memberId: input.memberId,
-      authorId: actor.userId,
       type: input.type ?? 'general',
       content,
       isPinned: input.isPinned ?? false,
@@ -72,6 +71,8 @@ export async function createMemberNote(
       followUpDate: input.followUpDate ?? null,
       createdAt: new Date(),
       updatedAt: null,
+      authorId: actor.userId,
+      tenantId: actor.tenantId,
     };
     await tx.insert(memberNotes).values(note);
     const created: MemberNote = {

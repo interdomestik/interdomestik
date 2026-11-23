@@ -1,25 +1,32 @@
 import type { TestContext } from 'node:test';
-import { inspect } from 'node:util';
 
 import { and, eq, inArray } from 'drizzle-orm';
 
 import { agentClients, memberNotes } from '../src/schema';
 import type { TenantAuthority } from '../src/tenant-authority';
 import {
+  grantTablePrivileges,
+  openActivitySession,
+  withCleanup,
+  type Cleanups,
+} from './activity-access-rls.support';
+import {
   cleanupNotes,
-  grantNoteTables,
+  NOTE_GRANTS,
   noteSeedIds,
   seedNotes,
 } from './member-notes-restricted-rls.support';
-import { KS_TENANT_ID, openS8RestrictedSession } from './s8-claim-restricted-rls.fixture';
+import { KS_TENANT_ID, type S8RestrictedSession } from './s8-claim-restricted-rls.fixture';
 
-// One restricted-role session per proof file: grants, the seed of the support file, the real
-// domain modules, session actors, and cleanup that runs whatever the subtests did.
+// One restricted-role session per proof file: the R-13 target check, grants revoked afterwards,
+// the seed of the support file, the real domain modules, session actors, and cleanup that runs
+// whatever the subtests did (#2113's helpers, R-20).
 
 type Overrides = {
   purpose?: 'session' | 'test';
   authorityTenant?: string;
   principalUser?: string;
+  principalRole?: string;
   sessionTenant?: string;
 };
 
@@ -34,10 +41,7 @@ async function loadModules() {
   return { commands, change, access, ctx, mintTenantAuthority: authority.mintTenantAuthority };
 }
 
-async function buildProof(
-  session: NonNullable<Awaited<ReturnType<typeof openS8RestrictedSession>>>,
-  seed: ReturnType<typeof noteSeedIds>
-) {
+async function buildProof(session: S8RestrictedSession, seed: ReturnType<typeof noteSeedIds>) {
   const { adminDb } = session;
   const modules = await loadModules();
   /** A session and a session authority minted for it, as the request path pairs them. */
@@ -47,7 +51,12 @@ async function buildProof(
       tenantId,
       accessTenantId: tenantId,
       purpose: overrides.purpose ?? 'session',
-      principal: { userId: overrides.principalUser ?? userId, role, branchId: null, agentId: null },
+      principal: {
+        userId: overrides.principalUser ?? userId,
+        role: overrides.principalRole ?? role,
+        branchId: null,
+        agentId: null,
+      },
     });
     return {
       session: {
@@ -61,7 +70,6 @@ async function buildProof(
   return {
     ...modules,
     adminDb,
-    databaseUrl: process.env.DATABASE_URL ?? '',
     seed,
     u,
     n: seed.notes,
@@ -88,37 +96,30 @@ async function buildProof(
   };
 }
 
-async function recordFailure(failures: unknown[], step: () => Promise<unknown>): Promise<void> {
-  try {
-    await step();
-  } catch (error) {
-    failures.push(error);
-  }
-}
-
 export type NotesProof = Awaited<ReturnType<typeof buildProof>>;
 
 export async function withNotesProof(
   t: TestContext,
   body: (proof: NotesProof) => Promise<void>
 ): Promise<void> {
-  const session = await openS8RestrictedSession(t);
+  // Four app connections: a race holds one command, probes it from another, and runs a second.
+  const session = await openActivitySession(t, { DB_MAX_CONNECTIONS: '4' });
   if (!session) return;
   const seed = noteSeedIds(session.fixture.newId);
-  const failures: unknown[] = [];
-  try {
-    await grantNoteTables(session.adminDb);
-    await seedNotes(session.adminDb, seed);
-    await body(await buildProof(session, seed));
-  } catch (error) {
-    failures.push(error);
-  } finally {
-    // Rows first, then the clients; each step runs even when the one before it failed.
-    await recordFailure(failures, () => cleanupNotes(session.adminDb, seed));
-    await recordFailure(failures, () => session.close());
-  }
-  for (const error of failures.slice(1)) {
-    t.diagnostic(`Additional cleanup failure: ${inspect(error)}`);
-  }
-  if (failures.length > 0) throw failures[0];
+  let revoke: (() => Promise<void>) | null = null;
+  // Registered before the first write: rows first, then the grants, then the clients.
+  const cleanups: Cleanups = [
+    () => cleanupNotes(session.adminDb, seed),
+    async () => revoke?.(),
+    () => session.close(),
+  ];
+  await withCleanup(
+    t,
+    async () => {
+      revoke = await grantTablePrivileges(session.adminDb, NOTE_GRANTS);
+      await seedNotes(session.adminDb, seed);
+      await body(await buildProof(session, seed));
+    },
+    () => cleanups
+  );
 }

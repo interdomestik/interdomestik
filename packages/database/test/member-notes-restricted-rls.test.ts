@@ -1,47 +1,50 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 
-import { eq, inArray, sql } from 'drizzle-orm';
+import { eq, inArray } from 'drizzle-orm';
 
 import { memberNotes } from '../src/schema';
 import type { TenantAuthority } from '../src/tenant-authority';
+import { assertRestrictedPosture } from './activity-access-rls.support';
 import { withNotesProof } from './member-notes-restricted-rls.harness';
-import { TEST_DB_ROLE } from './rls-test-connection';
+import { NOTE_TABLES } from './member-notes-restricted-rls.support';
 import { KS_TENANT_ID, MK_TENANT_ID } from './s8-claim-restricted-rls.fixture';
 
 // R-06 proof for the member-notes commands of @interdomestik/domain-activities: the real commands
 // run under the restricted role (no BYPASSRLS) with session authorities, on a disposable
 // database. Owner authorization of 2026-11-23 (R-37): agents act only on an actively assigned
 // member; staff and admin keep tenant scope.
-// This file: the actor matrix and tenant isolation. The races are in
+// This file: posture, tenant isolation, the actor and role matrix, list and create. Update,
+// delete and pin are in member-notes-restricted-rls-changes.test.ts, the races in
 // member-notes-restricted-rls-races.test.ts.
 
 test('member notes: actor matrix and tenant isolation under the restricted role', async t => {
   await withNotesProof(t, async proof => {
-    const {
-      access,
-      actor,
-      adminDb,
-      allNoteIds,
-      commands,
-      ctx,
-      ids,
-      n,
-      seed,
-      setAssignment,
-      snapshot,
-      u,
-    } = proof;
+    const { access, actor, adminDb, allNoteIds, commands, ctx, ids, n, seed, snapshot, u } = proof;
     const { A, B, C, D, S } = proof;
     const { memberNoteActorOf } = access;
+    type Who = ReturnType<typeof A>;
+    /** The five commands on reachable targets (n1 on m1, which A, S and D may act on). */
+    const everyCommand = async (who: Who, extra: Record<string, unknown> = {}) => [
+      await commands.listMemberNotes({ ...who, input: { memberId: u.m1, ...extra } }),
+      await commands.createMemberNote({
+        ...who,
+        input: { memberId: u.m1, content: 'x', ...extra },
+      }),
+      await commands.updateMemberNote({ ...who, input: { id: n.n1, content: 'x', ...extra } }),
+      await commands.deleteMemberNote({ ...who, input: { noteId: n.n1, ...extra } }),
+      await commands.toggleMemberNotePin({ ...who, input: { noteId: n.n1, ...extra } }),
+    ];
+    const countOn = async (memberId: string) =>
+      (
+        await adminDb
+          .select({ id: memberNotes.id })
+          .from(memberNotes)
+          .where(eq(memberNotes.memberId, memberId))
+      ).length;
 
-    await t.test('runs as the restricted role with row security not bypassable', async () => {
-      const [row] = await ctx.withTenantAuthority(A().authority, tx =>
-        tx.execute<{ currentUser: string; bypass: boolean; superuser: boolean }>(sql`
-          select current_user as "currentUser", rolbypassrls as bypass, rolsuper as superuser
-          from pg_roles where rolname = current_user`)
-      );
-      assert.deepEqual(row, { currentUser: TEST_DB_ROLE, bypass: false, superuser: false });
+    await t.test('runs as the restricted role with row security active on each table', async () => {
+      await assertRestrictedPosture(A().authority, NOTE_TABLES);
     });
 
     await t.test('row security alone hides the other tenant’s notes', async () => {
@@ -69,33 +72,43 @@ test('member notes: actor matrix and tenant isolation under the restricted role'
         actor(u.agentA, 'agent', { principalUser: u.agentB }),
         actor(u.agentA, 'agent', { authorityTenant: MK_TENANT_ID }),
         actor(u.agentA, 'agent', { sessionTenant: MK_TENANT_ID }),
+        actor(u.agentA, 'agent', { principalRole: 'staff' }),
+        actor(u.staffS, 'staff', { principalRole: 'admin' }),
       ];
       for (const who of unbound) {
         assert.equal(memberNoteActorOf(who.session, who.authority), null);
-        assert.deepEqual(await commands.listMemberNotes({ ...who, input: { memberId: u.m1 } }), {
-          ok: false,
-          code: 'UNAUTHORIZED',
-        });
-        assert.deepEqual(await commands.toggleMemberNotePin({ ...who, input: { noteId: n.n1 } }), {
-          ok: false,
-          code: 'UNAUTHORIZED',
-        });
+        for (const answer of await everyCommand(who)) {
+          assert.deepEqual(answer, { ok: false, code: 'UNAUTHORIZED' });
+        }
       }
       assert.deepEqual(await snapshot(), before);
+      assert.equal(await countOn(u.m1), 2, 'no note was added');
     });
 
-    await t.test('refuses every role outside agent, staff and admin', async () => {
-      for (const role of ['member', 'user', 'branch_manager', 'tenant_admin', 'super_admin']) {
-        const who = actor(u.staffS, role);
-        assert.deepEqual(await commands.listMemberNotes({ ...who, input: { memberId: u.m1 } }), {
-          ok: false,
-          code: 'FORBIDDEN',
-        });
-        assert.deepEqual(
-          await commands.createMemberNote({ ...who, input: { memberId: u.m1, content: 'x' } }),
-          { ok: false, code: 'FORBIDDEN' }
-        );
+    await t.test(
+      'refuses every role outside agent, staff and admin, on every command',
+      async () => {
+        const before = await snapshot();
+        for (const role of ['member', 'user', 'branch_manager', 'tenant_admin', 'super_admin']) {
+          for (const answer of await everyCommand(actor(u.staffS, role))) {
+            assert.deepEqual(answer, { ok: false, code: 'FORBIDDEN' }, role);
+          }
+        }
+        assert.deepEqual(await snapshot(), before);
+        assert.equal(await countOn(u.m1), 2, 'no note was added');
       }
+    );
+
+    await t.test('refuses an injected tenant or author on every command', async () => {
+      const before = await snapshot();
+      const injected = { tenantId: MK_TENANT_ID, authorId: u.agentB };
+      for (const who of [A(), S(), D()]) {
+        for (const answer of await everyCommand(who, injected)) {
+          assert.deepEqual(answer, { ok: false, code: 'INVALID_INPUT' });
+        }
+      }
+      assert.deepEqual(await snapshot(), before);
+      assert.equal(await countOn(u.m1), 2, 'no note was added');
     });
 
     await t.test(
@@ -182,105 +195,5 @@ test('member notes: actor matrix and tenant isolation under the restricted role'
         });
       }
     );
-
-    await t.test(
-      'changes a note only on a reachable member, by its author or an admin',
-      async () => {
-        const before = await snapshot();
-        for (const id of [n.n3, n.n6, n.n7, n.n8, n.n9, n.nt, n.nm]) {
-          assert.deepEqual(
-            await commands.updateMemberNote({ ...A(), input: { id, content: 'x' } }),
-            {
-              ok: false,
-              code: 'NOT_FOUND',
-            }
-          );
-          assert.deepEqual(await commands.deleteMemberNote({ ...A(), input: { noteId: id } }), {
-            ok: false,
-            code: 'NOT_FOUND',
-          });
-          assert.deepEqual(await commands.toggleMemberNotePin({ ...A(), input: { noteId: id } }), {
-            ok: false,
-            code: 'NOT_FOUND',
-          });
-        }
-        for (const id of [n.nt, n.n7, n.nm]) {
-          assert.deepEqual(
-            await commands.updateMemberNote({ ...D(), input: { id, content: 'x' } }),
-            {
-              ok: false,
-              code: 'NOT_FOUND',
-            }
-          );
-        }
-        assert.deepEqual(
-          await commands.updateMemberNote({ ...A(), input: { id: n.n2, content: 'x' } }),
-          {
-            ok: false,
-            code: 'NOT_AUTHOR',
-          }
-        );
-        assert.deepEqual(await commands.deleteMemberNote({ ...S(), input: { noteId: n.n1 } }), {
-          ok: false,
-          code: 'NOT_AUTHOR',
-        });
-        assert.deepEqual(await snapshot(), before);
-
-        const updated = await commands.updateMemberNote({
-          ...A(),
-          input: { id: n.n1, content: 'Updated', isPinned: true },
-        });
-        assert.ok(updated.ok);
-        assert.deepEqual(updated.audit, { memberId: u.m1, updatedFields: ['content', 'isPinned'] });
-        const pinned = await commands.toggleMemberNotePin({ ...A(), input: { noteId: n.n2 } });
-        assert.deepEqual(pinned, {
-          ok: true,
-          data: { isPinned: true },
-          audit: { memberId: u.m1, isPinned: true },
-        });
-        assert.ok(
-          (await commands.updateMemberNote({ ...D(), input: { id: n.n3, type: 'call' } })).ok
-        );
-        const [n1, n2, n3] = await adminDb
-          .select({
-            id: memberNotes.id,
-            content: memberNotes.content,
-            isPinned: memberNotes.isPinned,
-            type: memberNotes.type,
-          })
-          .from(memberNotes)
-          .where(inArray(memberNotes.id, [n.n1, n.n2, n.n3]))
-          .then(rows => [n.n1, n.n2, n.n3].map(id => rows.find(row => row.id === id)));
-        assert.deepEqual(n1, { id: n.n1, content: 'Updated', isPinned: true, type: 'general' });
-        assert.deepEqual(n2, {
-          id: n.n2,
-          content: `content ${n.n2}`,
-          isPinned: true,
-          type: 'general',
-        });
-        assert.deepEqual(n3, {
-          id: n.n3,
-          content: `content ${n.n3}`,
-          isPinned: false,
-          type: 'call',
-        });
-      }
-    );
-
-    await t.test('an ended assignment takes the agent’s own notes away at once', async () => {
-      await setAssignment(u.agentA, u.m1, 'inactive');
-      try {
-        assert.deepEqual(await commands.listMemberNotes({ ...A(), input: { memberId: u.m1 } }), {
-          ok: false,
-          code: 'FORBIDDEN',
-        });
-        assert.deepEqual(await commands.deleteMemberNote({ ...A(), input: { noteId: n.n1 } }), {
-          ok: false,
-          code: 'NOT_FOUND',
-        });
-      } finally {
-        await setAssignment(u.agentA, u.m1, 'active');
-      }
-    });
   });
 });
