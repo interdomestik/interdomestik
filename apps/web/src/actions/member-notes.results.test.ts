@@ -2,28 +2,27 @@ import { authorizedSession } from '@/test/safe-action-harness';
 import { AGENT, NOTE } from './member-notes.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+// The domain commands are replaced by name; the schemas stay real, so the wrapper parses input.
 const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
   write: vi.fn(),
   audit: vi.fn(),
-  list: vi.fn(),
-  create: vi.fn(),
-  update: vi.fn(),
-  remove: vi.fn(),
-  pin: vi.fn(),
+  domain: {
+    listMemberNotes: vi.fn(),
+    createMemberNote: vi.fn(),
+    updateMemberNote: vi.fn(),
+    deleteMemberNote: vi.fn(),
+    toggleMemberNotePin: vi.fn(),
+  },
 }));
+const { domain } = mocks;
 
 vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.authorize }));
 vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: mocks.write }));
 vi.mock('@/lib/audit', () => ({ logAuditEvent: mocks.audit }));
-vi.mock('@interdomestik/domain-activities/member-notes', async importOriginal => ({
-  ...(await importOriginal<object>()),
-  listMemberNotes: mocks.list,
-  createMemberNote: mocks.create,
-  updateMemberNote: mocks.update,
-  deleteMemberNote: mocks.remove,
-  toggleMemberNotePin: mocks.pin,
-}));
+vi.mock('@interdomestik/domain-activities/member-notes', async importOriginal =>
+  Object.assign({}, await importOriginal<object>(), mocks.domain)
+);
 
 import {
   createMemberNote,
@@ -45,7 +44,7 @@ beforeEach(() => {
 
 describe('results and audit events', () => {
   it('list returns the rows and writes nothing', async () => {
-    mocks.list.mockResolvedValue({ ok: true, data: [NOTE], audit: null });
+    domain.listMemberNotes.mockResolvedValue({ ok: true, data: [NOTE], audit: null });
     expect(await getMemberNotes({ memberId: 'member-1' })).toEqual({ success: true, data: [NOTE] });
     expect(mocks.write).not.toHaveBeenCalled();
     expect(mocks.audit).not.toHaveBeenCalled();
@@ -53,7 +52,7 @@ describe('results and audit events', () => {
 
   it('create returns the note and records member_note.created', async () => {
     const audit = { memberId: 'member-1', noteType: 'general', isPinned: false, isInternal: true };
-    mocks.create.mockResolvedValue({ ok: true, data: NOTE, audit });
+    domain.createMemberNote.mockResolvedValue({ ok: true, data: NOTE, audit });
     expect(await createMemberNote({ memberId: 'member-1', content: 'hello' })).toEqual({
       success: true,
       data: NOTE,
@@ -74,7 +73,7 @@ describe('results and audit events', () => {
 
   it('update records member_note.updated with the changed fields', async () => {
     const audit = { memberId: 'member-1', updatedFields: ['content'] };
-    mocks.update.mockResolvedValue({ ok: true, data: NOTE, audit });
+    domain.updateMemberNote.mockResolvedValue({ ok: true, data: NOTE, audit });
     expect(await updateMemberNote({ id: 'note-1', content: 'hello' })).toEqual({
       success: true,
       data: NOTE,
@@ -89,7 +88,7 @@ describe('results and audit events', () => {
   });
 
   it('update answers EMPTY_CONTENT as a validation error without a refusal row', async () => {
-    mocks.update.mockResolvedValue({ ok: false, code: 'EMPTY_CONTENT' });
+    domain.updateMemberNote.mockResolvedValue({ ok: false, code: 'EMPTY_CONTENT' });
     expect(await updateMemberNote({ id: 'note-1', content: '<p></p>' })).toEqual({
       success: false,
       code: 'VALIDATION_ERROR',
@@ -100,7 +99,11 @@ describe('results and audit events', () => {
   });
 
   it('delete returns no data and records member_note.deleted', async () => {
-    mocks.remove.mockResolvedValue({ ok: true, data: undefined, audit: { memberId: 'member-1' } });
+    domain.deleteMemberNote.mockResolvedValue({
+      ok: true,
+      data: undefined,
+      audit: { memberId: 'member-1' },
+    });
     expect(await deleteMemberNote({ noteId: 'note-1' })).toEqual({ success: true });
     expect(noteEvents()).toEqual([
       expect.objectContaining({
@@ -113,7 +116,7 @@ describe('results and audit events', () => {
 
   it('pin returns the new state and records member_note.pin_toggled', async () => {
     const audit = { memberId: 'member-1', isPinned: true };
-    mocks.pin.mockResolvedValue({ ok: true, data: { isPinned: true }, audit });
+    domain.toggleMemberNotePin.mockResolvedValue({ ok: true, data: { isPinned: true }, audit });
     expect(await toggleNotePin({ noteId: 'note-1' })).toEqual({
       success: true,
       data: { isPinned: true },
@@ -128,10 +131,10 @@ describe('results and audit events', () => {
   });
 
   it('create accepts a follow-up date and refuses an unknown note type', async () => {
-    mocks.create.mockResolvedValue({ ok: false, code: 'FORBIDDEN' });
+    domain.createMemberNote.mockResolvedValue({ ok: false, code: 'FORBIDDEN' });
     const followUpDate = new Date('2026-12-01T09:00:00Z');
     await createMemberNote({ memberId: 'member-1', content: 'x', followUpDate, type: 'call' });
-    expect(mocks.create).toHaveBeenCalledWith(
+    expect(domain.createMemberNote).toHaveBeenCalledWith(
       expect.objectContaining({
         input: { memberId: 'member-1', content: 'x', followUpDate, type: 'call' },
       })
