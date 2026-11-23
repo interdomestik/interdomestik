@@ -1,4 +1,5 @@
 import { expect, loginAtDoor, test } from '../fixtures/one-door.fixture';
+import { formatPilotDateTime } from '../../src/lib/utils/date';
 import { gotoApp } from '../utils/navigation';
 import {
   copy,
@@ -39,13 +40,15 @@ test('assigned staff record legal bases, document disclosure, and an overdue una
   await recordOutgoing(page, unanswered, false);
   await saveFollowUp(registerRow(page, answered), '2020-01-06T12:00');
   await saveFollowUp(registerRow(page, unanswered), '2020-01-07T12:00');
+  // The follow-up inputs are UTC; the queue shows the same instants in pilot time.
+  const firstFollowUp = '2020-01-06T12:00:00.000Z';
+  const secondFollowUp = '2020-01-07T12:00:00.000Z';
   await expect(page.getByTestId('staff-correspondence-overdue')).toHaveCount(2);
 
   const queue = await page.context().newPage();
   try {
     const overdue = await openQueue(queue, claimId, origin, locale, info);
-    await expect(overdue).toBeVisible();
-    const firstDue = await overdue.innerText();
+    await expect(overdue).toContainText(formatPilotDateTime(firstFollowUp, locale, ''));
 
     const form = recordForm(page);
     await form.getByLabel(copy.entry.directionLabel).selectOption('inbound');
@@ -66,11 +69,10 @@ test('assigned staff record legal bases, document disclosure, and an overdue una
     ).toBeVisible();
     await expect(page.getByTestId('staff-correspondence-overdue')).toHaveCount(1);
 
-    // Re-open through the ready marker: a bare reload can leave a hidden streamed copy of the
-    // row outside the shell, which makes the row locator match twice.
-    const refreshed = await openQueue(queue, claimId, origin, locale, info);
-    await expect(refreshed).toBeVisible();
-    await expect(refreshed).not.toHaveText(firstDue);
+    // The answered contact's deadline no longer counts; the remaining unanswered one does.
+    await queue.reload();
+    await expect(overdue).toContainText(formatPilotDateTime(secondFollowUp, locale, ''));
+    await expect(overdue).not.toContainText(formatPilotDateTime(firstFollowUp, locale, ''));
   } finally {
     await queue.close();
   }
