@@ -152,6 +152,11 @@
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"claim_response_requests\",\"claim_response_requests_source_uq\"]",
+      "value": "unique btree (tenant_id, kind, COALESCE(source_message_id, claim_id))",
+      "migration": "0102_wp11_notification_deliveries"
+    },
+    {
       "key": "index [\"public\",\"claim_stage_history\",\"idx_claim_stage_history_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"

@@ -10,10 +10,14 @@ import {
   timestamp,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import { user, recipientLocales } from './auth';
+import { user } from './auth';
 import { claims } from './claim-core';
 import { claimMessages } from './claim-support-tables';
 import { sponsorTenantPolicy } from './sponsors';
+
+// The recipient locales, literal so this table imports only table bindings (tenant guard tail
+// grammar). apps/web/src/i18n/locales.test.ts pins it to `recipientLocales` and the catalogue.
+export const notificationDeliveryLocales = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 
 export const notificationDeliveryKinds = [
   'claim_submitted',
@@ -60,7 +64,7 @@ export const notificationDeliveries = pgTable(
     lastErrorCode: text('last_error_code'),
     lastErrorDetail: text('last_error_detail'),
     skipReason: text('skip_reason', { enum: skipReasons }),
-    locale: text('locale', { enum: recipientLocales }),
+    locale: text('locale', { enum: notificationDeliveryLocales }),
     avoidTransport: text('avoid_transport', { enum: ['smtp', 'resend'] }),
     transport: text('transport', { enum: ['smtp', 'resend', 'webpush'] }),
     createdAt: at('created_at').notNull().defaultNow(),

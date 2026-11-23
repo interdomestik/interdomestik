@@ -1,5 +1,5 @@
 {
-  "id": "12ace510-df25-4ccc-8282-2942c4a3b8ca",
+  "id": "faaf6dce-e434-4757-9a7a-97685d8f356a",
   "prevId": "9232b7a7-ac50-4b3a-8703-72c843e2a870",
   "version": "7",
   "dialect": "postgresql",
@@ -5585,190 +5585,6 @@
         }
       },
       "isRLSEnabled": false
-    },
-    "public.claim_response_requests": {
-      "name": "claim_response_requests",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "claim_id": {
-          "name": "claim_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source_message_id": {
-          "name": "source_message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "requested_at": {
-          "name": "requested_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "answered_at": {
-          "name": "answered_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "answered_by": {
-          "name": "answered_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "answer_kind": {
-          "name": "answer_kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "answer_message_id": {
-          "name": "answer_message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "claim_response_requests_source_uq": {
-          "name": "claim_response_requests_source_uq",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "kind",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "coalesce(\"source_message_id\", \"claim_id\")",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "claim_response_requests_answered_by_user_id_fk": {
-          "name": "claim_response_requests_answered_by_user_id_fk",
-          "tableFrom": "claim_response_requests",
-          "tableTo": "user",
-          "columnsFrom": [
-            "answered_by"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "claim_response_requests_claim_fk": {
-          "name": "claim_response_requests_claim_fk",
-          "tableFrom": "claim_response_requests",
-          "tableTo": "claim",
-          "columnsFrom": [
-            "tenant_id",
-            "claim_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "claim_response_requests_source_fk": {
-          "name": "claim_response_requests_source_fk",
-          "tableFrom": "claim_response_requests",
-          "tableTo": "claim_messages",
-          "columnsFrom": [
-            "tenant_id",
-            "claim_id",
-            "source_message_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "claim_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "claim_response_requests_answer_fk": {
-          "name": "claim_response_requests_answer_fk",
-          "tableFrom": "claim_response_requests",
-          "tableTo": "claim_messages",
-          "columnsFrom": [
-            "tenant_id",
-            "claim_id",
-            "answer_message_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "claim_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {
-        "claim_response_requests_tenant_policy": {
-          "name": "claim_response_requests_tenant_policy",
-          "as": "PERMISSIVE",
-          "for": "ALL",
-          "to": [
-            "public"
-          ],
-          "using": "\"claim_response_requests\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
-          "withCheck": "\"claim_response_requests\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
-        }
-      },
-      "checkConstraints": {
-        "claim_response_requests_kind_check": {
-          "name": "claim_response_requests_kind_check",
-          "value": "\"claim_response_requests\".\"kind\" in ('claim_submitted', 'member_message')"
-        },
-        "claim_response_requests_source_check": {
-          "name": "claim_response_requests_source_check",
-          "value": "(\"claim_response_requests\".\"kind\" = 'member_message') = (\"claim_response_requests\".\"source_message_id\" is not null)"
-        }
-      },
-      "isRLSEnabled": true
     },
     "public.claim_counters": {
       "name": "claim_counters",
@@ -19564,6 +19380,162 @@
         "notification_deliveries_avoid_check": {
           "name": "notification_deliveries_avoid_check",
           "value": "\"notification_deliveries\".\"avoid_transport\" in ('smtp', 'resend')"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.claim_response_requests": {
+      "name": "claim_response_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_message_id": {
+          "name": "source_message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requested_at": {
+          "name": "requested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "answered_at": {
+          "name": "answered_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "answered_by": {
+          "name": "answered_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "answer_kind": {
+          "name": "answer_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "answer_message_id": {
+          "name": "answer_message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "claim_response_requests_answered_by_user_id_fk": {
+          "name": "claim_response_requests_answered_by_user_id_fk",
+          "tableFrom": "claim_response_requests",
+          "tableTo": "user",
+          "columnsFrom": [
+            "answered_by"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "claim_response_requests_claim_fk": {
+          "name": "claim_response_requests_claim_fk",
+          "tableFrom": "claim_response_requests",
+          "tableTo": "claim",
+          "columnsFrom": [
+            "tenant_id",
+            "claim_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "claim_response_requests_source_fk": {
+          "name": "claim_response_requests_source_fk",
+          "tableFrom": "claim_response_requests",
+          "tableTo": "claim_messages",
+          "columnsFrom": [
+            "tenant_id",
+            "claim_id",
+            "source_message_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "claim_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "claim_response_requests_answer_fk": {
+          "name": "claim_response_requests_answer_fk",
+          "tableFrom": "claim_response_requests",
+          "tableTo": "claim_messages",
+          "columnsFrom": [
+            "tenant_id",
+            "claim_id",
+            "answer_message_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "claim_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "claim_response_requests_tenant_policy": {
+          "name": "claim_response_requests_tenant_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"claim_response_requests\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"claim_response_requests\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {
+        "claim_response_requests_kind_check": {
+          "name": "claim_response_requests_kind_check",
+          "value": "\"claim_response_requests\".\"kind\" in ('claim_submitted', 'member_message')"
+        },
+        "claim_response_requests_source_check": {
+          "name": "claim_response_requests_source_check",
+          "value": "(\"claim_response_requests\".\"kind\" = 'member_message') = (\"claim_response_requests\".\"source_message_id\" is not null)"
         }
       },
       "isRLSEnabled": true

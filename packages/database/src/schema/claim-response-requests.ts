@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, pgTable, text, timestamp, uniqueIndex } from 'drizzle-orm/pg-core';
+import { check, foreignKey, pgTable, text, timestamp } from 'drizzle-orm/pg-core';
 import { user } from './auth';
 import { claims } from './claim-core';
 import { claimMessages } from './claim-support-tables';
@@ -35,11 +35,6 @@ export const claimResponseRequests = pgTable(
       columns: [table.tenantId, table.claimId, table.answerMessageId],
       foreignColumns: [claimMessages.tenantId, claimMessages.claimId, claimMessages.id],
     }),
-    uniqueIndex('claim_response_requests_source_uq').on(
-      table.tenantId,
-      table.kind,
-      sql`coalesce(${table.sourceMessageId}, ${table.claimId})`
-    ),
     check(
       'claim_response_requests_kind_check',
       sql`${table.kind} in ('claim_submitted', 'member_message')`
