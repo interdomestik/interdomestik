@@ -1,4 +1,4 @@
-import { readDisposableTargetClass } from '@interdomestik/database/constants';
+import { readDisposableTargetClass } from '@interdomestik/database/seed-target-classification';
 import { defineConfig } from '@playwright/test';
 import baseConfig from './playwright.config';
 

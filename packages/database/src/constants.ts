@@ -1,6 +1,4 @@
-// Shared values and the pure deployment reader are safe to import from server and client code.
-
-export { readDisposableTargetClass } from './seed-target-classification';
+// Shared constants that are safe to import from both server and client code.
 
 export const CLAIM_STATUSES = [
   'draft',

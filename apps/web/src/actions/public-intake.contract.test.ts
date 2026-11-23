@@ -1,4 +1,4 @@
-import { readDisposableTargetClass } from '@interdomestik/database/constants';
+import { readDisposableTargetClass } from '@interdomestik/database/seed-target-classification';
 import { PILOT_SWITCH_CATEGORY, PILOT_SWITCH_KEYS } from '@interdomestik/database/pilot-switch';
 import {
   account,

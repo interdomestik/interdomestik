@@ -17,7 +17,7 @@ import {
   tenantSettings,
   user,
 } from '@interdomestik/database/schema';
-import { readDisposableTargetClass } from '@interdomestik/database/constants';
+import { readDisposableTargetClass } from '@interdomestik/database/seed-target-classification';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { TenantTransaction } from '@interdomestik/database/tenant';
 import { inArray, sql } from 'drizzle-orm';

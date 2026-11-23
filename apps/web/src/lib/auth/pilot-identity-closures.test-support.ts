@@ -1,5 +1,5 @@
 import { sql } from '@interdomestik/database';
-import { readDisposableTargetClass } from '@interdomestik/database/constants';
+import { readDisposableTargetClass } from '@interdomestik/database/seed-target-classification';
 import type { PilotSwitchKey } from '@interdomestik/database/pilot-switch';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
