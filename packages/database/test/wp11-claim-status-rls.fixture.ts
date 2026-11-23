@@ -20,6 +20,7 @@ import {
   serviceUsage,
   user,
 } from '../src/schema';
+import { grantColumnPrivileges } from './column-grants.support';
 import { runSequentially } from './in-order';
 import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
 import { KS_TENANT_ID, openS8RestrictedSession } from './s8-claim-restricted-rls.fixture';
@@ -42,13 +43,25 @@ export async function withStatusFixture(
   const fixture = createStatusFixture(session);
   const { adminDb } = session;
   const role = quoteIdentifier(TEST_DB_ROLE);
+  let revokeColumns: (() => Promise<void>) | undefined;
   try {
     // Existing table grants exercise the read, write and lock operations used by the command.
     const existing = [
       'grant select on "user", subscriptions, membership_plans, sponsor_terms, sponsor_roster_entries, sponsor_handover_intents, sponsor_term_revisions, sponsor_revision_decisions, claim_escalation_agreements, claim_recovery_no_fee_evidence, claim_transition_evidence, user_notification_preferences, push_subscriptions, tenants, service_usage, domain_events',
       'grant insert on claim_stage_history, domain_events, audit_log, notifications, service_usage, claim_escalation_agreements',
-      'grant select (id) on notifications',
       'grant update on claim_escalation_agreements',
+    ];
+    // WP-11 leaves DELETE ungranted, and limits the request table's UPDATE to answer columns.
+    const added = [
+      'grant select, insert, update on notification_deliveries',
+      'grant select, insert on claim_response_requests',
+    ];
+    await runSequentially([...existing, ...added], async grant => {
+      await adminDb.execute(sql.raw(`${grant} to ${role}`));
+    });
+    // Column grants are revoked again below: the `test:rls` suites share this role.
+    revokeColumns = await grantColumnPrivileges(adminDb, [
+      ['select', 'notifications', ['id']],
       ...[
         'user',
         'subscriptions',
@@ -57,17 +70,13 @@ export async function withStatusFixture(
         'sponsor_roster_entries',
         'claim_recovery_no_fee_evidence',
         'claim_transition_evidence',
-      ].map(table => `grant update (id) on ${quoteIdentifier(table)}`),
-    ];
-    // WP-11 leaves DELETE ungranted, and limits the request table's UPDATE to answer columns.
-    const added = [
-      'grant select, insert, update on notification_deliveries',
-      'grant select, insert on claim_response_requests',
-      'grant update (answered_at, answered_by, answer_kind, answer_message_id) on claim_response_requests',
-    ];
-    await runSequentially([...existing, ...added], async grant => {
-      await adminDb.execute(sql.raw(`${grant} to ${role}`));
-    });
+      ].map(table => ['update', table, ['id']] as const),
+      [
+        'update',
+        'claim_response_requests',
+        ['answered_at', 'answered_by', 'answer_kind', 'answer_message_id'],
+      ],
+    ]);
     await adminDb.update(user).set({ role: 'branch_manager' }).where(eq(user.id, fixture.ownerId));
     await adminDb.update(user).set({ role: 'tenant_admin' }).where(eq(user.id, fixture.adminId));
     await adminDb.insert(user).values(
@@ -87,7 +96,11 @@ export async function withStatusFixture(
     try {
       await fixture.cleanup();
     } finally {
-      await session.close();
+      try {
+        await revokeColumns?.();
+      } finally {
+        await session.close();
+      }
     }
   }
 }

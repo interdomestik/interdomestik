@@ -6,7 +6,8 @@ import { eq, inArray, sql } from 'drizzle-orm';
 import { claimMessages, claims, user } from '../src/schema';
 import type { TenantTransaction } from '../src/tenant';
 import type { TenantAuthority } from '../src/tenant-authority';
-import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
+import { grantColumnPrivileges } from './column-grants.support';
+import { TEST_DB_ROLE } from './rls-test-connection';
 import {
   KS_TENANT_ID,
   MK_TENANT_ID,
@@ -76,14 +77,14 @@ test('withTenantAuthority confines the restricted role under concurrency, expiry
 
     await t.test(
       'saves locale only when the session authority covers its own profile',
-      async () => {
+      async st => {
         const { savePreferredLocale } =
           await import('../../domain-communications/src/recipient-locale');
-        await adminDb.execute(
-          sql.raw(
-            `grant select (id, tenant_id), update (preferred_locale) on public."user" to ${quoteIdentifier(TEST_DB_ROLE)}`
-          )
-        );
+        const revokeColumns = await grantColumnPrivileges(adminDb, [
+          ['select', 'user', ['id', 'tenant_id']],
+          ['update', 'user', ['preferred_locale']],
+        ]);
+        st.after(revokeColumns);
         await adminDb.update(user).set({ role: 'admin' }).where(eq(user.id, mk.userId));
 
         const readProfiles = () =>

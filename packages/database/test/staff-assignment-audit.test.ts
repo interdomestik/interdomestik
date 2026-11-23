@@ -5,6 +5,7 @@ import { eq, sql } from 'drizzle-orm';
 
 import { claimLifecycleFieldsForStatus } from '../src/claim-lifecycle';
 import { auditLog, claims, user } from '../src/schema';
+import { grantColumnPrivileges } from './column-grants.support';
 import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
 import { KS_TENANT_ID, openS8RestrictedSession } from './s8-claim-restricted-rls.fixture';
 import { gate } from './wp11-claim-status-rls.fixture';
@@ -19,6 +20,7 @@ test(
     const { claimId, userId } = fixture.ks;
     const claimWhere = eq(claims.id, claimId);
     const auditWhere = eq(auditLog.entityId, claimId);
+    let revokeColumns: (() => Promise<void>) | undefined;
     try {
       await adminDb.execute(
         sql.raw(`grant select, insert on table "audit_log" to ${quoteIdentifier(TEST_DB_ROLE)}`)
@@ -26,9 +28,8 @@ test(
       await adminDb.execute(
         sql.raw(`grant select on table "user" to ${quoteIdentifier(TEST_DB_ROLE)}`)
       );
-      await adminDb.execute(
-        sql.raw(`grant update (id) on table "user" to ${quoteIdentifier(TEST_DB_ROLE)}`)
-      );
+      // The claim command locks the user row; FOR UPDATE needs UPDATE on a column.
+      revokeColumns = await grantColumnPrivileges(adminDb, [['update', 'user', ['id']]]);
       await adminDb.update(user).set({ role: 'staff' }).where(eq(user.id, userId));
       await adminDb
         .update(claims)
@@ -136,7 +137,11 @@ test(
       try {
         await adminDb.delete(auditLog).where(auditWhere);
       } finally {
-        await session.close();
+        try {
+          await revokeColumns?.();
+        } finally {
+          await session.close();
+        }
       }
     }
   }
