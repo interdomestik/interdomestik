@@ -43,6 +43,8 @@ Declare it in a schema file with its tenant column, its policy and `.enableRLS()
 
 `exchange_rate_books` and `exchange_rates` are owned by the membership billing payment port. Legal entities are created through the admin path by seeds and migrations. The book provisioning trigger runs with the inserting role's privileges. Migration `0101` backfills existing entities before forcing RLS on both tables and sets the runtime privileges when the role exists. The book lock requires column-level `UPDATE` on `id`. A trigger rejects updates, deletes and truncation on both tables.
 
+Migration `0102` declares the membership billing port's plan versions, sale kinds and channels, sale claims, sales and ledger entries. The billing module owns the commands and invariants. `test/exchange-rates.fixture.ts` shares the journal-built scratch database fixture with the billing restricted-role lane.
+
 ## Tests to run
 
 From `package.json:31-48`: `pnpm --filter @interdomestik/database test:unit`; `test:rls` (an explicit list of 24 test files at `:42`, the row-security and tenant-authority suite; the other 124 of the 148 files run in no workflow, TEST-03); `test:migration-runtime-role`; `test:journal-parity` (needs a disposable PostgreSQL 16 server); `type-check`; `seed:assert-e2e`. `test:rls` runs in CI (`.github/workflows/ci.yml:196`, `pnpm db:rls:test`, with `REQUIRE_RLS_INTEGRATION=1` and `REQUIRE_RLS_COVERAGE=1`) and `seed:assert-e2e` in the same job; no workflow step runs this package's `test:unit`, `test:migration-runtime-role` or `type-check` (the unit's search of the workflows, which agrees with TEST-03); `A/modules/data-layer.md:246` records that no workflow has a migration step (DATA-03).

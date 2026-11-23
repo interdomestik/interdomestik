@@ -26,6 +26,7 @@ const INVENTORY = {
     `${WEB}app/[locale]/admin/users/[id]/_core.ts`,
     `${AGENT}clients/[id]/_core.ts`,
     `${WEB}components/pricing/pricing-table/pricing-decisions.ts`,
+    `${BILLING}port/sale-buyers.ts`,
     `${WEB}app/api/cron/dunning/_core.ts`,
     // Dunning delivery is explicitly class A even though it lives among Paddle handlers.
     `${BILLING}paddle-webhooks/handlers/dunning-context.ts`,
