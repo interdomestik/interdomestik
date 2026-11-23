@@ -1,8 +1,9 @@
 import type { ProtectedActionContext } from '@/lib/safe-action';
+import { actionFailure } from '@/lib/safe-action.failure';
 
 import { auditLog, leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
 import { assertLeadSalesOpen } from '@interdomestik/domain-leads/sales-admission';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { resubmitCashSchema } from '../schemas';
@@ -17,14 +18,19 @@ export async function resubmitCashAttemptCore(
   const { attemptId, note } = input;
 
   return await withTenantAuthority(authority, async tx => {
+    const version = sql<string>`${leadPaymentAttempts.updatedAt}::text`;
     // A. Fetch
     const [result] = await tx
       .select({
         attempt: leadPaymentAttempts,
+        versionToken: version,
         lead: memberLeads,
       })
       .from(leadPaymentAttempts)
-      .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
+      .innerJoin(
+        memberLeads,
+        and(eq(leadPaymentAttempts.leadId, memberLeads.id), eq(memberLeads.tenantId, tenantId))
+      )
       .where(
         and(
           eq(leadPaymentAttempts.id, attemptId),
@@ -35,7 +41,7 @@ export async function resubmitCashAttemptCore(
       .limit(1);
 
     if (!result) throw new Error('Payment attempt not found.');
-    const { attempt, lead } = result;
+    const { attempt, versionToken, lead } = result;
 
     // B. Security: Only assigned agent
     if (lead.agentId !== session.user.id) {
@@ -55,7 +61,7 @@ export async function resubmitCashAttemptCore(
       .set({
         status: 'pending',
         isResubmission: true, // SET FLAG
-        updatedAt: new Date(),
+        updatedAt: sql`greatest(clock_timestamp(), ${leadPaymentAttempts.updatedAt} + interval '1 microsecond')`,
         // verificationNote: Do not clear admin note? Or clear it?
         // Usually we keep admin note so history shows "Why it was rejected".
         // But status is now pending.
@@ -65,12 +71,13 @@ export async function resubmitCashAttemptCore(
         and(
           eq(leadPaymentAttempts.id, attemptId),
           eq(leadPaymentAttempts.tenantId, tenantId),
-          inArray(leadPaymentAttempts.status, ['needs_info', 'rejected'])
+          eq(leadPaymentAttempts.status, attempt.status),
+          eq(version, versionToken)
         )
       )
       .returning({ id: leadPaymentAttempts.id });
     if (resubmitted.length === 0) {
-      throw new Error('This payment attempt was just decided by someone else. Reload and retry.');
+      throw actionFailure('CONFLICT');
     }
 
     // E. Audit

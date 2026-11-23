@@ -8,7 +8,7 @@ The HTTP and RSC surface of the product: route handlers under `app/api/`, export
 
 ## Public API
 
-Password sign-up and unknown-address door OTP sign-up require `pilot/public_intake` for the ingress tenant. Better Auth disables both sign-up mechanisms unless `IDENTITY_PUBLIC_SIGN_UP` is exactly `open`. Door OTP requires exact door ingress and an explicit default tenant before applying the IP limit or parsing the body. Known accounts must belong to the door tenant and still have pending tenant classification. Tenant classification confirmation returns `EMAIL_NOT_PROVEN` until the account holder has proven their email.
+Password sign-up and unknown-address door OTP sign-up require `pilot/public_intake` for the ingress tenant. Better Auth disables both sign-up mechanisms unless `IDENTITY_PUBLIC_SIGN_UP` is exactly `open`. Door OTP checks the request host and forwarded host, then requires exact door ingress and an explicit default tenant before applying the IP limit or parsing the body. The OTP host check accepts `staging.interdomestik.com` without a port only in the staging release class. Known accounts must belong to the door tenant and still have pending tenant classification. Tenant classification confirmation returns `EMAIL_NOT_PROVEN` until the account holder has proven their email.
 
 `setPilotSwitch` declares the `super_admin` and `tenant_admin` roles and a strict input schema on `defineAction`. It uses the session's access tenant. The database pilot command requires the current revision and writes the switch and its audit row in one transaction.
 
@@ -21,6 +21,8 @@ The enabled billing-test activation and staff sponsor approval actions report `C
 The agent lead payment and status actions return `CLOSED` when `pilot/new_sales` refuses a payment start or a status-only conversion. The lead commands apply the check in the tenant write transaction.
 
 The cash verification action returns the committed decision with `notice: 'pending'` when the agent notification fails after commit.
+
+`resubmitCashAttemptAction` uses `defineAction` with the `agent` role and a strict input schema. The assigned agent can resubmit a cash attempt for a lead in the session tenant. Verification and resubmission return `CONFLICT` when another writer changes the observed cash attempt before the update. The losing transaction rolls back without a decision or resubmission audit.
 
 `apps/web/src/lib/safe-action.ts:14-26` — `ActionResult<T>`, a **promise** of the union `ActionSuccess<T> | ActionError` (`{success:true,data?}` | `{success:false,error,code?,issues?}`): the alias wraps the promise at `:26`, so it types what an action returns, not the awaited value (corrected in the closing pass, review comment R3-C05); `:91-144` — `runAuthenticatedAction(handler)`, which resolves the session, throws on a missing tenant and maps `UnauthorizedError` / `MissingTenantError` to the codes `UNAUTHORIZED` / `MISSING_TENANT` (`:170-176`). Route handlers are reached by path, not by import. `apps/web/src/proxy.ts:8-10` does **not** run for `/api`.
 

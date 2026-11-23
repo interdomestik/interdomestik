@@ -7,7 +7,7 @@ import { actionFailure } from '@/lib/safe-action.failure';
 
 import { auditLog, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { verifyCashSchema } from '../schemas';
@@ -98,10 +98,12 @@ export async function verifyCashAttemptCore(
   };
 
   const txResult = await withTenantAuthority(authority, async tx => {
+    const version = sql<string>`${leadPaymentAttempts.updatedAt}::text`;
     // A. Fetch
     const [result] = await tx
       .select({
         attempt: leadPaymentAttempts,
+        versionToken: version,
         lead: memberLeads,
         agentEmail: user.email,
       })
@@ -118,7 +120,7 @@ export async function verifyCashAttemptCore(
       .limit(1);
 
     if (!result) throw new Error('Payment attempt not found.');
-    const { attempt, lead, agentEmail } = result;
+    const { attempt, versionToken, lead, agentEmail } = result;
 
     // B. Security
     assertDecisionAdmitted(scope, lead, session.user.id);
@@ -134,7 +136,7 @@ export async function verifyCashAttemptCore(
     // D. Status
     const newStatus = DECISION_STATUS[decision];
 
-    // E. Update: only one decision can move an open attempt; a concurrent loser changes nothing.
+    // E. Update: compare the exact observed version, including PostgreSQL microseconds.
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const decided = await tx
       .update(leadPaymentAttempts)
@@ -143,18 +145,20 @@ export async function verifyCashAttemptCore(
         isResubmission: false, // RESET FLAG
         verifiedBy: session.user.id,
         verifiedAt: new Date(),
-        updatedAt: new Date(),
+        updatedAt: sql`greatest(clock_timestamp(), ${leadPaymentAttempts.updatedAt} + interval '1 microsecond')`,
         verificationNote: note || null,
       })
       .where(
         and(
           eq(leadPaymentAttempts.id, attemptId),
-          inArray(leadPaymentAttempts.status, ['pending', 'needs_info'])
+          eq(leadPaymentAttempts.tenantId, tenantId),
+          eq(leadPaymentAttempts.status, attempt.status),
+          eq(version, versionToken)
         )
       )
       .returning({ id: leadPaymentAttempts.id });
     if (decided.length === 0) {
-      throw new Error('This payment attempt was just decided by someone else. Reload and retry.');
+      throw actionFailure('CONFLICT');
     }
 
     // F. Audit

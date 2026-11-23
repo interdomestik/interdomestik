@@ -1,4 +1,6 @@
+import { isActionFailure } from '@/lib/safe-action.failure';
 import { SalesClosedError } from '@interdomestik/database/pilot-switch';
+import type { SQL } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -161,11 +163,28 @@ describe('verifyCashAttemptCore approval', () => {
   });
 
   it('lets only one concurrent decision move the attempt; the loser converts nothing', async () => {
-    hoisted.selectRows.mockResolvedValue(row('pending'));
+    const observed = row('pending');
+    hoisted.selectRows.mockResolvedValue(observed);
     hoisted.decidedRows.mockResolvedValue([]);
 
-    await expect(verifyCashAttemptCore(ctx, approve)).rejects.toThrow(/just decided/);
+    await expect(verifyCashAttemptCore(ctx, approve)).rejects.toMatchObject({ code: 'CONFLICT' });
+    expect(hoisted.rollback).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({ code: 'CONFLICT' })
+    );
+    expect(isActionFailure(hoisted.rollback.mock.calls[0][0])).toBe(true);
+    const dialect = new PgDialect();
+    expect(dialect.sqlToQuery(hoisted.selectFields.mock.calls[0][0].versionToken).sql).toBe(
+      '"lead_payment_attempts"."updated_at"::text'
+    );
+    expect(dialect.sqlToQuery(hoisted.updateWhere.mock.calls[0][1])).toMatchObject({
+      sql: '("lead_payment_attempts"."id" = $1 and "lead_payment_attempts"."tenant_id" = $2 and "lead_payment_attempts"."status" = $3 and "lead_payment_attempts"."updated_at"::text = $4)',
+      params: ['att-1', 'tenant-1', 'pending', observed[0].versionToken],
+    });
+    expect(dialect.sqlToQuery(hoisted.updates[0].values.updatedAt as SQL).sql).toBe(
+      'greatest(clock_timestamp(), "lead_payment_attempts"."updated_at" + interval \'1 microsecond\')'
+    );
     expect(leadUpdates()).toEqual([]);
+    expect(hoisted.insertValues).not.toHaveBeenCalled();
     expect(hoisted.convertLeadToMember).not.toHaveBeenCalled();
   });
 

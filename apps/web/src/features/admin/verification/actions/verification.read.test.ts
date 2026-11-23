@@ -42,12 +42,14 @@ vi.mock('../server/verification.core', async () => {
   const requests = await vi.importActual<typeof import('../server/queries/get-requests')>(
     '../server/queries/get-requests'
   );
+  const { resubmitCashSchema } =
+    await vi.importActual<typeof import('../server/schemas')>('../server/schemas');
   return {
     getVerificationRequests: requests.getVerificationRequests,
     verifyCashAttemptCore: hoisted.verifyCashAttemptCore,
     resubmitCashAttemptCore: hoisted.resubmitCashAttemptCore,
     verifyCashSchema: { parse: vi.fn() },
-    resubmitCashSchema: { parse: vi.fn() },
+    resubmitCashSchema,
   };
 });
 
@@ -116,16 +118,24 @@ function sessionFor(role: string | undefined, branchId: string | null = null) {
 }
 
 describe('cash verification action failures', () => {
+  beforeEach(() => vi.clearAllMocks());
+
   it.each([
-    ['approval', ROLE_STAFF, verifyCashAttemptAction, hoisted.verifyCashAttemptCore],
-    ['resubmission', 'agent', resubmitCashAttemptAction, hoisted.resubmitCashAttemptCore],
+    [
+      'approval',
+      ROLE_STAFF,
+      verifyCashAttemptAction,
+      hoisted.verifyCashAttemptCore,
+      { decision: 'approve' },
+    ],
+    ['resubmission', 'agent', resubmitCashAttemptAction, hoisted.resubmitCashAttemptCore, {}],
   ] as const)(
     'returns localized CLOSED for %s without a refusal audit',
-    async (_name, role, action, core) => {
+    async (_name, role, action, core, fields) => {
       hoisted.getSession.mockResolvedValue(sessionFor(role, 'branch-1'));
       core.mockRejectedValueOnce(new SalesClosedError());
 
-      await expect(action({ attemptId: 'attempt-1', decision: 'approve' })).resolves.toEqual({
+      await expect(action({ attemptId: 'attempt-1', ...fields })).resolves.toEqual({
         success: false,
         code: 'CLOSED',
         error: 'pricing.CLOSED',

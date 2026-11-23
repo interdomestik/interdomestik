@@ -23,6 +23,11 @@ import {
   seedPaymentAttempt,
   useSession,
 } from './pilot-lead-sales.test-support';
+import { registerCashConcurrencyCases } from './pilot-lead-sales.cash-concurrency.contract-test-support';
+
+vi.mock('@/lib/notifications', () => ({
+  notifyPaymentVerificationUpdate: async () => ({ success: true }),
+}));
 
 describe.runIf(pilotSalesContractEnabled)('lead sales under a restricted PostgreSQL role', () => {
   let contract: Awaited<ReturnType<typeof openPilotSalesContract>> | undefined;
@@ -32,6 +37,8 @@ describe.runIf(pilotSalesContractEnabled)('lead sales under a restricted Postgre
   afterAll(async () => {
     await contract?.close();
   });
+
+  registerCashConcurrencyCases(() => contract!.dbAdmin);
 
   it('makes a flip wait for cash approval, then fulfills that approval after closure', async () => {
     const { dbAdmin } = contract!;

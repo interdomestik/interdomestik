@@ -223,10 +223,7 @@ test('cash resubmission commits exactly once and rolls back after an audit failu
         );
         const losers = outcomes.filter(result => result.status === 'rejected');
         assert.equal(losers.length, 1);
-        assert.equal(
-          losers[0].reason.message,
-          'This payment attempt was just decided by someone else. Reload and retry.'
-        );
+        assert.equal(losers[0].reason.code, 'CONFLICT');
       } finally {
         release.resolve();
         await Promise.all([holderResult, results]);

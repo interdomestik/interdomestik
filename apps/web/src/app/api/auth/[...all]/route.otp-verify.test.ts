@@ -35,11 +35,15 @@ vi.mock('better-auth/next-js', () => ({
 
 import { POST } from './route';
 
-function verifyRequest(body: Record<string, unknown>, origin = 'https://ida.interdomestik.com') {
-  const request = new Request('https://ida.interdomestik.com/api/auth/sign-in/email-otp', {
+function verifyRequest(
+  body: Record<string, unknown>,
+  origin = 'https://ida.interdomestik.com',
+  host = 'ida.interdomestik.com'
+) {
+  const request = new Request(`https://${host}/api/auth/sign-in/email-otp`, {
     method: 'POST',
     headers: {
-      host: 'ida.interdomestik.com',
+      host,
       origin,
       'content-type': 'application/json',
       'x-forwarded-for': '203.0.113.9',
@@ -175,20 +179,34 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
     expect(mocks.getSession).not.toHaveBeenCalled();
   });
 
-  it('refuses a missing explicit default before the quota, body parse, or account lookup', async () => {
-    vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', undefined);
-    const request = verifyRequest({ onboarding: { tenant: 'tenant_ks', mode: 'deferred' } });
-    const clone = vi.spyOn(request, 'clone');
+  it.each(['ida.interdomestik.com', 'staging.interdomestik.com'])(
+    'returns generic INVALID_OTP on %s for a missing explicit default before the quota or lookup',
+    async host => {
+      if (host === 'staging.interdomestik.com') {
+        vi.stubEnv('INTERDOMESTIK_PRODUCTION', undefined);
+        vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', 'staging');
+        vi.stubEnv('VERCEL', '1');
+        vi.stubEnv('VERCEL_ENV', 'preview');
+        vi.stubEnv('VERCEL_TARGET_ENV', 'preview');
+      }
+      vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', undefined);
+      const request = verifyRequest(
+        { onboarding: { tenant: 'tenant_ks', mode: 'deferred' } },
+        `https://${host}`,
+        host
+      );
+      const clone = vi.spyOn(request, 'clone');
 
-    const response = await POST(request);
+      const response = await POST(request);
 
-    expect(response.status).toBe(400);
-    expect(await response.json()).toEqual({ code: 'INVALID_OTP', message: 'Invalid OTP' });
-    expect(mocks.enforceOtpRateLimits).not.toHaveBeenCalled();
-    expect(clone).not.toHaveBeenCalled();
-    expect(mocks.lookupAccount).not.toHaveBeenCalled();
-    expect(mocks.handlerPost).not.toHaveBeenCalled();
-  });
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({ code: 'INVALID_OTP', message: 'Invalid OTP' });
+      expect(mocks.enforceOtpRateLimits).not.toHaveBeenCalled();
+      expect(clone).not.toHaveBeenCalled();
+      expect(mocks.lookupAccount).not.toHaveBeenCalled();
+      expect(mocks.handlerPost).not.toHaveBeenCalled();
+    }
+  );
 
   it.each([
     null,

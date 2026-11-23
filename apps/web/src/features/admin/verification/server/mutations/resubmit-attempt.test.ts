@@ -1,3 +1,4 @@
+import { isActionFailure } from '@/lib/safe-action.failure';
 import { randomUUID } from 'node:crypto';
 import {
   E2E_CASH_STATE_FIXTURES,
@@ -13,7 +14,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   selectRows: vi.fn(),
+  selectFields: vi.fn(),
+  selectJoin: vi.fn(),
   selectWhere: vi.fn(),
+  updateSet: vi.fn(),
   updateWhere: vi.fn(),
   updateReturning: vi.fn(),
   insertValues: vi.fn(),
@@ -33,13 +37,13 @@ import { resubmitCashAttemptCore } from './resubmit-attempt';
 function createTx() {
   const selectChain = {
     from: () => selectChain,
-    innerJoin: () => selectChain,
+    innerJoin: hoisted.selectJoin.mockImplementation(() => selectChain),
     where: hoisted.selectWhere.mockImplementation(() => selectChain),
     limit: () => hoisted.selectRows(),
   };
   return {
-    select: () => selectChain,
-    update: () => ({ set: () => ({ where: hoisted.updateWhere }) }),
+    select: hoisted.selectFields.mockImplementation(() => selectChain),
+    update: () => ({ set: hoisted.updateSet }),
     insert: () => ({ values: hoisted.insertValues }),
   };
 }
@@ -62,15 +66,17 @@ function start(key: E2ECashStateKey) {
     tenantId: lead.tenantId,
     session: { user: { id: lead.agentId, role: 'agent' } },
   } as unknown as ProtectedActionContext;
-  hoisted.selectRows.mockResolvedValue([{ attempt, lead }]);
+  const versionToken = '2026-11-23 09:30:00.123456';
+  hoisted.selectRows.mockResolvedValue([{ attempt, lead, versionToken }]);
   hoisted.updateReturning.mockResolvedValue([{ id: attempt.id }]);
-  return { attempt, lead, ctx };
+  return { attempt, lead, ctx, versionToken };
 }
 
 describe('cash resubmission from isolated catalogue rows (mocked DB)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.assertNewSalesOpen.mockResolvedValue(undefined);
+    hoisted.updateSet.mockReturnValue({ where: hoisted.updateWhere });
     hoisted.updateWhere.mockReturnValue({ returning: hoisted.updateReturning });
     hoisted.withTenantContext.mockImplementation(
       (_context: unknown, callback: (tx: ReturnType<typeof createTx>) => Promise<unknown>) =>
@@ -126,19 +132,48 @@ describe('cash resubmission from isolated catalogue rows (mocked DB)', () => {
     expect(hoisted.insertValues).not.toHaveBeenCalled();
   });
 
+  it('requires the joined lead to belong to the session tenant before checking sales', async () => {
+    const { attempt, lead, ctx, versionToken } = start('NEEDS_INFO');
+    const foreignLead = { ...lead, tenantId: `${lead.tenantId}-other` };
+    hoisted.selectRows.mockImplementationOnce(() => {
+      const join = new PgDialect().sqlToQuery(hoisted.selectJoin.mock.calls[0][1]);
+      expect(join.sql).toBe(
+        '("lead_payment_attempts"."lead_id" = "member_leads"."id" and "member_leads"."tenant_id" = $1)'
+      );
+      expect(join.params).toEqual([ctx.tenantId]);
+      return [{ attempt, lead: foreignLead, versionToken }].filter(
+        result => result.lead.tenantId === join.params[0]
+      );
+    });
+
+    await expect(resubmitCashAttemptCore(ctx, { attemptId: attempt.id })).rejects.toThrow(
+      'Payment attempt not found.'
+    );
+    expect(hoisted.assertNewSalesOpen).not.toHaveBeenCalled();
+    expect(hoisted.updateWhere).not.toHaveBeenCalled();
+    expect(hoisted.insertValues).not.toHaveBeenCalled();
+  });
+
   it.each(['NEEDS_INFO', 'REJECTED'] as const)(
     'resubmits %s once and denies a sequential replay',
     async key => {
-      const { attempt, lead, ctx } = start(key);
+      const { attempt, lead, ctx, versionToken } = start(key);
       const input = { attemptId: attempt.id, note: 'retry' };
       await expect(resubmitCashAttemptCore(ctx, input)).resolves.toEqual({ success: true });
       expect(hoisted.assertNewSalesOpen).toHaveBeenCalledBefore(hoisted.updateWhere);
       expect(hoisted.withTenantContext).toHaveBeenCalledWith(ctx.authority, expect.any(Function));
-      const predicate = new PgDialect().sqlToQuery(hoisted.updateWhere.mock.calls[0][0]);
-      expect(predicate.sql).toBe(
-        '("lead_payment_attempts"."id" = $1 and "lead_payment_attempts"."tenant_id" = $2 and "lead_payment_attempts"."status" in ($3, $4))'
+      const dialect = new PgDialect();
+      expect(dialect.sqlToQuery(hoisted.selectFields.mock.calls[0][0].versionToken).sql).toBe(
+        '"lead_payment_attempts"."updated_at"::text'
       );
-      expect(predicate.params).toEqual([attempt.id, lead.tenantId, 'needs_info', 'rejected']);
+      const predicate = dialect.sqlToQuery(hoisted.updateWhere.mock.calls[0][0]);
+      expect(predicate.sql).toBe(
+        '("lead_payment_attempts"."id" = $1 and "lead_payment_attempts"."tenant_id" = $2 and "lead_payment_attempts"."status" = $3 and "lead_payment_attempts"."updated_at"::text = $4)'
+      );
+      expect(predicate.params).toEqual([attempt.id, lead.tenantId, attempt.status, versionToken]);
+      expect(dialect.sqlToQuery(hoisted.updateSet.mock.calls[0][0].updatedAt).sql).toBe(
+        'greatest(clock_timestamp(), "lead_payment_attempts"."updated_at" + interval \'1 microsecond\')'
+      );
       // The next lookup models committed state, without claiming a real rollback or race proof.
       hoisted.selectRows.mockResolvedValue([{ attempt: { ...attempt, status: 'pending' }, lead }]);
       await expect(resubmitCashAttemptCore(ctx, input)).rejects.toThrow(
@@ -161,10 +196,14 @@ describe('cash resubmission from isolated catalogue rows (mocked DB)', () => {
 
     await expect(
       resubmitCashAttemptCore(ctx, { attemptId: attempt.id, note: 'retry' })
-    ).rejects.toThrow('This payment attempt was just decided by someone else. Reload and retry.');
+    ).rejects.toMatchObject({ code: 'CONFLICT' });
 
     expect(hoisted.updateWhere).toHaveBeenCalledTimes(1);
     expect(hoisted.updateReturning).toHaveBeenCalledTimes(1);
     expect(hoisted.insertValues).not.toHaveBeenCalled();
+    const error = await hoisted.withTenantContext.mock.results[0].value.catch(
+      (failure: unknown) => failure
+    );
+    expect(isActionFailure(error)).toBe(true);
   });
 });

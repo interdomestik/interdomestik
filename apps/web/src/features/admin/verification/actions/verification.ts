@@ -1,8 +1,9 @@
 'use server';
 
 import { leadSalesClosedFailure } from '@/actions/leads/sales-closed';
-import { runAuthenticatedAction } from '@/lib/safe-action';
+import { defineAction, runAuthenticatedAction } from '@/lib/safe-action';
 import { isActionFailure } from '@/lib/safe-action.failure';
+import { ROLES } from '@interdomestik/shared-auth';
 import { redactVerificationRequestsForRole } from '../server/branch-manager-redaction';
 import { withSessionStaffBranch } from '../server/queries/read-access';
 import {
@@ -38,12 +39,22 @@ export async function verifyCashAttemptAction(input: unknown) {
   });
 }
 
-export async function resubmitCashAttemptAction(input: unknown) {
-  return runAuthenticatedAction(async ctx => {
-    const data = resubmitCashSchema.parse(input);
-    return resubmitCashAttemptCore(ctx, data).catch(leadSalesClosedFailure);
-  });
-}
+export const resubmitCashAttemptAction = defineAction({
+  name: 'verification.resubmitCashAttempt',
+  basis: { kind: 'role', roles: [ROLES.agent] },
+  input: resubmitCashSchema,
+  subject: { type: 'none' },
+  async handler(input, ctx) {
+    try {
+      await resubmitCashAttemptCore(ctx, input);
+    } catch (error) {
+      if (isActionFailure(error)) {
+        return error;
+      }
+      return leadSalesClosedFailure(error);
+    }
+  },
+});
 
 export async function resendActivationInviteAction(input: unknown) {
   return runAuthenticatedAction(async ctx => {

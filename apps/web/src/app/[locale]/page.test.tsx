@@ -115,7 +115,7 @@ import * as page from './page';
 
 const home = async (locale = 'sq') =>
   render(await HomePage({ params: Promise.resolve({ locale }) }));
-const props = (locale: string, neutralOtpHost: string | null = 'front-door.localhost:3000') => ({
+const props = (locale: string, neutralOtpHost: string | null = 'ida.localhost:3000') => ({
   defaultPublicTenantId: 'tenant_ks',
   locale,
   neutralOtpHost,
@@ -126,7 +126,7 @@ const props = (locale: string, neutralOtpHost: string | null = 'front-door.local
 describe('HomePage server shell', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    process.env.IDA_HOST = 'https://front-door.localhost:3000';
+    process.env.IDA_HOST = 'https://ida.localhost:3000';
     hoisted.flag = true;
     hoisted.admit.mockResolvedValue({});
     hoisted.tenant.mockReturnValue('tenant_ks');
@@ -185,9 +185,12 @@ describe('HomePage server shell', () => {
     expect(view.getByTestId('landing-page-ready')).toHaveAttribute('data-variant', 'hero_v2');
   });
 
-  it('rejects malformed AX1', async () => {
-    process.env.IDA_HOST = 'https://front-door.localhost:3000/unexpected';
-    await home();
-    expect(hoisted.runtime).toHaveBeenCalledWith(props('sq', null));
-  });
+  it.each(['https://ida.localhost:3000/unexpected', 'https://front-door.localhost:3000'])(
+    'omits a malformed or unadmitted OTP host (%s)',
+    async configured => {
+      process.env.IDA_HOST = configured;
+      await home();
+      expect(hoisted.runtime).toHaveBeenCalledWith(props('sq', null));
+    }
+  );
 });

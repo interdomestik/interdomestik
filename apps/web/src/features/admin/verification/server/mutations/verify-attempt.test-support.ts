@@ -3,7 +3,9 @@ import { vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   selectRows: vi.fn(),
+  selectFields: vi.fn(),
   selectWhere: vi.fn(),
+  updateWhere: vi.fn(),
   decidedRows: vi.fn(),
   paidRows: vi.fn(),
   insertValues: vi.fn(),
@@ -51,10 +53,11 @@ function createTx() {
     limit: () => hoisted.selectRows(),
   };
   return {
-    select: () => selectChain,
+    select: hoisted.selectFields.mockImplementation(() => selectChain),
     update: (table: unknown) => ({
       set: (values: Record<string, unknown>) => ({
-        where: () => {
+        where: (predicate: unknown) => {
+          hoisted.updateWhere(table, predicate);
           hoisted.updates.push({ table, values });
           return { returning: table === memberLeads ? hoisted.paidRows : hoisted.decidedRows };
         },
@@ -79,6 +82,7 @@ function row(status: string, leadStatus = 'payment_pending', method = 'cash') {
   return [
     {
       attempt: { id: 'att-1', leadId: 'lead-1', status, method, amount: 1000, currency: 'EUR' },
+      versionToken: '2026-11-23 09:30:00.123456',
       lead: {
         id: 'lead-1',
         agentId: 'agent-1',

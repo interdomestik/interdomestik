@@ -49,6 +49,14 @@ function sendRequest(
   });
 }
 
+function useStagingRelease() {
+  vi.stubEnv('INTERDOMESTIK_PRODUCTION', undefined);
+  vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', 'staging');
+  vi.stubEnv('VERCEL', '1');
+  vi.stubEnv('VERCEL_ENV', 'preview');
+  vi.stubEnv('VERCEL_TARGET_ENV', 'preview');
+}
+
 describe('IDA-UI03a0b2 neutral OTP send route', () => {
   beforeEach(() => {
     vi.stubEnv('NODE_ENV', 'production');
@@ -153,26 +161,26 @@ describe('IDA-UI03a0b2 neutral OTP send route', () => {
     expect(mocks.handlerPost).not.toHaveBeenCalled();
   });
 
-  it('does not use the fallback door tenant when the explicit default is missing', async () => {
-    vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', undefined);
-    const request = sendRequest('registered@example.com');
-    const clone = vi.spyOn(request, 'clone');
-    const response = await POST(request);
-    expect(response.status).toBe(200);
-    expect(await response.json()).toEqual({ success: true });
-    expect(mocks.enforceOtpRateLimits).not.toHaveBeenCalled();
-    expect(clone).not.toHaveBeenCalled();
-    expect(mocks.lookupAccount).not.toHaveBeenCalled();
-    expect(mocks.handlerPost).not.toHaveBeenCalled();
-  });
+  it.each(['ida.interdomestik.com', 'staging.interdomestik.com'])(
+    'returns the generic send response on %s when the explicit default is missing',
+    async host => {
+      if (host === 'staging.interdomestik.com') useStagingRelease();
+      vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', undefined);
+      const request = sendRequest('registered@example.com', {}, host);
+      const clone = vi.spyOn(request, 'clone');
+      const response = await POST(request);
+      expect(response.status).toBe(200);
+      expect(await response.json()).toEqual({ success: true });
+      expect(mocks.enforceOtpRateLimits).not.toHaveBeenCalled();
+      expect(clone).not.toHaveBeenCalled();
+      expect(mocks.lookupAccount).not.toHaveBeenCalled();
+      expect(mocks.handlerPost).not.toHaveBeenCalled();
+    }
+  );
 
-  it('requires exact door ingress before the quota and body parse even when IDA_HOST matches', async () => {
-    const host = 'ks.staging.interdomestik.com';
-    vi.stubEnv('INTERDOMESTIK_PRODUCTION', undefined);
-    vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', 'staging');
-    vi.stubEnv('VERCEL', '1');
-    vi.stubEnv('VERCEL_ENV', 'preview');
-    vi.stubEnv('VERCEL_TARGET_ENV', 'preview');
+  it('requires exact door ingress after host checks and before the quota and body parse', async () => {
+    const host = 'ida.interdomestik.com';
+    useStagingRelease();
     vi.stubEnv('IDA_HOST', host);
     const request = sendRequest('registered@example.com', {}, host);
     const clone = vi.spyOn(request, 'clone');
@@ -185,5 +193,35 @@ describe('IDA-UI03a0b2 neutral OTP send route', () => {
     expect(clone).not.toHaveBeenCalled();
     expect(mocks.lookupAccount).not.toHaveBeenCalled();
     expect(mocks.handlerPost).not.toHaveBeenCalled();
+  });
+
+  it('refuses a country host configured in IDA_HOST before the quota or body parse', async () => {
+    const host = 'ks.staging.interdomestik.com';
+    useStagingRelease();
+    vi.stubEnv('IDA_HOST', host);
+    const request = sendRequest('registered@example.com', {}, host);
+    const clone = vi.spyOn(request, 'clone');
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ code: 'OTP_UNAVAILABLE', message: 'Unable to verify' });
+    expect(mocks.enforceOtpRateLimits).not.toHaveBeenCalled();
+    expect(clone).not.toHaveBeenCalled();
+    expect(mocks.lookupAccount).not.toHaveBeenCalled();
+    expect(mocks.handlerPost).not.toHaveBeenCalled();
+  });
+
+  it('admits the staging door through both host checks and exact door ingress', async () => {
+    useStagingRelease();
+    vi.stubEnv('IDA_HOST', undefined);
+
+    const response = await POST(
+      sendRequest('registered@example.com', {}, 'staging.interdomestik.com')
+    );
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    expect(mocks.handlerPost).toHaveBeenCalledTimes(1);
   });
 });
