@@ -59,14 +59,38 @@ function nameOf(table: unknown): string {
   if (!name) throw new Error('Unknown fixture table');
   return name;
 }
-// Unique keys the model enforces, as PostgreSQL does: the primary key and declared unique indexes.
-const UNIQUE_KEYS: Record<string, string[][]> = {
-  notificationDeliveries: [['id'], ['tenantId', 'idempotencyKey']],
+// Unique keys the model enforces, as PostgreSQL does: the primary key and the unique indexes the
+// reply path writes against. `columns` is null for an expression index (never a column target).
+type UniqueKey = { columns: readonly string[] | null; of: (row: Row) => unknown[] };
+const columnKey = (...fields: string[]): UniqueKey => ({
+  columns: fields,
+  of: row => fields.map(field => row[field]),
+});
+const UNIQUE_KEYS: Record<string, UniqueKey[]> = {
+  notificationDeliveries: [columnKey('id'), columnKey('tenantId', 'idempotencyKey')],
+  // claim_response_requests_source_uq (0102, SQL-managed): (tenant_id, kind, coalesce(source, claim)).
+  claimResponseRequests: [
+    columnKey('id'),
+    { columns: null, of: row => [row.tenantId, row.kind, row.sourceMessageId ?? row.claimId] },
+  ],
 };
+/** The unique key an ON CONFLICT target names, compared as a set of columns, as PostgreSQL does. */
+function arbiterOf(keys: readonly UniqueKey[], target: readonly string[]): UniqueKey {
+  const wanted = new Set(target);
+  const arbiter = keys.find(
+    key =>
+      key.columns !== null &&
+      key.columns.length === wanted.size &&
+      key.columns.every(field => wanted.has(field))
+  );
+  if (!arbiter) throw new Error('No unique key matches the ON CONFLICT target');
+  return arbiter;
+}
 /**
  * Appends the rows of one statement. A row that repeats a unique key of an existing row or of an
- * earlier row in the statement is skipped when ON CONFLICT DO NOTHING names that key (or no key);
- * otherwise the whole statement fails before any write.
+ * earlier row in the statement is skipped under ON CONFLICT DO NOTHING when that key is the
+ * arbiter (or no target is named); otherwise the whole statement fails before any write. A key
+ * with a null part never conflicts, as in a PostgreSQL unique index.
  */
 function insertUnique(
   name: string,
@@ -74,21 +98,25 @@ function insertUnique(
   inputs: readonly Row[],
   onConflict: { target: string[] | null } | null
 ): Row[] {
-  const keys = UNIQUE_KEYS[name] ?? [['id']];
-  const keyOf = (row: Row, fields: string[]) => JSON.stringify(fields.map(field => row[field]));
-  const seen = keys.map(fields => new Set(target.map(row => keyOf(row, fields))));
+  const keys = UNIQUE_KEYS[name] ?? [columnKey('id')];
+  const arbiter = onConflict?.target ? arbiterOf(keys, onConflict.target) : null;
+  const keyOf = (row: Row, key: UniqueKey) => {
+    const parts = key.of(row);
+    return parts.some(part => part == null) ? null : JSON.stringify(parts);
+  };
+  const seen = keys.map(key => new Set(target.map(row => keyOf(row, key))));
   const fresh: Row[] = [];
   for (const row of inputs) {
-    const hits = keys.filter((fields, index) => seen[index].has(keyOf(row, fields)));
+    const hits = keys.filter((key, index) => {
+      const value = keyOf(row, key);
+      return value !== null && seen[index].has(value);
+    });
     if (hits.length > 0) {
-      const arbiter = onConflict?.target;
-      const skipped =
-        onConflict !== null &&
-        (arbiter === null || hits.some(fields => fields.join() === arbiter?.join()));
+      const skipped = onConflict !== null && (arbiter === null || hits.includes(arbiter));
       if (!skipped) throw new Error('Duplicate fixture key');
       continue;
     }
-    keys.forEach((fields, index) => seen[index].add(keyOf(row, fields)));
+    keys.forEach((key, index) => seen[index].add(keyOf(row, key)));
     fresh.push(row);
   }
   target.push(

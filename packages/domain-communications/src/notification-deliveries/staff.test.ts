@@ -123,10 +123,11 @@ describe('staff claim notifications', () => {
     const recipients = Array.from({ length: 20_000 }, (_, index) => staff(`staff-${index}`));
     const h = builderHarness();
     const ids = await enqueueStaffClaimNotification(h.tx, claim, source, recipients);
-    const perTable = Math.ceil(recipients.length / INSERT_BATCH_ROWS);
-    expect(h.statements).toHaveLength(2 * perTable);
+    // The ceiling is pinned here, not read back from the constant under test.
+    expect(INSERT_BATCH_ROWS).toBe(1000);
+    expect(h.statements).toHaveLength(40);
     expect(h.statements.reduce((total, statement) => total + statement.rows, 0)).toBe(40_000);
-    expect(Math.max(...h.statements.map(statement => statement.rows))).toBe(INSERT_BATCH_ROWS);
+    expect(Math.max(...h.statements.map(statement => statement.rows))).toBe(1000);
     expect(Math.max(...h.statements.map(statement => statement.params))).toBeLessThan(65_535);
     expect(ids).toHaveLength(recipients.length);
     expect(ids).toEqual(h.queued);

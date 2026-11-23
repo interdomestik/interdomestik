@@ -71,4 +71,46 @@ describe('reply-flow fixture insert model', () => {
     ).rejects.toThrow('Duplicate fixture key');
     expect(state.rows.notificationDeliveries.map(row => row.id)).toEqual(['d1']);
   });
+
+  it('refuses a target that names no unique key, and accepts one named in any column order', async () => {
+    const deliveries = tables.notificationDeliveries;
+    const insert = (id: string, target: (typeof deliveries)[string][]) =>
+      withTenantContext(scope, tx =>
+        tx
+          .insert(deliveries)
+          .values([delivery(id, 'key-1')])
+          .onConflictDoNothing({ target })
+          .returning()
+      );
+    await expect(insert('d1', [deliveries.idempotencyKey])).rejects.toThrow(
+      'No unique key matches the ON CONFLICT target'
+    );
+    expect(state.rows.notificationDeliveries).toEqual([]);
+    expect(await insert('d1', [deliveries.idempotencyKey, deliveries.tenantId])).toEqual([
+      { id: 'd1' },
+    ]);
+    expect(await insert('d2', [deliveries.idempotencyKey, deliveries.tenantId])).toEqual([]);
+  });
+
+  it('refuses a second response request for the same source, as the expression index does', async () => {
+    const request = (id: string, kind: string, sourceMessageId: string | null) => ({
+      id,
+      tenantId: ids.tenant,
+      claimId: ids.claim,
+      kind,
+      sourceMessageId,
+    });
+    const insert = (row: ReturnType<typeof request>) =>
+      withTenantContext(scope, tx => tx.insert(tables.claimResponseRequests).values(row));
+    await insert(request('r1', 'member_message', 'm1'));
+    await expect(insert(request('r2', 'member_message', 'm1'))).rejects.toThrow(
+      'Duplicate fixture key'
+    );
+    await insert(request('r3', 'member_message', 'm2'));
+    await insert(request('r4', 'claim_submitted', null));
+    await expect(insert(request('r5', 'claim_submitted', null))).rejects.toThrow(
+      'Duplicate fixture key'
+    );
+    expect(state.rows.claimResponseRequests.map(row => row.id)).toEqual(['r1', 'r3', 'r4']);
+  });
 });
