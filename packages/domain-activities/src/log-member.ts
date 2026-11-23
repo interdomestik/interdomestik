@@ -1,9 +1,10 @@
-import { agentClients, and, db, memberActivities, user } from '@interdomestik/database';
+import { and, db, memberActivities, user } from '@interdomestik/database';
 import { type TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { eq } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { activityActorOf, memberActivityWriteScope } from './access';
+import { holdsActiveAssignment } from './assignment';
 import { activitySchema, type LogActivityInput } from './schema';
 import type { ActionResult, ActivitySession } from './types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
@@ -76,19 +77,8 @@ export async function logActivityCore(params: {
       if (!member) return MEMBER_ACCESS_DENIED;
 
       if (scope === 'assigned') {
-        const [assignment] = await tx
-          .select({ id: agentClients.id })
-          .from(agentClients)
-          .where(
-            and(
-              eq(agentClients.tenantId, actor.tenantId),
-              eq(agentClients.agentId, actor.userId),
-              eq(agentClients.memberId, memberId),
-              eq(agentClients.status, 'active')
-            )
-          )
-          .for('share');
-        if (!assignment) return MEMBER_ACCESS_DENIED;
+        const assignment = { tenantId: actor.tenantId, agentId: actor.userId, memberId };
+        if (!(await holdsActiveAssignment(tx, assignment))) return MEMBER_ACCESS_DENIED;
       }
 
       const now = new Date();
