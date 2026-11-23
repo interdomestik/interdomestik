@@ -21,6 +21,13 @@ describe.skipIf(!enabled)('refusal audit with a restricted database role', () =>
     expect(runtimeUrl.host).toBe(adminUrl.host);
     expect(runtimeUrl.pathname).toBe(adminUrl.pathname);
     expect(runtimeUrl.username).not.toBe(adminUrl.username);
+    // R-13: this proof writes, so both targets pass the guarded factory's check (a loopback
+    // database or the confirmed CI container), as the driver reads them, before any client opens.
+    const { assertDisposableUrl } =
+      await import('../../../../packages/database/src/disposable-client');
+    for (const url of [process.env.E2E_DATABASE_URL!, process.env.DATABASE_URL_RLS!]) {
+      assertDisposableUrl(url);
+    }
     // Override the web unit config's inert URL before the database modules load.
     vi.stubEnv('DATABASE_URL', adminUrl.href);
 
