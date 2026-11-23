@@ -1,10 +1,9 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-// The module doubles (vi.mock) are registered by the support module, imported first.
-import './member-notes-card.test-support';
-import { MemberNotesCard } from './member-notes-card';
+// The support module registers the module doubles (vi.mock), so it is imported before the card.
 import { actions, deferred, note, toast } from './member-notes-card.test-support';
+import { MemberNotesCard } from './member-notes-card';
 
 beforeEach(() => {
   vi.resetAllMocks();
