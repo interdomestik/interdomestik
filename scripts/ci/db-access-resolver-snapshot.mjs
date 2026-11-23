@@ -34,6 +34,32 @@ function projected(bytes, file) {
   }
 }
 
+// One pinned file: exact name, regular file, size, then digest (raw or projected); its bytes.
+function verifiedFile(root, names, file, expected) {
+  const aliases = names.filter(name => name.normalize('NFC').toLowerCase() === file);
+  const full = path.join(root, file);
+  if (aliases.length !== 1 || aliases[0] !== file)
+    throw new Error(`incomplete: resolver snapshot missing or ambiguous ${file}`);
+  const stat = fs.lstatSync(full);
+  if (!stat.isFile() || stat.isSymbolicLink() || fs.realpathSync(full) !== full)
+    throw new Error(`incomplete: resolver snapshot non-regular ${file}`);
+  if (expected.projection === undefined && stat.size !== expected.bytes)
+    throw new Error(`incomplete: resolver snapshot size mismatch ${file}`);
+  if (
+    expected.projection !== undefined &&
+    (!Number.isSafeInteger(expected.maxBytes) || stat.size > expected.maxBytes)
+  )
+    throw new Error(`incomplete: resolver snapshot size bound exceeded ${file}`);
+  const bytes = fs.readFileSync(full);
+  const actual =
+    expected.projection === undefined
+      ? createHash('sha256').update(bytes).digest('hex')
+      : projected(bytes, file);
+  if (actual !== expected.sha256)
+    throw new Error(`incomplete: resolver snapshot digest mismatch ${file}`);
+  return bytes;
+}
+
 export function verifyCurrentResolverSnapshot(repoRoot, adoption) {
   if (
     adoption.commit !== RESOLVER_SNAPSHOT.adoptionCommit ||
@@ -44,29 +70,7 @@ export function verifyCurrentResolverSnapshot(repoRoot, adoption) {
   const root = fs.realpathSync(repoRoot);
   const names = fs.readdirSync(root);
   const verified = new Map();
-  for (const [file, expected] of Object.entries(RESOLVER_SNAPSHOT.files)) {
-    const aliases = names.filter(name => name.normalize('NFC').toLowerCase() === file);
-    const full = path.join(root, file);
-    if (aliases.length !== 1 || aliases[0] !== file)
-      throw new Error(`incomplete: resolver snapshot missing or ambiguous ${file}`);
-    const stat = fs.lstatSync(full);
-    if (!stat.isFile() || stat.isSymbolicLink() || fs.realpathSync(full) !== full)
-      throw new Error(`incomplete: resolver snapshot non-regular ${file}`);
-    if (expected.projection === undefined && stat.size !== expected.bytes)
-      throw new Error(`incomplete: resolver snapshot size mismatch ${file}`);
-    if (
-      expected.projection !== undefined &&
-      (!Number.isSafeInteger(expected.maxBytes) || stat.size > expected.maxBytes)
-    )
-      throw new Error(`incomplete: resolver snapshot size bound exceeded ${file}`);
-    const bytes = fs.readFileSync(full);
-    const actual =
-      expected.projection === undefined
-        ? createHash('sha256').update(bytes).digest('hex')
-        : projected(bytes, file);
-    if (actual !== expected.sha256)
-      throw new Error(`incomplete: resolver snapshot digest mismatch ${file}`);
-    verified.set(file, bytes.toString('utf8'));
-  }
+  for (const [file, expected] of Object.entries(RESOLVER_SNAPSHOT.files))
+    verified.set(file, verifiedFile(root, names, file, expected).toString('utf8'));
   return verified;
 }
