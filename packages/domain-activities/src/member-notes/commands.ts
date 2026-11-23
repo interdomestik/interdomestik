@@ -1,96 +1,26 @@
-import { and, desc, eq, memberNotes, user, type TenantTransaction } from '@interdomestik/database';
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { and, desc, eq, memberNotes } from '@interdomestik/database';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { ROLES } from '@interdomestik/shared-auth';
 import { nanoid } from 'nanoid';
-import type { z } from 'zod';
 
+import { canActOnMemberNotes, memberNoteScope } from './access';
 import {
-  canActOnMemberNotes,
-  memberNoteActorOf,
-  memberNoteScope,
-  type MemberNoteActor,
-  type MemberNoteSession,
-} from './access';
+  admit,
+  fail,
+  ok,
+  selectNotesWithAuthor,
+  type CreatedNoteAudit,
+  type MemberNoteCommandParams,
+  type MemberNoteResult,
+} from './result';
 import {
   createNoteSchema,
   listNotesSchema,
   mapNoteRow,
-  noteIdSchema,
   sanitizeNoteContent,
-  updateNoteSchema,
   type MemberNote,
-  type NoteType,
 } from './schema';
 
-export type MemberNoteFailureCode =
-  'UNAUTHORIZED' | 'FORBIDDEN' | 'INVALID_INPUT' | 'EMPTY_CONTENT' | 'NOT_FOUND' | 'NOT_AUTHOR';
-
-export type MemberNoteFailure = Readonly<{
-  ok: false;
-  code: MemberNoteFailureCode;
-  message?: string;
-}>;
-
-/** `audit` carries what the entry point records after a committed write, read from the locked row. */
-export type MemberNoteResult<T, A = null> =
-  Readonly<{ ok: true; data: T; audit: A }> | MemberNoteFailure;
-
-export type MemberNoteCommandParams = {
-  session: MemberNoteSession & { user: { name?: string | null } };
-  authority: TenantAuthority;
-  input: unknown;
-};
-
-export type CreatedNoteAudit = {
-  memberId: string;
-  noteType: NoteType;
-  isPinned: boolean;
-  isInternal: boolean;
-};
-export type UpdatedNoteAudit = { memberId: string; updatedFields: string[] };
-export type DeletedNoteAudit = { memberId: string };
-export type PinnedNoteAudit = { memberId: string; isPinned: boolean };
-
-const fail = (code: MemberNoteFailureCode, message?: string): MemberNoteFailure =>
-  Object.freeze(message === undefined ? { ok: false, code } : { ok: false, code, message });
-
-const ok = <T, A>(data: T, audit: A) => Object.freeze({ ok: true as const, data, audit });
-
-/**
- * Before any database access: the actor bound to its session (UNAUTHORIZED), the role scope
- * (FORBIDDEN), then the strict input (INVALID_INPUT).
- */
-function admit<S extends z.ZodType>(
-  params: MemberNoteCommandParams,
-  schema: S
-): MemberNoteFailure | { actor: MemberNoteActor; input: z.output<S> } {
-  const actor = memberNoteActorOf(params.session, params.authority);
-  if (!actor) return fail('UNAUTHORIZED');
-  if (memberNoteScope(actor.role) === 'denied') return fail('FORBIDDEN');
-  const parsed = schema.safeParse(params.input);
-  if (!parsed.success) return fail('INVALID_INPUT', parsed.error.message);
-  return { actor, input: parsed.data };
-}
-
-function selectNotesWithAuthor(tx: TenantTransaction) {
-  return tx
-    .select({
-      id: memberNotes.id,
-      memberId: memberNotes.memberId,
-      authorId: memberNotes.authorId,
-      authorName: user.name,
-      type: memberNotes.type,
-      content: memberNotes.content,
-      isPinned: memberNotes.isPinned,
-      isInternal: memberNotes.isInternal,
-      followUpDate: memberNotes.followUpDate,
-      createdAt: memberNotes.createdAt,
-      updatedAt: memberNotes.updatedAt,
-    })
-    .from(memberNotes)
-    .leftJoin(user, eq(memberNotes.authorId, user.id));
-}
+// Reading and creating notes. Changing an existing note (update, delete, pin) is in ./change.
 
 /** Lists a member's notes, pinned first, newest first. */
 export async function listMemberNotes(
@@ -164,152 +94,4 @@ export async function createMemberNote(
       isInternal: note.isInternal,
     });
   });
-}
-
-type LockedNote = { id: string; memberId: string; authorId: string; isPinned: boolean };
-
-/**
- * The note row, locked FOR UPDATE, when the actor may act on its member; otherwise null. The lock
- * order is member, assignment, note: the same as a member deletion, which cascades from the user
- * row into the notes. A note that is unknown, foreign, on an inaccessible or non-member target, or
- * gone or moved before the lock, is one answer: null (NOT_FOUND to the caller).
- */
-async function lockAccessibleNote(
-  tx: TenantTransaction,
-  actor: MemberNoteActor,
-  noteId: string
-): Promise<LockedNote | null> {
-  const [found] = await tx
-    .select({ memberId: memberNotes.memberId })
-    .from(memberNotes)
-    .where(and(eq(memberNotes.id, noteId), eq(memberNotes.tenantId, actor.tenantId)))
-    .limit(1);
-  if (!found) return null;
-  if (!(await canActOnMemberNotes(tx, actor, found.memberId))) return null;
-  const [locked] = await tx
-    .select({
-      id: memberNotes.id,
-      memberId: memberNotes.memberId,
-      authorId: memberNotes.authorId,
-      isPinned: memberNotes.isPinned,
-    })
-    .from(memberNotes)
-    .where(
-      and(
-        eq(memberNotes.id, noteId),
-        eq(memberNotes.tenantId, actor.tenantId),
-        eq(memberNotes.memberId, found.memberId)
-      )
-    )
-    .for('update');
-  return locked ?? null;
-}
-
-/** As on base: the author edits or deletes a note, and an admin any note. */
-function mayChange(actor: MemberNoteActor, note: LockedNote): boolean {
-  return note.authorId === actor.userId || actor.role === ROLES.admin;
-}
-
-/** Updates a note the actor wrote (or any, for an admin) on a member it may act on. */
-export async function updateMemberNote(
-  params: MemberNoteCommandParams
-): Promise<MemberNoteResult<MemberNote, UpdatedNoteAudit>> {
-  const admitted = admit(params, updateNoteSchema);
-  if ('ok' in admitted) return admitted;
-  const { actor, input } = admitted;
-
-  let content: string | undefined;
-  if (input.content !== undefined) {
-    content = sanitizeNoteContent(input.content);
-    // Deliberate: content that is empty once sanitized is refused, never stored.
-    if (!content) return fail('EMPTY_CONTENT');
-  }
-  // Each column named on its own from the parsed input; an absent field is undefined, which the
-  // update leaves unchanged (followUpDate: null clears the date).
-  const values = {
-    type: input.type,
-    content,
-    isPinned: input.isPinned,
-    isInternal: input.isInternal,
-    followUpDate: input.followUpDate,
-  };
-  const updatedFields = Object.entries(values)
-    .filter(([, value]) => value !== undefined)
-    .map(([field]) => field);
-
-  // db-access-guard: tenant-scoped -- reason: tenantId from the session-bound authority actor
-  return withTenantAuthority(params.authority, async tx => {
-    const note = await lockAccessibleNote(tx, actor, input.id);
-    if (!note) return fail('NOT_FOUND');
-    if (!mayChange(actor, note)) return fail('NOT_AUTHOR');
-    await tx
-      .update(memberNotes)
-      .set({
-        type: values.type,
-        content: values.content,
-        isPinned: values.isPinned,
-        isInternal: values.isInternal,
-        followUpDate: values.followUpDate,
-        updatedAt: new Date(),
-      })
-      .where(and(eq(memberNotes.id, note.id), eq(memberNotes.tenantId, actor.tenantId)));
-    const [updated] = await selectNotesWithAuthor(tx)
-      .where(and(eq(memberNotes.id, note.id), eq(memberNotes.tenantId, actor.tenantId)))
-      .limit(1);
-    if (!updated) return fail('NOT_FOUND');
-    return ok(mapNoteRow(updated), { memberId: note.memberId, updatedFields });
-  });
-}
-
-/** Deletes a note the actor wrote (or any, for an admin) on a member it may act on. */
-export async function deleteMemberNote(
-  params: MemberNoteCommandParams
-): Promise<MemberNoteResult<undefined, DeletedNoteAudit>> {
-  const admitted = admit(params, noteIdSchema);
-  if ('ok' in admitted) return admitted;
-  const { actor, input } = admitted;
-
-  // db-access-guard: tenant-scoped -- reason: tenantId from the session-bound authority actor
-  return withTenantAuthority(params.authority, async tx => {
-    const note = await lockAccessibleNote(tx, actor, input.noteId);
-    if (!note) return fail('NOT_FOUND');
-    if (!mayChange(actor, note)) return fail('NOT_AUTHOR');
-    await tx
-      .delete(memberNotes)
-      .where(and(eq(memberNotes.id, note.id), eq(memberNotes.tenantId, actor.tenantId)));
-    return ok(undefined, { memberId: note.memberId });
-  });
-}
-
-/**
- * The pin toggle inside a transaction the caller holds: any actor that may act on the note's
- * member may pin it (as on base). The row is locked, so concurrent toggles never lose an update.
- * Exported for the restricted-role proof only; entry points call `toggleMemberNotePin`.
- */
-export async function toggleMemberNotePinIn(
-  tx: TenantTransaction,
-  actor: MemberNoteActor,
-  noteId: string
-): Promise<MemberNoteResult<{ isPinned: boolean }, PinnedNoteAudit>> {
-  const note = await lockAccessibleNote(tx, actor, noteId);
-  if (!note) return fail('NOT_FOUND');
-  const isPinned = !note.isPinned;
-  await tx
-    .update(memberNotes)
-    .set({ isPinned, updatedAt: new Date() })
-    .where(and(eq(memberNotes.id, note.id), eq(memberNotes.tenantId, actor.tenantId)));
-  return ok({ isPinned }, { memberId: note.memberId, isPinned });
-}
-
-/** Toggles a note's pin. */
-export async function toggleMemberNotePin(
-  params: MemberNoteCommandParams
-): Promise<MemberNoteResult<{ isPinned: boolean }, PinnedNoteAudit>> {
-  const admitted = admit(params, noteIdSchema);
-  if ('ok' in admitted) return admitted;
-  const { actor, input } = admitted;
-  // db-access-guard: tenant-scoped -- reason: tenantId from the session-bound authority actor
-  return withTenantAuthority(params.authority, tx =>
-    toggleMemberNotePinIn(tx, actor, input.noteId)
-  );
 }

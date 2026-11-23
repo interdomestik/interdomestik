@@ -12,7 +12,7 @@ Module contract (R-19). This file was written with the member-notes commands. It
 
 - `.` (`src/index.ts`), plus one subpath per activity file (`package.json`).
 - `./member-notes` (`src/member-notes/index.ts`):
-  - the commands `listMemberNotes`, `createMemberNote`, `updateMemberNote`, `deleteMemberNote` and `toggleMemberNotePin`;
+  - the commands `listMemberNotes` and `createMemberNote` (`commands.ts`), and `updateMemberNote`, `deleteMemberNote` and `toggleMemberNotePin` (`change.ts`); the shared result types and admission are in `result.ts`, the access rule in `access.ts`;
   - the strict input schemas, `sanitizeNoteContent` and the note types.
 
 Each command takes `{ session, authority, input }` and returns `{ ok: true, data, audit }` or `{ ok: false, code }`. The codes are UNAUTHORIZED, FORBIDDEN, INVALID_INPUT, EMPTY_CONTENT, NOT_FOUND and NOT_AUTHOR. `audit` holds what the entry point records after a committed write. The only entry points are the five server actions in `apps/web/src/actions/member-notes.ts`, built on `defineAction` (R-05).
@@ -54,7 +54,7 @@ Each command takes `{ session, authority, input }` and returns `{ ok: true, data
 ## Tests to run
 
 - `pnpm --filter @interdomestik/domain-activities test`. The member-notes unit tests run against an in-memory database (`src/test/member-notes-db.ts`).
-- The restricted-role proof (R-06): `packages/database/test/member-notes-restricted-rls.test.ts`, part of `pnpm db:rls:test`. It runs the real commands under the restricted role on a disposable database. It covers the actor matrix, the cross-tenant cases, and the revocation, reassignment, delete and pin races.
+- The restricted-role proof (R-06), part of `pnpm db:rls:test`. It runs the real commands under the restricted role on a disposable database: `packages/database/test/member-notes-restricted-rls.test.ts` covers the actor matrix and the cross-tenant cases; `member-notes-restricted-rls-races.test.ts` covers the revocation, reassignment, delete and pin races.
 
 ## Open follow-ups (outside this module's change)
 

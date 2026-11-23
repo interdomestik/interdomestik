@@ -1,106 +1,39 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { inspect } from 'node:util';
 
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { eq, inArray, sql } from 'drizzle-orm';
 
-import { agentClients, memberNotes, user } from '../src/schema';
+import { memberNotes } from '../src/schema';
 import type { TenantAuthority } from '../src/tenant-authority';
-import {
-  assertPending,
-  cleanupNotes,
-  grantNoteTables,
-  holdAdminWrite,
-  noteSeedIds,
-  seedNotes,
-  waitUntilBlockedBy,
-} from './member-notes-restricted-rls.support';
+import { withNotesProof } from './member-notes-restricted-rls.harness';
 import { TEST_DB_ROLE } from './rls-test-connection';
-import {
-  KS_TENANT_ID,
-  MK_TENANT_ID,
-  openS8RestrictedSession,
-} from './s8-claim-restricted-rls.fixture';
+import { KS_TENANT_ID, MK_TENANT_ID } from './s8-claim-restricted-rls.fixture';
 
 // R-06 proof for the member-notes commands of @interdomestik/domain-activities: the real commands
 // run under the restricted role (no BYPASSRLS) with session authorities, on a disposable
 // database. Owner authorization of 2026-11-23 (R-37): agents act only on an actively assigned
 // member; staff and admin keep tenant scope.
+// This file: the actor matrix and tenant isolation. The races are in
+// member-notes-restricted-rls-races.test.ts.
 
-test('member notes: actor matrix, tenant isolation and races under the restricted role', async t => {
-  const session = await openS8RestrictedSession(t);
-  if (!session) return;
-  const { adminDb, fixture } = session;
-  const databaseUrl = process.env.DATABASE_URL ?? '';
-  const seed = noteSeedIds(fixture.newId);
-  const u = seed.users;
-  const n = seed.notes;
-  const failures: unknown[] = [];
-
-  try {
-    await grantNoteTables(adminDb);
-    await seedNotes(adminDb, seed);
-    const [
+test('member notes: actor matrix and tenant isolation under the restricted role', async t => {
+  await withNotesProof(t, async proof => {
+    const {
+      access,
+      actor,
+      adminDb,
+      allNoteIds,
       commands,
-      { toggleMemberNotePinIn },
-      { memberNoteActorOf },
       ctx,
-      { mintTenantAuthority },
-    ] = await Promise.all([
-      import('../../domain-activities/src/member-notes'),
-      import('../../domain-activities/src/member-notes/commands'),
-      import('../../domain-activities/src/member-notes/access'),
-      import('../src/tenant-authority-context'),
-      import('../src/tenant-authority'),
-    ]);
-
-    type Overrides = {
-      purpose?: 'session' | 'test';
-      authorityTenant?: string;
-      principalUser?: string;
-      sessionTenant?: string;
-    };
-    /** A session and a session authority minted for it, as the request path pairs them. */
-    const actor = (userId: string, role: string, overrides: Overrides = {}) => {
-      const tenantId = overrides.authorityTenant ?? KS_TENANT_ID;
-      const authority: TenantAuthority = mintTenantAuthority({
-        tenantId,
-        accessTenantId: tenantId,
-        purpose: overrides.purpose ?? 'session',
-        principal: {
-          userId: overrides.principalUser ?? userId,
-          role,
-          branchId: null,
-          agentId: null,
-        },
-      });
-      return {
-        session: {
-          user: { id: userId, role, tenantId: overrides.sessionTenant ?? KS_TENANT_ID, name: role },
-        },
-        authority,
-      };
-    };
-    const A = () => actor(u.agentA, 'agent');
-    const B = () => actor(u.agentB, 'agent');
-    const C = () => actor(u.agentC, 'agent');
-    const S = () => actor(u.staffS, 'staff');
-    const D = () => actor(u.adminD, 'admin');
-
-    const allNoteIds = [...Object.values(n)];
-    const snapshot = async () =>
-      adminDb
-        .select()
-        .from(memberNotes)
-        .where(inArray(memberNotes.id, allNoteIds))
-        .orderBy(memberNotes.id);
-    const ids = (result: { ok: boolean; data?: unknown }) =>
-      result.ok ? (result.data as { id: string }[]).map(row => row.id) : result;
-    const setAssignment = (agentId: string, memberId: string, status: string) =>
-      adminDb
-        .update(agentClients)
-        .set({ status })
-        .where(and(eq(agentClients.agentId, agentId), eq(agentClients.memberId, memberId)));
+      ids,
+      n,
+      seed,
+      setAssignment,
+      snapshot,
+      u,
+    } = proof;
+    const { A, B, C, D, S } = proof;
+    const { memberNoteActorOf } = access;
 
     await t.test('runs as the restricted role with row security not bypassable', async () => {
       const [row] = await ctx.withTenantAuthority(A().authority, tx =>
@@ -349,148 +282,5 @@ test('member notes: actor matrix, tenant isolation and races under the restricte
         await setAssignment(u.agentA, u.m1, 'active');
       }
     });
-
-    await t.test('a revocation committed while the command waits is seen', async () => {
-      const held = await holdAdminWrite(
-        databaseUrl,
-        tx =>
-          tx`update agent_clients set status = 'inactive'
-           where agent_id = ${u.agentA} and member_id = ${u.m1}`
-      );
-      const running = commands.updateMemberNote({ ...A(), input: { id: n.n1, content: 'late' } });
-      try {
-        await waitUntilBlockedBy(adminDb, held.pid);
-        await assertPending(running, 'the update');
-        await held.commit();
-        assert.deepEqual(await running, { ok: false, code: 'NOT_FOUND' });
-        const [row] = await adminDb.select().from(memberNotes).where(eq(memberNotes.id, n.n1));
-        assert.equal(row.content, 'Updated');
-      } finally {
-        await held.rollback().catch(() => undefined);
-        await running.catch(() => undefined);
-        await setAssignment(u.agentA, u.m1, 'active');
-      }
-    });
-
-    await t.test(
-      'a reassignment in updateUserAgentCore order is seen by a waiting command',
-      async () => {
-        // The member row first, then the assignment: the same order as updateUserAgentCore.
-        const held = await holdAdminWrite(databaseUrl, async tx => {
-          await tx`update "user" set "agentId" = ${u.agentB} where id = ${u.m2}`;
-          await tx`update agent_clients set status = 'inactive'
-                 where agent_id = ${u.agentA} and member_id = ${u.m2}`;
-        });
-        const running = commands.createMemberNote({
-          ...A(),
-          input: { memberId: u.m2, content: 'after reassignment' },
-        });
-        try {
-          await waitUntilBlockedBy(adminDb, held.pid);
-          await assertPending(running, 'the create');
-          await held.commit();
-          assert.deepEqual(await running, { ok: false, code: 'FORBIDDEN' });
-          const rows = await adminDb
-            .select({ id: memberNotes.id })
-            .from(memberNotes)
-            .where(eq(memberNotes.memberId, u.m2));
-          assert.deepEqual(rows, []);
-        } finally {
-          await held.rollback().catch(() => undefined);
-          await running.catch(() => undefined);
-          await adminDb.update(user).set({ agentId: null }).where(eq(user.id, u.m2));
-          await setAssignment(u.agentA, u.m2, 'active');
-        }
-      }
-    );
-
-    await t.test('a delete committed while an update waits leaves nothing to update', async () => {
-      const held = await holdAdminWrite(
-        databaseUrl,
-        tx => tx`delete from member_notes where id = ${n.n2}`
-      );
-      const running = commands.updateMemberNote({ ...S(), input: { id: n.n2, content: 'late' } });
-      try {
-        await waitUntilBlockedBy(adminDb, held.pid);
-        await assertPending(running, 'the update');
-        await held.commit();
-        assert.deepEqual(await running, { ok: false, code: 'NOT_FOUND' });
-        const rows = await adminDb.select().from(memberNotes).where(eq(memberNotes.id, n.n2));
-        assert.deepEqual(rows, []);
-      } finally {
-        await held.rollback().catch(() => undefined);
-        await running.catch(() => undefined);
-      }
-    });
-
-    await t.test('overlapping pin toggles serialize on the note lock', async () => {
-      const staff = S();
-      const staffActor = memberNoteActorOf(staff.session, staff.authority);
-      assert.ok(staffActor);
-      const [{ isPinned: initial }] = await adminDb
-        .select({ isPinned: memberNotes.isPinned })
-        .from(memberNotes)
-        .where(eq(memberNotes.id, n.n3));
-      let releaseFirst!: () => void;
-      const firstMayCommit = new Promise<void>(resolve => {
-        releaseFirst = resolve;
-      });
-      let firstToggled!: () => void;
-      const firstHasToggled = new Promise<void>(resolve => {
-        firstToggled = resolve;
-      });
-      let firstPid = 0;
-      const first = ctx.withTenantAuthority(staff.authority, async tx => {
-        const [{ pid }] = await tx.execute<{ pid: number }>(sql`select pg_backend_pid() as pid`);
-        firstPid = pid;
-        const result = await toggleMemberNotePinIn(tx, staffActor, n.n3);
-        firstToggled();
-        await firstMayCommit;
-        return result;
-      });
-      let second: Promise<unknown> = Promise.resolve();
-      try {
-        await firstHasToggled;
-        second = ctx.withTenantAuthority(staff.authority, tx =>
-          toggleMemberNotePinIn(tx, staffActor, n.n3)
-        );
-        await waitUntilBlockedBy(adminDb, firstPid);
-        await assertPending(second, 'the second toggle');
-        releaseFirst();
-        assert.deepEqual(await first, {
-          ok: true,
-          data: { isPinned: !initial },
-          audit: { memberId: u.m4, isPinned: !initial },
-        });
-        assert.deepEqual(await second, {
-          ok: true,
-          data: { isPinned: initial },
-          audit: { memberId: u.m4, isPinned: initial },
-        });
-        const [row] = await adminDb
-          .select({ isPinned: memberNotes.isPinned })
-          .from(memberNotes)
-          .where(eq(memberNotes.id, n.n3));
-        assert.equal(row.isPinned, initial, 'two toggles return the note to its state');
-      } finally {
-        releaseFirst();
-        await Promise.allSettled([first, second]);
-      }
-    });
-  } catch (error) {
-    failures.push(error);
-  } finally {
-    for (const cleanup of [() => cleanupNotes(adminDb, seed), () => session.close()]) {
-      try {
-        await cleanup();
-      } catch (error) {
-        failures.push(error);
-      }
-    }
-  }
-
-  for (const error of failures.slice(1)) {
-    t.diagnostic(`Additional cleanup failure: ${inspect(error)}`);
-  }
-  if (failures.length > 0) throw failures[0];
+  });
 });

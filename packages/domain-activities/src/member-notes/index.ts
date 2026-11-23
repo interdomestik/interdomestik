@@ -1,10 +1,7 @@
 // Member notes: the owning module of `member_notes` (R-16). Entry points call these commands only.
+export { createMemberNote, listMemberNotes } from './commands';
+export { deleteMemberNote, toggleMemberNotePin, updateMemberNote } from './change';
 export {
-  createMemberNote,
-  deleteMemberNote,
-  listMemberNotes,
-  toggleMemberNotePin,
-  updateMemberNote,
   type CreatedNoteAudit,
   type DeletedNoteAudit,
   type MemberNoteCommandParams,
@@ -13,7 +10,7 @@ export {
   type MemberNoteResult,
   type PinnedNoteAudit,
   type UpdatedNoteAudit,
-} from './commands';
+} from './result';
 export { type MemberNoteSession } from './access';
 export {
   MAX_NOTE_CONTENT_LENGTH,
