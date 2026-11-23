@@ -9,47 +9,78 @@ function responseHeaders() {
   return headers;
 }
 
-function fakeAuth(options: { fresh?: unknown; revokeError?: Error } = {}) {
+function fakeSessionFunctions(options: { fresh?: unknown; revokeError?: Error } = {}) {
   return {
-    api: {
-      getSession: vi.fn().mockResolvedValue(options.fresh ?? null),
-      revokeSession: options.revokeError
-        ? vi.fn().mockRejectedValue(options.revokeError)
-        : vi.fn().mockResolvedValue({ status: true }),
-    },
+    getSession: vi.fn().mockResolvedValue(options.fresh ?? null),
+    revokeSession: options.revokeError
+      ? vi.fn().mockRejectedValue(options.revokeError)
+      : vi.fn().mockResolvedValue({ status: true }),
   };
 }
 
 describe('IDA-UI03a0b2 fresh Better Auth session guard', () => {
-  it('C20 revokes exactly the new wrong-tenant token with its signed cookie and strips cookies', async () => {
-    const auth = fakeAuth();
+  it('continues with the original cookies when the fresh session matches the admitted account', async () => {
+    const { getSession, revokeSession } = fakeSessionFunctions({
+      fresh: {
+        session: { userId: 'user-1' },
+        user: { id: 'user-1', tenantId: 'tenant_ks', tenantClassificationPending: true },
+      },
+    });
+    const headers = responseHeaders();
     const result = await protectNeutralOtpSession({
-      auth,
+      getSession,
+      revokeSession,
+      admittedAccountId: 'user-1',
+      responseHeaders: headers,
+      verifyData: { token: 'new-row-token', user: { id: 'user-1', tenantId: 'tenant_ks' } },
+      resolveDefaultTenantId: () => 'tenant_ks',
+    });
+
+    expect(getSession).toHaveBeenCalledExactlyOnceWith({
+      headers: expect.any(Headers),
+      query: { disableCookieCache: true, disableRefresh: true },
+    });
+    expect(getSession.mock.calls[0]?.[0].headers.get('cookie')).toContain(
+      'better-auth.session_token=signed-new'
+    );
+    expect(revokeSession).not.toHaveBeenCalled();
+    expect(result.decision).toBe('continue');
+    expect(result.headers.get('set-cookie')).toBe(headers.get('set-cookie'));
+  });
+
+  it('C20 revokes exactly the new wrong-tenant token with its signed cookie and strips cookies', async () => {
+    const { getSession, revokeSession } = fakeSessionFunctions();
+    const result = await protectNeutralOtpSession({
+      getSession,
+      revokeSession,
       admittedAccountId: 'user-1',
       responseHeaders: responseHeaders(),
       verifyData: { token: 'new-row-token', user: { id: 'user-1', tenantId: 'tenant_mk' } },
       resolveDefaultTenantId: () => 'tenant_ks',
     });
 
-    expect(auth.api.revokeSession).toHaveBeenCalledOnce();
-    const call = auth.api.revokeSession.mock.calls[0]?.[0];
+    expect(revokeSession).toHaveBeenCalledOnce();
+    const call = revokeSession.mock.calls[0]?.[0];
     expect(call.body).toEqual({ token: 'new-row-token' });
     expect(call.headers.get('cookie')).toContain('better-auth.session_token=signed-new');
     expect(result.decision).toBe('accountStop');
     expect(result.headers.get('set-cookie')).toBeNull();
-    expect(auth.api.revokeSession).toHaveBeenCalledWith({
+    expect(revokeSession).toHaveBeenCalledWith({
       body: { token: 'new-row-token' },
       headers: expect.any(Headers),
     });
   });
 
   it('C21 strips every session cookie even when in-process revocation throws', async () => {
-    const auth = fakeAuth({ revokeError: new Error('PRIVATE_DB_ERROR') });
+    const { getSession, revokeSession } = fakeSessionFunctions({
+      revokeError: new Error('PRIVATE_DB_ERROR'),
+    });
     const log = vi.fn();
     const headers = responseHeaders();
     headers.append('set-cookie', 'app.better-auth.session_token_backup=keep; Path=/; HttpOnly');
     const result = await protectNeutralOtpSession({
-      auth,
+      getSession,
+      revokeSession,
       admittedAccountId: 'user-1',
       log,
       responseHeaders: headers,
@@ -64,7 +95,7 @@ describe('IDA-UI03a0b2 fresh Better Auth session guard', () => {
 
   it('C22 bypasses cookie cache and stops missing or mismatched authoritative sessions', async () => {
     const log = vi.fn();
-    const auth = fakeAuth({
+    const { getSession, revokeSession } = fakeSessionFunctions({
       fresh: {
         session: { token: 'new-row-token', userId: 'different-user' },
         user: {
@@ -75,7 +106,8 @@ describe('IDA-UI03a0b2 fresh Better Auth session guard', () => {
       },
     });
     const result = await protectNeutralOtpSession({
-      auth,
+      getSession,
+      revokeSession,
       admittedAccountId: 'user-1',
       responseHeaders: responseHeaders(),
       verifyData: { token: 'new-row-token', user: { id: 'user-1', tenantId: 'tenant_ks' } },
@@ -83,16 +115,17 @@ describe('IDA-UI03a0b2 fresh Better Auth session guard', () => {
       log,
     });
 
-    expect(auth.api.getSession).toHaveBeenCalledWith({
+    expect(getSession).toHaveBeenCalledWith({
       headers: expect.any(Headers),
       query: { disableCookieCache: true, disableRefresh: true },
     });
     expect(result.decision).toBe('invalidOtp');
     expect(result.headers.get('set-cookie')).toBeNull();
 
-    auth.api.getSession.mockRejectedValueOnce(new Error('PRIVATE_DB_ERROR'));
+    getSession.mockRejectedValueOnce(new Error('PRIVATE_DB_ERROR'));
     const unavailable = await protectNeutralOtpSession({
-      auth,
+      getSession,
+      revokeSession,
       admittedAccountId: 'user-1',
       log,
       responseHeaders: responseHeaders(),
@@ -102,6 +135,6 @@ describe('IDA-UI03a0b2 fresh Better Auth session guard', () => {
     expect(unavailable.decision).toBe('accountStop');
     expect(unavailable.headers.get('set-cookie')).toBeNull();
     expect(log).toHaveBeenCalledWith('otp_fresh_session_failed');
-    expect(auth.api.revokeSession).toHaveBeenCalledTimes(2);
+    expect(revokeSession).toHaveBeenCalledTimes(2);
   });
 });

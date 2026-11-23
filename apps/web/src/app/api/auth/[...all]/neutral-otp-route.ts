@@ -109,7 +109,8 @@ export async function handleNeutralOtpPost(args: {
   const response = await handler(sanitizedRequest({ request, body, email, kind, tenantId }));
   if (kind === 'send' || !response.ok) return response;
   const guarded = await protectNeutralOtpSession({
-    auth,
+    getSession: auth.api.getSession,
+    revokeSession: auth.api.revokeSession,
     admittedAccountId: account.id,
     verifyData: await parseVerifyData(response),
     responseHeaders: response.headers,

@@ -14,24 +14,16 @@ type FreshSession = {
   } | null;
 } | null;
 
-type NeutralOtpAuth = {
-  api: {
-    getSession: (args: {
-      headers: Headers;
-      query: { disableCookieCache: true; disableRefresh: true };
-    }) => Promise<FreshSession>;
-    revokeSession: (args: { body: { token: string }; headers: Headers }) => Promise<unknown>;
-  };
-};
+type RevokeSession = (args: { body: { token: string }; headers: Headers }) => Promise<unknown>;
 
 async function revokeNewSession(args: {
-  auth: NeutralOtpAuth;
+  revokeSession: RevokeSession;
   token: string;
   headers: Headers;
   log?: (category: string) => void;
 }): Promise<void> {
   try {
-    await args.auth.api.revokeSession({ body: { token: args.token }, headers: args.headers });
+    await args.revokeSession({ body: { token: args.token }, headers: args.headers });
   } catch {
     try {
       args.log?.('otp_session_revoke_failed');
@@ -50,15 +42,26 @@ function stopDecision(accountMismatch: boolean): 'invalidOtp' | 'accountStop' {
 }
 
 export async function protectNeutralOtpSession(args: {
-  auth: NeutralOtpAuth;
+  getSession: (args: {
+    headers: Headers;
+    query: { disableCookieCache: true; disableRefresh: true };
+  }) => Promise<FreshSession>;
+  revokeSession: RevokeSession;
   admittedAccountId: string;
   verifyData: VerifyData;
   responseHeaders: Headers;
   resolveDefaultTenantId: () => string;
   log?: (category: string) => void;
 }): Promise<{ decision: 'continue' | 'accountStop' | 'invalidOtp'; headers: Headers }> {
-  const { auth, admittedAccountId, verifyData, responseHeaders, resolveDefaultTenantId, log } =
-    args;
+  const {
+    getSession,
+    revokeSession,
+    admittedAccountId,
+    verifyData,
+    responseHeaders,
+    resolveDefaultTenantId,
+    log,
+  } = args;
   const token = typeof verifyData?.token === 'string' ? verifyData.token : null;
   const userId = typeof verifyData?.user?.id === 'string' ? verifyData.user.id : null;
   const cookie = cookieHeaderFromSetCookie(responseHeaders);
@@ -69,7 +72,7 @@ export async function protectNeutralOtpSession(args: {
   const headers = new Headers({ cookie });
   const responseAccountMismatch = userId !== admittedAccountId;
   if (responseAccountMismatch || verifyData?.user?.tenantId !== resolveDefaultTenantId()) {
-    await revokeNewSession({ auth, token, headers, log });
+    await revokeNewSession({ revokeSession, token, headers, log });
     return {
       decision: stopDecision(responseAccountMismatch),
       headers: accountStop(responseHeaders).headers,
@@ -78,7 +81,7 @@ export async function protectNeutralOtpSession(args: {
 
   let fresh: FreshSession;
   try {
-    fresh = await auth.api.getSession({
+    fresh = await getSession({
       headers,
       query: { disableCookieCache: true, disableRefresh: true },
     });
@@ -99,7 +102,7 @@ export async function protectNeutralOtpSession(args: {
   if (authoritative) return { decision: 'continue', headers: new Headers(responseHeaders) };
   const sessionAccountMismatch =
     typeof sessionUserId === 'string' && sessionUserId !== admittedAccountId;
-  await revokeNewSession({ auth, token, headers, log });
+  await revokeNewSession({ revokeSession, token, headers, log });
   return {
     decision: stopDecision(sessionAccountMismatch),
     headers: accountStop(responseHeaders).headers,

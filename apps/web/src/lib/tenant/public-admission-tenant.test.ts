@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { resolvePublicAdmissionTenant } from './public-admission-tenant';
+import { resolvePublicAdmission, resolvePublicAdmissionTenant } from './public-admission-tenant';
 
 const production = {
   INTERDOMESTIK_DEPLOY_ENV: 'production',
@@ -12,6 +12,34 @@ const development = {
   DATABASE_URL_RLS: 'postgres://fixture@localhost:5432/test',
   DEFAULT_PUBLIC_TENANT_ID: 'tenant_al',
 };
+const localE2E = { ...development, INTERDOMESTIK_LOCAL_E2E: '1', PLAYWRIGHT: '1' };
+
+describe('resolvePublicAdmission', () => {
+  const productionDoor = { kind: 'door', tenantId: 'tenant_mk' };
+  const stagingDoor = { kind: 'door', tenantId: 'pilot-mk' };
+  const localDoor = { kind: 'door', tenantId: 'tenant_al' };
+  const kosovo = { kind: 'country', tenantId: 'tenant_ks' };
+  const macedonia = { kind: 'country', tenantId: 'tenant_mk' };
+
+  it.each([
+    // Host, production, staging, development, local E2E.
+    ['ida.interdomestik.com', productionDoor, null, null, null],
+    ['staging.interdomestik.com', null, stagingDoor, null, null],
+    ['ks.staging.interdomestik.com', null, kosovo, null, null],
+    ['mk.staging.interdomestik.com', null, macedonia, null, null],
+    ['ida.127.0.0.1.nip.io', null, null, localDoor, localDoor],
+    ['ida.localhost', null, null, localDoor, localDoor],
+    ['ks.127.0.0.1.nip.io', null, null, kosovo, kosovo],
+    ['mk.127.0.0.1.nip.io', null, null, macedonia, macedonia],
+    ['ida.other.example', null, null, null, null],
+  ])('resolves exact ingress for %s across release classes', (host, prod, stage, dev, e2e) => {
+    const headers = new Headers({ host });
+    expect(resolvePublicAdmission(headers, production), 'production').toEqual(prod);
+    expect(resolvePublicAdmission(headers, staging), 'staging').toEqual(stage);
+    expect(resolvePublicAdmission(headers, development), 'development').toEqual(dev);
+    expect(resolvePublicAdmission(headers, localE2E), 'local-e2e').toEqual(e2e);
+  });
+});
 
 describe('resolvePublicAdmissionTenant', () => {
   it.each([

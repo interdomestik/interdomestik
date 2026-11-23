@@ -2,18 +2,32 @@ import { hostedAuthHosts } from '@/lib/auth/deployment-hosts';
 import { releaseClass } from '@/lib/runtime-environment';
 import { coerceTenantId, type TenantId } from './tenant-hosts';
 
-const LOCAL_INGRESS = new Map<string, TenantId | 'door'>([
-  ['ida.127.0.0.1.nip.io', 'door'],
-  ['ida.localhost', 'door'],
-  ['ks.127.0.0.1.nip.io', 'tenant_ks'],
-  ['mk.127.0.0.1.nip.io', 'tenant_mk'],
-]);
+function localIngress(host: string): TenantId | 'door' | undefined {
+  switch (host) {
+    case 'ida.127.0.0.1.nip.io':
+    case 'ida.localhost':
+      return 'door';
+    case 'ks.127.0.0.1.nip.io':
+      return 'tenant_ks';
+    case 'mk.127.0.0.1.nip.io':
+      return 'tenant_mk';
+    default:
+      return undefined;
+  }
+}
 
-const STAGING_INGRESS = new Map<string, TenantId | 'door'>([
-  ['staging.interdomestik.com', 'door'],
-  ['ks.staging.interdomestik.com', 'tenant_ks'],
-  ['mk.staging.interdomestik.com', 'tenant_mk'],
-]);
+function stagingIngress(host: string): TenantId | 'door' | undefined {
+  switch (host) {
+    case 'staging.interdomestik.com':
+      return 'door';
+    case 'ks.staging.interdomestik.com':
+      return 'tenant_ks';
+    case 'mk.staging.interdomestik.com':
+      return 'tenant_mk';
+    default:
+      return undefined;
+  }
+}
 
 export function resolvePublicAdmission(
   requestHeaders: Pick<Headers, 'get'>,
@@ -38,9 +52,9 @@ export function resolvePublicAdmission(
       ingress = 'door';
     }
   } else if (release === 'staging') {
-    ingress = STAGING_INGRESS.get(host);
+    ingress = stagingIngress(host);
   } else {
-    ingress = LOCAL_INGRESS.get(host);
+    ingress = localIngress(host);
   }
 
   if (ingress === 'door') {
