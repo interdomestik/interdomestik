@@ -243,7 +243,10 @@ export function ClaimCorrespondenceForm({
         sharingCoveredByConsentConfirmed: data.has('sharingCoveredByConsentConfirmed')
           ? true
           : undefined,
-        sharedDocumentIds: selectedDocuments.map(document => document.id).sort(),
+        // A stable order keeps the correlation id for an identical retry.
+        sharedDocumentIds: selectedDocuments
+          .map(document => document.id)
+          .sort((left, right) => Number(left > right) - Number(left < right)),
       };
       return recordOutboundCorrespondence({ ...input, correlationId: correlation.forInput(input) });
     };
