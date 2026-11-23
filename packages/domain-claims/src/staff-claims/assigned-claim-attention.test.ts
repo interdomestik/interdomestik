@@ -5,6 +5,7 @@ import type { ClaimsSession } from '../claims/types';
 const mocks = vi.hoisted(() => {
   const query = {
     from: vi.fn(),
+    groupBy: vi.fn(),
     innerJoin: vi.fn(),
     leftJoin: vi.fn(),
     where: vi.fn(),
@@ -95,16 +96,10 @@ describe('deriveAssignedClaimAttention', () => {
       [
         {
           claimId: 'member-case',
-          requestId: 'request-1',
-          dueAt: new Date('2026-09-29T11:59:59.000Z'),
-          submittedAt: null,
+          memberDueAt: new Date('2026-09-29T11:59:59.000Z'),
+          hasEvidence: false,
         },
-        {
-          claimId: 'staff-case',
-          requestId: 'request-2',
-          dueAt: new Date('2026-09-28T00:00:00.000Z'),
-          submittedAt: new Date('2026-09-29T09:00:00.000Z'),
-        },
+        { claimId: 'staff-case', memberDueAt: null, hasEvidence: true },
       ],
       now
     );
@@ -121,27 +116,20 @@ describe('deriveAssignedClaimAttention', () => {
 
   it('keeps an exact-now request out of overdue and prioritizes staff when requests are mixed', () => {
     const attention = deriveAssignedClaimAttention(
-      ['case-1'],
+      ['mixed', 'due-now'],
       [
-        { claimId: 'case-1', requestId: 'r1', dueAt: now, submittedAt: null },
+        { claimId: 'due-now', memberDueAt: now, hasEvidence: false },
         {
-          claimId: 'case-1',
-          requestId: 'r2',
-          dueAt: new Date('2026-09-28T00:00:00.000Z'),
-          submittedAt: null,
-        },
-        {
-          claimId: 'case-1',
-          requestId: 'r3',
-          dueAt: new Date('2026-09-27T00:00:00.000Z'),
-          submittedAt: new Date('2026-09-28T00:00:00.000Z'),
+          claimId: 'mixed',
+          memberDueAt: new Date('2026-09-28T00:00:00.000Z'),
+          hasEvidence: true,
         },
       ],
       now
     );
-    expect(attention['case-1']).toEqual({
-      nextActor: 'staff',
-      overdueFollowUpDueAt: '2026-09-28T00:00:00.000Z',
+    expect(attention).toEqual({
+      mixed: { nextActor: 'staff', overdueFollowUpDueAt: '2026-09-28T00:00:00.000Z' },
+      'due-now': { nextActor: 'member', overdueFollowUpDueAt: null },
     });
   });
 });
@@ -153,7 +141,8 @@ describe('getAssignedStaffClaimAttention', () => {
     mocks.query.from.mockReturnValue(mocks.query);
     mocks.query.innerJoin.mockReturnValue(mocks.query);
     mocks.query.leftJoin.mockReturnValue(mocks.query);
-    mocks.query.where.mockReset().mockResolvedValue([]);
+    mocks.query.where.mockReset().mockReturnValueOnce(mocks.query).mockResolvedValue([]);
+    mocks.query.groupBy.mockReset().mockResolvedValue([]);
   });
 
   it('denies non-staff and never queries their claim IDs', async () => {
@@ -175,11 +164,17 @@ describe('getAssignedStaffClaimAttention', () => {
   });
 
   it('scopes the read by tenant, open request, selected claims and assigned staff', async () => {
-    const result = await getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'], now);
+    const result = await getAssignedStaffClaimAttention(
+      staffSession,
+      registerAuthority,
+      ['claim-1'],
+      now
+    );
 
     expect(result['claim-1']).toEqual({ nextActor: 'untracked', overdueFollowUpDueAt: null });
     expect(mocks.contexts).toHaveLength(1);
-    expect(mocks.contexts[0]).toBe(authority);
+    expect(mocks.contexts[0]).toBe(registerAuthority);
+    expect(mocks.query.groupBy).toHaveBeenCalledWith('request.claim_id');
     expect(mocks.query.where).toHaveBeenCalledWith(
       expect.objectContaining({
         op: 'and',
@@ -194,22 +189,23 @@ describe('getAssignedStaffClaimAttention', () => {
   });
 
   it('propagates a failed read instead of showing an empty staff queue', async () => {
-    mocks.query.where.mockRejectedValueOnce(new Error('database unavailable'));
+    mocks.query.groupBy.mockRejectedValueOnce(new Error('database unavailable'));
     await expect(
-      getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'])
+      getAssignedStaffClaimAttention(staffSession, registerAuthority, ['claim-1'])
     ).rejects.toThrow('database unavailable');
   });
 
   it('keeps the member request as the source when its overdue date is earlier', async () => {
+    mocks.query.groupBy.mockResolvedValueOnce([
+      {
+        claimId: 'claim-1',
+        memberDueAt: new Date('2026-09-26T12:00:00.000Z'),
+        hasEvidence: false,
+      },
+    ]);
     mocks.query.where
-      .mockResolvedValueOnce([
-        {
-          claimId: 'claim-1',
-          requestId: 'request-1',
-          dueAt: new Date('2026-09-26T12:00:00.000Z'),
-          submittedAt: null,
-        },
-      ])
+      .mockReset()
+      .mockReturnValueOnce(mocks.query)
       .mockResolvedValueOnce([
         {
           claimId: 'claim-1',
@@ -217,7 +213,12 @@ describe('getAssignedStaffClaimAttention', () => {
           outboundDueAt: null,
         },
       ]);
-    const result = await getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'], now);
+    const result = await getAssignedStaffClaimAttention(
+      staffSession,
+      registerAuthority,
+      ['claim-1'],
+      now
+    );
     expect(result['claim-1']).toEqual({
       nextActor: 'member',
       overdueFollowUpDueAt: '2026-09-26T12:00:00.000Z',
@@ -226,13 +227,16 @@ describe('getAssignedStaffClaimAttention', () => {
   });
 
   it('includes the earliest past case or unanswered outbound follow-up for the assigned claim', async () => {
-    mocks.query.where.mockResolvedValueOnce([]).mockResolvedValueOnce([
-      {
-        claimId: 'claim-1',
-        caseDueAt: new Date('2026-09-28T12:00:00.000Z'),
-        outboundDueAt: new Date('2026-09-27T12:00:00.000Z'),
-      },
-    ]);
+    mocks.query.where
+      .mockReset()
+      .mockReturnValueOnce(mocks.query)
+      .mockResolvedValueOnce([
+        {
+          claimId: 'claim-1',
+          caseDueAt: new Date('2026-09-28T12:00:00.000Z'),
+          outboundDueAt: new Date('2026-09-27T12:00:00.000Z'),
+        },
+      ]);
     await expect(
       getAssignedStaffClaimAttention(staffSession, registerAuthority, ['claim-1'], now)
     ).resolves.toEqual({
@@ -256,13 +260,12 @@ describe('getAssignedStaffClaimAttention', () => {
     );
   });
 
-  it('reads no register deadline without the register admission', async () => {
-    mocks.query.where.mockResolvedValueOnce([]);
-    // The authority carries no principal of this session: only member requests are read.
+  it('reads no deadlines without the register admission', async () => {
+    // The authority carries no principal of this session.
     await expect(
       getAssignedStaffClaimAttention(staffSession, authority, ['claim-1'], now)
     ).resolves.toEqual({ 'claim-1': { nextActor: 'untracked', overdueFollowUpDueAt: null } });
-    expect(mocks.query.where).toHaveBeenCalledTimes(1);
+    expect(mocks.query.where).not.toHaveBeenCalled();
   });
 
   it('limits register deadlines to the branch of a branch-bound staff member', async () => {
@@ -277,8 +280,17 @@ describe('getAssignedStaffClaimAttention', () => {
     const branchSession = {
       user: { ...staffSession.user, branchId: 'branch-1' },
     } as ClaimsSession;
-    mocks.query.where.mockResolvedValueOnce([]).mockResolvedValueOnce([]);
+    mocks.query.where.mockReset().mockReturnValueOnce(mocks.query).mockResolvedValueOnce([]);
     await getAssignedStaffClaimAttention(branchSession, branchAuthority, ['claim-1'], now);
+    expect(mocks.query.where).toHaveBeenNthCalledWith(
+      1,
+      expect.objectContaining({
+        conditions: expect.arrayContaining([
+          { op: 'eq', left: 'claim.staff_id', right: 'staff-1' },
+          { op: 'eq', left: 'claim.branch_id', right: 'branch-1' },
+        ]),
+      })
+    );
     expect(mocks.query.where).toHaveBeenLastCalledWith(
       expect.objectContaining({
         conditions: expect.arrayContaining([

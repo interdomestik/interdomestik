@@ -9,10 +9,7 @@ import {
   sql,
   type TenantTransaction,
 } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { resolveRegisterQueueActor, type RegisterActor } from '../claims/case-register-access';
@@ -28,26 +25,9 @@ export type AssignedClaimAttention = {
 
 type RequestProgressRow = {
   claimId: string;
-  requestId: string;
-  dueAt: Date;
-  submittedAt: Date | null;
+  memberDueAt: Date | null;
+  hasEvidence: boolean;
 };
-
-type RequestProgress = { claimId: string; dueAt: Date; hasEvidence: boolean };
-
-function groupRequestProgress(rows: readonly RequestProgressRow[]): Map<string, RequestProgress> {
-  const requests = new Map<string, RequestProgress>();
-  for (const row of rows) {
-    const request = requests.get(row.requestId) ?? {
-      claimId: row.claimId,
-      dueAt: row.dueAt,
-      hasEvidence: false,
-    };
-    if (row.submittedAt) request.hasEvidence = true;
-    requests.set(row.requestId, request);
-  }
-  return requests;
-}
 
 function recordOverdueFollowUp(
   item: AssignedClaimAttention,
@@ -72,25 +52,12 @@ export function deriveAssignedClaimAttention(
   const byClaim: Record<string, AssignedClaimAttention> = Object.fromEntries(
     claimIds.map(id => [id, { nextActor: 'untracked', overdueFollowUpDueAt: null }])
   );
-  const requests = groupRequestProgress(rows);
-
-  const hasStaffRequest = new Set<string>();
-  const hasMemberRequest = new Set<string>();
-  for (const request of requests.values()) {
-    const item = byClaim[request.claimId];
+  for (const row of rows) {
+    const item = byClaim[row.claimId];
     if (!item) continue;
-    if (request.hasEvidence) {
-      hasStaffRequest.add(request.claimId);
-      continue;
-    }
-    hasMemberRequest.add(request.claimId);
-    recordOverdueFollowUp(item, request.dueAt, now);
+    item.nextActor = row.hasEvidence ? 'staff' : 'member';
+    if (row.memberDueAt) recordOverdueFollowUp(item, row.memberDueAt, now);
   }
-
-  for (const claimId of hasMemberRequest) {
-    if (!hasStaffRequest.has(claimId)) byClaim[claimId].nextActor = 'member';
-  }
-  for (const claimId of hasStaffRequest) byClaim[claimId].nextActor = 'staff';
   return byClaim;
 }
 
@@ -152,19 +119,21 @@ export async function getAssignedStaffClaimAttention(
   claimIds: readonly string[],
   now = new Date()
 ): Promise<Record<string, AssignedClaimAttention>> {
-  const actor = session?.user;
-  if (actor?.role !== 'staff' || !authority) throw new Error('Staff access required');
+  if (session?.user.role !== 'staff' || !authority) throw new Error('Staff access required');
   if (claimIds.length === 0) return {};
-  const { tenantId } = readTenantAuthority(authority);
-  const staffId = actor.id;
+  const register = resolveRegisterQueueActor(session, authority);
+  if (!register) return deriveAssignedClaimAttention(claimIds, [], now);
+  const { tenantId, actor } = register;
 
   return withTenantAuthority(authority, async tx => {
     const rows = await tx
       .select({
         claimId: claimInformationRequests.claimId,
-        requestId: claimInformationRequests.id,
-        dueAt: claimInformationRequests.dueAt,
-        submittedAt: claimInformationRequestEvidence.submittedAt,
+        memberDueAt: sql<Date | null>`min(${claimInformationRequests.dueAt})
+          filter (where ${claimInformationRequestEvidence.submittedAt} is null)`.mapWith(
+          (value: string | Date) => new Date(value)
+        ),
+        hasEvidence: sql<boolean>`bool_or(${claimInformationRequestEvidence.submittedAt} is not null)`,
       })
       .from(claimInformationRequests)
       .innerJoin(
@@ -187,14 +156,14 @@ export async function getAssignedStaffClaimAttention(
           eq(claimInformationRequests.tenantId, tenantId),
           inArray(claimInformationRequests.claimId, [...claimIds]),
           eq(claimInformationRequests.status, 'open'),
-          eq(claims.staffId, staffId)
+          eq(claims.staffId, actor.userId),
+          actor.branchId ? eq(claims.branchId, actor.branchId) : undefined,
+          claimLifecycleStatusNotIn(['draft'])
         )
-      );
+      )
+      .groupBy(claimInformationRequests.claimId);
     const attention = deriveAssignedClaimAttention(claimIds, rows, now);
-    // Register deadlines only under the register admission; otherwise the queue shows none.
-    const register = resolveRegisterQueueActor(session, authority);
-    if (register?.tenantId !== tenantId) return attention;
-    const followUps = await readCaseFollowUps(tx, tenantId, register.actor, claimIds);
+    const followUps = await readCaseFollowUps(tx, tenantId, actor, claimIds);
     for (const row of followUps) {
       const item = attention[row.claimId];
       if (row.caseDueAt) recordOverdueFollowUp(item, row.caseDueAt, now, 'case_register');
