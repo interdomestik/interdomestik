@@ -1,13 +1,10 @@
 #!/usr/bin/env node
 // Tenant guard entry point. The protected workflow supplies all object identities explicitly.
 import { performance } from 'node:perf_hooks';
+import { bundlerCheckoutProblem } from './tenant-guard/bundler-checkout.mjs';
 import { KERNEL_ANCHOR } from './tenant-guard/manifest.mjs';
 import { createModuleGraph } from './tenant-guard/modules.mjs';
-import {
-  bundlerConfigViolations,
-  resolutionConfig,
-  workspaceGlobViolations,
-} from './tenant-guard/resolution.mjs';
+import { resolutionConfig, workspaceGlobViolations } from './tenant-guard/resolution.mjs';
 import { evaluate } from './tenant-guard/rules.mjs';
 import {
   APP_ALIASES,
@@ -63,8 +60,9 @@ const seedTls = createSeedTlsContext({
 const result = evaluate({ sources, trusted, graph, seedTls, schemaAdmission });
 result.violations.unshift(
   ...resolution.violations,
-  ...workspaceGlobViolations(repoRoot),
-  ...bundlerConfigViolations(repoRoot, trustedRef.commit)
+  // Bundler configs and their local import closures are bound by the reviewed resolver state
+  // inside schema admission (rules-resolver-state.mjs), on the authenticated base and candidate.
+  ...workspaceGlobViolations(repoRoot)
 );
 const elapsedMs = Math.round(performance.now() - started);
 const report = {
@@ -158,6 +156,8 @@ function checkoutInputs(admission) {
     const packages = workspacePackages(repoRoot);
     if (!admission.reason && admission.candidate)
       admission.reason = checkoutDiscrepancy(repoRoot, sources, admission.candidate);
+    if (!admission.reason && admission.candidate)
+      admission.reason = bundlerCheckoutProblem(repoRoot, admission.candidate);
     return { sources, resolution, packages };
   } catch (error) {
     admission.reason ??= error.code

@@ -10,8 +10,7 @@ const CONTRACT_DIR = 'scripts/ci';
 const EXTRA_CONTRACT_FILES = Object.freeze(['scripts/check-modularity-guard.test.mjs']);
 const NODE_TEST_ARGS = Object.freeze(['--test', '--test-concurrency=1']);
 
-// Long-running guard-trust suites, excluded from core by exact name only. Every other contract
-// test, including any file added later, lands in core by default.
+// Long-running guard-trust suites leave core by exact name only; any other test stays in core.
 export const GUARD_TRUST_SHARDS = Object.freeze({
   authority: Object.freeze(['scripts/ci/db-access-required-authority.test.mjs']),
   candidate: Object.freeze(['scripts/ci/db-access-required-candidate.test.mjs']),
@@ -23,6 +22,11 @@ export const GUARD_TRUST_SHARDS = Object.freeze({
   's2-workflow': Object.freeze([
     'scripts/ci/tenant-guard-s2-workflow.isolation.test.mjs',
     'scripts/ci/tenant-guard-s2-workflow.test.mjs',
+  ]),
+  'resolver-state': Object.freeze([
+    'scripts/ci/tenant-guard.bundler-closure.test.mjs',
+    'scripts/ci/tenant-guard.resolver-transitions.test.mjs',
+    'scripts/ci/tenant-guard.resolver-trial.test.mjs',
   ]),
 });
 
