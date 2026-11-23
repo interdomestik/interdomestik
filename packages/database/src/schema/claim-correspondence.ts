@@ -1,6 +1,17 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, integer, pgPolicy, pgTable } from 'drizzle-orm/pg-core';
-import { text, timestamp, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core';
+import {
+  check,
+  foreignKey,
+  index,
+  integer,
+  pgPolicy,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  uuid,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { user } from './auth';
 import { claims } from './claim-core';
 import { tenants } from './tenants';
@@ -37,78 +48,74 @@ export const claimAuthorities = pgTable(
     recordedByStaffId: text('recorded_by_staff_id').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
   },
-  table => [
-    uniqueIndex('claim_authorities_correlation_uq').on(table.tenantId, table.correlationId),
-    uniqueIndex('claim_authorities_tenant_claim_id_uq').on(table.tenantId, table.claimId, table.id),
-    uniqueIndex('claim_authorities_claim_kind_uq').on(table.tenantId, table.claimId, table.kind),
-    index('claim_authorities_claim_idx').on(table.tenantId, table.claimId, table.createdAt),
-    index('claim_authorities_evidence_idx').on(
-      table.tenantId,
-      table.claimId,
-      table.evidenceDocumentId
-    ),
+  t => [
+    uniqueIndex('claim_authorities_correlation_uq').on(t.tenantId, t.correlationId),
+    uniqueIndex('claim_authorities_tenant_claim_id_uq').on(t.tenantId, t.claimId, t.id),
+    uniqueIndex('claim_authorities_claim_kind_uq').on(t.tenantId, t.claimId, t.kind),
+    index('claim_authorities_claim_idx').on(t.tenantId, t.claimId, t.createdAt),
+    index('claim_authorities_evidence_idx').on(t.tenantId, t.claimId, t.evidenceDocumentId),
     foreignKey({
       name: 'claim_authorities_claim_fk',
-      columns: [table.tenantId, table.claimId],
+      columns: [t.tenantId, t.claimId],
       foreignColumns: [claims.tenantId, claims.id],
     }),
     foreignKey({
       name: 'claim_authorities_recorded_by_fk',
-      columns: [table.tenantId, table.recordedByStaffId],
+      columns: [t.tenantId, t.recordedByStaffId],
       foreignColumns: [user.tenantId, user.id],
     }),
     foreignKey({
       name: 'claim_authorities_revoked_by_fk',
-      columns: [table.tenantId, table.revokedByUserId],
+      columns: [t.tenantId, t.revokedByUserId],
       foreignColumns: [user.tenantId, user.id],
     }),
     foreignKey({
       name: 'claim_authorities_jurisdiction_attested_by_fk',
-      columns: [table.tenantId, table.jurisdictionAttestedByUserId],
+      columns: [t.tenantId, t.jurisdictionAttestedByUserId],
       foreignColumns: [user.tenantId, user.id],
     }),
     check(
       'claim_authorities_kind_check',
-      sql`${table.kind} in ('recovery_agreement', 'power_of_attorney', 'signed_assignment', 'consent_or_lawful_basis')`
+      sql`${t.kind} in ('recovery_agreement', 'power_of_attorney', 'signed_assignment', 'consent_or_lawful_basis')`
     ),
     check(
       'claim_authorities_scope_check',
-      sql`${table.scope} in ('recovery', 'representation', 'document_sharing')`
+      sql`${t.scope} in ('recovery', 'representation', 'document_sharing')`
     ),
     check(
       'claim_authorities_kind_scope_check',
-      sql`(${table.kind} in ('recovery_agreement', 'signed_assignment') and ${table.scope} = 'recovery')
-        or (${table.kind} = 'power_of_attorney' and ${table.scope} = 'representation')
-        or (${table.kind} = 'consent_or_lawful_basis' and ${table.scope} = 'document_sharing')`
+      sql`(${t.kind} in ('recovery_agreement', 'signed_assignment') and ${t.scope} = 'recovery')
+        or (${t.kind} = 'power_of_attorney' and ${t.scope} = 'representation')
+        or (${t.kind} = 'consent_or_lawful_basis' and ${t.scope} = 'document_sharing')`
     ),
-    check('claim_authorities_version_check', sql`${table.version} ~ '\\S'`),
+    check('claim_authorities_version_check', sql`${t.version} ~ '\\S'`),
     check(
       'claim_authorities_jurisdiction_check',
-      sql`(${table.kind} = 'power_of_attorney') = (${table.jurisdictionCountryCode} is not null)
-        and (${table.jurisdictionCountryCode} is null or ${table.jurisdictionCountryCode} ~ '^[A-Z]{2}$')
-        and (${table.kind} = 'power_of_attorney') = (${table.jurisdictionAttestedByUserId} is not null)
-        and (${table.kind} = 'power_of_attorney') = (${table.jurisdictionAttestedAt} is not null)`
+      sql`(${t.kind} = 'power_of_attorney') = (${t.jurisdictionCountryCode} is not null)
+        and (${t.jurisdictionCountryCode} is null or ${t.jurisdictionCountryCode} ~ '^[A-Z]{2}$')
+        and (${t.kind} = 'power_of_attorney') = (${t.jurisdictionAttestedByUserId} is not null)
+        and (${t.kind} = 'power_of_attorney') = (${t.jurisdictionAttestedAt} is not null)`
     ),
     check(
       'claim_authorities_purpose_check',
-      sql`(${table.kind} = 'consent_or_lawful_basis') = (${table.purpose} is not null)
-        and (${table.purpose} is null or ${table.purpose} ~ '\\S')`
+      sql`(${t.kind} = 'consent_or_lawful_basis') = (${t.purpose} is not null)
+        and (${t.purpose} is null or ${t.purpose} ~ '\\S')`
     ),
     check(
       'claim_authorities_expiry_check',
-      sql`${table.expiresAt} is null or ${table.expiresAt} > ${table.grantedAt}`
+      sql`${t.expiresAt} is null or ${t.expiresAt} > ${t.grantedAt}`
     ),
     check(
       'claim_authorities_revocation_check',
-      sql`(${table.revokedAt} is null) = (${table.revokedByUserId} is null)`
+      sql`(${t.revokedAt} is null) = (${t.revokedByUserId} is null)`
     ),
     pgPolicy('claim_authorities_tenant_policy', {
       for: 'all',
-      using: sql`${table.tenantId} = (select current_setting('app.current_tenant_id', true))::text
-        and ${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text`,
-      withCheck: sql`${table.tenantId} = (select current_setting('app.current_tenant_id', true))::text
-        and ${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text
-        and exists (select 1 from "claim" c where c.id = ${table.claimId} and c.tenant_id = ${table.tenantId})`,
+      using: sql`${t.tenantId} = (select current_setting('app.current_tenant_id', true))::text
+        and ${t.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text`,
+      withCheck: sql`${t.tenantId} = (select current_setting('app.current_tenant_id', true))::text
+        and ${t.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text
+        and exists (select 1 from "claim" c where c.id = ${t.claimId} and c.tenant_id = ${t.tenantId})`,
     }),
   ]
 ).enableRLS();
@@ -142,102 +149,90 @@ export const claimCorrespondence = pgTable(
     recordedByStaffId: text('recorded_by_staff_id').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
   },
-  table => [
-    uniqueIndex('claim_correspondence_correlation_uq').on(table.tenantId, table.correlationId),
-    uniqueIndex('claim_correspondence_tenant_claim_id_uq').on(
-      table.tenantId,
-      table.claimId,
-      table.id
-    ),
-    index('claim_correspondence_claim_idx').on(
-      table.tenantId,
-      table.claimId,
-      table.occurredAt,
-      table.id
-    ),
-    index('claim_correspondence_reply_idx').on(table.tenantId, table.claimId, table.inReplyToId),
+  t => [
+    uniqueIndex('claim_correspondence_correlation_uq').on(t.tenantId, t.correlationId),
+    uniqueIndex('claim_correspondence_tenant_claim_id_uq').on(t.tenantId, t.claimId, t.id),
+    index('claim_correspondence_claim_idx').on(t.tenantId, t.claimId, t.occurredAt, t.id),
+    index('claim_correspondence_reply_idx').on(t.tenantId, t.claimId, t.inReplyToId),
     foreignKey({
       name: 'claim_correspondence_claim_fk',
-      columns: [table.tenantId, table.claimId],
+      columns: [t.tenantId, t.claimId],
       foreignColumns: [claims.tenantId, claims.id],
     }),
     foreignKey({
       name: 'claim_correspondence_reply_fk',
-      columns: [table.tenantId, table.claimId, table.inReplyToId],
-      foreignColumns: [table.tenantId, table.claimId, table.id],
+      columns: [t.tenantId, t.claimId, t.inReplyToId],
+      foreignColumns: [t.tenantId, t.claimId, t.id],
     }),
     foreignKey({
       name: 'claim_correspondence_recovery_authority_fk',
-      columns: [table.tenantId, table.claimId, table.recoveryAuthorityId],
+      columns: [t.tenantId, t.claimId, t.recoveryAuthorityId],
       foreignColumns: [claimAuthorities.tenantId, claimAuthorities.claimId, claimAuthorities.id],
     }),
     foreignKey({
       name: 'claim_correspondence_representation_authority_fk',
-      columns: [table.tenantId, table.claimId, table.representationAuthorityId],
+      columns: [t.tenantId, t.claimId, t.representationAuthorityId],
       foreignColumns: [claimAuthorities.tenantId, claimAuthorities.claimId, claimAuthorities.id],
     }),
     foreignKey({
       name: 'claim_correspondence_sharing_authority_fk',
-      columns: [table.tenantId, table.claimId, table.sharingAuthorityId],
+      columns: [t.tenantId, t.claimId, t.sharingAuthorityId],
       foreignColumns: [claimAuthorities.tenantId, claimAuthorities.claimId, claimAuthorities.id],
     }),
     foreignKey({
       name: 'claim_correspondence_recorded_by_fk',
-      columns: [table.tenantId, table.recordedByStaffId],
+      columns: [t.tenantId, t.recordedByStaffId],
       foreignColumns: [user.tenantId, user.id],
     }),
     foreignKey({
       name: 'claim_correspondence_sharing_attested_by_fk',
-      columns: [table.tenantId, table.sharingAttestedByUserId],
+      columns: [t.tenantId, t.sharingAttestedByUserId],
       foreignColumns: [user.tenantId, user.id],
     }),
-    check(
-      'claim_correspondence_direction_check',
-      sql`${table.direction} in ('outbound', 'inbound')`
-    ),
+    check('claim_correspondence_direction_check', sql`${t.direction} in ('outbound', 'inbound')`),
     check(
       'claim_correspondence_party_kind_check',
-      sql`${table.partyKind} in ('insurer', 'bureau', 'other')`
+      sql`${t.partyKind} in ('insurer', 'bureau', 'other')`
     ),
     check(
       'claim_correspondence_channel_check',
-      sql`${table.channel} in ('email', 'post', 'phone', 'portal', 'other')`
+      sql`${t.channel} in ('email', 'post', 'phone', 'portal', 'other')`
     ),
-    check('claim_correspondence_organisation_check', sql`${table.partyOrganisation} ~ '\\S'`),
-    check('claim_correspondence_body_check', sql`${table.body} ~ '\\S'`),
+    check('claim_correspondence_organisation_check', sql`${t.partyOrganisation} ~ '\\S'`),
+    check('claim_correspondence_body_check', sql`${t.body} ~ '\\S'`),
     check(
       'claim_correspondence_reply_direction_check',
-      sql`${table.inReplyToId} is null or ${table.direction} = 'inbound'`
+      sql`${t.inReplyToId} is null or ${t.direction} = 'inbound'`
     ),
     check(
       'claim_correspondence_document_count_check',
-      sql`${table.sharedDocumentCount} between 0 and 20`
+      sql`${t.sharedDocumentCount} between 0 and 20`
     ),
     check(
       'claim_correspondence_sharing_check',
-      sql`(${table.sharingAuthorityId} is not null) = (${table.sharedDocumentCount} > 0)
-        and (${table.sharingAuthorityId} is not null) = (${table.sharingAttestedByUserId} is not null)
-        and (${table.sharingAuthorityId} is not null) = (${table.sharingAttestedAt} is not null)
-        and (${table.sharingAuthorityId} is null or ${table.direction} = 'outbound')`
+      sql`(${t.sharingAuthorityId} is not null) = (${t.sharedDocumentCount} > 0)
+        and (${t.sharingAuthorityId} is not null) = (${t.sharingAttestedByUserId} is not null)
+        and (${t.sharingAuthorityId} is not null) = (${t.sharingAttestedAt} is not null)
+        and (${t.sharingAuthorityId} is null or ${t.direction} = 'outbound')`
     ),
     check(
       'claim_correspondence_outbound_check',
-      sql`${table.direction} <> 'outbound' or (${table.recoveryAuthorityId} is not null and ${table.representationAuthorityId} is not null and ${table.decidedAt} is not null)`
+      sql`${t.direction} <> 'outbound' or (${t.recoveryAuthorityId} is not null and ${t.representationAuthorityId} is not null and ${t.decidedAt} is not null)`
     ),
     check(
       'claim_correspondence_inbound_check',
-      sql`${table.direction} <> 'inbound' or (${table.recoveryAuthorityId} is null and ${table.representationAuthorityId} is null
-        and ${table.sharingAuthorityId} is null and ${table.sharedDocumentCount} = 0
-        and ${table.sharingAttestedByUserId} is null and ${table.sharingAttestedAt} is null
-        and ${table.followUpAt} is null and ${table.decidedAt} is null)`
+      sql`${t.direction} <> 'inbound' or (${t.recoveryAuthorityId} is null and ${t.representationAuthorityId} is null
+        and ${t.sharingAuthorityId} is null and ${t.sharedDocumentCount} = 0
+        and ${t.sharingAttestedByUserId} is null and ${t.sharingAttestedAt} is null
+        and ${t.followUpAt} is null and ${t.decidedAt} is null)`
     ),
     pgPolicy('claim_correspondence_tenant_policy', {
       for: 'all',
-      using: sql`${table.tenantId} = (select current_setting('app.current_tenant_id', true))::text
-        and ${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text`,
-      withCheck: sql`${table.tenantId} = (select current_setting('app.current_tenant_id', true))::text
-        and ${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text
-        and exists (select 1 from "claim" c where c.id = ${table.claimId} and c.tenant_id = ${table.tenantId})`,
+      using: sql`${t.tenantId} = (select current_setting('app.current_tenant_id', true))::text
+        and ${t.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text`,
+      withCheck: sql`${t.tenantId} = (select current_setting('app.current_tenant_id', true))::text
+        and ${t.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text
+        and exists (select 1 from "claim" c where c.id = ${t.claimId} and c.tenant_id = ${t.tenantId})`,
     }),
   ]
 ).enableRLS();
@@ -255,29 +250,25 @@ export const claimCorrespondenceDocuments = pgTable(
     documentFilePath: text('document_file_path').notNull(),
     createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).notNull().defaultNow(),
   },
-  table => [
-    index('claim_correspondence_documents_entry_idx').on(
-      table.tenantId,
-      table.claimId,
-      table.correspondenceId
-    ),
+  t => [
+    index('claim_correspondence_documents_entry_idx').on(t.tenantId, t.claimId, t.correspondenceId),
     index('claim_correspondence_documents_document_idx').on(
-      table.tenantId,
-      table.claimId,
-      table.claimDocumentId
+      t.tenantId,
+      t.claimId,
+      t.claimDocumentId
     ),
     uniqueIndex('claim_correspondence_documents_entry_uq').on(
-      table.correspondenceId,
-      table.claimDocumentId
+      t.correspondenceId,
+      t.claimDocumentId
     ),
     foreignKey({
       name: 'claim_correspondence_documents_claim_fk',
-      columns: [table.tenantId, table.claimId],
+      columns: [t.tenantId, t.claimId],
       foreignColumns: [claims.tenantId, claims.id],
     }),
     foreignKey({
       name: 'claim_correspondence_documents_correspondence_fk',
-      columns: [table.tenantId, table.claimId, table.correspondenceId],
+      columns: [t.tenantId, t.claimId, t.correspondenceId],
       foreignColumns: [
         claimCorrespondence.tenantId,
         claimCorrespondence.claimId,
@@ -286,11 +277,11 @@ export const claimCorrespondenceDocuments = pgTable(
     }),
     pgPolicy('claim_correspondence_documents_tenant_policy', {
       for: 'all',
-      using: sql`${table.tenantId} = (select current_setting('app.current_tenant_id', true))::text
-        and ${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text`,
-      withCheck: sql`${table.tenantId} = (select current_setting('app.current_tenant_id', true))::text
-        and ${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text
-        and exists (select 1 from "claim" c where c.id = ${table.claimId} and c.tenant_id = ${table.tenantId})`,
+      using: sql`${t.tenantId} = (select current_setting('app.current_tenant_id', true))::text
+        and ${t.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text`,
+      withCheck: sql`${t.tenantId} = (select current_setting('app.current_tenant_id', true))::text
+        and ${t.tenantId} = (select current_setting('app.current_access_tenant_id', true))::text
+        and exists (select 1 from "claim" c where c.id = ${t.claimId} and c.tenant_id = ${t.tenantId})`,
     }),
   ]
 ).enableRLS();

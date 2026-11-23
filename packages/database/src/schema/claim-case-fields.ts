@@ -1,6 +1,15 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, pgPolicy, pgTable } from 'drizzle-orm/pg-core';
-import { text, timestamp, uniqueIndex, varchar } from 'drizzle-orm/pg-core';
+import {
+  check,
+  foreignKey,
+  index,
+  pgPolicy,
+  pgTable,
+  text,
+  timestamp,
+  uniqueIndex,
+  varchar,
+} from 'drizzle-orm/pg-core';
 import { user } from './auth';
 import { claims } from './claim-core';
 import { tenants } from './tenants';
