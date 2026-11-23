@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
 import { commit, git, tmp, writeFile } from './db-access-required-git.mjs';
+import { KERNEL_ANCHOR } from './tenant-guard/manifest.mjs';
 import { TRUSTED } from './tenant-guard/trusted.mjs';
 import {
   adminRead,
@@ -12,6 +13,7 @@ import {
   fixture,
   fixtureOrigin,
   openPullRequest,
+  reportIdentity,
   route,
   skip,
   sourceVariant,
@@ -29,9 +31,11 @@ test(
     );
     const source = sourceVariant({
       'scripts/ci/tenant-guard.mjs': [
+        ...reportIdentity,
         `const trusted = { commit: '${TRUSTED.commit}', tree: '${TRUSTED.tree}' };`,
         'const env = Object.fromEntries(Object.entries(process.env));',
-        'const report = { trusted, telemetry: { files: 1 }, violations: [], env, execArgv: process.execArgv };',
+        'const report = { identity, schemaAdmission, trusted, telemetry: { files: 1 },',
+        '  violations: [], env, execArgv: process.execArgv };',
         'process.stdout.write(JSON.stringify(report));',
       ],
     });
@@ -71,7 +75,11 @@ test(
 
 test('a report that does not name the pinned comparator, or is not a pass, fails', { skip }, () => {
   const report = (trusted, violations) =>
-    `process.stdout.write(${JSON.stringify(JSON.stringify({ trusted, telemetry: { files: 1 }, violations }))});\n`;
+    [
+      ...reportIdentity,
+      `const facts = ${JSON.stringify({ trusted, telemetry: { files: 1 }, violations })};`,
+      'process.stdout.write(JSON.stringify({ identity, schemaAdmission, ...facts }));',
+    ].join('\n');
   // Variants exist on origin before the workspace is cloned, as an authority branch would.
   const otherTrusted = sourceVariant({
     'scripts/ci/tenant-guard.mjs': report({ commit: fixture.main, tree: TRUSTED.tree }, []),
@@ -85,6 +93,65 @@ test('a report that does not name the pinned comparator, or is not a pass, fails
   assertFailed(route(pr, { source: crashed }), /protected report is not a passing scan/u);
   assertFailed(route(pr, { source: nonzero }), /approved guard [0-9a-f]{40} exited 1/u);
 });
+
+test(
+  'a passing v1 report or a passing v2 report for the wrong objects cannot authorize the merge',
+  { skip },
+  () => {
+    const body =
+      'process.stdout.write(JSON.stringify({ identity, schemaAdmission, ' +
+      `trusted: ${JSON.stringify(TRUSTED)}, telemetry: { files: 1 }, violations: [] }));`;
+    const variants = [
+      sourceVariant({
+        'scripts/ci/tenant-guard.mjs': body.replace('identity, schemaAdmission, ', ''),
+      }),
+      ...['merge', 'base', 'anchor'].map(role =>
+        sourceVariant({
+          'scripts/ci/tenant-guard.mjs': [
+            ...reportIdentity,
+            `identity.${role}.tree = '0'.repeat(40);`,
+            body,
+          ],
+        })
+      ),
+    ];
+    const pr = openPullRequest();
+    for (const source of variants)
+      assertFailed(route(pr, { source }), /protected report is not a passing scan/u);
+  }
+);
+
+test('a mismatched anchor tree fails before approved guard execution', { skip }, () => {
+  const result = route(openPullRequest(), { anchorTree: '0'.repeat(40) });
+  assertFailed(result, /kernel anchor tree mismatch/u);
+  assert.equal(result.report, null);
+});
+
+test(
+  'correct identities and zero violations cannot authorize a refused schema admission',
+  { skip },
+  () => {
+    const source = sourceVariant({
+      'scripts/ci/tenant-guard.mjs': [
+        ...reportIdentity,
+        'schemaAdmission.ok = false;',
+        'process.stdout.write(JSON.stringify({ identity, schemaAdmission, ' +
+          `trusted: ${JSON.stringify(TRUSTED)}, telemetry: { files: 1 }, violations: [] }));`,
+      ],
+    });
+    const pr = openPullRequest();
+    const result = route(pr, { source });
+    assert.deepEqual(result.report.identity, {
+      merge: { commit: pr.merge, tree: git(pr.ws, 'rev-parse', `${pr.merge}^{tree}`) },
+      base: { commit: pr.base, tree: git(pr.ws, 'rev-parse', `${pr.base}^{tree}`) },
+      anchor: KERNEL_ANCHOR,
+    });
+    assert.deepEqual(result.report.trusted, TRUSTED);
+    assert.deepEqual(result.report.violations, []);
+    assert.deepEqual(result.report.schemaAdmission, { version: 2, ok: false });
+    assertFailed(result, /protected report is not a passing scan/u);
+  }
+);
 
 test(
   'compiler bytes must match the approved lock; a substituted archive fails before any guard code',

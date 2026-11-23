@@ -11,6 +11,7 @@ import {
   memberUse,
   parseSource,
   referenceForm,
+  topLevelDeclarations,
 } from './syntax.mjs';
 
 /** Installs the trusted-tree comparison and legacy-closure analyses on `ctx`. */
@@ -124,45 +125,21 @@ export function installTrust(ctx) {
   // entry unpinnable. A null pin map (fixture setup only) computes digests without enforcing them.
   const legacyDigests = new Map();
   const legacyClosureProblems = new Map();
-  function legacyDigest(key) {
+  function legacyDigest(key, { diagnostic = false } = {}) {
     if (legacyDigests.has(key)) return legacyDigests.get(key);
-    const start = key.slice(0, key.lastIndexOf('#'));
-    const walk = { lines: [`entry=${key}`], problems: [], seen: new Set([start]), queue: [start] };
-    while (walk.queue.length > 0) visitClosureModule(walk, walk.queue.shift());
-    const { lines, problems, seen } = walk;
-    for (const file of seen) ctx.pinnedModules.add(file);
-    for (const problem of problems) lines.push(`problem:${problem}`);
-    const digest = sha256([...new Set(lines)].sort(byCodeUnit).join('\n'));
+    const { digest, problems, seen } = kernelWalk(graph, key);
+    if (!diagnostic) for (const file of seen) ctx.pinnedModules.add(file);
     legacyDigests.set(key, digest);
-    legacyClosureProblems.set(key, [...new Set(problems)]);
+    legacyClosureProblems.set(key, problems);
     return digest;
   }
-  function visitClosureModule(walk, file) {
-    const fact = factsOf(file);
-    if (!fact) {
-      walk.problems.push(`${file}: missing module`);
-      return;
-    }
-    // Exact bytes: a finite reviewed kernel module is bound as written, layout included.
-    walk.lines.push(`module:${file}=${sha256(fact.sourceFile.text)}`);
-    const { edges, problems: edgeProblems } = moduleEdges(file, fact.sourceFile);
-    walk.problems.push(...edgeProblems);
-    for (const specifier of edges) {
-      const resolved = graph.resolveSpecifier(file, specifier);
-      if (resolved.external) walk.lines.push(`external:${resolved.external}`);
-      else if (resolved.unresolved) walk.problems.push(`${file}: unresolved import ${specifier}`);
-      for (const target of resolved.files) {
-        if (walk.seen.has(target)) continue;
-        walk.seen.add(target);
-        walk.queue.push(target);
-      }
-    }
+  function legacyPinned(key) {
+    if (legacyPins === null) return true;
+    const exact = legacyDigest(key);
+    if (legacyClosureProblems.get(key).length) return false;
+    if (ctx.schemaAdmission) return ctx.schemaAdmission.ok && LEGACY.has(key);
+    return [legacyPins.get(key) ?? []].flat().includes(exact);
   }
-  // A pin is one reviewed digest or a frozen list of them (a reviewed kernel transition).
-  const legacyPinned = key =>
-    legacyPins === null ||
-    ([legacyPins.get(key) ?? []].flat().includes(legacyDigest(key)) &&
-      legacyClosureProblems.get(key).length === 0);
 
   // ---- closure-unchanged: a workspace declaration and everything it references -------------
   const closureMemo = new Map();
@@ -210,50 +187,53 @@ export function installTrust(ctx) {
   });
 }
 
-// Top-level declarations by name, so an origin { file, name } maps to its unit.
-// `statements` maps each name to its whole top-level statement, which is what a closure
-// comparison binds (a wrapper and its arguments included).
-function topLevelDeclarations(sourceFile) {
-  const declarations = new Map();
-  const statements = new Map();
-  for (const statement of sourceFile.statements) {
-    if (
-      (ts.isFunctionDeclaration(statement) || ts.isClassDeclaration(statement)) &&
-      statement.name
-    ) {
-      declarations.set(statement.name.text, statement);
-      statements.set(statement.name.text, statement);
-    } else if (ts.isVariableStatement(statement)) {
-      indexVariableStatement(statement, declarations, statements);
+/** Unfiltered legacy walk, with v2 records for every resolved edge in source order. */
+export function kernelWalk(graph, key) {
+  const start = key.slice(0, key.lastIndexOf('#'));
+  const lines = [`entry=${key}`];
+  const problems = [];
+  const seen = new Set([start]);
+  const queue = [start];
+  const resolutions = new Map();
+  while (queue.length > 0) {
+    const file = queue.shift();
+    const source = graph.sourceFileOf(file);
+    if (!source) {
+      problems.push(`${file}: missing module`);
+      continue;
+    }
+    lines.push(`module:${file}=${sha256(source.text)}`);
+    const resolvedEdges = resolveKernelEdges(graph, file, source, lines, problems);
+    resolutions.set(file, resolvedEdges);
+    for (const [, targets] of resolvedEdges) {
+      for (const target of targets) {
+        if (seen.has(target)) continue;
+        seen.add(target);
+        queue.push(target);
+      }
     }
   }
-  return { declarations, statements };
+  for (const problem of problems) lines.push(`problem:${problem}`);
+  const records = [...new Set(lines)].sort(byCodeUnit);
+  const anchorRecords = [...resolutions].sort(([left], [right]) => byCodeUnit(left, right));
+  return {
+    digest: sha256(records.join('\n')),
+    versioned: `v2:${sha256(JSON.stringify([2, records, anchorRecords]))}`,
+    problems: [...new Set(problems)],
+    seen,
+    resolutions,
+  };
 }
 
-function indexVariableStatement(statement, declarations, statements) {
-  for (const declaration of statement.declarationList.declarations) {
-    if (!ts.isIdentifier(declaration.name)) continue;
-    statements.set(declaration.name.text, statement);
-    declarations.set(declaration.name.text, declaredUnit(statement, declaration));
-  }
-}
-
-function declaredUnit(statement, declaration) {
-  let initializer = declaration.initializer;
-  // `const f = cache(async (...) => ...)`: an argument-forwarding wrapper around one function
-  // declares f as that function, so its callers stay resolvable.
-  if (
-    initializer &&
-    ts.isCallExpression(initializer) &&
-    initializer.arguments.length === 1 &&
-    (ts.isArrowFunction(initializer.arguments[0]) ||
-      ts.isFunctionExpression(initializer.arguments[0]))
-  ) {
-    initializer = initializer.arguments[0];
-  }
-  return initializer && (ts.isArrowFunction(initializer) || ts.isFunctionExpression(initializer))
-    ? initializer
-    : statement;
+function resolveKernelEdges(graph, file, source, lines, problems) {
+  const { edges, problems: edgeProblems } = moduleEdges(file, source);
+  problems.push(...edgeProblems);
+  return edges.map(specifier => {
+    const { files, external, unresolved } = graph.resolveSpecifier(file, specifier);
+    if (external) lines.push(`external:${external}`);
+    else if (unresolved) problems.push(`${file}: unresolved import ${specifier}`);
+    return [specifier, files, external, unresolved];
+  });
 }
 
 function moduleEdges(file, sourceFile) {
