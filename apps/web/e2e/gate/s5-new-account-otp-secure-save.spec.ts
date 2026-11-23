@@ -9,13 +9,14 @@ import {
   session as authSession,
   user,
 } from '@interdomestik/database';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { routes } from '../routes';
 import { openDeviceDetails, openSaveArea } from './public-save-options.fixture';
 import { gotoApp } from '../utils/navigation';
 import { S3_JOURNEY_INCIDENT_DATE } from './member-staff-evidence-journey-cleanup.fixture';
 import { proveAbsentOtpRefusal } from './s5-absent-account-otp.fixture';
+import { createOtpJourneyBrowser } from './s5-new-account-otp-browser.fixture';
 import { cleanupOtpJourney, redactOtpFailure } from './s5-new-account-otp-cleanup.fixture';
 import {
   OtpMail,
@@ -58,9 +59,6 @@ test.describe('S5 door OTP secure save', () => {
     const counterparty = `S5 Insurer ${runId}`;
     const seen = new Set<string>();
     const mails: OtpMail[] = [];
-    const pages: Page[] = [];
-    const browserAuthOrigins: string[] = [];
-    const browserAuthHeaderReads: Promise<void>[] = [];
     let failure: unknown;
     const userRow = (address = email) =>
       db.query.user.findFirst({ where: eq(user.email, address) });
@@ -70,26 +68,11 @@ test.describe('S5 door OTP secure save', () => {
         ? db.query.freeStartDrafts.findMany({ where: eq(freeStartDrafts.ownerUserId, owner.id) })
         : [];
     };
-    const open = async () => {
-      const context = await browser.newContext({
-        baseURL: info.project.use.baseURL,
-        extraHTTPHeaders: client(pages.length),
-        storageState: { cookies: [], origins: [] },
-      });
-      context.on('request', request => {
-        const url = new URL(request.url());
-        if (request.method() === 'POST' && url.pathname.startsWith('/api/auth/')) {
-          browserAuthHeaderReads.push(
-            request.allHeaders().then(headers => {
-              browserAuthOrigins.push(headers.origin ?? '');
-            })
-          );
-        }
-      });
-      const page = await context.newPage();
-      pages.push(page);
-      return page;
-    };
+    const { open, pages, browserAuthOrigins, browserAuthHeaderReads } = createOtpJourneyBrowser(
+      browser,
+      info.project.use.baseURL,
+      client
+    );
     const requestCode = (flow: Locator, openTestId?: string, address = email) =>
       requestOtpCode({ flow, email: address, seen, mails, openTestId });
     try {

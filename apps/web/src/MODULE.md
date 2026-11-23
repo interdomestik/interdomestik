@@ -6,6 +6,8 @@ Module contract, adopted from the review of 2026-11-13 (run A). Paths that begin
 
 The HTTP and RSC surface of the product: route handlers under `app/api/`, exported `'use server'` actions, and the wrapper that is supposed to put authentication, tenancy and a uniform result in front of every action.
 
+The Free Start draft lifecycle delegates write admission to its internal `actions/free-start-drafts/write-admission.core.ts` module.
+
 ## Public API
 
 Password sign-up and unknown-address door OTP send require `pilot/public_intake` for the ingress tenant. Better Auth disables public sign-up unless `IDENTITY_PUBLIC_SIGN_UP` is exactly `open`. Door OTP checks the request host and forwarded host, then requires exact door ingress and an explicit default tenant before applying the IP limit or parsing the body. The OTP host check accepts `staging.interdomestik.com` without a port only in the staging release class. Known accounts must belong to the door tenant and still have pending tenant classification. Door verify also requires a verified email and returns `INVALID_OTP` for an absent account before calling Better Auth, regardless of the intake phase. Tenant classification confirmation returns `EMAIL_NOT_PROVEN` until the account holder has proven their email.
