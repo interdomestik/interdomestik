@@ -8,7 +8,7 @@ E = enforced by the named check (`*`: not live yet; follow it); E~ = in part. A 
 
 - R-29 Work comes only from the ordered packages of `DIRECTION.md` or the owner's explicit request; ledgers are history. No standing approval unless stated here. No refactor of routing, auth, tenancy, domain boundaries, schema or billing that neither asked for. A.
 - R-01 Claude Code implements and owns integration. Codex reviews independently (`gpt-6.2-sol`, `xhigh`); the lead (definition, routing, merging: `RULES.md`, R-01) may give it a bounded part with disjoint files in its own worktree, which Claude then reviews. No model approves its own work. A change merges only with the other model's verdict on the exact head (skips: R-02) and no open finding; the record names head, model served and tier. The owner releases. E: CHK-01*.
-- A review is read-only: findings first, by severity, with file and line: `blocker`, `hardening` (fix, or defer with a reason, before merge), `optional`, `rejected` (with evidence). A doubt or a blocked reviewer is no approval: for T1–T3 the lead names another; HIGH work waits or goes to the owner. No paid API as fallback.
+- A review is read-only: findings first, by severity, with file and line: `blocker`, `hardening` (fix, or defer with a reason, before merge), `optional`, `rejected` (with evidence). A doubt or a blocked reviewer is no approval: for T1–T3 the lead names another; HIGH work waits, goes to the owner or to R-02's stand-in. No paid API as fallback.
 - R-02 Astra (high effort or above; bar, skips: `RULES.md`, R-02) only for: each HIGH round (T4–T6), fixes too, YES on the exact head before push; a concrete unresolved security, gate, concurrency, data-loss or architecture ambiguity. E~: CHK-01*.
 - R-03 Rules live only here and in the passages they name. No active instruction file may require or auto-trigger a retired program, runner or command, state another routing than R-01, or repeat a fact the repository holds. E: CHK-02*, HOOK-05*.
 
@@ -34,7 +34,7 @@ Name the tier from the whole diff (deletions, renames). Several tiers: the highe
 
 Done = required checks green + Sonar: no new issue + the R-01 review on the final head, confirming the tier + local verification + the tier's line. Say which state a change is in (prepared, tested, merged, deployed, validated by a user) and never report as passed what failed or did not run. E~: CHK-03*.
 
-Local verification: T4–T6 run, on the macOS machine (marker, pre-check rule, narrowing, Mac use, instruction-only, flake, carry-over: `RULES.md`, R-04), configuration recorded, `pnpm pr:verify` and `pnpm security:guard` once, last, on the final head, after green hosted checks and the review's yes. T1–T4 skip it only if all required checks and the unit, static, audit, RLS, PR E2E and Pilot Gate jobs ran green on that head and current base, identities recorded, nothing flaky, retried or skipped unapproved, no coverage gap; else T4: it runs.
+Local verification: T4–T6 run, on the macOS machine (marker, pre-check rule, narrowing, Mac use, instruction-only, flake, carry-over: `RULES.md`, R-04), configuration recorded, `pnpm pr:verify` and `pnpm security:guard` once, last, on the final head, after the review's yes. T1–T4 skip it only if all required checks and the unit, static, audit, RLS, PR E2E and Pilot Gate jobs ran green on that head and current base, identities recorded, nothing flaky, retried or skipped unapproved, no coverage gap; else T4: it runs.
 
 ## 4. Server code and data
 
