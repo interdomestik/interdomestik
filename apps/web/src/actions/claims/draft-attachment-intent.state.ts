@@ -19,8 +19,8 @@ export const db = {
   /** When set, consumed by the next document read instead of the stored rows. */
   nextReads: [] as DocumentRow[][],
   updatedClaims: 0,
-  /** Row-lock strengths the command asked for on its document reads. */
-  rowLocks: [] as string[],
+  /** Row locks the command asked for on its document reads, and the transaction they ran in. */
+  rowLocks: [] as { strength: string; txId: number }[],
   /** The transaction that updated the claim, once one did. */
   writeTxId: 0,
   txSequence: 0,
@@ -58,7 +58,7 @@ export async function withTenantAuthorityDouble(
           const rows = Promise.resolve(nextRows());
           return Object.assign(rows, {
             for: (strength: string) => {
-              db.rowLocks.push(strength);
+              db.rowLocks.push({ strength, txId: tx.id });
               return rows;
             },
           });

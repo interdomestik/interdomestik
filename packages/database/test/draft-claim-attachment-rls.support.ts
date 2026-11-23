@@ -24,7 +24,8 @@ export const INVALID_PATH_REFUSAL = {
 };
 
 export type Session = { user: { id: string; role: string; tenantId: string } };
-export type Validator = () => Promise<void>;
+/** The domain's `validateSubmittedClaimFile` dependency, as the proof stubs it. */
+export type Validator = (args: { file: { path: string } }) => Promise<void>;
 type DraftModule = typeof import('../../domain-claims/src/claims/draft');
 
 export function rowId(): string {
@@ -72,6 +73,10 @@ export function recordingTransaction(conn: postgres.TransactionSql) {
     },
   };
   return { lockedIds, tx: tx as never };
+}
+
+export function sortedPaths(paths: readonly string[]): string[] {
+  return [...paths].sort((a, b) => a.localeCompare(b));
 }
 
 export function session(id: string, tenantId = KS, role = 'member'): Session {

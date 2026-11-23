@@ -65,7 +65,8 @@ describe('updateDraftClaim attachments — accepted', () => {
         txId: db.writeTxId,
       },
     ]);
-    expect(db.rowLocks).toEqual(['share']);
+    // Taken in the transaction that writes the draft, so held until it commits.
+    expect(db.rowLocks).toEqual([{ strength: 'share', txId: db.writeTxId }]);
     expect(db.inserted).toHaveLength(0);
   });
 
@@ -87,9 +88,14 @@ describe('updateDraftClaim attachments — accepted', () => {
     actAsOwnerWithRole('auditor');
     await expect(update([])).resolves.toEqual({ success: true });
 
-    const file = withoutToken(initialFile());
+    // A signed re-send of a file already on the draft reaches the role check and stops there.
+    const file = initialFile();
     db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }];
-    await expect(update([file])).resolves.toMatchObject({ success: false, code: 'INVALID_PATH' });
+    await expect(update([file])).resolves.toEqual({
+      success: false,
+      error: 'evidence_upload_forbidden',
+      code: 'INVALID_PATH',
+    });
     expect(db.updatedClaims).toBe(1);
     expect(db.inserted).toHaveLength(0);
   });

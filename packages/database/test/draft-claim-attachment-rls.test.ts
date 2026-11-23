@@ -18,6 +18,7 @@ import {
   recordingTransaction as recording,
   rowId,
   seedDraftFixtures,
+  sortedPaths,
   session,
   TITLE,
   type Validator,
@@ -103,9 +104,9 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
       ]
     );
     // A re-send is verified like a new file; once verified it is not inserted again.
-    const verified: string[] = [];
-    const recordingValidator: Validator = () => {
-      verified.push(fileX.path);
+    let verified: string[] = [];
+    const recordingValidator: Validator = ({ file }) => {
+      verified.push(file.path);
       return Promise.resolve();
     };
     assert.deepEqual(await h.update(session(member), draftA, [fileX], recordingValidator), {
@@ -116,11 +117,13 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
 
     // An existing file re-sent with a new one: both verified, only the new one inserted.
     const fileX2 = evidence(initialPath(KS, member, 'x2'), 'x2');
-    assert.deepEqual(await h.update(session(member), draftA, [fileX, fileX2]), { success: true });
-    assert.deepEqual(
-      (await h.rowsOf(draftA)).map(row => row.file_path).sort((p1, p2) => p1.localeCompare(p2)),
-      [fileX.path, fileX2.path].sort((p1, p2) => p1.localeCompare(p2))
-    );
+    verified = [];
+    assert.deepEqual(await h.update(session(member), draftA, [fileX, fileX2], recordingValidator), {
+      success: true,
+    });
+    const both = sortedPaths([fileX.path, fileX2.path]);
+    assert.deepEqual(sortedPaths(verified), both, 'each file is verified exactly once');
+    assert.deepEqual(sortedPaths((await h.rowsOf(draftA)).map(row => row.file_path)), both);
 
     // The re-read row-locks what it finds until commit: a row the decision rests on can be
     // neither deleted nor moved by another connection meanwhile.
