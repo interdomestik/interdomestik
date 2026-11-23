@@ -28,6 +28,11 @@
       "lines": ["9b99c2530367b4ec24687da2daebfe7a5f8635a7bc3c471501002e3ea0c2d974"]
     },
     {
+      "path": "scripts/ci/tenant-guard/schema-builder-provenance.mjs",
+      "reason": "Names the drizzle-kit lockfile artifact whose version and integrity the tenant guard pins; runs nothing.",
+      "lines": ["26a0a4c1f8dbf75d82a6daa52bbd9cc6cbcbdf0bc89039d966aebe8527dc4074"]
+    },
+    {
       "path": "scripts/database-command.mjs",
       "reason": "The one push-local invocation (supabase db push --local); the whole file is pinned too.",
       "lines": ["83c78925065b78dcb1d71dd540721c7c101521edf5feafeaf2fd90eab6b38d45"]
