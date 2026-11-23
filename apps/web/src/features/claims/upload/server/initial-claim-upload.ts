@@ -118,6 +118,9 @@ export function verifyInitialClaimUploadIntentToken(params: {
 
   if (
     payload.v !== 1 ||
+    // Claim-bound intents share the secret and the version: one carrying a claim is never an
+    // initial intent, whatever path it names.
+    'claimId' in payload ||
     payload.expiresAt < Date.now() ||
     payload.actorId !== expected.actorId ||
     payload.bucket !== expected.bucket ||
