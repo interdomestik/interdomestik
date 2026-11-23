@@ -27,7 +27,11 @@ test('docs-only closeout merges skip main-push CI without weakening PR checks', 
   assert.equal(checkout.if, undefined);
   assert.match(checkout.uses, /^actions\/checkout@[0-9a-f]{40}$/u);
   assert.equal(setup.if, undefined);
-  assert.match(governanceAudit.run, /pnpm track:audit && pnpm plan:audit/u);
+  // Each audit on its own line, never chained with `&&` (behaviour: governance-audit-step.test.mjs).
+  for (const audit of ['track:audit', 'plan:audit', 'repo:size:check']) {
+    assert.match(governanceAudit.run, new RegExp(`^pnpm ${audit} \\|\\| failed=`, 'mu'));
+  }
+  assert.doesNotMatch(governanceAudit.run, /pnpm track:audit &&/u);
   assert.match(governanceAudit.run, /pnpm test:delivery-safety/u);
   assert.match(governanceAudit.run, /pnpm legacy:validate/u);
   assert.match(governanceAudit.run, /if \[\[ "\$RUN_BROAD" != "true" \]\]/u);
