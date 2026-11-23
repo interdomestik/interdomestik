@@ -2,7 +2,8 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { commit, git, tmp, writeFile } from './db-access-required-git.mjs';
+import { git, tmp, writeFile } from './db-access-required-git.mjs';
+import { KERNEL_ANCHOR, LEGACY_PINS } from './tenant-guard/manifest.mjs';
 import { TRUSTED } from './tenant-guard/trusted.mjs';
 import {
   adminRead,
@@ -30,8 +31,62 @@ test(
     assert.match(result.stdout, new RegExp(`trusted=${TRUSTED.commit} tree=${TRUSTED.tree}`, 'u'));
     assert.match(result.stdout, /Protected tenant guard S2 passed .*files=\d+ .*violations=0/u);
     assert.deepEqual(result.report.trusted, TRUSTED);
+    assert.deepEqual(result.report.identity, {
+      merge: { commit: pr.merge, tree: git(pr.ws, 'rev-parse', `${pr.merge}^{tree}`) },
+      base: { commit: pr.base, tree: git(pr.ws, 'rev-parse', `${pr.base}^{tree}`) },
+      anchor: KERNEL_ANCHOR,
+    });
+    assert.equal(result.report.schemaAdmission.version, 2);
+    assert.equal(result.report.schemaAdmission.ok, true);
+    assert.match(
+      result.stdout,
+      new RegExp(`anchor=${KERNEL_ANCHOR.commit} tree=${KERNEL_ANCHOR.tree}`, 'u')
+    );
     // Nothing is written into the candidate workspace.
     assert.equal(git(pr.ws, 'status', '--porcelain=v1', '--untracked-files=all'), '');
+  }
+);
+
+function appendFixtureTable(repo) {
+  const schema = 'packages/database/src/schema';
+  writeFile(repo, `${schema}/s2-admission-fixture.ts`, [
+    "import { pgTable, text } from 'drizzle-orm/pg-core';",
+    "export const s2AdmissionFixture = pgTable('s2_admission_fixture', " +
+      "{ id: text('id').primaryKey() }).enableRLS();",
+  ]);
+  fs.appendFileSync(
+    path.join(repo, `${schema}/index.ts`),
+    "export * from './s2-admission-fixture';\n"
+  );
+}
+
+test('a changed outside-root loader blocks a table append', { skip }, () => {
+  const file = 'scripts/pilot/import-pilot-database.ts';
+  const result = route(openPullRequest(repo => {
+    appendFixtureTable(repo);
+    fs.appendFileSync(path.join(repo, file), ' ');
+  }));
+  assertFailed(result, /protected report is not a passing scan/u);
+  assert.deepEqual(result.report.schemaAdmission, {
+    version: 2,
+    ok: false,
+    reason: `candidate: schema forward outside scan roots ${file}`,
+  });
+});
+
+test(
+  'an exact synthetic merge admits a new table with the historical consumers',
+  { skip },
+  () => {
+    const pr = openPullRequest(appendFixtureTable);
+    const result = route(pr);
+    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+    assert.deepEqual(result.report.identity.anchor, KERNEL_ANCHOR);
+    assert.equal(result.report.identity.base.commit, pr.base);
+    assert.equal(result.report.identity.merge.commit, pr.merge);
+    assert.deepEqual(result.report.legacyDigests, Object.fromEntries(LEGACY_PINS));
+    assert.notDeepEqual(result.report.legacyExactDigests, result.report.legacyDigests);
+    assert.deepEqual(result.report.violations, []);
   }
 );
 

@@ -116,7 +116,9 @@ it('requires an explicit exact-upload review confirmation and preserves retry on
   await waitFor(() =>
     expect(screen.getByTestId('information-request-status')).toHaveTextContent('Fulfilled')
   );
-  expect(screen.getByTestId('information-request-status')).toHaveFocus();
+  // Focus moves in a passive effect, so the fulfilled status can appear in the DOM
+  // before that effect runs.
+  await waitFor(() => expect(screen.getByTestId('information-request-status')).toHaveFocus());
   expect(screen.getByRole('status')).toHaveTextContent('Request marked fulfilled');
   expect(mocks.fulfil).toHaveBeenCalledTimes(2);
   expect(mocks.fulfil).toHaveBeenCalledWith({
