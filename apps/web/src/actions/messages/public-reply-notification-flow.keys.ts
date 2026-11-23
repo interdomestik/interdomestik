@@ -33,7 +33,8 @@ export const UNIQUE_KEYS: Record<string, readonly UniqueKey[]> = {
     key('referralCode', 'referralCode'),
     key('user_tenant_id_id_uq', 'tenantId', 'id'),
     expression('user_email_lower_unique', row => [
-      typeof row.email === 'string' ? row.email.trim().toLowerCase() : row.email,
+      // lower(btrim(email)): btrim without characters strips spaces only, not tabs or newlines.
+      typeof row.email === 'string' ? row.email.replace(/^ +| +$/g, '').toLowerCase() : row.email,
     ]),
   ],
   agentClients: [

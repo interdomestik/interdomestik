@@ -8,11 +8,31 @@ import {
 } from './public-reply-notification-flow.fixture';
 
 const scope = { tenantId: ids.tenant };
-const inbox = (id: string) => ({ id, tenantId: ids.tenant, userId: ids.staff });
+// Complete rows: every NOT NULL column without a default is set, against the seeded claim and users.
+const inbox = (id: string) => ({
+  id,
+  tenantId: ids.tenant,
+  userId: ids.staff,
+  type: 'staff_member_message',
+  title: '—',
+  content: 'other',
+});
 const delivery = (id: string, idempotencyKey: string) => ({
   id,
   tenantId: ids.tenant,
   idempotencyKey,
+  kind: 'staff_member_message',
+  channel: 'email',
+  recipientUserId: ids.staff,
+  claimId: ids.claim,
+  facts: {},
+});
+const message = (id: string) => ({
+  id,
+  tenantId: ids.tenant,
+  claimId: ids.claim,
+  senderId: ids.member,
+  content: 'Synthetic public reply',
 });
 
 describe('reply-flow fixture insert model', () => {
@@ -99,6 +119,7 @@ describe('reply-flow fixture insert model', () => {
       claimId: ids.claim,
       kind,
       sourceMessageId,
+      requestedAt: new Date('2026-10-15T00:00:00Z'),
     });
     const insert = (row: ReturnType<typeof request>) =>
       withTenantContext(scope, tx => tx.insert(tables.claimResponseRequests).values(row));
@@ -134,7 +155,9 @@ describe('reply-flow fixture insert model', () => {
   });
 
   it('refuses a target column the fixture catalogue lacks instead of treating it as no target', async () => {
-    const unknown = { field: undefined } as unknown as (typeof tables.notifications)[string];
+    // A property the catalogue does not have, exactly as a caller would reach it.
+    const unknown = (tables.notifications as Record<string, (typeof tables.notifications)[string]>)
+      .absentColumn;
     await expect(
       withTenantContext(scope, tx =>
         tx.insert(tables.notifications).values(inbox('n1')).onConflictDoNothing({ target: unknown })
@@ -144,15 +167,15 @@ describe('reply-flow fixture insert model', () => {
   });
 
   it.each([
-    ['notificationDeliveries', ['tenantId', 'id'], { idempotencyKey: 'key-1' }],
-    ['claimMessages', ['tenantId', 'claimId', 'id'], { claimId: ids.claim }],
-  ] as const)('accepts the composite unique key of %s as a target', async (name, fields, extra) => {
+    ['notificationDeliveries', ['tenantId', 'id'], delivery('x1', 'key-1')],
+    ['claimMessages', ['tenantId', 'claimId', 'id'], message('x1')],
+  ] as const)('accepts the composite unique key of %s as a target', async (name, fields, row) => {
     const table = tables[name];
     const insert = () =>
       withTenantContext(scope, tx =>
         tx
           .insert(table)
-          .values({ id: 'x1', tenantId: ids.tenant, ...extra })
+          .values(row)
           .onConflictDoNothing({ target: fields.map(field => table[field]) })
           .returning()
       );
