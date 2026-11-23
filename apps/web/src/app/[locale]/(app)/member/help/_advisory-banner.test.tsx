@@ -1,8 +1,9 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  admit: vi.fn(),
   dateTime: vi.fn(() => 'May 4, 2026, 10:30 AM'),
   getMemberActiveHandoffAdvisory: vi.fn(),
 }));
@@ -43,7 +44,26 @@ import { AdvisoryBanner } from './_advisory-banner';
 
 const authority = mintTestTenantAuthority('tenant-1');
 
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: mocks.admit,
+}));
+
 describe('AdvisoryBanner', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.admit.mockResolvedValue({
+      ok: true,
+      authorized: { authority, session: { user: { id: 'member-1' } } },
+    });
+  });
+
+  it('returns no banner and creates no read when admission is refused', async () => {
+    mocks.admit.mockResolvedValueOnce({ ok: false, failure: { code: 'acceptance_required' } });
+    await expect(AdvisoryBanner({ selectedClaim: null })).resolves.toBeNull();
+    expect(mocks.admit).toHaveBeenCalledOnce();
+    expect(mocks.getMemberActiveHandoffAdvisory).not.toHaveBeenCalled();
+  });
+
   it('renders the same-claim advisory with localized timestamp metadata', async () => {
     mocks.getMemberActiveHandoffAdvisory.mockResolvedValueOnce({
       activeCount: 2,
@@ -61,9 +81,7 @@ describe('AdvisoryBanner', () => {
 
     render(
       await AdvisoryBanner({
-        memberId: 'member-1',
         selectedClaim: { id: 'claim-1' },
-        authority,
       })
     );
 
@@ -93,9 +111,7 @@ describe('AdvisoryBanner', () => {
 
     render(
       await AdvisoryBanner({
-        memberId: 'member-1',
         selectedClaim: null,
-        authority,
       })
     );
 
@@ -117,9 +133,7 @@ describe('AdvisoryBanner', () => {
     });
 
     const ui = await AdvisoryBanner({
-      memberId: 'member-1',
       selectedClaim: null,
-      authority,
     });
 
     expect(ui).toBeNull();
@@ -130,9 +144,7 @@ describe('AdvisoryBanner', () => {
     mocks.getMemberActiveHandoffAdvisory.mockRejectedValueOnce(new Error('database unavailable'));
 
     const ui = await AdvisoryBanner({
-      memberId: 'member-1',
       selectedClaim: null,
-      authority,
     });
 
     expect(ui).toBeNull();

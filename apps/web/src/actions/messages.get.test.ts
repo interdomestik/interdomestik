@@ -1,6 +1,7 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import './messages.test.base';
-import { mocks, mockSelectChain, resetMocks, SUBMITTED } from './messages.test.base';
+import './messages.test-support';
+import { mocks, mockSelectChain, resetMocks, SUBMITTED } from './messages.test-support';
 
 let getMessagesForClaim: typeof import('./messages').getMessagesForClaim;
 
@@ -11,6 +12,18 @@ describe('getMessagesForClaim', () => {
 
   beforeEach(() => {
     resetMocks();
+  });
+
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    mocks.getSession.mockResolvedValue({
+      user: { id: 'fixture-member', role: 'member', tenantId: 'tenant_mk' },
+    });
+    await expect(getMessagesForClaim('claim-1')).resolves.toEqual({
+      success: false,
+      error: 'acceptance_required',
+    });
+    expect(mocks.dbQuery).not.toHaveBeenCalled();
   });
 
   it('should fail if user is not authenticated', async () => {
@@ -120,14 +133,13 @@ describe('getMessagesForClaim', () => {
     expect(result.messages?.[0].isInternal).toBe(false);
   });
 
-  it('should fallback to user role when user role is undefined', async () => {
+  it('refuses an undefined session role before accessing the claim', async () => {
     mocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
-    mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
-    mockSelectChain.orderBy.mockReturnValue([]);
-
-    const result = await getMessagesForClaim('claim-123');
-
-    expect(result.success).toBe(true);
+    await expect(getMessagesForClaim('claim-1')).resolves.toEqual({
+      success: false,
+      error: 'Unauthorized',
+    });
+    expect(mocks.dbQuery).not.toHaveBeenCalled();
   });
 
   it('should handle partial sender info', async () => {

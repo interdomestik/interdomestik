@@ -715,6 +715,13 @@
       "when": 1795260590663,
       "tag": "0101_wp07_exchange_rates",
       "breakpoints": true
+    },
+    {
+      "idx": 102,
+      "version": "7",
+      "when": 1795420567349,
+      "tag": "0102_wp13a_legal_acceptance",
+      "breakpoints": true
     }
   ]
 }

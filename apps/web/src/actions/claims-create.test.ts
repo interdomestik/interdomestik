@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import './claims.test-mocks';
 import { db } from '@interdomestik/database';
 import { describe, expect, it, vi } from 'vitest';
@@ -12,8 +13,23 @@ import {
 
 describe('Claim Actions', () => {
   describe('createClaim', () => {
+    it('refuses before protected work when acceptance is missing', async () => {
+      refuseAcceptance();
+      mockGetSession.mockResolvedValue({
+        user: { id: 'fixture-member', role: 'member', tenantId: 'tenant_mk' },
+      });
+      await expect(createClaim({}, retailClaimFormData())).resolves.toMatchObject({
+        success: false,
+        code: 'acceptance_required',
+      });
+      expect(mockGetActiveSubscription).not.toHaveBeenCalled();
+      expect(mockDbInsert).not.toHaveBeenCalled();
+    });
+
     it('should fail if user has no active membership', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
 
       mockGetActiveSubscription.mockResolvedValueOnce(null);
 
@@ -34,7 +50,9 @@ describe('Claim Actions', () => {
     });
 
     it('should fail with validation errors for empty data', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
       const formData = new FormData();
       const result = await createClaim({}, formData);
 
@@ -44,7 +62,9 @@ describe('Claim Actions', () => {
     });
 
     it('should create a claim successfully with valid data', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
       const formData = retailClaimFormData();
 
       await createClaim({}, formData);
@@ -61,7 +81,9 @@ describe('Claim Actions', () => {
     });
 
     it('applies tenant default branch when subscription has no branchId', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
 
       mockGetActiveSubscription.mockResolvedValueOnce({
         id: 'sub-1',
@@ -92,7 +114,9 @@ describe('Claim Actions', () => {
 
   describe('createClaim - error handling', () => {
     it('should handle database errors gracefully', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
       mockDbInsert.mockRejectedValueOnce(new Error('DB Error'));
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -110,7 +134,9 @@ describe('Claim Actions', () => {
     });
 
     it('should handle optional claimAmount as empty string', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
 
       const formData = retailClaimFormData('');
 
@@ -127,7 +153,9 @@ describe('Claim Actions', () => {
 
   describe('createClaim - claimAmount transform coverage', () => {
     it('should transform truthy claimAmount value', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
 
       const formData = retailClaimFormData('999.99');
 

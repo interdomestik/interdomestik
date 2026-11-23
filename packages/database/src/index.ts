@@ -152,3 +152,4 @@ export * from './e2e-discovery-access';
 export * from './e2e-document-fixtures';
 export * from './e2e-share-pack-fixtures';
 export * from './e2e-communication-fixtures';
+export { withPrincipalTenantContext } from './principal-context';

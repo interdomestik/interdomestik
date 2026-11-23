@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -25,6 +26,19 @@ function expectTenantContext(
 
 describe('Claim Actions', () => {
   describe('updateClaimStatus', () => {
+    it('refuses before protected work when acceptance is missing', async () => {
+      refuseAcceptance();
+      mockGetSession.mockResolvedValue({
+        user: { id: 'fixture-member', role: 'member', tenantId: 'tenant_mk' },
+      });
+      await expect(updateClaimStatus('claim-1', 'verification')).resolves.toMatchObject({
+        success: false,
+        code: 'acceptance_required',
+      });
+      expect(mockWithTenantContext).not.toHaveBeenCalled();
+      expect(mockTxUpdateReturning).not.toHaveBeenCalled();
+    });
+
     it('should deny non-admin and non-staff users', async () => {
       mockGetSession.mockResolvedValue({
         user: { id: 'user-123', role: 'user', tenantId: 'tenant_mk' },

@@ -1,4 +1,4 @@
-import { withTenantContext } from '@interdomestik/database';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -7,7 +7,7 @@ const hoisted = vi.hoisted(() => ({
   dbSelect: vi.fn(),
 }));
 
-vi.mock('@interdomestik/database', () => {
+vi.mock('@interdomestik/database/tenant-authority-context', () => {
   const db = {
     query: {
       claims: {
@@ -17,33 +17,35 @@ vi.mock('@interdomestik/database', () => {
     select: hoisted.dbSelect,
   };
   return {
-    db,
-    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+    withTenantAuthority: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
       callback(db)
     ),
-    claims: {
-      id: 'claims.id',
-      tenantId: 'claims.tenantId',
-    },
-    claimDocuments: {
-      id: 'claimDocuments.id',
-      name: 'claimDocuments.name',
-      fileSize: 'claimDocuments.fileSize',
-      fileType: 'claimDocuments.fileType',
-      createdAt: 'claimDocuments.createdAt',
-      claimId: 'claimDocuments.claimId',
-      tenantId: 'claimDocuments.tenantId',
-    },
-    claimStageHistory: {
-      toStatus: 'claimStageHistory.toStatus',
-      createdAt: 'claimStageHistory.createdAt',
-      claimId: 'claimStageHistory.claimId',
-      tenantId: 'claimStageHistory.tenantId',
-      isPublic: 'claimStageHistory.isPublic',
-    },
-    eq: vi.fn(),
   };
 });
+
+vi.mock('@interdomestik/database', () => ({
+  claims: {
+    id: 'claims.id',
+    tenantId: 'claims.tenantId',
+  },
+  claimDocuments: {
+    id: 'claimDocuments.id',
+    name: 'claimDocuments.name',
+    fileSize: 'claimDocuments.fileSize',
+    fileType: 'claimDocuments.fileType',
+    createdAt: 'claimDocuments.createdAt',
+    claimId: 'claimDocuments.claimId',
+    tenantId: 'claimDocuments.tenantId',
+  },
+  claimStageHistory: {
+    toStatus: 'claimStageHistory.toStatus',
+    createdAt: 'claimStageHistory.createdAt',
+    claimId: 'claimStageHistory.claimId',
+    tenantId: 'claimStageHistory.tenantId',
+    isPublic: 'claimStageHistory.isPublic',
+  },
+  eq: vi.fn(),
+}));
 
 vi.mock('@interdomestik/database/constants', () => ({
   CLAIM_STATUSES: ['draft', 'submitted', 'resolved'],
@@ -55,6 +57,14 @@ vi.mock('drizzle-orm', () => ({
 }));
 
 import { getMemberClaimDetailsCore, getMemberClaimRedirect } from './_core';
+
+const authority = mintTestTenantAuthority('tenant_mk');
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: async () => ({
+    ok: true,
+    authorized: { authority, session: { user: { id: 'u1' } } },
+  }),
+}));
 
 type SelectChain<T> = {
   from: () => SelectChain<T>;
@@ -110,15 +120,11 @@ describe('getMemberClaimRedirect', () => {
 });
 
 describe('getMemberClaimDetailsCore', () => {
-  const authority = mintTestTenantAuthority('tenant_mk');
-
   it('returns not_found when claim missing', async () => {
     hoisted.findClaimFirst.mockResolvedValueOnce(null);
 
     const result = await getMemberClaimDetailsCore({
       claimId: 'c1',
-      viewerUserId: 'u1',
-      authority,
     });
     expect(result).toEqual({ kind: 'not_found' });
   });
@@ -132,8 +138,6 @@ describe('getMemberClaimDetailsCore', () => {
 
     const result = await getMemberClaimDetailsCore({
       claimId: 'c1',
-      viewerUserId: 'u1',
-      authority,
     });
     expect(result).toEqual({ kind: 'not_found' });
   });
@@ -143,8 +147,6 @@ describe('getMemberClaimDetailsCore', () => {
 
     const result = await getMemberClaimDetailsCore({
       claimId: 'c1',
-      viewerUserId: 'u1',
-      authority,
     });
     expect(result).toEqual({ kind: 'not_found' });
   });
@@ -182,11 +184,9 @@ describe('getMemberClaimDetailsCore', () => {
 
     const result = await getMemberClaimDetailsCore({
       claimId: 'c1',
-      viewerUserId: 'u1',
-      authority,
     });
 
-    expect(withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
+    expect(withTenantAuthority).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(result.kind).toBe('ok');
     if (result.kind !== 'ok') return;
 

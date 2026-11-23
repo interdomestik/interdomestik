@@ -19,6 +19,15 @@ vi.mock('@/features/admin/branches/server/branch-cash-metrics', () => ({
   getBranchCashPendingByAgent: vi.fn(),
   getBranchCashPendingCount: vi.fn(),
 }));
+vi.mock('@interdomestik/database/tenant-authority-context', async () => {
+  const { isTenantAuthority } = await import('@interdomestik/database/tenant-authority');
+  return {
+    withTenantAuthority: (authority: unknown, callback: (tx: never) => unknown) => {
+      if (!isTenantAuthority(authority)) throw new Error('Unrecognized tenant authority');
+      return hoisted.withTenantContextMock(authority, callback);
+    },
+  };
+});
 vi.mock('@interdomestik/database/db', () => ({ db: {} }));
 vi.mock('@interdomestik/database', async importOriginal => ({
   ...(await importOriginal<typeof import('@interdomestik/database')>()),
@@ -29,7 +38,8 @@ vi.mock('@interdomestik/database', async importOriginal => ({
 vi.mock('@interdomestik/database/tenant-directory', () => ({
   readTenantCurrency: hoisted.readTenantCurrencyMock,
 }));
-vi.mock('@interdomestik/shared-auth', () => ({
+vi.mock('@interdomestik/shared-auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
   ROLES: { agent: 'agent', branch_manager: 'branch_manager' },
   scopeFilter: hoisted.scopeFilterMock,
 }));

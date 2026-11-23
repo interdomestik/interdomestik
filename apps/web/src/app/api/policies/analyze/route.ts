@@ -1,7 +1,7 @@
 import { ApiErrorCode } from '@/core-contracts';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
-import { NextRequest, NextResponse } from 'next/server';
+import { withMemberAcceptance } from '@/lib/privacy/require-member-acceptance';
+import { NextResponse } from 'next/server';
 import { analyzePolicyCore } from './_core';
 import {
   emitPolicyExtractionRequestedService,
@@ -10,15 +10,9 @@ import {
   uploadPolicyFileService,
 } from './_services';
 
-export async function POST(req: NextRequest) {
+export const POST = withMemberAcceptance(async (authorized, req) => {
   try {
     const headersList = req.headers;
-    const authorized = await authorizeSessionTenant(headersList);
-
-    if (!authorized) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
     const limit = await enforceRateLimit({
       name: 'api:policy-analyze',
       limit: 5,
@@ -74,4 +68,4 @@ export async function POST(req: NextRequest) {
     console.error('Handler Error:', error);
     return NextResponse.json({ error: 'Server error' }, { status: 500 });
   }
-}
+});

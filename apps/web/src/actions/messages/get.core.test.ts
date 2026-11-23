@@ -50,6 +50,8 @@ describe('claim message read content boundary', () => {
   );
   it('denies both canonical and legacy mounted action adapters', async () => {
     vi.mocked(getActionContext).mockResolvedValue({
+      ok: true,
+      failure: undefined,
       session: session('branch_manager'),
       authority,
       requestHeaders: new Headers(),

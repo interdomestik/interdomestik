@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { isTenantAuthority, readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { getUploadActionMocks } from './actions-mocks.spec';
 import { confirmUpload, generateUploadUrl } from './actions';
@@ -14,6 +15,21 @@ const ROLE_CASES = [
 // Other roles reach no member upload claim: findOwnedMemberUploadClaim gates member actors.
 
 describe('member upload trusted canonical actor', () => {
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    await expect(
+      generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
+    ).resolves.toEqual({ success: false, error: 'acceptance_required', status: 403 });
+    refuseAcceptance();
+    await expect(confirmUpload(createConfirmUploadParams())).resolves.toEqual({
+      success: false,
+      error: 'acceptance_required',
+      status: 403,
+    });
+    expect(hoisted.findOwnedMemberUploadClaim).not.toHaveBeenCalled();
+    expect(hoisted.insert).not.toHaveBeenCalled();
+  });
+
   it.each(ROLE_CASES)(
     'preserves the %s actor as %s through lookup and metadata',
     async (role, _actorRole) => {
@@ -46,11 +62,11 @@ describe('member upload trusted canonical actor', () => {
       });
       await expect(
         generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
-      ).resolves.toEqual({ success: false, error: 'Unauthorized', status: 401 });
+      ).resolves.toEqual({ success: false, error: 'FORBIDDEN', status: 403 });
       await expect(confirmUpload(createConfirmUploadParams())).resolves.toEqual({
         success: false,
-        error: 'Unauthorized',
-        status: 401,
+        error: 'FORBIDDEN',
+        status: 403,
       });
       expect(hoisted.findOwnedMemberUploadClaim).not.toHaveBeenCalled();
       expect(hoisted.withTenantContext).not.toHaveBeenCalled();

@@ -1,10 +1,10 @@
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
+import { requireMemberAcceptancePage } from '@/lib/privacy/require-member-acceptance';
 import { getFreeStartDraftAccount } from '@/actions/free-start-drafts';
 import { ClaimDraftIntake } from '@/components/claims/claim-draft-intake';
-import { getSessionSafe } from '@/components/shell/session';
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
 import { loadMessagesForNamespaces } from '@/i18n/messages';
 import { Link } from '@/i18n/routing';
-import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -13,7 +13,6 @@ import { ShieldAlert } from 'lucide-react';
 import { Metadata } from 'next';
 import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
-import { redirect } from 'next/navigation';
 
 const DIASPORA_CLAIM_SOURCES = ['diaspora-green-card'] as const;
 const DIASPORA_CLAIM_COUNTRIES = ['DE', 'CH', 'AT', 'IT'] as const;
@@ -81,15 +80,13 @@ export default async function NewClaimPage({ params, searchParams }: Props) {
   const handoffContext = resolveClaimStartHandoff(query);
   const neutralOtpHost = resolveNeutralOtpHost();
 
-  const session = await getSessionSafe('MemberNewClaimPage');
-
-  if (!session) {
-    redirect(`/${locale}/login`);
-  }
+  const admission = await requireMemberAcceptancePage();
+  if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
+  const { session } = admission.authorized;
 
   const tenantId = ensureTenantId(session);
   // Membership is read under the session's own authority; without one there is no access.
-  const authority = await authorizeSessionUserTenant(session.user.id);
+  const { authority } = admission.authorized;
   const hasAccess = authority ? await hasActiveMembership(session.user.id, authority) : false;
   const managerOnly =
     !hasAccess &&

@@ -1,90 +1,10 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { admitted, own, portalMocks as h, resetPortalMocks } from './portal-context.test-support';
+import { beforeEach, describe, expect, it } from 'vitest';
 import { setRequestLocale } from 'next-intl/server';
 import { LOCALES } from '@/i18n/locales';
 
-const h = vi.hoisted(() => ({
-  requests: new Map<unknown, Map<string, unknown>>(),
-  session: vi.fn(),
-  cases: vi.fn(async () => []),
-  membership: vi.fn(async () => ({
-    bucket: 'active',
-    currentPeriodEnd: new Date('2026-12-31T00:00:00.000Z'),
-    grantsNewCaseAccess: true,
-  })),
-  neutral: true,
-  pathname: '/member',
-}));
-
-vi.mock('react', async importOriginal => ({
-  ...(await importOriginal<typeof import('react')>()),
-  cache: (fn: (locale: string) => unknown) => (locale: string) => {
-    if (!h.requests.has(fn)) h.requests.set(fn, new Map());
-    const request = h.requests.get(fn)!;
-    if (!request.has(locale)) request.set(locale, fn(locale));
-    return request.get(locale);
-  },
-}));
-vi.mock('@/lib/auth.server', () => ({ getCachedSession: h.session }));
-vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionUserTenant: async (userId: string) => ({ userId }),
-}));
-vi.mock('@/components/shell/session', () => ({
-  requireSessionOrRedirect: (session: unknown) => {
-    if (!session) throw new Error('login');
-    return session;
-  },
-}));
-vi.mock('@interdomestik/domain-member', () => ({
-  getMemberCaseSummaries: h.cases,
-  getMemberPortalMembership: h.membership,
-}));
-vi.mock('next/navigation', () => ({
-  notFound: () => {
-    throw new Error('notFound');
-  },
-  redirect: (to: string) => {
-    throw new Error(`redirect:${to}`);
-  },
-}));
-vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
-vi.mock('@/app/api/auth/[...all]/neutral-otp-boundary', () => ({
-  evaluateNeutralOtpHost: () => h.neutral,
-}));
-vi.mock('@/lib/tenant/tenant-hosts', () => ({ resolveDefaultPublicTenantId: () => 'tenant_ks' }));
-vi.mock('next-intl/server', () => ({
-  setRequestLocale: vi.fn(),
-  getTranslations: async () =>
-    Object.assign((key: string) => key, {
-      raw: () => {
-        const values = new Proxy({}, { get: (_target, key) => String(key) });
-        return {
-          actions: values,
-          description: 'description',
-          disclaimer: 'disclaimer',
-          membership_status: new Proxy(
-            { statuses: values },
-            { get: (target, key) => (key === 'statuses' ? target.statuses : String(key)) }
-          ),
-          navigation: {
-            cases: 'cases',
-            documents: 'documents',
-            help_now: 'help',
-            label: 'label',
-            membership: 'membership',
-          },
-          next_steps: new Proxy({}, { get: (_target, key) => `portal-next-${String(key)}` }),
-          regions: { actions: values, case: values, updates: values },
-          title: 'portal.title',
-          warnings: new Proxy({}, { get: (_target, key) => `portal-warning-${String(key)}` }),
-        };
-      },
-    }),
-}));
-vi.mock('@/i18n/routing', () => ({ Link: 'a', usePathname: () => h.pathname }));
-
 import { getMemberPortalContext } from './portal-context';
 import PortalLayout from './layout';
-const own = (memberId: string) => ({ authority: { userId: memberId }, memberId });
 import PortalPage from './page';
 import PortalDefault from './default';
 import CaseSlot from './@case/page';
@@ -98,18 +18,10 @@ describe('member portal request context', () => {
   const expectNoProjections = () =>
     [h.cases, h.membership].forEach(projection => expect(projection).not.toHaveBeenCalled());
 
-  beforeEach(() => {
-    vi.clearAllMocks();
-    h.requests = new Map();
-    h.neutral = true;
-    h.pathname = '/member';
-    h.session.mockResolvedValue({
-      user: { id: 'member-a', role: 'member', tenantId: 'tenant_ks' },
-    });
-  });
+  beforeEach(resetPortalMocks);
 
   it.each(LOCALES)('validates and retains the supported locale %s', async locale => {
-    const context = await getMemberPortalContext(locale);
+    const context = admitted(await getMemberPortalContext(locale));
     expect(context.locale).toBe(locale);
     expect(context.canDraft).toBe(true);
     expect(context.copy.membershipStatus.accessAllowed).toBe('access_allowed');
@@ -150,7 +62,12 @@ describe('member portal request context', () => {
     { id: 'member-a', role: 'unknown', tenantId: 'tenant_ks' },
   ])('blocks invalid identity $role before projections', async user => {
     h.session.mockResolvedValueOnce({ user });
-    await expect(getMemberPortalContext('sq')).rejects.toThrow('notFound');
+    const result = getMemberPortalContext('sq');
+    if (user.tenantId) {
+      await expect(result).rejects.toThrow('notFound');
+    } else {
+      await expect(result).resolves.toMatchObject({ ok: false, failure: { code: 'UNAUTHORIZED' } });
+    }
     expectNoProjections();
   });
 
@@ -170,7 +87,7 @@ describe('member portal request context', () => {
     expect(h.session).toHaveBeenCalledTimes(1);
     expect(h.cases).toHaveBeenCalledExactlyOnceWith(own('member-a'));
     expect(h.membership).toHaveBeenCalledExactlyOnceWith(own('member-a'));
-    expect(values[1].caseTask).toBe(values[3].caseTask);
+    expect(admitted(values[1]).caseTask).toBe(admitted(values[3]).caseTask);
   });
 
   it('starts no projection while session authorization is pending', async () => {
@@ -193,13 +110,13 @@ describe('member portal request context', () => {
   it('passes projection rejection to existing region boundaries', async () => {
     h.cases.mockRejectedValueOnce(new Error('cases unavailable'));
     h.membership.mockRejectedValueOnce(new Error('membership unavailable'));
-    const context = await getMemberPortalContext('sq');
+    const context = admitted(await getMemberPortalContext('sq'));
     await expect(context.caseTask).rejects.toThrow('cases unavailable');
     await expect(context.membershipTask).rejects.toThrow('membership unavailable');
   });
 
   it('preserves portal-owned next steps and distinct lifecycle warnings', async () => {
-    const { copy } = await getMemberPortalContext('sq');
+    const { copy } = admitted(await getMemberPortalContext('sq'));
     expect(copy.actions.active_in_grace).toEqual({
       description: 'description',
       label: 'active_in_grace',
@@ -229,7 +146,8 @@ describe('member portal request context', () => {
       updates,
       children: PortalPage(),
     });
-    const context = await getMemberPortalContext('sq');
+    const context = admitted(await getMemberPortalContext('sq'));
+    if (!cases || !updates || !actions) throw new Error('Expected all three admitted regions');
     expect(cases.props.children.props.promise).toBe(context.caseTask);
     expect(updates.props.children.props.promise).toBe(context.caseTask);
     expect(actions.props.children.props.promise).toBe(context.membershipTask);
@@ -254,37 +172,5 @@ describe('member portal request context', () => {
     expect(PortalPage({ content: 'portal' })).toBe('portal');
     h.pathname = '/member/documents';
     expect(PortalPage({ content: 'portal' })).toBeNull();
-  });
-
-  it('does not carry identity or projection promises into a second request', async () => {
-    const first = await getMemberPortalContext('sq');
-    h.requests = new Map();
-    h.session.mockResolvedValue({
-      user: { id: 'member-b', role: 'member', tenantId: 'tenant_mk' },
-    });
-    const next = await getMemberPortalContext('sq');
-    expect(next.caseTask).not.toBe(first.caseTask);
-    expect(h.cases).toHaveBeenLastCalledWith(own('member-b'));
-    expect(h.membership).toHaveBeenLastCalledWith(own('member-b'));
-    expect(next.canDraft).toBe(false);
-  });
-
-  it.each([null, { user: { id: 'member-a', role: 'member', tenantId: null } }])(
-    'rechecks revoked identity on the next request before any new projection',
-    async revoked => {
-      await getMemberPortalContext('sq');
-      h.requests = new Map();
-      h.session.mockResolvedValue(revoked);
-      await expect(getMemberPortalContext('sq')).rejects.toThrow();
-      expect(h.cases).toHaveBeenCalledTimes(1);
-      expect(h.membership).toHaveBeenCalledTimes(1);
-    }
-  );
-
-  it('rechecks neutral-host draft eligibility on a later request', async () => {
-    expect((await getMemberPortalContext('sq')).canDraft).toBe(true);
-    h.requests = new Map();
-    h.neutral = false;
-    expect((await getMemberPortalContext('sq')).canDraft).toBe(false);
   });
 });

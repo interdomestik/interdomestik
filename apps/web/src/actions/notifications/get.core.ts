@@ -24,28 +24,33 @@ export async function getNotificationsCore(params: {
   if (!deniesClaimMessageContent(params.session?.user?.role)) {
     const t = await getTranslations({ locale, namespace: 'notifications' });
     const labels = new Map<string, Promise<string | null>>();
-    return Promise.all(
-      rows.map(async row => {
-        const claimId = notificationClaimId(row);
-        // Legacy raw-ID entries reuse the member's existing claim reader and admission.
-        // Unavailable references get neutral copy; stored human titles need no lookup.
-        if (
-          claimId &&
-          !storedClaimLabel(row) &&
-          params.session?.user.role === 'member' &&
-          !labels.has(claimId)
-        ) {
-          labels.set(
-            claimId,
-            getMemberClaimDetail(params.session, params.authority, claimId)
-              .then(claim => claim?.title ?? null)
-              .catch(() => null)
-          );
-        }
-        const label = claimId ? await labels.get(claimId) : null;
-        return { ...row, ...notificationDisplayCopy(row, t, label) };
-      })
-    );
+    const displayRows = [];
+    for (const row of rows) {
+      const claimId = notificationClaimId(row);
+      // Legacy raw-ID entries reuse the member's existing claim reader and admission.
+      // Unavailable references get neutral copy; stored human titles need no lookup.
+      if (
+        claimId &&
+        !storedClaimLabel(row) &&
+        params.session?.user.role === 'member' &&
+        !labels.has(claimId)
+      ) {
+        labels.set(
+          claimId,
+          getMemberClaimDetail(claimId)
+            .then(claim => claim?.title ?? null)
+            .catch(() => null)
+        );
+      }
+      const label = claimId ? labels.get(claimId) : undefined;
+      displayRows.push(
+        Promise.resolve(label ?? null).then(title => ({
+          ...row,
+          ...notificationDisplayCopy(row, t, title),
+        }))
+      );
+    }
+    return Promise.all(displayRows);
   }
   return Promise.all(
     rows.map(async row => ({

@@ -1,12 +1,12 @@
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { withMemberAcceptance } from '@/lib/privacy/require-member-acceptance';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { signedUrlResponseInit } from '@/lib/storage/signed-url-exposure';
 import { NextResponse } from 'next/server';
 
 import { createSignedUploadCore, uploadRequestSchema } from './_core';
 
-export async function POST(req: Request) {
+export const POST = withMemberAcceptance(async (authorized, req) => {
   const limited = await enforceRateLimit({
     name: 'api/uploads',
     limit: 10,
@@ -16,11 +16,6 @@ export async function POST(req: Request) {
   });
   if (limited) return limited;
 
-  const authorized = await authorizeSessionTenant(req.headers);
-
-  if (!authorized) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-  }
   const { session, authority } = authorized;
 
   const json = await req.json().catch(() => null);
@@ -60,4 +55,4 @@ export async function POST(req: Request) {
   }
 
   return NextResponse.json(result.body, signedUrlResponseInit({ status: result.status }));
-}
+});

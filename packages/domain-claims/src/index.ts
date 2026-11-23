@@ -1,6 +1,14 @@
 export * from './claim-pack';
 export * from './claims/create';
-export * from './claims/information-requests';
+export {
+  createInformationRequest,
+  getInformationRequests,
+  informationRequestInput,
+  type InformationRequestEvidence,
+  type InformationRequestInput,
+  type InformationRequestResult,
+  type PublicInformationRequest,
+} from './claims/information-requests';
 export * from './claims/information-request-evidence';
 export * from './claims/fulfil-information-request';
 export * from './claims/documents';

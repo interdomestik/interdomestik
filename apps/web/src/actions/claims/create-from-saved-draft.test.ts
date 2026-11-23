@@ -1,9 +1,13 @@
+import '@/test/tenant-transaction.test-support';
 import { createHash } from 'node:crypto';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 // prettier-ignore
-const h = vi.hoisted(() => { const limit = vi.fn(); const where = vi.fn(() => ({ limit })); const from = vi.fn(() => ({ where })); return { contexts: [] as unknown[], from, limit, rateLimit: vi.fn(), resolveSession: vi.fn(), resumeDraft: vi.fn(), runAuthenticated: vi.fn(), select: vi.fn(() => ({ from })), submit: vi.fn() }; });
-vi.mock('@/lib/safe-action', () => ({ runAuthenticatedAction: h.runAuthenticated }));
+const h = vi.hoisted(() => { const limit = vi.fn(); const where = vi.fn(() => ({ limit })); const from = vi.fn(() => ({ where })); return { contexts: [] as unknown[], limit, rateLimit: vi.fn(), resolveSession: vi.fn(), resumeDraft: vi.fn(), select: vi.fn(() => ({ from })), submit: vi.fn(), where }; });
+vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+const audit = vi.hoisted(() => vi.fn());
+vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: vi.fn() }));
+vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: audit }));
 vi.mock('@/actions/free-start-drafts/session.core', () => ({
   resolveFreeStartDraftSession: h.resolveSession,
 }));
@@ -36,7 +40,8 @@ vi.mock('next-intl/server', async () => {
       Promise.resolve(createTranslator({ locale: 'en', messages, namespace: 'freeStart' })),
   };
 });
-vi.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
   and: (...args: unknown[]) => args,
   eq: (left: unknown, right: unknown) => [left, right],
 }));
@@ -67,10 +72,8 @@ describe('createClaimFromSavedDraft', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     h.contexts.length = 0;
-    h.runAuthenticated.mockImplementation(async callback =>
-      callback({ session, authority, tenantId: 'tenant_ks', requestHeaders: new Headers() })
-    );
-    h.resolveSession.mockResolvedValue({ ok: true, context });
+    audit.mockResolvedValue({ ok: true });
+    h.resolveSession.mockResolvedValue({ ok: true, context, authorized: { session, authority } });
     h.resumeDraft.mockResolvedValue({ ok: true, draft });
     h.rateLimit.mockResolvedValue({ limited: false });
     h.limit.mockResolvedValue([]);
@@ -83,6 +86,62 @@ describe('createClaimFromSavedDraft', () => {
     expect(h.resolveSession).not.toHaveBeenCalled();
     expect(h.submit).not.toHaveBeenCalled();
   });
+  it('records the branch scope refusal before reading or submitting the draft', async () => {
+    const user = { ...session.user, role: 'branch_manager', branchId: null };
+    h.resolveSession.mockResolvedValueOnce({
+      ok: true,
+      context: { ...context, actorRole: user.role },
+      authorized: { session: { user }, authority },
+    });
+    await expect(createClaimFromSavedDraft(input)).resolves.toMatchObject({ success: false });
+    expect(audit).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        action: 'action.refused',
+        actorId: user.id,
+        actorRole: user.role,
+        authority,
+        metadata: expect.objectContaining({ code: 'FORBIDDEN_NO_BRANCH' }),
+      })
+    );
+    expect(h.resumeDraft).not.toHaveBeenCalled();
+    expect(h.select).not.toHaveBeenCalled();
+    expect(h.submit).not.toHaveBeenCalled();
+  });
+
+  it('records a submit refusal without attempting ambiguous-result recovery', async () => {
+    h.submit.mockResolvedValueOnce({ success: false, error: 'Fixture refusal', code: 'FORBIDDEN' });
+    await expect(createClaimFromSavedDraft(input)).resolves.toMatchObject({ success: false });
+    expect(audit).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        action: 'action.refused',
+        actorId: session.user.id,
+        authority,
+        metadata: expect.objectContaining({ code: 'FORBIDDEN' }),
+      })
+    );
+    expect(h.limit).toHaveBeenCalledOnce();
+  });
+
+  it('records a code-less writer AccessDeniedError and refuses exact-owner recovery', async () => {
+    h.limit
+      .mockResolvedValue([{ id: claimId, claimNumber: success.claimNumber }])
+      .mockResolvedValueOnce([]);
+    h.submit.mockRejectedValueOnce(
+      Object.assign(new Error('Denied'), { name: 'AccessDeniedError' })
+    );
+
+    await expect(createClaimFromSavedDraft(input)).resolves.toMatchObject({ success: false });
+    expect(audit).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        action: 'action.refused',
+        actorId: session.user.id,
+        authority,
+        metadata: expect.objectContaining({ code: 'UNAUTHORIZED' }),
+      })
+    );
+    expect(h.limit).toHaveBeenCalledOnce();
+  });
+
   it('maps one complete owned draft into the canonical submit writer', async () => {
     const result = await createClaimFromSavedDraft(input);
     expect(result).toEqual(success);
@@ -163,7 +222,7 @@ describe('createClaimFromSavedDraft', () => {
     ['short counterparty', context, { ...draft, counterparty: 'x' }, false],
     ['unsupported category', context, { ...draft, category: 'injury' }, false], ['non-preview step', context, { ...draft, resumeStep: 'details' }, false], ['non-preview property step', context, { ...draft, category: 'property', issueType: 'water_damage', desiredOutcome: 'reimbursement', resumeStep: 'details' }, false], ['stale property version', context, { ...draft, category: 'property', issueType: 'water_damage', desiredOutcome: 'reimbursement', version: 4 }, false], ['prototype category', context, { ...draft, category: 'constructor' }, false], ['prototype issue', context, { ...draft, issueType: 'toString' }, false], ['prototype outcome', context, { ...draft, desiredOutcome: 'constructor' }, false], ['outer rate limit', context, draft, true],
   ])('fails closed for %s', async (_name, freshContext, savedDraft, limited) => {
-    h.resolveSession.mockResolvedValue({ ok: true, context: freshContext });
+    h.resolveSession.mockResolvedValue({ ok: true, context: freshContext, authorized: { session, authority } });
     h.resumeDraft.mockResolvedValue({ ok: true, draft: savedDraft });
     h.rateLimit.mockResolvedValue({ limited });
     await expect(createClaimFromSavedDraft(input)).resolves.toMatchObject({ success: false });
@@ -189,6 +248,23 @@ describe('createClaimFromSavedDraft', () => {
     h.submit.mockRejectedValue(new Error('ambiguous timeout'));
     await expect(createClaimFromSavedDraft(input)).resolves.toEqual(success);
     expect(h.limit).toHaveBeenCalledTimes(2);
+  });
+  it('recovers by exact owner after a provider APIError carrying a refusal code', async () => {
+    h.limit
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([{ id: claimId, claimNumber: success.claimNumber }]);
+    h.submit.mockRejectedValueOnce(
+      Object.assign(new Error('Provider unavailable'), { name: 'APIError', code: 'UNAUTHORIZED' })
+    );
+
+    await expect(createClaimFromSavedDraft(input)).resolves.toEqual(success);
+    expect(h.limit).toHaveBeenCalledTimes(2);
+    expect(h.where).toHaveBeenNthCalledWith(2, [
+      ['id', claimId],
+      ['tenantId', context.tenantId],
+      ['userId', context.ownerUserId],
+    ]);
+    expect(audit).not.toHaveBeenCalled();
   });
   it('does not disclose or accept malformed exact-id recovery', async () => {
     h.limit.mockResolvedValue([{ id: claimId, claimNumber: 'broken' }]);

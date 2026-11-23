@@ -1,7 +1,7 @@
-import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
+import { requireMemberAcceptancePage } from '@/lib/privacy/require-member-acceptance';
 import { Link } from '@/i18n/routing';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { Button } from '@interdomestik/ui/components/button';
 import {
   Card,
@@ -35,7 +35,9 @@ export default async function HelpPage({ params, searchParams }: Props) {
   setRequestLocale(locale);
 
   const t = await getTranslations('help');
-  const session = requireSessionOrRedirect(await getSessionSafe('MemberHelpPage'), locale);
+  const admission = await requireMemberAcceptancePage();
+  if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
+  const { session } = admission.authorized;
   if (session.user.role !== 'member' && session.user.role !== 'user') {
     redirect(getCanonicalRouteForRole(session.user.role, locale) ?? `/${locale}/member`);
   }
@@ -44,15 +46,7 @@ export default async function HelpPage({ params, searchParams }: Props) {
   const requestedHandoffId = getSingleParam(resolvedSearchParams.handoffId);
   const requestedClaimId = getSingleParam(resolvedSearchParams.claimId);
   const sourceHint = getSingleParam(resolvedSearchParams.source);
-  const authorized =
-    session.user.tenantId && session.user.id ? await authorizeSessionTenant() : null;
-  const claimOptions = authorized
-    ? await getMemberClaimOptions({
-        memberId: session.user.id,
-        requestedClaimId,
-        authority: authorized.authority,
-      })
-    : [];
+  const claimOptions = await getMemberClaimOptions({ requestedClaimId });
   const selectedClaim = requestedClaimId
     ? (claimOptions.find(claim => claim.id === requestedClaimId) ?? null)
     : null;
@@ -161,22 +155,12 @@ export default async function HelpPage({ params, searchParams }: Props) {
                 </div>
               </div>
             ) : null}
-            {authorized ? (
-              <>
-                <PublicResponseBanner
-                  authority={authorized.authority}
-                  handoffId={requestedHandoffId ?? null}
-                  locale={locale}
-                  memberId={session.user.id}
-                  selectedClaim={selectedClaim}
-                />
-                <AdvisoryBanner
-                  authority={authorized.authority}
-                  memberId={session.user.id}
-                  selectedClaim={selectedClaim}
-                />
-              </>
-            ) : null}
+            <PublicResponseBanner
+              handoffId={requestedHandoffId ?? null}
+              locale={locale}
+              selectedClaim={selectedClaim}
+            />
+            <AdvisoryBanner selectedClaim={selectedClaim} />
             <MemberSupportHandoffForm
               claimOptions={claimOptions}
               labels={{

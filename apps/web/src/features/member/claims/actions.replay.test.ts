@@ -1,8 +1,20 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { expect, it } from 'vitest';
 import { getUploadActionMocks } from './actions-mocks.spec';
 import { confirmUpload } from './actions';
 import { createConfirmUploadParams } from './actions.test-fixtures';
 const m = getUploadActionMocks();
+
+it('refuses before protected work when acceptance is missing', async () => {
+  refuseAcceptance();
+  await expect(confirmUpload(createConfirmUploadParams())).resolves.toEqual({
+    success: false,
+    error: 'acceptance_required',
+    status: 403,
+  });
+  expect(m.findOwnedMemberUploadClaim).not.toHaveBeenCalled();
+  expect(m.insert).not.toHaveBeenCalled();
+});
 
 it('returns an exact persisted confirmation replay without storage reads or new writes', async () => {
   const params = createConfirmUploadParams();

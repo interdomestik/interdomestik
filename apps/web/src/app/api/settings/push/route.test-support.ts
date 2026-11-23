@@ -1,3 +1,4 @@
+import '@/test/tenant-transaction.test-support';
 import { type TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { vi } from 'vitest';
 

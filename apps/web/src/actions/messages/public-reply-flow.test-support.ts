@@ -1,3 +1,5 @@
+import '@/test/tenant-transaction.test-support';
+import '@/test/member-acceptance.test-support';
 import { afterAll, afterEach, beforeEach, expect, vi } from 'vitest';
 
 const load = vi.hoisted(() => () => import('./public-reply-notification-flow.fixture'));

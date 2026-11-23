@@ -1,3 +1,4 @@
+import '@/test/tenant-transaction.test-support';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -9,12 +10,12 @@ const h = vi.hoisted(() => {
   const contexts: unknown[] = [];
   return {
     contexts,
+    audit: vi.fn(),
     from,
     limit,
     rateLimit: vi.fn(),
     resolveSession: vi.fn(),
     resumeDraft: vi.fn(),
-    runAuthenticated: vi.fn(),
     // Unscoped client sentinel: the recovery read must never use it.
     select: vi.fn(() => ({ from })),
     submit: vi.fn(),
@@ -29,7 +30,9 @@ const h = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/lib/safe-action', () => ({ runAuthenticatedAction: h.runAuthenticated }));
+vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: vi.fn() }));
+vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: h.audit }));
 vi.mock('@/actions/free-start-drafts/session.core', () => ({
   resolveFreeStartDraftSession: h.resolveSession,
 }));
@@ -46,7 +49,8 @@ vi.mock('@interdomestik/database', () => ({
 vi.mock('@interdomestik/database/claim-number', () => ({
   isValidClaimNumber: (value: string) => /^CLM-[A-Z0-9]{2,10}-\d{4}-\d{6}$/.test(value),
 }));
-vi.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
   and: (...args: unknown[]) => args,
   eq: (left: unknown, right: unknown) => [left, right],
 }));
@@ -71,16 +75,8 @@ describe('lookupSavedDraftClaim', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     h.contexts.length = 0;
-    h.runAuthenticated.mockImplementation(async callback => ({
-      success: true,
-      data: await callback({
-        session,
-        authority,
-        tenantId: 'tenant_ks',
-        requestHeaders: new Headers(),
-      }),
-    }));
-    h.resolveSession.mockResolvedValue({ ok: true, context });
+    h.audit.mockResolvedValue({ ok: true });
+    h.resolveSession.mockResolvedValue({ ok: true, context, authorized: { session, authority } });
     h.limit.mockResolvedValue([{ id: claimId, claimNumber: 'CLM-KS-2026-000001' }]);
   });
 
@@ -122,7 +118,11 @@ describe('lookupSavedDraftClaim', () => {
     ],
   ])('collapses %s to no claim', async (_name, rows, freshContext) => {
     h.limit.mockResolvedValue(rows);
-    h.resolveSession.mockResolvedValue({ ok: true, context: freshContext });
+    h.resolveSession.mockResolvedValue({
+      ok: true,
+      context: freshContext,
+      authorized: { session, authority },
+    });
     await expect(lookupSavedDraftClaim({ id: draftId })).resolves.toEqual({ claim: null });
   });
 
@@ -131,10 +131,10 @@ describe('lookupSavedDraftClaim', () => {
     await expect(lookupSavedDraftClaim({ id: draftId, extra: true })).resolves.toEqual({
       claim: null,
     });
-    h.runAuthenticated.mockResolvedValueOnce({ success: false, error: 'Unauthorized' });
+    h.resolveSession.mockResolvedValueOnce({ ok: false, code: 'authRequired' });
     await expect(lookupSavedDraftClaim({ id: draftId })).resolves.toEqual({ claim: null });
-    h.runAuthenticated.mockRejectedValue(new Error('unavailable'));
-    await expect(lookupSavedDraftClaim({ id: draftId })).resolves.toEqual({ claim: null });
+    h.resolveSession.mockResolvedValueOnce({ ok: false, code: 'unavailable' });
+    await expect(lookupSavedDraftClaim({ id: draftId })).resolves.toEqual({ code: 'unavailable' });
     expect(h.select).not.toHaveBeenCalled();
     expect(h.txSelect).not.toHaveBeenCalled();
   });
@@ -143,22 +143,38 @@ describe('lookupSavedDraftClaim', () => {
     const redirect = Object.assign(new Error('NEXT_REDIRECT'), {
       digest: 'NEXT_REDIRECT;replace;/en/login;307;',
     });
-    h.runAuthenticated.mockRejectedValueOnce(redirect);
+    h.resolveSession.mockRejectedValueOnce(redirect);
     await expect(lookupSavedDraftClaim({ id: draftId })).rejects.toBe(redirect);
   });
 
-  it('collapses session/action tenant mismatch and database errors', async () => {
-    h.runAuthenticated.mockImplementationOnce(async callback => ({
-      success: true,
-      data: await callback({
-        session,
+  it('records the branch scope refusal before returning no claim', async () => {
+    const user = { ...session.user, role: 'branch_manager', branchId: null };
+    h.resolveSession.mockResolvedValueOnce({
+      ok: true,
+      context: { ...context, actorRole: user.role },
+      authorized: { session: { user }, authority },
+    });
+    await expect(lookupSavedDraftClaim({ id: draftId })).resolves.toEqual({ claim: null });
+    expect(h.audit).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        action: 'action.refused',
+        actorId: user.id,
+        actorRole: user.role,
         authority,
-        tenantId: 'tenant_mk',
-        requestHeaders: new Headers(),
-      }),
-    }));
+        metadata: expect.objectContaining({ code: 'FORBIDDEN_NO_BRANCH' }),
+      })
+    );
+    expect(h.withTenantContext).not.toHaveBeenCalled();
+  });
+
+  it('conceals a tenant mismatch and reports a database failure', async () => {
+    h.resolveSession.mockResolvedValueOnce({
+      ok: true,
+      context,
+      authorized: { session: { user: { ...session.user, tenantId: 'tenant_mk' } }, authority },
+    });
     await expect(lookupSavedDraftClaim({ id: draftId })).resolves.toEqual({ claim: null });
     h.limit.mockRejectedValue(new Error('database unavailable'));
-    await expect(lookupSavedDraftClaim({ id: draftId })).resolves.toEqual({ claim: null });
+    await expect(lookupSavedDraftClaim({ id: draftId })).resolves.toEqual({ code: 'unavailable' });
   });
 });

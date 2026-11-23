@@ -1,13 +1,11 @@
 import 'server-only';
 import { cache } from 'react';
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
 // prettier-ignore
 import { type MemberPortalCopy } from '@/components/dashboard/member-portal-runtime';
-import { requireSessionOrRedirect } from '@/components/shell/session';
 import { LOCALES } from '@/i18n/locales';
-import { getCachedSession } from '@/lib/auth.server';
-import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
 import { getMemberCaseSummaries, getMemberPortalMembership } from '@interdomestik/domain-member';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -19,61 +17,86 @@ import { resolveMemberActorRoleOnSession } from '../actor-role-on-session';
 // prettier-ignore
 type PortalMessages = Omit<MemberPortalCopy, 'actions' | 'caseEntryLabel' | 'caseLabels' | 'membershipStatus' | 'navigation' | 'referenceFallback' | 'status'> & { actions: Record<keyof MemberPortalCopy['actions'], string>; membership_status: { access_allowed: string; access_denied: string; access_label: string; current_period_end_label: string; retry: string; status_label: string; statuses: MemberPortalCopy['membershipStatus']['statuses']; unavailable: string }; navigation: Omit<MemberPortalCopy['navigation'], 'helpNow'> & { help_now: string }; next_steps: Record<'court_schedule' | 'external_response' | 'member_action' | 'review_case' | 'team_review', string>; warnings: Record<'active_in_grace' | 'grace_expired' | 'scheduled_cancel', string> };
 
-// prettier-ignore
-export const getMemberPortalContext = cache(async (requestedLocale: string) => {
-  const locale = LOCALES.find(value => value === requestedLocale);
-  if (!locale) notFound();
-  setRequestLocale(locale);
+type PortalContext =
+  | Extract<Awaited<ReturnType<typeof requireAdmittedMember>>, { ok: false }>
+  | {
+      ok: true;
+      canDraft: boolean;
+      caseTask: ReturnType<typeof getMemberCaseSummaries>;
+      copy: MemberPortalCopy;
+      locale: (typeof LOCALES)[number];
+      membershipTask: ReturnType<typeof getMemberPortalMembership>;
+    };
 
-  const session = requireSessionOrRedirect(await getCachedSession(), locale);
-  const { id: memberId, role, tenantId } = session.user;
-  if (!memberId || !role || !tenantId) notFound();
-  const actor = resolveMemberActorRoleOnSession(role);
-  if (!actor) notFound();
-  // prettier-ignore
-  const access = getMemberDashboardCore({ locale, role: actor, userId: memberId });
-  if (access.kind === 'redirect') redirect(access.to);
-  if (access.kind === 'forbidden' || actor !== 'member') notFound();
+const portalContextMemo: (locale: string) => { pending?: Promise<PortalContext> } = cache(
+  () => ({})
+);
 
-  // prettier-ignore
-  const draft = evaluateNeutralOtpHost(await headers()) && (role === 'member' || role === 'user') && tenantId === resolveDefaultPublicTenantId();
+export function getMemberPortalContext(requestedLocale: string): Promise<PortalContext> {
+  const memo = portalContextMemo(requestedLocale);
+  return (memo.pending ??= loadContext());
 
-  // prettier-ignore
-  const [t, dashboard] = await Promise.all([getTranslations({ locale, namespace: 'claims' }), getTranslations({ locale, namespace: 'dashboard' })]);
-  const authority = await authorizeSessionUserTenant(memberId);
-  if (!authority) notFound();
-  const q = { authority, memberId };
-  const cases = getMemberCaseSummaries(q);
-  const membership = getMemberPortalMembership(q);
-  const portal = dashboard.raw('portal') as PortalMessages;
-  const { help_now: helpNow, ...nav } = portal.navigation;
-  const membershipStatus: MemberPortalCopy['membershipStatus'] = {
-    accessAllowed: portal.membership_status.access_allowed,
-    accessDenied: portal.membership_status.access_denied,
-    accessLabel: portal.membership_status.access_label,
-    currentPeriodEndLabel: portal.membership_status.current_period_end_label,
-    retry: portal.membership_status.retry,
-    statusLabel: portal.membership_status.status_label,
-    statuses: portal.membership_status.statuses,
-    unavailable: portal.membership_status.unavailable,
-  };
-  const status: MemberPortalCopy['status'] = value => t(`status.${value}`);
-  // prettier-ignore
-  const nextStep = (summary: Parameters<MemberPortalCopy['caseLabels']>[0]) => summary.nextStep === 'complete' ? status(summary.status) : portal.next_steps[summary.nextStep];
-  // prettier-ignore
-  const action = (bucket: keyof MemberPortalCopy['actions'], warning?: keyof PortalMessages['warnings']): MemberPortalCopy['actions'][keyof MemberPortalCopy['actions']] => ({ description: portal.description, label: portal.actions[bucket], warning: warning ? portal.warnings[warning] : null });
-  const copy: MemberPortalCopy = {
-    ...portal,
+  async function loadContext(): Promise<PortalContext> {
+    const locale = LOCALES.find(value => value === requestedLocale);
+    if (!locale) notFound();
+    setRequestLocale(locale);
+
+    const admission = await requireAdmittedMember();
+    if (!admission.ok) return admission;
+    const { session, authority } = admission.authorized;
+    const { id: memberId, role, tenantId } = session.user;
+    if (!memberId || !role || !tenantId) notFound();
+    const actor = resolveMemberActorRoleOnSession(role);
+    if (!actor) notFound();
     // prettier-ignore
-    actions: { active: action('active'), active_in_grace: action('active_in_grace', 'active_in_grace'), canceled: action('canceled'), grace_expired: action('grace_expired', 'grace_expired'), none: action('none'), scheduled_cancel: action('scheduled_cancel', 'scheduled_cancel'), trialing: action('trialing') },
-    caseEntryLabel: dashboard('member_assistance.cases.open'),
-    // prettier-ignore
-    caseLabels: summary => ({ documentCount: t('detail.evidence'), nextStep: t('detail.progress.nextAction'), nextStepValue: nextStep(summary), reference: t('success.case_id'), referenceFallback: t('claim'), status: t('table.status'), statusValue: status(summary.status) }),
-    membershipStatus,
-    navigation: { ...nav, helpNow },
-    referenceFallback: t('claim'),
-    status,
-  };
+    const access = getMemberDashboardCore({ locale, role: actor, userId: memberId });
+    if (access.kind === 'redirect') redirect(access.to);
+    if (access.kind === 'forbidden' || actor !== 'member') notFound();
 
-  return { canDraft: draft, caseTask: cases, copy, locale, membershipTask: membership };
-});
+    // prettier-ignore
+    const draft = evaluateNeutralOtpHost(await headers()) && (role === 'member' || role === 'user') && tenantId === resolveDefaultPublicTenantId();
+
+    // prettier-ignore
+    const [t, dashboard] = await Promise.all([getTranslations({ locale, namespace: 'claims' }), getTranslations({ locale, namespace: 'dashboard' })]);
+    const cases = getMemberCaseSummaries({ authority, memberId });
+    const membership = getMemberPortalMembership({ authority, memberId });
+    const portal = dashboard.raw('portal') as PortalMessages;
+    const { help_now: helpNow, ...nav } = portal.navigation;
+    const membershipStatus: MemberPortalCopy['membershipStatus'] = {
+      accessAllowed: portal.membership_status.access_allowed,
+      accessDenied: portal.membership_status.access_denied,
+      accessLabel: portal.membership_status.access_label,
+      currentPeriodEndLabel: portal.membership_status.current_period_end_label,
+      retry: portal.membership_status.retry,
+      statusLabel: portal.membership_status.status_label,
+      statuses: portal.membership_status.statuses,
+      unavailable: portal.membership_status.unavailable,
+    };
+    const status: MemberPortalCopy['status'] = value => t(`status.${value}`);
+    // prettier-ignore
+    const nextStep = (summary: Parameters<MemberPortalCopy['caseLabels']>[0]) => summary.nextStep === 'complete' ? status(summary.status) : portal.next_steps[summary.nextStep];
+    // prettier-ignore
+    const action = (bucket: keyof MemberPortalCopy['actions'], warning?: keyof PortalMessages['warnings']): MemberPortalCopy['actions'][keyof MemberPortalCopy['actions']] => ({ description: portal.description, label: portal.actions[bucket], warning: warning ? portal.warnings[warning] : null });
+    const copy: MemberPortalCopy = {
+      ...portal,
+      // prettier-ignore
+      actions: { active: action('active'), active_in_grace: action('active_in_grace', 'active_in_grace'), canceled: action('canceled'), grace_expired: action('grace_expired', 'grace_expired'), none: action('none'), scheduled_cancel: action('scheduled_cancel', 'scheduled_cancel'), trialing: action('trialing') },
+      caseEntryLabel: dashboard('member_assistance.cases.open'),
+      // prettier-ignore
+      caseLabels: summary => ({ documentCount: t('detail.evidence'), nextStep: t('detail.progress.nextAction'), nextStepValue: nextStep(summary), reference: t('success.case_id'), referenceFallback: t('claim'), status: t('table.status'), statusValue: status(summary.status) }),
+      membershipStatus,
+      navigation: { ...nav, helpNow },
+      referenceFallback: t('claim'),
+      status,
+    };
+
+    return {
+      ok: true as const,
+      canDraft: draft,
+      caseTask: cases,
+      copy,
+      locale,
+      membershipTask: membership,
+    };
+  }
+}

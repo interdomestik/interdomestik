@@ -1,20 +1,34 @@
 'use server';
 
 import { createPublicTrackingLink as createPublicTrackingLinkCore } from '@/features/claims/tracking/server/createPublicTrackingLink';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { memberGuarded } from '@/lib/privacy/require-member-acceptance';
+import { actionFailure, defineAction } from '@/lib/safe-action';
+import { assertSessionContext } from '@/lib/safe-action.basis';
 import { ensureClaimsAccess } from '@/server/domains/claims/guards';
-import { UnauthorizedError } from '@interdomestik/shared-auth';
-import { headers } from 'next/headers';
+import type { AuthorizedSession } from '@/lib/tenant-authority.server';
+import { z } from 'zod';
 
-export async function createPublicTrackingLink(claimId: string) {
-  const authorized = await authorizeSessionTenant(await headers());
-  if (!authorized) throw new UnauthorizedError();
-  const access = ensureClaimsAccess(authorized.session);
-
-  return createPublicTrackingLinkCore(claimId, {
-    authority: authorized.authority,
-    actorUserId: access.userId,
-    role: access.role,
-    branchId: access.branchId,
+function trackingLinkAction(authorized: AuthorizedSession) {
+  return defineAction({
+    name: 'claims.createPublicTrackingLink',
+    basis: { kind: 'self' },
+    subject: { type: 'claim', from: 'claimId' },
+    input: z.strictObject({ claimId: z.string().min(1).max(128).regex(/^\S+$/u) }),
+    async handler({ claimId }) {
+      const { authority, session } = authorized;
+      assertSessionContext(session);
+      const access = ensureClaimsAccess(session);
+      const result = await createPublicTrackingLinkCore(claimId, {
+        authority,
+        actorUserId: access.userId,
+        role: access.role,
+        branchId: access.branchId,
+      });
+      return 'code' in result ? actionFailure(result.code) : result;
+    },
   });
 }
+
+export const createPublicTrackingLink = memberGuarded(async (authorized, claimId: string) =>
+  trackingLinkAction(authorized)({ claimId })
+);

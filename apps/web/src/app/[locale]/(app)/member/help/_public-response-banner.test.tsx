@@ -2,9 +2,10 @@ import { getFormatter, getTranslations } from 'next-intl/server';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  admit: vi.fn(),
   dateTime: vi.fn(() => 'May 4, 2026, 1:00 PM'),
   getMemberLatestPublicResponse: vi.fn(),
   routerRefresh: vi.fn(),
@@ -87,7 +88,28 @@ import { PublicResponseBanner } from './_public-response-banner';
 
 const authority = mintTestTenantAuthority('tenant-1');
 
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: mocks.admit,
+}));
+
 describe('PublicResponseBanner', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mocks.admit.mockResolvedValue({
+      ok: true,
+      authorized: { authority, session: { user: { id: 'member-1' } } },
+    });
+  });
+
+  it('returns no banner and creates no read when admission is refused', async () => {
+    mocks.admit.mockResolvedValueOnce({ ok: false, failure: { code: 'acceptance_required' } });
+    await expect(
+      PublicResponseBanner({ handoffId: 'handoff-1', locale: 'en', selectedClaim: null })
+    ).resolves.toBeNull();
+    expect(mocks.admit).toHaveBeenCalledOnce();
+    expect(mocks.getMemberLatestPublicResponse).not.toHaveBeenCalled();
+  });
+
   it('renders the latest public response with a localized timestamp', async () => {
     mocks.getMemberLatestPublicResponse.mockResolvedValueOnce({
       handoffId: 'handoff-1',
@@ -106,9 +128,7 @@ describe('PublicResponseBanner', () => {
       await PublicResponseBanner({
         handoffId: 'handoff-1',
         locale: 'en',
-        memberId: 'member-1',
         selectedClaim: { id: 'claim-1' },
-        authority,
       })
     );
 
@@ -163,9 +183,7 @@ describe('PublicResponseBanner', () => {
       await PublicResponseBanner({
         handoffId: 'handoff-1',
         locale: 'sq',
-        memberId: 'member-1',
         selectedClaim: null,
-        authority,
       })
     );
 
@@ -200,9 +218,7 @@ describe('PublicResponseBanner', () => {
       await PublicResponseBanner({
         handoffId: 'handoff-1',
         locale: 'en',
-        memberId: 'member-1',
         selectedClaim: null,
-        authority,
       })
     );
 
@@ -228,9 +244,7 @@ describe('PublicResponseBanner', () => {
       await PublicResponseBanner({
         handoffId: 'handoff-1',
         locale: 'en',
-        memberId: 'member-1',
         selectedClaim: null,
-        authority,
       })
     );
 
@@ -243,9 +257,7 @@ describe('PublicResponseBanner', () => {
 
     const ui = await PublicResponseBanner({
       locale: 'en',
-      memberId: 'member-1',
       selectedClaim: null,
-      authority,
     });
 
     expect(ui).toBeNull();
@@ -257,9 +269,7 @@ describe('PublicResponseBanner', () => {
 
     const ui = await PublicResponseBanner({
       locale: 'en',
-      memberId: 'member-1',
       selectedClaim: null,
-      authority,
     });
 
     expect(ui).toBeNull();

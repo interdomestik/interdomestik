@@ -1,5 +1,7 @@
 'use server';
 
+import { memberGuarded, runAdmittedAction } from '@/lib/privacy/require-member-acceptance';
+import type { AuthorizedSession } from '@/lib/tenant-authority.server';
 import { runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
 import { requireEffectivePortalAccessOrUnauthorized } from '@/server/auth/effective-portal-access';
 import { z } from 'zod';
@@ -65,47 +67,54 @@ export async function resolveTenantClassification(params: {
   });
 }
 
-export async function getUsers(
-  filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
-): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return getFilteredUsers(filters, true);
-}
+export const getUsers = memberGuarded(
+  async (
+    authorized,
+    filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
+  ): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> => {
+    return getFilteredUsers(authorized, filters, true);
+  }
+);
 
-export async function getUserChoices(
-  filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
-): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return getFilteredUsers(filters, false);
-}
+export const getUserChoices = memberGuarded(
+  async (
+    authorized,
+    filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
+  ): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> => {
+    return getFilteredUsers(authorized, filters, false);
+  }
+);
 
 async function getFilteredUsers(
+  authorized: AuthorizedSession,
   filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>,
   includeUnreadCounts: boolean
 ): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(
-    async ({ session, authority }) => {
-      await requireEffectivePortalAccessOrUnauthorized(session, [
-        'admin',
-        'tenant_admin',
-        'super_admin',
-      ]);
-      const validation = getUsersFiltersSchema.safeParse(filters);
-      if (!validation.success) {
-        throw new Error('Invalid filters');
-      }
-      const data = await getUsersCore({
-        session,
-        authority,
-        filters: validation.data,
-        includeUnreadCounts,
-      });
-      return data;
+  return runAdmittedAction(authorized, async () => {
+    const { session, authority } = authorized;
+    await requireEffectivePortalAccessOrUnauthorized(session, [
+      'admin',
+      'tenant_admin',
+      'super_admin',
+    ]);
+    const validation = getUsersFiltersSchema.safeParse(filters);
+    if (!validation.success) {
+      throw new Error('Invalid filters');
     }
-  );
+    const data = await getUsersCore({
+      session,
+      authority,
+      filters: validation.data,
+      includeUnreadCounts,
+    });
+    return data;
+  });
 }
 
-export async function getAgents(): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(
-    async ({ session, authority }) => {
+export const getAgents = memberGuarded(
+  async (authorized): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> => {
+    return runAdmittedAction(authorized, async () => {
+      const { session, authority } = authorized;
       await requireEffectivePortalAccessOrUnauthorized(session, [
         'admin',
         'tenant_admin',
@@ -118,13 +127,14 @@ export async function getAgents(): ActionResult<Awaited<ReturnType<typeof getUse
         includeUnreadCounts: false,
       });
       return data;
-    }
-  );
-}
+    });
+  }
+);
 
-export async function getStaff(): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(
-    async ({ session, authority }) => {
+export const getStaff = memberGuarded(
+  async (authorized): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> => {
+    return runAdmittedAction(authorized, async () => {
+      const { session, authority } = authorized;
       await requireEffectivePortalAccessOrUnauthorized(session, [
         'admin',
         'tenant_admin',
@@ -136,6 +146,6 @@ export async function getStaff(): ActionResult<Awaited<ReturnType<typeof getUser
         filters: { role: 'staff,tenant_admin,branch_manager' },
       });
       return data;
-    }
-  );
-}
+    });
+  }
+);

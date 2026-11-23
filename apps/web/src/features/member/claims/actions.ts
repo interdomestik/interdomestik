@@ -2,7 +2,7 @@
 
 import { ClaimDocumentUploadConflictError } from '@/features/claims/upload/server/claim-document-upload-conflict';
 
-import { auth } from '@/lib/auth';
+import type { AuthorizedSession } from '@/lib/tenant-authority.server';
 import { resolveMemberActorRoleOnSession } from '@/app/[locale]/(app)/member/actor-role-on-session';
 import {
   createSignedUploadUrl,
@@ -16,12 +16,11 @@ import {
   findOwnedMemberUploadClaim,
 } from '@/features/claims/upload/server/access';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
-import { headers } from 'next/headers';
 import { z } from 'zod';
 import { buildMemberAiExtractionConsent, type ConfirmUploadParams } from './upload-consent';
 
@@ -38,7 +37,7 @@ export type GenerateUploadUrlResult =
       deterministicE2E?: true;
       intentToken: string;
     }
-  | { success: false; error: string; status: 400 | 401 | 404 | 413 | 500 };
+  | { success: false; error: string; status: 400 | 401 | 403 | 404 | 413 | 500 };
 
 export async function generateUploadUrl(
   claimId: string,
@@ -48,19 +47,15 @@ export async function generateUploadUrl(
   informationRequestId?: string,
   storageContentType?: string
 ): Promise<GenerateUploadUrlResult> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    return { success: false, error: 'Unauthorized', status: 401 };
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) {
+    return {
+      success: false,
+      error: admission.failure.code,
+      status: admission.failure.code === 'UNAUTHORIZED' ? 401 : 403,
+    };
   }
-
-  const actorRole = resolveMemberActorRoleOnSession(session.user.role);
-  if (!actorRole) return { success: false, error: 'Unauthorized', status: 401 };
-  const authorized = await authorizeSessionTenant(await headers());
-  if (!authorized) return { success: false, error: 'Unauthorized', status: 401 };
-  const { authority } = authorized;
+  const { session, authority } = admission.authorized;
   const { tenantId } = readTenantAuthority(authority);
   let evidenceBucket: string;
   try {
@@ -118,40 +113,38 @@ export async function generateUploadUrl(
 }
 
 export type ConfirmUploadResult =
-  { success: true } | { success: false; error: string; status: 400 | 401 | 404 | 409 | 500 };
+  { success: true } | { success: false; error: string; status: 400 | 401 | 403 | 404 | 409 | 500 };
 
 type ConfirmUploadContext =
   | {
       success: true;
       actorRole: string;
-      session: NonNullable<Awaited<ReturnType<typeof auth.api.getSession>>>;
+      session: AuthorizedSession['session'];
       authority: TenantAuthority;
       tenantId: string;
       resolvedBucket: string;
     }
-  | { success: false; error: string; status: 401 | 500 };
+  | { success: false; error: string; status: 401 | 403 | 500 };
 
 async function resolveConfirmUploadContext(): Promise<ConfirmUploadContext> {
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
-
-  if (!session) {
-    return { success: false, error: 'Unauthorized', status: 401 };
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) {
+    return {
+      success: false,
+      error: admission.failure.code,
+      status: admission.failure.code === 'UNAUTHORIZED' ? 401 : 403,
+    };
   }
-
+  const { session, authority } = admission.authorized;
   const actorRole = resolveMemberActorRoleOnSession(session.user.role);
   if (!actorRole) return { success: false, error: 'Unauthorized', status: 401 };
-
   try {
-    const authorized = await authorizeSessionTenant(await headers());
-    if (!authorized) return { success: false, error: 'Unauthorized', status: 401 };
     return {
       success: true,
       actorRole,
       session,
-      authority: authorized.authority,
-      tenantId: readTenantAuthority(authorized.authority).tenantId,
+      authority,
+      tenantId: readTenantAuthority(authority).tenantId,
       resolvedBucket: resolveEvidenceBucketName(),
     };
   } catch (error) {

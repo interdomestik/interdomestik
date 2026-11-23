@@ -20,7 +20,7 @@ const hoisted = vi.hoisted(() => {
   };
 });
 
-vi.mock('@interdomestik/database', () => {
+vi.mock('@interdomestik/database/tenant-authority-context', () => {
   const db = {
     query: {
       documentExtractions: {
@@ -35,13 +35,9 @@ vi.mock('@interdomestik/database', () => {
     },
   };
   return {
-    and: hoisted.and,
-    db,
-    withTenantContext: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
+    withTenantAuthority: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
       callback(db)
     ),
-    eq: hoisted.eq,
-    inArray: hoisted.inArray,
   };
 });
 
@@ -63,9 +59,15 @@ vi.mock('drizzle-orm', () => ({
 
 import { getPoliciesWithDocumentLinksCore } from './_core';
 
-describe('getPoliciesWithDocumentLinksCore', () => {
-  const authority = mintTestTenantAuthority('tenant-1');
+const authority = mintTestTenantAuthority('tenant-1');
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: async () => ({
+    ok: true,
+    authorized: { authority, session: { user: { id: 'user-1' } } },
+  }),
+}));
 
+describe('getPoliciesWithDocumentLinksCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.findPoliciesMany.mockResolvedValue([]);
@@ -103,10 +105,7 @@ describe('getPoliciesWithDocumentLinksCore', () => {
       { id: 'doc-old', entityId: 'policy-1' },
     ]);
 
-    const result = await getPoliciesWithDocumentLinksCore({
-      authority,
-      userId: 'user-1',
-    });
+    const result = await getPoliciesWithDocumentLinksCore();
 
     expect(result).toEqual([
       expect.objectContaining({
@@ -138,10 +137,7 @@ describe('getPoliciesWithDocumentLinksCore', () => {
       },
     ]);
 
-    const result = await getPoliciesWithDocumentLinksCore({
-      authority,
-      userId: 'user-1',
-    });
+    const result = await getPoliciesWithDocumentLinksCore();
 
     expect(result).toEqual([
       expect.objectContaining({
@@ -195,10 +191,7 @@ describe('getPoliciesWithDocumentLinksCore', () => {
       return [];
     });
 
-    const result = await getPoliciesWithDocumentLinksCore({
-      authority,
-      userId: 'user-1',
-    });
+    const result = await getPoliciesWithDocumentLinksCore();
 
     expect(result).toEqual([expect.objectContaining({ documentDownloadHref: '' })]);
   });

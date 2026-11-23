@@ -32,48 +32,35 @@ type CreatePublicTrackingLinkContext = {
 export async function createPublicTrackingLink(
   claimId: string,
   context: CreatePublicTrackingLinkContext
-): Promise<{ url: string; expiresAt: Date }> {
+): Promise<{ url: string; expiresAt: Date } | { code: 'NOT_FOUND' | 'conflict' }> {
   return Sentry.withServerActionInstrumentation(
     'claims.tracking.create_link',
-    { recordResponse: true },
+    { recordResponse: false },
     async () => {
       const { authority, actorUserId, role, branchId } = context;
       const { tenantId } = readTenantAuthority(authority);
 
-      // Verify visibility
-      const visibilityCondition = buildClaimVisibilityWhere({
+      const visibility = buildClaimVisibilityWhere({
         tenantId,
         userId: actorUserId,
         role,
         branchId,
       });
+      try {
+        return await withTenantAuthority(authority, async tx => {
+          // Serialize replacement even when the claim has no previous token.
+          const [claim] = await tx
+            .select({ id: claims.id })
+            .from(claims)
+            .where(and(eq(claims.id, claimId), visibility))
+            .for('update', { noWait: true });
+          if (!claim) return { code: 'NOT_FOUND' } as const;
 
-      // db-access-guard: tenant-scoped -- reason: tenant predicate built by claim visibility helper before tracking link claim lookup
-      const claim = await withTenantAuthority(
-        authority,
-        async tx =>
-          await tx.query.claims.findFirst({
-            where: and(eq(claims.id, claimId), visibilityCondition),
-            columns: { id: true, tenantId: true },
-          })
-      );
+          const token = crypto.randomBytes(32).toString('base64url');
+          const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+          const expiresAt = new Date();
+          expiresAt.setDate(expiresAt.getDate() + 7);
 
-      if (!claim) {
-        throw new Error('Claim not found or access denied');
-      }
-
-      // 2. Generate Token
-      const tokenBuffer = crypto.randomBytes(32);
-      const token = tokenBuffer.toString('base64url');
-      const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
-
-      const expiresAt = new Date();
-      expiresAt.setDate(expiresAt.getDate() + 7); // 7 days TTL
-
-      // 3. Revoke previous tokens (Optional but strictly safer as per plan)
-      await withTenantAuthority(
-        authority,
-        async tx =>
           await tx
             .update(claimTrackingTokens)
             .set({ revokedAt: new Date() })
@@ -86,29 +73,24 @@ export async function createPublicTrackingLink(
                 ),
                 isNull(claimTrackingTokens.revokedAt)
               )
-            )
-      );
-
-      // 4. Store Hash
-      // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-      await withTenantAuthority(
-        authority,
-        async tx =>
-          await tx.insert(claimTrackingTokens).values({
-            tenantId: claim.tenantId,
-            claimId: claim.id,
-            tokenHash,
-            expiresAt,
-          })
-      );
-
-      // 5. Return URL
-      const baseUrl = getBaseUrl();
-      const url = `${baseUrl}/track/${token}`;
-
-      return { url, expiresAt };
+            );
+          await tx
+            .insert(claimTrackingTokens)
+            .values({ tenantId, claimId: claim.id, tokenHash, expiresAt });
+          return { url: `${getBaseUrl()}/track/${token}`, expiresAt };
+        });
+      } catch (error) {
+        const pgError = error instanceof Error && error.cause ? error.cause : error;
+        if (
+          pgError &&
+          typeof pgError === 'object' &&
+          'code' in pgError &&
+          pgError.code === '55P03'
+        ) {
+          return { code: 'conflict' } as const;
+        }
+        throw error;
+      }
     }
   );
 }
-
-// Minimal Auth Stub if not found (will verify file existence next)

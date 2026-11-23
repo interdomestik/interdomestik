@@ -5,7 +5,7 @@ import type { ClaimMatterAllowanceDto } from '@/features/claims/tracking/types';
 vi.mock('@interdomestik/domain-claims', () => ({ getInformationRequests: vi.fn(async () => []) }));
 
 const hoisted = vi.hoisted(() => ({
-  getSessionSafeMock: vi.fn(async () => ({
+  session: vi.fn(async () => ({
     user: {
       id: 'member-1',
       name: 'Member One',
@@ -59,7 +59,7 @@ const hoisted = vi.hoisted(() => ({
   memberClaimDetailOpsPageMock: vi.fn((props: unknown) => (
     <div data-testid="member-claim-detail-ops-page">{JSON.stringify(props)}</div>
   )),
-  authorizeSessionTenantMock: vi.fn(),
+  admit: vi.fn(),
   redirectMock: vi.fn(),
   notFoundMock: vi.fn(() => {
     throw new Error('notFound');
@@ -77,16 +77,12 @@ vi.mock('next/navigation', () => ({
   notFound: hoisted.notFoundMock,
 }));
 
-vi.mock('@/components/shell/session', () => ({
-  getSessionSafe: hoisted.getSessionSafeMock,
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireMemberAcceptancePage: hoisted.admit,
 }));
 
-vi.mock('next/headers', () => ({
-  headers: vi.fn(async () => new Headers()),
-}));
-
-vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionTenant: hoisted.authorizeSessionTenantMock,
+vi.mock('@/components/privacy/member-acceptance-step', () => ({
+  MemberAcceptanceStep: () => <div data-testid="acceptance-step-ready" />,
 }));
 
 vi.mock('@/features/claims/tracking/server/getMemberClaimDetail', () => ({
@@ -102,20 +98,18 @@ import { getInformationRequests } from '@interdomestik/domain-claims';
 
 describe('ClaimDetailsPage', () => {
   const authority = mintTestTenantAuthority('tenant-ks');
-  beforeEach(() => {
-    hoisted.authorizeSessionTenantMock.mockResolvedValue({
-      session: { user: { id: 'member-1' } },
-      authority,
+  beforeEach(async () => {
+    vi.clearAllMocks();
+    hoisted.admit.mockResolvedValue({
+      ok: true,
+      authorized: { session: await hoisted.session(), authority },
     });
   });
 
   it('loads the claim detail under the request session tenant authority', async () => {
     render(await ClaimDetailsPage({ params: Promise.resolve({ locale: 'en', id: 'claim-1' }) }));
-    expect(hoisted.getMemberClaimDetailMock).toHaveBeenLastCalledWith(
-      expect.objectContaining({ user: expect.objectContaining({ id: 'member-1' }) }),
-      authority,
-      'claim-1'
-    );
+    expect(hoisted.admit).toHaveBeenCalledOnce();
+    expect(hoisted.getMemberClaimDetailMock).toHaveBeenCalledExactlyOnceWith('claim-1');
   });
 
   it('reads information requests under the same session authority', async () => {
@@ -126,15 +120,13 @@ describe('ClaimDetailsPage', () => {
     expect(call[2]).toBe('claim-1');
   });
 
-  it('passes no authority when the request has no authorized session', async () => {
-    hoisted.authorizeSessionTenantMock.mockResolvedValue(null);
-    vi.mocked(getInformationRequests).mockClear();
-    await ClaimDetailsPage({ params: Promise.resolve({ locale: 'en', id: 'claim-1' }) });
-    expect(hoisted.getMemberClaimDetailMock).toHaveBeenLastCalledWith(
-      expect.anything(),
-      null,
-      'claim-1'
-    );
+  it('renders the acceptance step and never reads claim data for a refused request', async () => {
+    hoisted.admit.mockResolvedValue({ ok: false, failure: { code: 'acceptance_required' } });
+    render(await ClaimDetailsPage({ params: Promise.resolve({ locale: 'en', id: 'claim-1' }) }));
+    expect(screen.getByTestId('acceptance-step-ready')).toBeInTheDocument();
+    expect(screen.queryByTestId('member-claim-detail-ops-page')).not.toBeInTheDocument();
+    expect(hoisted.getMemberClaimDetailMock).not.toHaveBeenCalled();
+    expect(getInformationRequests).not.toHaveBeenCalled();
   });
 
   it('passes the typed allowance boundaries to the canonical UI unchanged', async () => {
@@ -179,7 +171,7 @@ describe('ClaimDetailsPage', () => {
     render(tree);
 
     expect(screen.getByTestId('member-claim-detail-ops-page')).toBeInTheDocument();
-    expect(hoisted.getSessionSafeMock).toHaveBeenCalledWith('MemberClaimDetailsPage');
+    expect(hoisted.admit).toHaveBeenCalledOnce();
     expect(hoisted.memberClaimDetailOpsPageMock).toHaveBeenCalledWith(
       expect.objectContaining({
         currentUser: {

@@ -25,6 +25,43 @@ export default tseslint.config(
   },
   ...tseslint.configs.recommended,
   {
+    files: ['src/**/*.{js,jsx,mjs,cjs,ts,tsx,mts,cts}'],
+    rules: {
+      '@typescript-eslint/no-require-imports': 'error',
+      'no-restricted-globals': [
+        'error',
+        { name: 'require', message: 'Use ES module imports to load application dependencies.' },
+        { name: 'module', message: 'Use ES module imports to load application dependencies.' },
+      ],
+      'no-restricted-imports': [
+        'error',
+        {
+          paths: ['node:module', 'module'].map(name => ({
+            name,
+            message: 'Use ES module imports to load application dependencies.',
+          })),
+        },
+      ],
+      'no-restricted-syntax': [
+        'error',
+        {
+          selector: 'ImportExpression[source.value=/^(node:)?module$/]',
+          message: 'Use named imports for Node module utilities.',
+        },
+        {
+          selector:
+            'ImportExpression > TemplateLiteral.source > TemplateElement[value.cooked=/^(node:)?module$/]',
+          message: 'Use named imports for Node module utilities.',
+        },
+        {
+          selector:
+            'ImportExpression > TemplateLiteral.source > TemplateElement[value.cooked=/^node:/]',
+          message: 'Load Node built-ins with static imports.',
+        },
+      ],
+    },
+  },
+  {
     files: ['**/*.{ts,tsx}'],
     plugins: {
       '@next/next': nextPlugin,

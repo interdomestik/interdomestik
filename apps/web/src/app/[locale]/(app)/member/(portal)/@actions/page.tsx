@@ -10,6 +10,7 @@ export default async function MemberActionsSlot({
 }: Readonly<{ params: Promise<{ locale: string }> }>) {
   const { locale } = await params;
   const context = await getMemberPortalContext(locale);
+  if (!context.ok) return null;
   return (
     <Suspense
       fallback={<MemberPortalRegionBoundary copy={context.copy.regions.actions} state="loading" />}

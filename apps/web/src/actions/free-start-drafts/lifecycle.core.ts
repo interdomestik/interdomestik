@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 import { freeStartDraftPayloadSchema } from '@/lib/validators/free-start-draft';
 
-import { resolveFreeStartDraftSession } from './session.core';
+import { resolveFreeStartDraftSession, type FreeStartDraftSessionResult } from './session.core';
 
 /**
  * The account/tenant the client believes it captured. It is compared against fresh server
@@ -60,10 +60,12 @@ const defaultDependencies: FreeStartDraftLifecycleDependencies = {
   updateDraft: updateFreeStartDraft,
 };
 
-type BoundaryFailure = {
-  ok: false;
-  code: 'authRequired' | 'invalid' | 'unavailable' | 'unavailableAccountContext';
-};
+type BoundaryFailure =
+  | Extract<FreeStartDraftSessionResult, { ok: false }>
+  | {
+      ok: false;
+      code: 'invalid';
+    };
 
 function facts(input: z.infer<typeof freeStartDraftPayloadSchema>): FreeStartDraftFacts {
   return {

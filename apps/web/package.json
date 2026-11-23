@@ -50,6 +50,7 @@
     "@interdomestik/domain-leads": "workspace:*",
     "@interdomestik/domain-member": "workspace:*",
     "@interdomestik/domain-membership-billing": "workspace:*",
+    "@interdomestik/domain-privacy": "workspace:*",
     "@interdomestik/domain-referrals": "workspace:*",
     "@interdomestik/domain-users": "workspace:*",
     "@interdomestik/shared-auth": "workspace:*",

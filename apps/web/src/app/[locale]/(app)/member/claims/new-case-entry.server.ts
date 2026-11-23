@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
-import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
 import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import { ensureTenantId } from '@interdomestik/shared-auth';
@@ -38,14 +38,15 @@ async function canKeepPreMembershipDraft(session: EntrySession): Promise<boolean
  * admission: members with access open a case, members who may keep a pre-membership draft open
  * the draft-only intake, and everyone else is sent to their membership instead of a dead end.
  */
-export async function resolveMemberNewCaseEntry(
-  session: EntrySession
-): Promise<MemberNewCaseEntry> {
+export async function resolveMemberNewCaseEntry(): Promise<MemberNewCaseEntry> {
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) return MEMBERSHIP_ENTRY;
+  const { session, authority } = admission.authorized;
   const canDraft = await canKeepPreMembershipDraft(session);
   try {
-    const authority = await authorizeSessionUserTenant(session.user.id);
-    if (authority && (await hasActiveMembership(session.user.id, authority))) return CASE_ENTRY;
-  } catch {
+    if (await hasActiveMembership(session.user.id, authority)) return CASE_ENTRY;
+  } catch (error) {
+    console.error('Member case-entry membership lookup failed', error);
     // The intake page re-checks access; a draft-eligible member keeps the door that admits them
     // with or without membership.
     return canDraft ? DRAFT_ENTRY : CASE_ENTRY;

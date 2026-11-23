@@ -1,3 +1,4 @@
+import '@/test/tenant-transaction.test-support';
 import { claims } from '@interdomestik/database/schema';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';

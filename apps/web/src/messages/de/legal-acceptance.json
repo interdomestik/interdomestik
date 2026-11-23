@@ -1,0 +1,27 @@
+{
+  "legal-acceptance": {
+    "heading": "Bevor Sie fortfahren",
+    "intro": "Bitte lesen Sie die folgenden Dokumente, um Ihr Mitgliederportal zu öffnen.",
+    "readTerms": "Bedingungen lesen",
+    "readPrivacyNotice": "Datenschutzhinweise lesen",
+    "acceptTerms": "Ich akzeptiere die Bedingungen",
+    "acknowledgePrivacyNotice": "Ich habe die Datenschutzhinweise gelesen",
+    "version": "Version {version}",
+    "continue": "Weiter",
+    "saving": "Wird gespeichert…",
+    "opening": "Ihr Portal wird geöffnet…",
+    "stale": "Der Text wurde geändert. Bitte lesen Sie die neue Fassung.",
+    "unavailable": "Die Dokumente können derzeit nicht angezeigt werden.",
+    "contactOffice": "Bitte wenden Sie sich an Ihre Geschäftsstelle.",
+    "pendingApproval": "Die Aktivierung ist in Kürze verfügbar.",
+    "saveError": "Ihre Bestätigung konnte nicht gespeichert werden.",
+    "retry": "Erneut versuchen",
+    "signOut": "Abmelden",
+    "openError": "Ihr Portal konnte nicht geöffnet werden.",
+    "confirmBoth": "Wenn Sie fortfahren, akzeptieren Sie die Bedingungen und bestätigen, dass Sie die Datenschutzhinweise gelesen haben.",
+    "confirmTerms": "Wenn Sie fortfahren, akzeptieren Sie die Bedingungen.",
+    "confirmPrivacyNotice": "Wenn Sie fortfahren, bestätigen Sie, dass Sie die Datenschutzhinweise gelesen haben.",
+    "reviewPending": "Rechtliche Prüfung ausstehend",
+    "signOutError": "Sie konnten nicht abgemeldet werden."
+  }
+}

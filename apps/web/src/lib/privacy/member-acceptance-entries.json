@@ -1,0 +1,1679 @@
+{
+  "actions/activities.core.ts#getLeadActivities": {
+    "disposition": "defect_fixed_elsewhere",
+    "evidence": "packages/domain-activities/src/get-lead.ts:34",
+    "proof": "38dbd0b7c63c"
+  },
+  "actions/activities.core.ts#getMemberActivities": {
+    "disposition": "checked",
+    "via": "actions/activities/context.core.ts#getAuthorizedActivityRequest"
+  },
+  "actions/activities.core.ts#logActivity": {
+    "disposition": "defect_fixed_elsewhere",
+    "evidence": "packages/domain-activities/src/log-member.ts:50",
+    "proof": "40b8fc42b598"
+  },
+  "actions/activities.core.ts#logLeadActivity": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-activities/src/log-lead.ts:24",
+    "proof": "5920f6dd7346"
+  },
+  "actions/admin-access.ts#canAccessAdmin": {
+    "disposition": "exempt",
+    "reason": "Shell access verdict only",
+    "evidence": "apps/web/src/actions/admin-access.ts:8"
+  },
+  "actions/admin-claims.core.ts#updateClaimStatus": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-claims/update-status.core.ts:50",
+    "proof": "c0a7159e8b0c"
+  },
+  "actions/admin-claims.ts#updateClaimStatus": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-claims/update-status.core.ts:50",
+    "proof": "c0a7159e8b0c"
+  },
+  "actions/admin-rbac.core.ts#createBranch": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:76",
+    "proof": "752e375dfbf2"
+  },
+  "actions/admin-rbac.core.ts#deleteBranch": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:160",
+    "proof": "7a64beb2b242"
+  },
+  "actions/admin-rbac.core.ts#grantUserRole": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:219",
+    "proof": "c4c1bd72c325"
+  },
+  "actions/admin-rbac.core.ts#listBranches": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:45",
+    "proof": "b52fc6bd798a"
+  },
+  "actions/admin-rbac.core.ts#listUserRoles": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:187",
+    "proof": "69a34e9f1b76"
+  },
+  "actions/admin-rbac.core.ts#revokeUserRole": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:264",
+    "proof": "26beb263c707"
+  },
+  "actions/admin-rbac.core.ts#updateBranch": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:129",
+    "proof": "3e4dbd62e2cf"
+  },
+  "actions/admin-rbac.ts#createBranch": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:76",
+    "proof": "752e375dfbf2"
+  },
+  "actions/admin-rbac.ts#deleteBranch": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:160",
+    "proof": "7a64beb2b242"
+  },
+  "actions/admin-rbac.ts#grantUserRole": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:219",
+    "proof": "c4c1bd72c325"
+  },
+  "actions/admin-rbac.ts#listBranches": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:45",
+    "proof": "b52fc6bd798a"
+  },
+  "actions/admin-rbac.ts#listUserRoles": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:187",
+    "proof": "69a34e9f1b76"
+  },
+  "actions/admin-rbac.ts#revokeUserRole": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:264",
+    "proof": "26beb263c707"
+  },
+  "actions/admin-rbac.ts#updateBranch": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-rbac.core.ts:129",
+    "proof": "3e4dbd62e2cf"
+  },
+  "actions/admin-settings.core.ts#adminUpdateSettings": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-settings/update.core.ts:31",
+    "proof": "04b6a6d745c9"
+  },
+  "actions/admin-settings.ts#adminUpdateSettings": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-settings/update.core.ts:31",
+    "proof": "04b6a6d745c9"
+  },
+  "actions/admin-users.core.ts#getAgents": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/admin-users.core.ts#getStaff": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/admin-users.core.ts#getUserChoices": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/admin-users.core.ts#getUsers": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/admin-users.core.ts#resolveTenantClassification": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-users/src/admin/resolve-tenant-classification.ts:42",
+    "proof": "d56f6563ed17"
+  },
+  "actions/admin-users.core.ts#updateUserAgent": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-users/src/admin/update-user-agent.ts:22",
+    "proof": "bf031ce02d37"
+  },
+  "actions/admin-users.ts#getAgents": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/admin-users.ts#getStaff": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/admin-users.ts#getUserChoices": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/admin-users.ts#getUsers": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/admin-users.ts#resolveTenantClassification": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-users/src/admin/resolve-tenant-classification.ts:42",
+    "proof": "2742576ec357"
+  },
+  "actions/admin-users.ts#updateUserAgent": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-users/src/admin/update-user-agent.ts:22",
+    "proof": "5692fc8d1a11"
+  },
+  "actions/agent-claims.core.ts#updateClaimStatus": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-claims/src/agent-claims/update-status.ts:48",
+    "proof": "9977f59b6f3c"
+  },
+  "actions/agent-claims.ts#updateClaimStatus": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-claims/src/agent-claims/update-status.ts:48",
+    "proof": "9977f59b6f3c"
+  },
+  "actions/agent-crm-follow-up.ts#completeAgentLeadFollowUp": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/agent-crm-follow-up.core.ts:49",
+    "proof": "14a2dd227ab2"
+  },
+  "actions/agent-crm-follow-up.ts#scheduleAgentLeadFollowUp": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/agent-crm-follow-up.core.ts:49",
+    "proof": "bd2bb6713ec9"
+  },
+  "actions/agent-dashboard.core.ts#getAgentDashboardData": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/agent-dashboard/get.core.ts:36",
+    "proof": "2950c6cc3d34"
+  },
+  "actions/agent-dashboard.ts#getAgentDashboardData": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/agent-dashboard/get.core.ts:36",
+    "proof": "2950c6cc3d34"
+  },
+  "actions/agent-settings.core.ts#getAgentSettings": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/agent-settings.core.ts#updateAgentCommissionRates": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/agent-settings/update-rates.core.ts:25",
+    "proof": "d6fb22dec6d9"
+  },
+  "actions/agent-settings.core.ts#updateAgentTier": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/agent-settings/update-tier.core.ts:25",
+    "proof": "746a293322e9"
+  },
+  "actions/agent-settings.ts#getAgentSettings": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/agent-settings.ts#updateAgentCommissionRates": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/agent-settings/update-rates.core.ts:25",
+    "proof": "d6fb22dec6d9"
+  },
+  "actions/agent-settings.ts#updateAgentTier": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/agent-settings/update-tier.core.ts:25",
+    "proof": "746a293322e9"
+  },
+  "actions/agent-users.core.ts#getAgentUsers": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-users/src/agent/get-users.ts:46",
+    "proof": "888d7f2f3e79"
+  },
+  "actions/agent-users.ts#getAgentUsers": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-users/src/agent/get-users.ts:46",
+    "proof": "888d7f2f3e79"
+  },
+  "actions/analytics.core.ts#getAdminAnalytics": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/analytics/get-admin.core.ts:28",
+    "proof": "22c7c5a068a2"
+  },
+  "actions/analytics.ts#getAdminAnalytics": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/analytics/get-admin.core.ts:28",
+    "proof": "22c7c5a068a2"
+  },
+  "actions/analytics/v2.ts#getBranchKPIsAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/analytics/v2.ts:53",
+    "proof": "254bd5646555"
+  },
+  "actions/analytics/v2.ts#getSuperAdminKPIsAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/analytics/v2.ts:15",
+    "proof": "a3065e8362bd"
+  },
+  "actions/analytics/v2.ts#getTenantAdminKPIsAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/analytics/v2.ts:28",
+    "proof": "590ca70eb69d"
+  },
+  "actions/analytics/v3.ts#getAgentCapacityAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/analytics/v3.ts:42",
+    "proof": "1093da432de2"
+  },
+  "actions/analytics/v3.ts#getBranchStressAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/analytics/v3.ts:29",
+    "proof": "f336fb22ef7d"
+  },
+  "actions/analytics/v3.ts#getClaimLoadForecastAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/analytics/v3.ts:15",
+    "proof": "4a1b6c823b50"
+  },
+  "actions/billing-test.ts#mockActivateSubscription": {
+    "disposition": "exempt",
+    "reason": "env_guard_test_only",
+    "evidence": "apps/web/src/actions/billing-test.ts:21",
+    "via": "lib/privacy/require-member-acceptance.ts#resolveMemberAcceptanceForRequest"
+  },
+  "actions/branch-dashboard.core.ts#getBranchAgents": {
+    "disposition": "exempt",
+    "reason": "Internal read requires an unforgeable in-process TenantAuthority; RPC input cannot supply one",
+    "evidence": "apps/web/src/actions/branch-dashboard.core.ts:173"
+  },
+  "actions/branch-dashboard.core.ts#getBranchById": {
+    "disposition": "exempt",
+    "reason": "Internal read requires an unforgeable in-process TenantAuthority; RPC input cannot supply one",
+    "evidence": "apps/web/src/actions/branch-dashboard.core.ts:33"
+  },
+  "actions/branch-dashboard.core.ts#getBranchStats": {
+    "disposition": "exempt",
+    "reason": "Internal read requires an unforgeable in-process TenantAuthority; RPC input cannot supply one",
+    "evidence": "apps/web/src/actions/branch-dashboard.core.ts:68"
+  },
+  "actions/branch-dashboard.ts#getBranchDashboard": {
+    "disposition": "defect_fixed_elsewhere",
+    "evidence": "apps/web/src/actions/branch-dashboard.ts:52",
+    "proof": "77c2246c1466"
+  },
+  "actions/claim-pack.core.ts#generateClaimPackAction": {
+    "disposition": "exempt",
+    "reason": "Public help-now guidance generated from caller-supplied facts",
+    "evidence": "apps/web/src/actions/claim-pack.core.ts:101"
+  },
+  "actions/claim-pack.core.ts#generateClaimPackCore": {
+    "disposition": "exempt",
+    "reason": "Public help-now guidance generated from caller-supplied facts",
+    "evidence": "apps/web/src/actions/claim-pack.core.ts:101"
+  },
+  "actions/claims-tracking.ts#createPublicTrackingLink": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/claims.core.ts#cancelClaim": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/claims.core.ts#createClaim": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/claims.core.ts#submitClaim": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/claims.core.ts#updateClaimStatus": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/claims.core.ts#updateDraftClaim": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/claims.ts#cancelClaim": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/claims.ts#createClaim": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/claims.ts#updateClaimStatus": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/claims.ts#updateDraftClaim": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/claims/create-from-saved-draft.ts#createClaimFromSavedDraft": {
+    "disposition": "checked",
+    "via": "actions/free-start-drafts/session.core.ts#resolveFreeStartDraftSession"
+  },
+  "actions/claims/create-from-saved-draft.ts#lookupSavedDraftClaim": {
+    "disposition": "checked",
+    "via": "actions/free-start-drafts/session.core.ts#resolveFreeStartDraftSession"
+  },
+  "actions/commissions.admin.core.ts#bulkApproveCommissions": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/admin/access.ts:13",
+    "proof": "42c5404212b8"
+  },
+  "actions/commissions.admin.core.ts#getAllCommissions": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/admin/access.ts:19",
+    "proof": "6df5c84d0273"
+  },
+  "actions/commissions.admin.core.ts#getGlobalCommissionSummary": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/admin/access.ts:13",
+    "proof": "9eebd2af2738"
+  },
+  "actions/commissions.admin.core.ts#updateCommissionStatus": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/admin/access.ts:19",
+    "proof": "0d9262b8cf4f"
+  },
+  "actions/commissions.admin.ts#bulkApproveCommissions": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/admin/access.ts:13",
+    "proof": "42c5404212b8"
+  },
+  "actions/commissions.admin.ts#getAllCommissions": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/admin/access.ts:19",
+    "proof": "6df5c84d0273"
+  },
+  "actions/commissions.admin.ts#getGlobalCommissionSummary": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/admin/access.ts:13",
+    "proof": "9eebd2af2738"
+  },
+  "actions/commissions.admin.ts#updateCommissionStatus": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/admin/access.ts:19",
+    "proof": "0d9262b8cf4f"
+  },
+  "actions/commissions.core.ts#getMyCommissionSummary": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/summary.ts:19",
+    "proof": "059ac8440318"
+  },
+  "actions/commissions.core.ts#getMyCommissions": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/get-my.ts:25",
+    "proof": "bac8106d2857"
+  },
+  "actions/commissions.ts#getMyCommissionSummary": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/summary.ts:19",
+    "proof": "059ac8440318"
+  },
+  "actions/commissions.ts#getMyCommissions": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-membership-billing/src/commissions/get-my.ts:25",
+    "proof": "bac8106d2857"
+  },
+  "actions/country-guidance.ts#getCountryGuidanceAction": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/crm-tasks.ts#assignCrmTaskAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "c344a3e0245b"
+  },
+  "actions/crm-tasks.ts#cancelCrmTaskAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "1cf6a4f1dc15"
+  },
+  "actions/crm-tasks.ts#cancelCrmTaskActionWithGuard": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "3b3a9a7d5ad6"
+  },
+  "actions/crm-tasks.ts#completeCrmTaskAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "173773f02675"
+  },
+  "actions/crm-tasks.ts#createCrmTaskAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "b7c66b3f1272"
+  },
+  "actions/crm-tasks.ts#readCrmTaskAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "d36be815682e"
+  },
+  "actions/crm-tasks.ts#reopenCrmTaskAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "85e4f329f6a9"
+  },
+  "actions/crm-tasks.ts#reopenCrmTaskActionWithGuard": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "64f84c3674e3"
+  },
+  "actions/crm-tasks.ts#startCrmTaskAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "7595c1c92281"
+  },
+  "actions/crm-tasks.ts#updateCrmTaskDueAtAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "c8785b5a886b"
+  },
+  "actions/crm-tasks.ts#updateCrmTaskPriorityAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "ac50af7e72c4"
+  },
+  "actions/crm-tasks.ts#updateCrmTaskPriorityActionWithGuard": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "a8234d8539d3"
+  },
+  "actions/different-email-recovery.ts#confirmReplacementEmail": {
+    "disposition": "exempt",
+    "reason": "Auth-owned account recovery",
+    "evidence": "apps/web/src/actions/different-email-recovery.ts:1"
+  },
+  "actions/different-email-recovery.ts#startDifferentEmailRecovery": {
+    "disposition": "exempt",
+    "reason": "Auth-owned account recovery",
+    "evidence": "apps/web/src/actions/different-email-recovery.ts:1"
+  },
+  "actions/different-email-recovery.ts#submitCurrentEmailProof": {
+    "disposition": "exempt",
+    "reason": "Auth-owned account recovery",
+    "evidence": "apps/web/src/actions/different-email-recovery.ts:1"
+  },
+  "actions/free-start-drafts.ts#createFreeStartDraft": {
+    "disposition": "checked",
+    "via": "actions/free-start-drafts/session.core.ts#resolveFreeStartDraftSession"
+  },
+  "actions/free-start-drafts.ts#deleteFreeStartDraft": {
+    "disposition": "checked",
+    "via": "actions/free-start-drafts/session.core.ts#resolveFreeStartDraftSession"
+  },
+  "actions/free-start-drafts.ts#getFreeStartDraftAccount": {
+    "disposition": "checked",
+    "via": "actions/free-start-drafts/session.core.ts#resolveFreeStartDraftSession"
+  },
+  "actions/free-start-drafts.ts#listFreeStartDrafts": {
+    "disposition": "checked",
+    "via": "actions/free-start-drafts/session.core.ts#resolveFreeStartDraftSession"
+  },
+  "actions/free-start-drafts.ts#resumeFreeStartDraft": {
+    "disposition": "checked",
+    "via": "actions/free-start-drafts/session.core.ts#resolveFreeStartDraftSession"
+  },
+  "actions/free-start-drafts.ts#updateFreeStartDraft": {
+    "disposition": "checked",
+    "via": "actions/free-start-drafts/session.core.ts#resolveFreeStartDraftSession"
+  },
+  "actions/free-start.core.ts#submitFreeStartIntake": {
+    "disposition": "exempt",
+    "reason": "Public intake of caller-supplied facts, no existing member records returned",
+    "evidence": "apps/web/src/actions/free-start.core.ts:9"
+  },
+  "actions/leaderboard.core.ts#getAgentLeaderboard": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/leaderboard/get.core.ts:33",
+    "proof": "c894faf71076"
+  },
+  "actions/leaderboard.ts#getAgentLeaderboard": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/leaderboard/get.core.ts:33",
+    "proof": "c894faf71076"
+  },
+  "actions/leads/create.ts#createLeadAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/agent/leads/server/create-agent-lead.ts:126",
+    "proof": "1acc914b4bca"
+  },
+  "actions/leads/dashboard.ts#listLeadsAction": {
+    "disposition": "defect_fixed_elsewhere",
+    "evidence": "apps/web/src/actions/leads/dashboard.ts:16",
+    "proof": "35c2d94bdd8f"
+  },
+  "actions/leads/payment.ts#startPaymentAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/leads/payment.ts:12",
+    "proof": "70177d18e8ec"
+  },
+  "actions/leads/update.ts#updateLeadStatusAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/leads/update.ts:31",
+    "proof": "9c78d1f6720e"
+  },
+  "actions/member-notes.ts#createMemberNote": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-activities/src/member-notes/result.ts:59",
+    "proof": "33d5ea1c1f32"
+  },
+  "actions/member-notes.ts#deleteMemberNote": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-activities/src/member-notes/result.ts:59",
+    "proof": "273fec9e3bc4"
+  },
+  "actions/member-notes.ts#getMemberNotes": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-activities/src/member-notes/result.ts:59",
+    "proof": "8492eea1207a"
+  },
+  "actions/member-notes.ts#toggleNotePin": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-activities/src/member-notes/result.ts:59",
+    "proof": "264b7389dec9"
+  },
+  "actions/member-notes.ts#updateMemberNote": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-activities/src/member-notes/result.ts:59",
+    "proof": "d78cf9d651d5"
+  },
+  "actions/member-referrals.core.ts#getMemberReferralCardData": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.core.ts#getMemberReferralLink": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.core.ts#getMemberReferralProgramPreview": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.core.ts#getMemberReferralProgramSettings": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.core.ts#getMemberReferralStats": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.core.ts#listMemberReferralRewards": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.core.ts#updateMemberReferralProgramSettings": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.core.ts#updateMemberReferralRewardStatus": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.ts#getMemberReferralCardData": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.ts#getMemberReferralLink": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.ts#getMemberReferralProgramPreview": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.ts#getMemberReferralProgramSettings": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.ts#getMemberReferralStats": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.ts#listMemberReferralRewards": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.ts#updateMemberReferralProgramSettings": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/member-referrals.ts#updateMemberReferralRewardStatus": {
+    "disposition": "checked",
+    "via": "actions/member-referrals/context.core.ts#getActionContext"
+  },
+  "actions/membership-billing/record-exchange-rate.ts#recordExchangeRate": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/membership-billing/record-exchange-rate.ts:10",
+    "proof": "dcbaec178c68"
+  },
+  "actions/messages.core.ts#getMessagesForClaim": {
+    "disposition": "checked",
+    "via": "actions/messages/context.core.ts#getActionContext"
+  },
+  "actions/messages.core.ts#markMessagesAsRead": {
+    "disposition": "checked",
+    "via": "actions/messages/context.core.ts#getActionContext"
+  },
+  "actions/messages.core.ts#sendMessage": {
+    "disposition": "checked",
+    "via": "actions/messages/context.core.ts#getActionContext"
+  },
+  "actions/messages.ts#getMessagesForClaim": {
+    "disposition": "checked",
+    "via": "actions/messages/context.core.ts#getActionContext"
+  },
+  "actions/messages.ts#markMessagesAsRead": {
+    "disposition": "checked",
+    "via": "actions/messages/context.core.ts#getActionContext"
+  },
+  "actions/messages.ts#sendMessage": {
+    "disposition": "checked",
+    "via": "actions/messages/context.core.ts#getActionContext"
+  },
+  "actions/messaging.core.ts#getClaimMessages": {
+    "disposition": "checked",
+    "via": "actions/messages/context.core.ts#getActionContext"
+  },
+  "actions/messaging.core.ts#sendMessage": {
+    "disposition": "checked",
+    "via": "actions/messages/context.core.ts#getActionContext"
+  },
+  "actions/messaging.ts#getClaimMessages": {
+    "disposition": "checked",
+    "via": "actions/messages/context.core.ts#getActionContext"
+  },
+  "actions/messaging.ts#sendMessage": {
+    "disposition": "checked",
+    "via": "actions/messages/context.core.ts#getActionContext"
+  },
+  "actions/notifications.core.ts#getNotifications": {
+    "disposition": "checked",
+    "via": "actions/notifications/context.core.ts#getAuthorizedActionContext"
+  },
+  "actions/notifications.core.ts#markAllAsRead": {
+    "disposition": "deferred_13a2",
+    "reason": "before accepting, a member can still reach, by direct link, the documents the existing access rules already allow them (own claims and case grants), plus their own notification flags"
+  },
+  "actions/notifications.core.ts#markAsRead": {
+    "disposition": "deferred_13a2",
+    "reason": "before accepting, a member can still reach, by direct link, the documents the existing access rules already allow them (own claims and case grants), plus their own notification flags"
+  },
+  "actions/notifications.ts#getNotifications": {
+    "disposition": "checked",
+    "via": "actions/notifications/context.core.ts#getAuthorizedActionContext"
+  },
+  "actions/notifications.ts#markAllAsRead": {
+    "disposition": "deferred_13a2",
+    "reason": "before accepting, a member can still reach, by direct link, the documents the existing access rules already allow them (own claims and case grants), plus their own notification flags"
+  },
+  "actions/notifications.ts#markAsRead": {
+    "disposition": "deferred_13a2",
+    "reason": "before accepting, a member can still reach, by direct link, the documents the existing access rules already allow them (own claims and case grants), plus their own notification flags"
+  },
+  "actions/privacy/accept-legal-documents.ts#acceptLegalDocuments": {
+    "disposition": "exempt",
+    "reason": "Records acceptance for the current member",
+    "evidence": "apps/web/src/actions/privacy/accept-legal-documents.ts:20"
+  },
+  "actions/privacy/list-members-without-acceptance.ts#listMembersWithoutAcceptance": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/privacy/list-members-without-acceptance.ts:9",
+    "proof": "5784b61726a5"
+  },
+  "actions/referrals.core.ts#getAgentReferralLink": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-referrals/src/referrals/get-agent-link.ts:31",
+    "proof": "1bafe2072fd3"
+  },
+  "actions/referrals.ts#getAgentReferralLink": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-referrals/src/referrals/get-agent-link.ts:31",
+    "proof": "1bafe2072fd3"
+  },
+  "actions/staff-claims.core.ts#assignClaim": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-claims/src/staff-claims/assign.ts:85",
+    "proof": "0189d09fc318"
+  },
+  "actions/staff-claims.core.ts#saveClaimEscalationAgreement": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/staff-claims/save-escalation-agreement.core.ts:32",
+    "proof": "b72f8305159d"
+  },
+  "actions/staff-claims.core.ts#saveRecoveryDecision": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/staff-claims/save-recovery-decision.core.ts:29",
+    "proof": "096bd6a83705"
+  },
+  "actions/staff-claims.core.ts#saveSuccessFeeCollection": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-claims/src/staff-claims/save-success-fee-collection.ts:57",
+    "proof": "8d15c02b4884"
+  },
+  "actions/staff-claims.core.ts#updateClaimStatus": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-claims/src/staff-claims/update-status.ts:238",
+    "proof": "c8f2ee6f18c1"
+  },
+  "actions/staff-claims/information-request.ts#acknowledgeClaimInformationRequestEvidence": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-claims/src/claims/information-request-evidence.ts:37",
+    "proof": "c419205dbb3d"
+  },
+  "actions/staff-claims/information-request.ts#createClaimInformationRequest": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-claims/src/claims/information-requests.ts:46",
+    "proof": "c5ddd0c07e1a"
+  },
+  "actions/staff-claims/information-request.ts#fulfilClaimInformationRequest": {
+    "disposition": "not_member_reachable",
+    "evidence": "packages/domain-claims/src/claims/fulfil-information-request.ts:38",
+    "proof": "9457cdebc581"
+  },
+  "actions/subscription.core.ts#cancelSubscription": {
+    "disposition": "checked",
+    "via": "actions/subscription/context.core.ts#getActionContext"
+  },
+  "actions/subscription.core.ts#getPaymentUpdateUrl": {
+    "disposition": "checked",
+    "via": "actions/subscription/context.core.ts#getActionContext"
+  },
+  "actions/support-handoffs/acknowledgement.ts#acknowledgeSupportHandoffPublicResponse": {
+    "disposition": "checked",
+    "via": "actions/support-handoffs/context.core.ts#getActionContext"
+  },
+  "actions/support-handoffs/acknowledgement.ts#acknowledgeSupportHandoffPublicResponseAndRedirect": {
+    "disposition": "checked",
+    "via": "actions/support-handoffs/context.core.ts#getActionContext"
+  },
+  "actions/support-handoffs/create.ts#createMemberSupportHandoff": {
+    "disposition": "checked",
+    "via": "actions/support-handoffs/context.core.ts#getActionContext"
+  },
+  "actions/support-handoffs/detail.ts#getSupportHandoffDetail": {
+    "disposition": "checked",
+    "via": "actions/support-handoffs/context.core.ts#getActionContext"
+  },
+  "actions/support-handoffs/lifecycle.ts#acceptSupportHandoff": {
+    "disposition": "checked",
+    "via": "actions/support-handoffs/context.core.ts#getActionContext"
+  },
+  "actions/support-handoffs/lifecycle.ts#closeSupportHandoff": {
+    "disposition": "checked",
+    "via": "actions/support-handoffs/context.core.ts#getActionContext"
+  },
+  "actions/support-handoffs/lifecycle.ts#reassignSupportHandoff": {
+    "disposition": "checked",
+    "via": "actions/support-handoffs/context.core.ts#getActionContext"
+  },
+  "actions/support-handoffs/reply.ts#submitSupportHandoffMemberReply": {
+    "disposition": "checked",
+    "via": "actions/support-handoffs/context.core.ts#getActionContext"
+  },
+  "actions/support-handoffs/reply.ts#submitSupportHandoffMemberReplyAndRedirect": {
+    "disposition": "checked",
+    "via": "actions/support-handoffs/context.core.ts#getActionContext"
+  },
+  "actions/support-handoffs/response.ts#updateSupportHandoffPublicResponse": {
+    "disposition": "checked",
+    "via": "actions/support-handoffs/context.core.ts#getActionContext"
+  },
+  "actions/uploads/upload.ts#uploadVoiceNote": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/user-settings.core.ts#getNotificationPreferences": {
+    "disposition": "checked",
+    "via": "actions/user-settings/context.core.ts#getActionContext"
+  },
+  "actions/user-settings.core.ts#updateNotificationPreferences": {
+    "disposition": "checked",
+    "via": "actions/user-settings/context.core.ts#getActionContext"
+  },
+  "actions/user-settings.core.ts#updateResidenceCountry": {
+    "disposition": "checked",
+    "via": "actions/user-settings/context.core.ts#getActionContext"
+  },
+  "actions/user-settings.ts#getNotificationPreferences": {
+    "disposition": "checked",
+    "via": "actions/user-settings/context.core.ts#getActionContext"
+  },
+  "actions/user-settings.ts#updateNotificationPreferences": {
+    "disposition": "checked",
+    "via": "actions/user-settings/context.core.ts#getActionContext"
+  },
+  "actions/user-settings.ts#updateResidenceCountry": {
+    "disposition": "checked",
+    "via": "actions/user-settings/context.core.ts#getActionContext"
+  },
+  "app/[locale]/(agent)/agent/crm/task-queue-actions.ts#submitAgentCrmTaskQueueCancellationAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "116fd6c6317d"
+  },
+  "app/[locale]/(agent)/agent/crm/task-queue-actions.ts#submitAgentCrmTaskQueueDueDateAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "4309910fd81e"
+  },
+  "app/[locale]/(agent)/agent/crm/task-queue-actions.ts#submitAgentCrmTaskQueueLifecycleAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "abd72019e3f9"
+  },
+  "app/[locale]/(agent)/agent/crm/task-queue-actions.ts#submitAgentCrmTaskQueuePriorityAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "935b458c52a6"
+  },
+  "app/[locale]/(agent)/agent/crm/task-queue-actions.ts#submitAgentCrmTaskQueueReopenAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/crm-tasks-context.ts:71",
+    "proof": "37169c020edc"
+  },
+  "app/[locale]/(app)/member/(portal)/@actions/default.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/(portal)/@actions/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/(portal)/@case/default.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/(portal)/@case/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/(portal)/@updates/default.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/(portal)/@updates/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/(portal)/default.tsx#default": {
+    "disposition": "checked",
+    "via": "static_render"
+  },
+  "app/[locale]/(app)/member/(portal)/layout.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/(portal)/page.tsx#default": {
+    "disposition": "checked",
+    "via": "static_render"
+  },
+  "app/[locale]/(app)/member/(portal)/portal-context.ts#getMemberPortalContext": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/_core.entry.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/benefits/page.tsx#default": {
+    "disposition": "checked",
+    "via": "static_render"
+  },
+  "app/[locale]/(app)/member/claim-report/page.tsx#default": {
+    "disposition": "checked",
+    "via": "static_render"
+  },
+  "app/[locale]/(app)/member/claims/[id]/_core.ts#getMemberClaimDetailsCore": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/claims/[id]/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/claims/_core.entry.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/claims/new-case-entry.server.ts#resolveMemberNewCaseEntry": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/claims/new/_core.entry.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/claims/new/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/claims/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/diaspora/page.tsx#default": {
+    "disposition": "checked",
+    "via": "static_render"
+  },
+  "app/[locale]/(app)/member/documents/_core.entry.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/documents/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/green-card/page.tsx#default": {
+    "disposition": "checked",
+    "via": "static_render"
+  },
+  "app/[locale]/(app)/member/help/_advisory-banner.tsx#AdvisoryBanner": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/help/_core.entry.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/help/_member-claim-options.ts#getMemberClaimOptions": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/help/_public-response-banner.tsx#PublicResponseBanner": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/help/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/incident-guide/page.tsx#default": {
+    "disposition": "checked",
+    "via": "static_render"
+  },
+  "app/[locale]/(app)/member/layout.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/membership/_core.ts#getMemberDocumentsCore": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/membership/_core.ts#getMemberLeavableSponsorEntryCore": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/membership/_core.ts#getMemberSubscriptionsCore": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/membership/card/_core.entry.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/membership/card/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/membership/leave-sponsorship.core.ts#getCompanyMembershipOutlook": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/membership/leave-sponsorship.core.ts#leaveCompanyProgramme": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/membership/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/membership/success/_core.entry.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/membership/success/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/policies/_core.ts#getPoliciesWithDocumentLinksCore": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "app/[locale]/(app)/member/policies/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/policies/upload/page.tsx#default": {
+    "disposition": "checked",
+    "via": "static_render"
+  },
+  "app/[locale]/(app)/member/rights/_core.entry.tsx#default": {
+    "disposition": "checked",
+    "via": "static_render"
+  },
+  "app/[locale]/(app)/member/rights/page.tsx#default": {
+    "disposition": "checked",
+    "via": "static_render"
+  },
+  "app/[locale]/(app)/member/settings/_core.entry.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(app)/member/settings/page.tsx#default": {
+    "disposition": "checked",
+    "via": "requireMemberAcceptancePage"
+  },
+  "app/[locale]/(auth)/login/tenant-context/route.ts#GET": {
+    "disposition": "exempt",
+    "reason": "Public login host context only",
+    "evidence": "apps/web/src/app/[locale]/(auth)/login/tenant-context/route.ts:1"
+  },
+  "app/[locale]/admin/crm/_backfill-action.ts#triggerCrmForecastSnapshotBackfill": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/[locale]/admin/crm/_backfill-core.ts:191",
+    "proof": "7e1ca951cef3"
+  },
+  "app/[locale]/admin/crm/_routing-action.ts#archiveRoutingRuleAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/[locale]/admin/crm/_routing-action.ts:67",
+    "proof": "3fb7fd42b4b4"
+  },
+  "app/[locale]/admin/crm/_routing-action.ts#createRoutingRuleAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/[locale]/admin/crm/_routing-action.ts:67",
+    "proof": "883ca97433b8"
+  },
+  "app/[locale]/admin/crm/_routing-action.ts#reorderRoutingRulesAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/[locale]/admin/crm/_routing-action.ts:67",
+    "proof": "d8c429c11987"
+  },
+  "app/[locale]/admin/crm/_routing-action.ts#setRoutingRuleEnabledAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/[locale]/admin/crm/_routing-action.ts:67",
+    "proof": "2c39cab78d86"
+  },
+  "app/[locale]/admin/crm/_routing-action.ts#updateRoutingRuleAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/[locale]/admin/crm/_routing-action.ts:67",
+    "proof": "9dc81f5ba40d"
+  },
+  "app/api/_debug/auth/route.ts#GET": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/_debug/auth/route.ts:5",
+    "proof": "f02796c55938"
+  },
+  "app/api/_debug/env/route.ts#GET": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/_debug/env/route.ts:5",
+    "proof": "7a08937155d9"
+  },
+  "app/api/ai/reviews/[id]/route.ts#POST": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/ai/reviews/[id]/route.ts:40",
+    "proof": "d58385b55023"
+  },
+  "app/api/ai/runs/[id]/route.ts#GET": {
+    "disposition": "checked",
+    "via": "withMemberAcceptance"
+  },
+  "app/api/auth/[...all]/route.ts#GET": {
+    "disposition": "exempt",
+    "reason": "Better Auth transport; operation dispositions are listed individually",
+    "evidence": "apps/web/src/app/api/auth/[...all]/route.ts:58"
+  },
+  "app/api/auth/[...all]/route.ts#GET /account-info": {
+    "disposition": "exempt",
+    "reason": "Auth-owned lookup of the caller’s linked identity account",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#GET /callback/:id": {
+    "disposition": "exempt",
+    "reason": "Login callback authenticated with the provider state and credentials",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#GET /delete-user/callback": {
+    "disposition": "exempt",
+    "reason": "Built-in user deletion disabled by the app user configuration",
+    "evidence": "apps/web/src/lib/auth/schema.ts:16"
+  },
+  "app/api/auth/[...all]/route.ts#GET /error": {
+    "disposition": "exempt",
+    "reason": "Provider error response without member records",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#GET /get-session": {
+    "disposition": "exempt",
+    "reason": "Reads the current caller session for account self-management",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#GET /list-accounts": {
+    "disposition": "exempt",
+    "reason": "Lists the caller’s linked identity accounts",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#GET /list-sessions": {
+    "disposition": "exempt",
+    "reason": "Lists the caller’s own sessions",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#GET /ok": {
+    "disposition": "exempt",
+    "reason": "Provider health response without member records",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#GET /reset-password/:token": {
+    "disposition": "exempt",
+    "reason": "Account recovery callback validates the reset token",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#GET /verify-email": {
+    "disposition": "exempt",
+    "reason": "Email ownership verification via an auth token",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST": {
+    "disposition": "exempt",
+    "reason": "Better Auth transport; operation dispositions are listed individually",
+    "evidence": "apps/web/src/app/api/auth/[...all]/route.ts:70"
+  },
+  "app/api/auth/[...all]/route.ts#POST /callback/:id": {
+    "disposition": "exempt",
+    "reason": "Login callback authenticated with the provider state and credentials",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /change-email": {
+    "disposition": "exempt",
+    "reason": "Auth-owned account self-management; built-in change feature disabled by configuration",
+    "evidence": "apps/web/src/lib/auth/schema.ts:16"
+  },
+  "app/api/auth/[...all]/route.ts#POST /change-password": {
+    "disposition": "exempt",
+    "reason": "Account self-management via the current credential and session",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /delete-user": {
+    "disposition": "exempt",
+    "reason": "Built-in user deletion disabled by the app user configuration",
+    "evidence": "apps/web/src/lib/auth/schema.ts:16"
+  },
+  "app/api/auth/[...all]/route.ts#POST /email-otp/change-email": {
+    "disposition": "exempt",
+    "reason": "Auth-owned mailbox change requires mailbox proof",
+    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+  },
+  "app/api/auth/[...all]/route.ts#POST /email-otp/check-verification-otp": {
+    "disposition": "exempt",
+    "reason": "Mailbox proof verification for account self-management",
+    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+  },
+  "app/api/auth/[...all]/route.ts#POST /email-otp/request-email-change": {
+    "disposition": "exempt",
+    "reason": "Auth-owned mailbox change; delivery callback admits sign-in only",
+    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+  },
+  "app/api/auth/[...all]/route.ts#POST /email-otp/request-password-reset": {
+    "disposition": "exempt",
+    "reason": "Auth-owned mailbox recovery; delivery callback admits sign-in only",
+    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+  },
+  "app/api/auth/[...all]/route.ts#POST /email-otp/reset-password": {
+    "disposition": "exempt",
+    "reason": "Auth-owned password recovery with a purpose-bound mailbox OTP",
+    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+  },
+  "app/api/auth/[...all]/route.ts#POST /email-otp/send-verification-otp": {
+    "disposition": "exempt",
+    "reason": "Mailbox proof for sign-in through the configured email OTP callback",
+    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+  },
+  "app/api/auth/[...all]/route.ts#POST /email-otp/verify-email": {
+    "disposition": "exempt",
+    "reason": "Mailbox proof for account self-management",
+    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+  },
+  "app/api/auth/[...all]/route.ts#POST /forget-password/email-otp": {
+    "disposition": "exempt",
+    "reason": "Auth-owned mailbox recovery alias; delivery callback admits sign-in only",
+    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+  },
+  "app/api/auth/[...all]/route.ts#POST /get-access-token": {
+    "disposition": "exempt",
+    "reason": "Auth-owned token lookup on a linked identity account",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /get-session": {
+    "disposition": "exempt",
+    "reason": "Reads the current caller session for account self-management",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /link-social": {
+    "disposition": "exempt",
+    "reason": "Auth-owned linking of the current account to an identity provider",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /refresh-token": {
+    "disposition": "exempt",
+    "reason": "Auth-owned token refresh on a linked identity account",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /request-password-reset": {
+    "disposition": "exempt",
+    "reason": "Recovery request independent of member acceptance",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /reset-password": {
+    "disposition": "exempt",
+    "reason": "Account recovery via a password reset token",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /revoke-other-sessions": {
+    "disposition": "exempt",
+    "reason": "Revokes other sessions for the caller’s account",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /revoke-session": {
+    "disposition": "exempt",
+    "reason": "Revokes a session for the caller’s account",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /revoke-sessions": {
+    "disposition": "exempt",
+    "reason": "Revokes sessions for the caller’s account",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /send-verification-email": {
+    "disposition": "exempt",
+    "reason": "Mailbox verification for account self-management",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /sign-in/email": {
+    "disposition": "exempt",
+    "reason": "Login or reauthentication with the account credential",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /sign-in/email-otp": {
+    "disposition": "exempt",
+    "reason": "Login with a verified mailbox OTP and the auth authority hook",
+    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+  },
+  "app/api/auth/[...all]/route.ts#POST /sign-in/social": {
+    "disposition": "exempt",
+    "reason": "Login or reauthentication through the configured identity provider",
+    "evidence": "apps/web/src/lib/auth/auth-request-authority.ts:46"
+  },
+  "app/api/auth/[...all]/route.ts#POST /sign-out": {
+    "disposition": "exempt",
+    "reason": "Revokes the current caller session",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /sign-up/email": {
+    "disposition": "exempt",
+    "reason": "Account bootstrap through the onboarding authority hook",
+    "evidence": "apps/web/src/lib/auth/auth-request-authority.ts:46"
+  },
+  "app/api/auth/[...all]/route.ts#POST /unlink-account": {
+    "disposition": "exempt",
+    "reason": "Auth-owned unlinking of a caller identity account",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /update-session": {
+    "disposition": "exempt",
+    "reason": "Auth-owned self session management; no member records",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/[...all]/route.ts#POST /update-user": {
+    "disposition": "exempt",
+    "reason": "Own name or image, subject to the auth authority-field guard",
+    "evidence": "apps/web/src/lib/auth/auth-request-authority.ts:42"
+  },
+  "app/api/auth/[...all]/route.ts#POST /verify-password": {
+    "disposition": "exempt",
+    "reason": "Auth-side password verification",
+    "evidence": "apps/web/src/lib/auth/index.ts:8"
+  },
+  "app/api/auth/login-session/route.ts#GET": {
+    "disposition": "exempt",
+    "reason": "Post-login role and access verdict only",
+    "evidence": "apps/web/src/app/api/auth/login-session/route.ts:58"
+  },
+  "app/api/claims/evidence-upload/route.ts#POST": {
+    "disposition": "checked",
+    "via": "withMemberAcceptance"
+  },
+  "app/api/claims/route.ts#GET": { "disposition": "checked", "via": "withMemberAcceptance" },
+  "app/api/cron/crm/forecast-snapshots/backfill/route.ts#POST": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
+    "proof": "78c6be112cfe"
+  },
+  "app/api/cron/crm/forecast-snapshots/route.ts#GET": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
+    "proof": "82c1c54068b4"
+  },
+  "app/api/cron/dunning/route.ts#GET": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
+    "proof": "844c0be7d73f"
+  },
+  "app/api/cron/engagement/route.ts#GET": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
+    "proof": "8a5f45ea2724"
+  },
+  "app/api/cron/nps/route.ts#GET": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
+    "proof": "bae7665376b8"
+  },
+  "app/api/cron/sponsors/route.ts#GET": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
+    "proof": "e90bd134077c"
+  },
+  "app/api/csp-report/route.ts#GET": {
+    "disposition": "exempt",
+    "reason": "CSP diagnostic intake without member records",
+    "evidence": "apps/web/src/app/api/csp-report/route.ts:1"
+  },
+  "app/api/csp-report/route.ts#POST": {
+    "disposition": "exempt",
+    "reason": "CSP diagnostic intake without member records",
+    "evidence": "apps/web/src/app/api/csp-report/route.ts:1"
+  },
+  "app/api/documents/[id]/download/route.ts#GET": {
+    "disposition": "deferred_13a2",
+    "reason": "before accepting, a member can still reach, by direct link, the documents the existing access rules already allow them (own claims and case grants), plus their own notification flags"
+  },
+  "app/api/documents/[id]/route.ts#GET": {
+    "disposition": "deferred_13a2",
+    "reason": "before accepting, a member can still reach, by direct link, the documents the existing access rules already allow them (own claims and case grants), plus their own notification flags"
+  },
+  "app/api/documents/cross-tenant-document-lookup.ts#lookupCrossGrantDoc": {
+    "disposition": "deferred_13a2",
+    "reason": "before accepting, a member can still reach, by direct link, the documents the existing access rules already allow them (own claims and case grants), plus their own notification flags"
+  },
+  "app/api/documents/durable-case-grants.ts#findActorCrossGrantContexts": {
+    "disposition": "deferred_13a2",
+    "reason": "before accepting, a member can still reach, by direct link, the documents the existing access rules already allow them (own claims and case grants), plus their own notification flags"
+  },
+  "app/api/documents/durable-case-grants.ts#hasDurableCaseScopedDocumentGrant": {
+    "disposition": "deferred_13a2",
+    "reason": "before accepting, a member can still reach, by direct link, the documents the existing access rules already allow them (own claims and case grants), plus their own notification flags"
+  },
+  "app/api/e2e/branches/route.ts#POST": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/e2e/branches/route.ts:35",
+    "proof": "a1f53597ba1d"
+  },
+  "app/api/health/route.ts#GET": {
+    "disposition": "exempt",
+    "reason": "Public health probe without member records",
+    "evidence": "apps/web/src/app/api/health/route.ts:14"
+  },
+  "app/api/health/route.ts#HEAD": {
+    "disposition": "exempt",
+    "reason": "Public health probe without member records",
+    "evidence": "apps/web/src/app/api/health/route.ts:28"
+  },
+  "app/api/health/route.ts#POST": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/health/attestation-core.ts:71",
+    "proof": "9850ab5475bd"
+  },
+  "app/api/inngest/route.ts#GET": {
+    "disposition": "exempt",
+    "reason": "Signed Inngest transport; member session provides no workflow authority",
+    "evidence": "apps/web/src/app/api/inngest/route.ts:1"
+  },
+  "app/api/inngest/route.ts#POST": {
+    "disposition": "exempt",
+    "reason": "Signed Inngest transport; member session provides no workflow authority",
+    "evidence": "apps/web/src/app/api/inngest/route.ts:1"
+  },
+  "app/api/inngest/route.ts#PUT": {
+    "disposition": "exempt",
+    "reason": "Signed Inngest transport; member session provides no workflow authority",
+    "evidence": "apps/web/src/app/api/inngest/route.ts:1"
+  },
+  "app/api/policies/analyze/route.ts#POST": {
+    "disposition": "checked",
+    "via": "withMemberAcceptance"
+  },
+  "app/api/privacy/data-deletion/route.ts#POST": {
+    "disposition": "exempt",
+    "reason": "Legacy data-subject right before acceptance",
+    "evidence": "apps/web/src/app/api/privacy/data-deletion/route.ts:20"
+  },
+  "app/api/public/nps/route.ts#GET": {
+    "disposition": "exempt",
+    "reason": "Public token-scoped survey",
+    "evidence": "apps/web/src/app/api/public/nps/route.ts:1"
+  },
+  "app/api/public/nps/route.ts#POST": {
+    "disposition": "exempt",
+    "reason": "Public token-scoped survey",
+    "evidence": "apps/web/src/app/api/public/nps/route.ts:1"
+  },
+  "app/api/public/sponsor-opt-out/route.ts#DELETE": {
+    "disposition": "exempt",
+    "reason": "Public capability-scoped sponsor opt-out",
+    "evidence": "apps/web/src/app/api/public/sponsor-opt-out/route.ts:1"
+  },
+  "app/api/public/sponsor-opt-out/route.ts#GET": {
+    "disposition": "exempt",
+    "reason": "Public capability-scoped sponsor opt-out",
+    "evidence": "apps/web/src/app/api/public/sponsor-opt-out/route.ts:1"
+  },
+  "app/api/public/sponsor-opt-out/route.ts#HEAD": {
+    "disposition": "exempt",
+    "reason": "Public capability-scoped sponsor opt-out",
+    "evidence": "apps/web/src/app/api/public/sponsor-opt-out/route.ts:1"
+  },
+  "app/api/public/sponsor-opt-out/route.ts#OPTIONS": {
+    "disposition": "exempt",
+    "reason": "Public capability-scoped sponsor opt-out",
+    "evidence": "apps/web/src/app/api/public/sponsor-opt-out/route.ts:1"
+  },
+  "app/api/public/sponsor-opt-out/route.ts#PATCH": {
+    "disposition": "exempt",
+    "reason": "Public capability-scoped sponsor opt-out",
+    "evidence": "apps/web/src/app/api/public/sponsor-opt-out/route.ts:1"
+  },
+  "app/api/public/sponsor-opt-out/route.ts#POST": {
+    "disposition": "exempt",
+    "reason": "Public capability-scoped sponsor opt-out",
+    "evidence": "apps/web/src/app/api/public/sponsor-opt-out/route.ts:1"
+  },
+  "app/api/public/sponsor-opt-out/route.ts#PUT": {
+    "disposition": "exempt",
+    "reason": "Public capability-scoped sponsor opt-out",
+    "evidence": "apps/web/src/app/api/public/sponsor-opt-out/route.ts:1"
+  },
+  "app/api/register/route.ts#POST": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/register/route.ts:24",
+    "proof": "6d6723fe12ab"
+  },
+  "app/api/settings/notifications/route.ts#GET": {
+    "disposition": "checked",
+    "via": "withMemberAcceptance"
+  },
+  "app/api/settings/notifications/route.ts#POST": {
+    "disposition": "checked",
+    "via": "withMemberAcceptance"
+  },
+  "app/api/settings/push/route.ts#DELETE": {
+    "disposition": "checked",
+    "via": "withMemberAcceptance"
+  },
+  "app/api/settings/push/route.ts#POST": {
+    "disposition": "checked",
+    "via": "withMemberAcceptance"
+  },
+  "app/api/share-pack/route.ts#GET": {
+    "disposition": "exempt",
+    "reason": "Public recipient access via the independently verified share-pack capability",
+    "evidence": "apps/web/src/app/api/share-pack/route.ts:92"
+  },
+  "app/api/share-pack/route.ts#POST": { "disposition": "checked", "via": "withMemberAcceptance" },
+  "app/api/simple-register/route.ts#POST": {
+    "disposition": "exempt",
+    "reason": "Public registration and activation bootstrap",
+    "evidence": "apps/web/src/app/api/simple-register/route.ts:1"
+  },
+  "app/api/uploads/route.ts#POST": { "disposition": "checked", "via": "withMemberAcceptance" },
+  "app/api/verification/[id]/route.ts#GET": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/verification/[id]/_core.ts:42",
+    "proof": "bf7e0b2682a3"
+  },
+  "app/api/webhooks/paddle/[entity]/route.ts#POST": {
+    "disposition": "exempt",
+    "reason": "Paddle-signed ingress independent of the member session",
+    "evidence": "apps/web/src/app/api/webhooks/paddle/[entity]/route.ts:1"
+  },
+  "app/api/webhooks/paddle/route.ts#POST": {
+    "disposition": "exempt",
+    "reason": "Paddle-signed ingress independent of the member session",
+    "evidence": "apps/web/src/app/api/webhooks/paddle/route.ts:1"
+  },
+  "features/admin/branches/server/getBranchesWithKpis.ts#getBranchesWithKpis": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/branches/server/getBranchesWithKpis.ts:40",
+    "proof": "4750e0cf9705"
+  },
+  "features/admin/claims/actions/evidence-upload.ts#confirmAdminUpload": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/claims/actions/evidence-upload.ts:163",
+    "proof": "7933e724284d"
+  },
+  "features/admin/claims/actions/evidence-upload.ts#generateAdminUploadUrl": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/claims/actions/evidence-upload.ts:70",
+    "proof": "f3af92c6fe73"
+  },
+  "features/admin/claims/actions/ops-actions.ts#assignOwner": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/claims/actions/ops-actions.ts:71",
+    "proof": "f6aed79f0cfe"
+  },
+  "features/admin/claims/actions/ops-actions.ts#markSlaAcknowledged": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/claims/actions/action-helpers.ts:63",
+    "proof": "5cc99b0ca45e"
+  },
+  "features/admin/claims/actions/ops-actions.ts#sendMemberReminder": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/claims/actions/action-helpers.ts:63",
+    "proof": "ca49d987864c"
+  },
+  "features/admin/claims/actions/ops-actions.ts#unassignOwner": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/claims/actions/ops-actions.ts:106",
+    "proof": "2fad663905e3"
+  },
+  "features/admin/claims/actions/ops-actions.ts#updateStatus": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/claims/actions/action-helpers.ts:63",
+    "proof": "59d77b58e806"
+  },
+  "features/admin/lead-duplicates/actions/lead-duplicates.ts#listLeadDuplicatesAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/lead-duplicates/server/review-scope.ts:33",
+    "proof": "1b7203ca1fc5"
+  },
+  "features/admin/lead-duplicates/actions/lead-duplicates.ts#resolveLeadDuplicateAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/lead-duplicates/server/review-scope.ts:33",
+    "proof": "d0e5509668c6"
+  },
+  "features/admin/verification/actions/verification.ts#getVerificationRequestsAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/verification/server/queries/read-access.ts:31",
+    "proof": "5c2f0534c348"
+  },
+  "features/admin/verification/actions/verification.ts#resendActivationInviteAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/verification/server/mutations/resend-activation-invite.ts:37",
+    "proof": "a7f5a411901b"
+  },
+  "features/admin/verification/actions/verification.ts#resubmitCashAttemptAction": {
+    "disposition": "defect_reported",
+    "via": "memberGuarded",
+    "reason": "The cash resubmission core checks the stored agent assignment without requiring the current agent role (separate owner R-37 item).",
+    "evidence": "apps/web/src/features/admin/verification/server/mutations/resubmit-attempt.ts:35"
+  },
+  "features/admin/verification/actions/verification.ts#verifyCashAttemptAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/verification/server/queries/read-access.ts:31",
+    "proof": "8c4b1365df98"
+  },
+  "features/agent/leads/actions.ts#convertLeadToClient": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/agent/leads/actions.ts:40",
+    "proof": "f328714679e9"
+  },
+  "features/agent/leads/actions.ts#updateLeadStatus": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/agent/leads/actions.ts:40",
+    "proof": "939fe6634e94"
+  },
+  "features/agent/pos/actions.ts#registerMemberPOS": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/agent/pos/actions.ts:19",
+    "proof": "7f1f7c05ab63"
+  },
+  "components/dashboard/member-dashboard-view/index.tsx#getDashboardSupplementalData": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "features/claims/tracking/server/getMemberClaimDetail.ts#getMemberClaimDetail": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "features/member/claims/actions.ts#confirmUpload": {
+    "disposition": "checked",
+    "via": "lib/privacy/require-member-acceptance.ts#requireAdmittedMember"
+  },
+  "features/member/claims/actions.ts#generateUploadUrl": {
+    "disposition": "checked",
+    "via": "lib/privacy/require-member-acceptance.ts#requireAdmittedMember"
+  },
+  "features/member/policies/components/MemberPoliciesV2Page.tsx#MemberPoliciesV2Page": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "features/sponsor-tasks/actions.ts#acknowledgeChargeAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/sponsor-tasks/access.core.ts:32",
+    "proof": "ab6c989ed94e"
+  },
+  "features/sponsor-tasks/actions.ts#closeHandoverAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/sponsor-tasks/access.core.ts:32",
+    "proof": "1aacb9405fcf"
+  },
+  "features/sponsor-tasks/actions.ts#recordEvidenceAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/sponsor-tasks/access.core.ts:32",
+    "proof": "db981ad701d3"
+  },
+  "features/sponsors/actions.ts#sponsorAction": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/sponsors/actions.core.ts:65",
+    "proof": "f1d9dd8b0da8"
+  },
+  "lib/actions/agent.core.ts#createLead": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/lib/actions/agent.core.ts:38",
+    "proof": "25a9411d3022"
+  },
+  "lib/actions/agent.core.ts#importMembers": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/lib/actions/agent.core.ts:175",
+    "proof": "e6e002249bc0"
+  },
+  "lib/actions/agent.core.ts#logActivity": {
+    "disposition": "defect_fixed_elsewhere",
+    "evidence": "apps/web/src/lib/actions/agent.core.ts:38",
+    "proof": "d777b066925c"
+  },
+  "lib/actions/agent.core.ts#updateLeadStatus": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/lib/actions/agent.core.ts:38",
+    "proof": "7d5460b90f0b"
+  },
+  "lib/actions/business-membership-lead.ts#submitBusinessMembershipLead": {
+    "disposition": "exempt",
+    "reason": "Public intake of caller-supplied facts, no existing member records returned",
+    "evidence": "apps/web/src/lib/actions/business-membership-lead.ts:104"
+  },
+  "lib/actions/business-membership-lead.ts#submitBusinessMembershipLeadCore": {
+    "disposition": "exempt",
+    "reason": "Public intake of caller-supplied facts, no existing member records returned",
+    "evidence": "apps/web/src/lib/actions/business-membership-lead.ts:104"
+  },
+  "features/claims/tracking/server/getMemberVaultConsentDisplay.ts#getMemberVaultConsentDisplay": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "features/claims/tracking/server/member-domain-event-timeline.ts#getMemberTimelineFromDomainEvents": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  }
+}

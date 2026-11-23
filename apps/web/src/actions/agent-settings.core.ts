@@ -1,5 +1,6 @@
 'use server';
 
+import { memberGuarded } from '@/lib/privacy/require-member-acceptance';
 import type { ActionResult, AgentCommissionSettings, CommissionRates } from './commissions.types';
 
 import { getActionContext } from './agent-settings/context';
@@ -8,12 +9,13 @@ import { updateAgentCommissionRatesCore } from './agent-settings/update-rates';
 import { updateAgentTierCore } from './agent-settings/update-tier';
 
 /** Get agent's commission settings */
-export async function getAgentSettings(
-  agentId: string
-): Promise<ActionResult<AgentCommissionSettings | null>> {
-  const { session, authority } = await getActionContext();
-  return getAgentSettingsCore({ session, authority, agentId });
-}
+export const getAgentSettings = memberGuarded(
+  async (
+    { session, authority },
+    agentId: string
+  ): Promise<ActionResult<AgentCommissionSettings | null>> =>
+    getAgentSettingsCore({ session, authority, agentId })
+);
 
 /** Update agent's commission rates (admin only) */
 export async function updateAgentCommissionRates(

@@ -1,3 +1,4 @@
+import { WP13_STRUCTURED_OWNERS } from './modularity-guard-wp13-owners.mjs';
 export const MODULARITY_POLICY = Object.freeze({
   productionCode: Object.freeze({ preferredLines: 150, reviewLines: 300 }),
   focusedTest: Object.freeze({ maxLines: 300 }),
@@ -74,6 +75,7 @@ const STRUCTURED_OWNERS = [
   ],
   [/^apps\/web\/public\/manifest\.json$/u, 'pwa-manifest-contract'],
   [/^apps\/web\/src\/lib\/public-entry-points\.json$/u, 'public-entry-registry-contract'],
+  ...WP13_STRUCTURED_OWNERS,
   [/^docs\/release\/production-evidence\.(?:yaml|schema\.json)$/u, RELEASE_EVIDENCE_OWNER],
   [/^docs\/release\/t503-evidence-intake\/manifest-patch-example\.yaml$/u, RELEASE_EVIDENCE_OWNER],
 ];
@@ -81,7 +83,6 @@ const STRUCTURED_OWNERS = [
 const PARITY_OWNER = 'i18n-keys-parity-contract';
 const FREE_START_JOURNEY_CATALOGS = ['freeStartResult', 'injuryJourney', 'propertyJourney'];
 const FREE_START_PRICING_CATALOGS = ['commercialTerms', 'coverageMatrix', 'servicesPage'];
-
 /** `<locale>/<name>.json` registry entries for an owner; exact files only, never a whole locale. */
 function exactLocaleCatalogOwners(owner, namesByLocale) {
   return Object.entries(namesByLocale).flatMap(([locale, names]) =>

@@ -1,6 +1,8 @@
 'use server';
 
+import { memberGuarded, runAdmittedAction } from '@/lib/privacy/require-member-acceptance';
 import { runAuthenticatedAction } from '@/lib/safe-action';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { redactVerificationRequestsForRole } from '../server/branch-manager-redaction';
 import { withSessionStaffBranch } from '../server/queries/read-access';
 import {
@@ -31,12 +33,13 @@ export async function verifyCashAttemptAction(input: unknown) {
   });
 }
 
-export async function resubmitCashAttemptAction(input: unknown) {
-  return runAuthenticatedAction(async ctx => {
+export const resubmitCashAttemptAction = memberGuarded(async (authorized, input: unknown) => {
+  return runAdmittedAction(authorized, async () => {
+    const { tenantId } = readTenantAuthority(authorized.authority);
     const data = resubmitCashSchema.parse(input);
-    return await resubmitCashAttemptCore(ctx, data);
+    await resubmitCashAttemptCore({ ...authorized, tenantId }, data);
   });
-}
+});
 
 export async function resendActivationInviteAction(input: unknown) {
   return runAuthenticatedAction(async ctx => {

@@ -65,12 +65,9 @@ describe('member help support handoff form', () => {
   });
 
   it('redirects non-member sessions to their canonical portal before rendering the form', async () => {
-    mocks.getSessionSafe.mockResolvedValue({
-      user: {
-        id: 'agent-1',
-        role: 'agent',
-        tenantId: 'tenant-1',
-      },
+    mocks.admit.mockResolvedValueOnce({
+      ok: true,
+      authorized: { session: { user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } } },
     });
 
     await expect(renderPage()).rejects.toThrow('redirect:/en/agent');

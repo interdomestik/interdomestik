@@ -1,24 +1,11 @@
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { MissingTenantError } from '@interdomestik/shared-auth';
+import { acceptanceMocks, memberUser } from '@/lib/privacy/member-acceptance-denial.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
 
 const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
   getAiRun: vi.fn(),
-  getSession: vi.fn(),
-  authorizeSessionTenant: vi.fn(),
-}));
-
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSession,
-    },
-  },
-}));
-
-vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionTenant: hoisted.authorizeSessionTenant,
 }));
 
 vi.mock('@/lib/rate-limit', () => ({
@@ -37,38 +24,29 @@ describe('GET /api/ai/runs/[id]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
-    hoisted.authorizeSessionTenant.mockImplementation(async () => {
-      const session = await hoisted.getSession();
-      if (!session?.user) return null;
-      return { session, authority: mintTestTenantAuthority(session.user.tenantId) };
-    });
+    acceptanceMocks.readAcceptance.mockResolvedValue({ accepted: true });
   });
 
   it('returns 401 when unauthenticated', async () => {
-    hoisted.getSession.mockResolvedValue(null);
+    acceptanceMocks.authorize.mockResolvedValueOnce(null);
 
     const response = await GET(runRequest(), { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toEqual({ error: 'Unauthorized' });
+    await expect(response.json()).resolves.toEqual({ error: 'UNAUTHORIZED' });
   });
 
   it('returns 401 when the session is missing tenant identity', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'member-1', role: 'member', tenantId: null },
-    });
+    acceptanceMocks.authorize.mockRejectedValueOnce(new MissingTenantError());
 
     const response = await GET(runRequest(), { params: Promise.resolve({ id: 'run-1' }) });
 
     expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toEqual({ error: 'Missing tenant identity' });
+    await expect(response.json()).resolves.toEqual({ error: 'UNAUTHORIZED' });
     expect(hoisted.getAiRun).not.toHaveBeenCalled();
   });
 
-  it('returns 403 when a member requests another users run', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' },
-    });
+  it('returns identical 404 responses for missing and other-requester runs', async () => {
     hoisted.getAiRun.mockResolvedValue({
       id: 'run-1',
       workflow: 'policy_extract',
@@ -90,14 +68,22 @@ describe('GET /api/ai/runs/[id]', () => {
 
     const response = await GET(runRequest(), { params: Promise.resolve({ id: 'run-1' }) });
 
+    hoisted.getAiRun.mockResolvedValueOnce(null);
+    const missing = await GET(runRequest(), { params: Promise.resolve({ id: 'run-1' }) });
+    expect(response.status).toBe(404);
+    expect(missing.status).toBe(404);
+    expect(await response.json()).toEqual(await missing.json());
+  });
+
+  it('refuses unaccepted sessions before reading an AI run', async () => {
+    acceptanceMocks.readAcceptance.mockResolvedValueOnce({ accepted: false, missing: [] });
+    const response = await GET(runRequest(), { params: Promise.resolve({ id: 'run-1' }) });
     expect(response.status).toBe(403);
-    await expect(response.json()).resolves.toEqual({ error: 'Forbidden' });
+    await expect(response.json()).resolves.toEqual({ error: 'acceptance_required' });
+    expect(hoisted.getAiRun).not.toHaveBeenCalled();
   });
 
   it('returns the tenant-scoped run for the requesting member', async () => {
-    hoisted.getSession.mockResolvedValue({
-      user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' },
-    });
     hoisted.getAiRun.mockResolvedValue({
       id: 'run-1',
       workflow: 'policy_extract',
@@ -106,7 +92,7 @@ describe('GET /api/ai/runs/[id]', () => {
       documentId: 'document-1',
       entityType: 'policy',
       entityId: 'policy-1',
-      requestedBy: 'member-1',
+      requestedBy: memberUser.id,
       reviewStatus: 'pending',
       errorCode: null,
       errorMessage: null,
@@ -158,6 +144,6 @@ describe('GET /api/ai/runs/[id]', () => {
 
     expect(response.status).toBe(429);
     await expect(response.json()).resolves.toEqual({ error: 'Too many requests' });
-    expect(hoisted.getSession).not.toHaveBeenCalled();
+    expect(acceptanceMocks.authorize).not.toHaveBeenCalled();
   });
 });

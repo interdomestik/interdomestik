@@ -1,24 +1,31 @@
+import '@/test/tenant-transaction.test-support';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const h = vi.hoisted(() => ({ resolve: vi.fn(), findFirst: vi.fn() }));
+const h = vi.hoisted(() => ({ resolve: vi.fn(), findFirst: vi.fn(), admit: vi.fn() }));
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({ requireAdmittedMember: h.admit }));
 vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage/resolve', () => ({
   resolveEffectiveMembership: h.resolve,
 }));
-vi.mock('@interdomestik/database/tenant-authority-context', () => ({
-  withTenantAuthority: (_authority: unknown, callback: (tx: unknown) => unknown) =>
+vi.mock('@interdomestik/database', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database')>()),
+  withTenantContext: (_authority: unknown, callback: (tx: unknown) => unknown) =>
     callback({
       query: { subscriptions: { findFirst: h.findFirst } },
+      select: () => ({ from: () => ({ leftJoin: () => ({ where: async () => [{ count: 0 }] }) }) }),
     }),
 }));
-vi.mock('./data', () => ({ getCachedClaimDocumentCount: async () => 0 }));
 vi.mock('next-intl/server', () => ({ getTranslations: vi.fn() }));
 import { getDashboardSupplementalData } from './index';
-const args = { memberId: 'me', authority: mintTestTenantAuthority('tenant-ks') };
+const authority = mintTestTenantAuthority('tenant-ks', { userId: 'me' });
 
 describe('dashboard effective membership reader', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    h.admit.mockResolvedValue({
+      ok: true,
+      authorized: { authority, session: { user: { id: 'me' } } },
+    });
   });
   it('source 1 is active despite a canceled Paddle row', async () => {
     h.findFirst.mockResolvedValue({
@@ -42,7 +49,7 @@ describe('dashboard effective membership reader', () => {
         ],
       ])
     );
-    const [subscription, documents, resolved] = await getDashboardSupplementalData(args);
+    const [subscription, documents, resolved] = await getDashboardSupplementalData();
     expect(subscription).toMatchObject({
       status: 'active',
       planId: 'family',
@@ -63,13 +70,13 @@ describe('dashboard effective membership reader', () => {
         ],
       ])
     );
-    expect((await getDashboardSupplementalData(args))[0]).toMatchObject({
+    expect((await getDashboardSupplementalData())[0]).toMatchObject({
       id: 'row',
       status: 'active',
     });
   });
   it('source 3 never grants dashboard membership access', async () => {
     h.resolve.mockResolvedValue(new Map([['me', { source: 'none' }]]));
-    expect(await getDashboardSupplementalData(args)).toEqual([null, 0, true]);
+    expect(await getDashboardSupplementalData()).toEqual([null, 0, true]);
   });
 });

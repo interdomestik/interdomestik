@@ -1,3 +1,9 @@
+import { randomUUID } from 'node:crypto';
+import { withDisposableClient } from '../disposable-client';
+import legalVersionRows from '../legal-document-versions.json';
+import { seedCleanupIdentities } from '../seed-utils/identity-cleanup';
+import { buildWorkloadUsers } from '../seed-workload/user-fixtures';
+import { UNACCEPTED_MEMBER_ID } from './users';
 import { assertSeedTargetAllowed, importSeedDatabase } from '../seed-target-guard';
 /**
  * Contract:
@@ -103,3 +109,91 @@ export async function seedGolden(config: SeedConfig) {
 }
 
 // Pure module - CLI execution removed. Use seed.ts runner only.
+
+function legalAcceptanceSeedIdentities() {
+  const fullMembers = (['mk', 'ks'] as const).flatMap(country =>
+    Array.from({ length: 9 }, (_, offset) => {
+      const number = offset + 1;
+      const prefix = number <= (country === 'mk' ? 2 : 3) ? 'golden' : 'full';
+      const email = `member.${country}.${number}@interdomestik.com`;
+      return { id: `${prefix}_${country}_member_${number}`, tenantId: `tenant_${country}`, email };
+    })
+  );
+  return [...seedCleanupIdentities(), ...buildWorkloadUsers(), ...fullMembers].map(identity => ({
+    id: identity.id,
+    tenantId: identity.tenantId,
+    email: identity.email,
+    legacyEmail: 'legacyEmail' in identity ? identity.legacyEmail : identity.email,
+  }));
+}
+
+export async function cleanSeededLegalAcceptance() {
+  return withDisposableClient(
+    process.env.DATABASE_URL ?? '',
+    { applicationName: 'wp13_seed_acceptance_cleanup' },
+    client =>
+      client.begin(async tx => {
+        const [lookup] = await tx<{ needed: boolean }[]>`
+        select exists (
+          select 1 from public.legal_acceptances a
+          join public."user" u on u.id = a.subject_user_id and u.tenant_id = a.tenant_id
+          join jsonb_to_recordset(${tx.json(legalAcceptanceSeedIdentities())}::jsonb)
+            as fixture(id text, "tenantId" text, email text, "legacyEmail" text)
+            on u.id = fixture.id and u.tenant_id = fixture."tenantId"
+            and u.email in (fixture.email, fixture."legacyEmail")
+        ) as needed
+      `;
+        if (!lookup.needed) return;
+
+        // Use the guarded disposable connection's owner rights for RLS, with the trigger's
+        // independent role opt-in confined to this transaction.
+        await tx`
+        do $$ begin
+          if not exists (select 1 from pg_roles where rolname = 'interdomestik_seed_cleanup') then
+            create role interdomestik_seed_cleanup nologin;
+          end if;
+        end $$
+      `;
+        const [membership] = await tx<{ member: boolean }[]>`
+        select pg_has_role(current_user, 'interdomestik_seed_cleanup', 'MEMBER') as member
+      `;
+        if (!membership.member) await tx`grant interdomestik_seed_cleanup to current_user`;
+        await tx`
+        delete from public.legal_acceptances a
+        using public."user" u, jsonb_to_recordset(${tx.json(legalAcceptanceSeedIdentities())}::jsonb)
+          as fixture(id text, "tenantId" text, email text, "legacyEmail" text)
+        where u.id = a.subject_user_id and u.tenant_id = a.tenant_id
+          and u.id = fixture.id and u.tenant_id = fixture."tenantId"
+          and u.email in (fixture.email, fixture."legacyEmail")
+      `;
+        if (!membership.member) await tx`revoke interdomestik_seed_cleanup from current_user`;
+      })
+  );
+}
+
+export async function seedLegalAcceptance() {
+  return withDisposableClient(
+    process.env.DATABASE_URL ?? '',
+    { applicationName: 'wp13_seed_acceptance' },
+    client => {
+      const versions = legalVersionRows.filter(row => row.locale === 'en');
+      return client`
+        insert into public.legal_acceptances
+          (id, tenant_id, subject_user_id, document_kind, document_version, locale, text_sha256, source_surface)
+        select ${randomUUID()} || ':' || u.id || ':' || version.kind,
+          u.tenant_id, u.id, version.kind, version.version, version.locale, version."textSha256", 'member_activation'
+        from public."user" u
+        cross join jsonb_to_recordset(${client.json(versions)}::jsonb)
+          as version(kind text, version text, locale text, "textSha256" text)
+        where u.role in ('member', 'user') and u.id <> ${UNACCEPTED_MEMBER_ID}
+          and exists (
+            select 1 from jsonb_to_recordset(${client.json(legalAcceptanceSeedIdentities())}::jsonb)
+              as fixture(id text, "tenantId" text, email text, "legacyEmail" text)
+            where u.id = fixture.id and u.tenant_id = fixture."tenantId"
+              and u.email in (fixture.email, fixture."legacyEmail")
+          )
+        on conflict (tenant_id, subject_user_id, document_kind, document_version) do nothing
+      `;
+    }
+  );
+}

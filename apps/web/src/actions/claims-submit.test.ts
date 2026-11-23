@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import './claims.test-mocks';
 import type { CreateClaimValues } from '@/lib/validators/claims';
 import { describe, expect, it, vi } from 'vitest';
@@ -35,6 +36,19 @@ describe('Claim Actions', () => {
       ],
     };
 
+    it('refuses before protected work when acceptance is missing', async () => {
+      refuseAcceptance();
+      mockGetSession.mockResolvedValue({
+        user: { id: 'fixture-member', role: 'member', tenantId: 'tenant_mk' },
+      });
+      await expect(submitClaim(validPayload)).resolves.toMatchObject({
+        success: false,
+        code: 'acceptance_required',
+      });
+      expect(mockHasActiveMembership).not.toHaveBeenCalled();
+      expect(mockDbInsert).not.toHaveBeenCalled();
+    });
+
     it('returns error when unauthenticated', async () => {
       mockGetSession.mockResolvedValue(null);
 
@@ -46,7 +60,9 @@ describe('Claim Actions', () => {
     });
 
     it('returns error when user has no active membership', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
       mockHasActiveMembership.mockResolvedValue(false);
       mockGetActiveSubscription.mockResolvedValue(null);
 
@@ -58,7 +74,9 @@ describe('Claim Actions', () => {
     });
 
     it('should insert claim and documents when payload is valid', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
 
       const result = await submitClaim(validPayload);
 
@@ -114,7 +132,9 @@ describe('Claim Actions', () => {
     });
 
     it('refuses an evidence object already attached to another claim and inserts no document', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
       mockAttachedEvidenceRows.mockResolvedValue([
         { bucket: 'claim-evidence', claimId: 'other-claim', filePath: validPayload.files[0].path },
       ]);
@@ -129,7 +149,9 @@ describe('Claim Actions', () => {
     });
 
     it('should insert claim without documents when files are empty', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
 
       const payloadWithoutFiles: CreateClaimValues = { ...validPayload, files: [] };
 
@@ -158,7 +180,9 @@ describe('Claim Actions', () => {
     });
 
     it('returns error on validation failure', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
 
       const invalidPayload = {
         title: 'AB', // Too short - needs min 5 chars
@@ -181,7 +205,9 @@ describe('Claim Actions', () => {
     });
 
     it('should throw on database error during claim insert', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
       mockDbInsert.mockRejectedValueOnce(new Error('DB Error'));
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
@@ -200,7 +226,9 @@ describe('Claim Actions', () => {
 
   describe('submitClaim - optional fields coverage', () => {
     it('should handle empty description as minimal value', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
 
       const payload: CreateClaimValues = {
         title: 'Valid title here',
@@ -222,7 +250,9 @@ describe('Claim Actions', () => {
     });
 
     it('should handle file with explicit classification', async () => {
-      mockGetSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
+      mockGetSession.mockResolvedValue({
+        user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
+      });
 
       const payload: CreateClaimValues = {
         title: 'Valid title here',

@@ -73,7 +73,8 @@ export async function submitSupportHandoffMemberReply(
     };
   }
 
-  const { session, authority, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required') throw new Error(failure.code);
   const result = await submitSupportHandoffMemberReplyCore({
     authority,
     expectedPublicResponseVersion: parsed.data.expectedPublicResponseVersion,

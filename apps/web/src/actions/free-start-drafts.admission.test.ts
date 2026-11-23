@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -76,6 +77,13 @@ function resolveWithVerdict(emailVerified: unknown) {
   const session = { user: { id: 'owner-a', role: 'member', emailVerified } };
   return resolveFreeStartDraftSession(headers, {
     getSession: vi.fn().mockResolvedValue(session),
+    admitMember: vi.fn().mockResolvedValue({
+      ok: true,
+      authorized: {
+        session: { user: { id: 'owner-a', role: 'member', tenantId: 'tenant_ks' } },
+        authority: mintTestTenantAuthority('tenant_ks', { userId: 'owner-a', role: 'member' }),
+      },
+    }),
     isAllowedHost: () => true,
     resolveDefaultTenantId: () => 'tenant_ks',
     resolveSessionAccessTenantId: () => 'tenant_ks',
@@ -172,6 +180,10 @@ describe('account draft admission before repository mutation', () => {
       ok: true,
       context,
       emailVerified: verdict === true,
+      authorized: {
+        session: { user: { id: 'owner-a', role: 'member', tenantId: 'tenant_ks' } },
+        authority: expect.anything(),
+      },
     });
   });
 });
