@@ -23,13 +23,15 @@ const [commit] = args;
 if (!commit || commit.startsWith('--')) fail('usage: <commit> [--successor <base> --id <id>]');
 const tree = readSchemaTree(root, gitIdentity(root, commit), 'record');
 const baseCommit = option('--successor');
-const value = baseCommit
-  ? resolverTransition(
-      readSchemaTree(root, gitIdentity(root, baseCommit), 'record-base'),
-      tree,
-      option('--id') ?? fail('--id is required with --successor')
-    )
-  : resolverPair(tree);
+// Same as the original `option('--id') ?? fail(…)`: the base is read first, and only a null or
+// undefined --id (absent, or a trailing flag with no value) fails; an empty one does not.
+const baseTree = baseCommit
+  ? readSchemaTree(root, gitIdentity(root, baseCommit), 'record-base')
+  : null;
+const successorId = option('--id');
+if (baseCommit && (successorId === null || successorId === undefined))
+  fail('--id is required with --successor');
+const value = baseCommit ? resolverTransition(baseTree, tree, successorId) : resolverPair(tree);
 if (value.reason) fail(value.reason);
 if (baseCommit) {
   const problem = resolverRecordProblem({ baseline: value.before, successor: value });
