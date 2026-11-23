@@ -5,7 +5,7 @@
     "CHK-04": {
       "mode": "report",
       "unit": "value exports of 'use server' modules (re-exports followed), inline 'use server' functions, the seven HTTP methods of app route.ts, the app root's included",
-      "predicate": "literal defineAction/defineFormAction definition from @/lib/safe-action (no spread, computed or duplicate key; literal name, basis.kind, subject.type); route method registered with an existing denied test; no runPublicIntake importer outside its test",
+      "predicate": "literal defineAction/defineFormAction definition from @/lib/safe-action (no spread, computed or duplicate key; literal name, basis.kind, subject.type); route method registered with an existing denied test or a direct const export of a literal defineRoute definition from @/lib/safe-route (same literal fields and key restrictions; POST, PUT, PATCH or DELETE literal matching the export; role or self basis); no runPublicIntake importer outside its test",
       "coverageMin": {
         "export": 207,
         "route": 45
@@ -525,5 +525,14 @@
       ]
     }
   },
-  "exceptions": []
+  "exceptions": [
+    {
+      "check": "CHK-04",
+      "item": "#predicate",
+      "kind": "replaced",
+      "approvedBy": "owner",
+      "ref": "WP-02 PR 1b-2 R-37 authorization and session route design R5.3",
+      "date": "2026-11-21"
+    }
+  ]
 }

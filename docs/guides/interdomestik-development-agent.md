@@ -17,8 +17,8 @@ verified current repository authority.
 definition that conflicts with it, including passages on program/tracker
 reconciliation, merging and deploying. Work comes only from the ordered packages of
 `docs/engineering/DIRECTION.md` or the owner's explicit request (R-29); the program,
-tracker and ledgers are history. No agent merges, deploys or force-pushes; the owner
-merges and releases (R-01, R-24).
+tracker and ledgers are history. The lead merges under R-01; the owner may merge; no other
+agent merges, and no agent deploys or force-pushes; the owner releases (R-01, R-24).
 
 ## Load and invoke
 
@@ -35,8 +35,8 @@ selection, preserve any existing personal file and install these model keys in
 `~/.codex/prepr.config.toml`:
 
 ```toml
-model = "gpt-6.1-sol"
-model_reasoning_effort = "high"
+model = "gpt-6.2-sol"
+model_reasoning_effort = "xhigh"
 ```
 
 Select it with `codex --profile prepr`. It adds no permission grants and does not
@@ -59,7 +59,7 @@ Check for stale project copies before starting a successor and report any mismat
 than assuming which copy won. Preserve the installation manifest/backup at the
 personal guide directory. Carry configuration changes in the authorized product amendment; do not create a
 status-only PR solely for distribution.
-The agent uses GPT-6.1 Sol with high reasoning, as explicitly selected by the owner
+The agent uses GPT-6.2 Sol with xhigh reasoning (Sol ultra optionally for a hard piece; owner, 2026-11-22), as explicitly selected by the owner
 for this agent over older generic repository model defaults. The installed
 Interdomestik skill is synchronized with this scoped model policy. Confirm the model actually served; report unavailable access
 instead of silently substituting a paid API. Parent runtime permissions remain
@@ -87,7 +87,7 @@ definition. Existing older role files are outside this change's scope.
 For a single primary chat instead of delegation, attach the TOML file and ask
 Codex to follow its development instructions in the current chat. This uses the
 instructions but does not prove custom-agent discovery or apply its model settings;
-select GPT-6.1 Sol with high reasoning in the client yourself.
+select GPT-6.2 Sol with xhigh reasoning in the client yourself.
 
 ## Owner's delivery lifecycle
 
@@ -96,11 +96,11 @@ worktree from updated main → implementation and focused green checks →
 authorized PR candidate (full local proof pending) → current-head review and
 analysis complete → consolidated corrections and focused regressions → final
 source/environment freeze → required full local proof and hosted checks green →
-owner merge →
+merge (the lead under R-01, or the owner) →
 read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.
 
-This sequence is operating policy. It gives no permission to merge or deploy,
-which the owner does, and none to archive chats or start new work. A complete lifecycle authorization persists for
+This sequence is operating policy. It gives no permission to merge or deploy
+(the lead merges under R-01; the owner deploys), and none to archive chats or start new work. A complete lifecycle authorization persists for
 its named scope; the agent must not ask repeatedly for actions already covered.
 
 Record scope and acceptance in the PR before implementation, and mark delivered
@@ -155,8 +155,8 @@ SRS, mounted behavior and credited receipts before selecting it. Prove named-rol
 loading in that worktree using the personal installation. A successful prior pilot
 does not by itself prove fresh discovery; record selected definition hash, target
 root/head and configured model, and distinguish unavailable served-model metadata.
-The draft-only prompt below is a conservative rehearsal scope. The owner merges
-(AGENTS.md R-01); after the merge the agent verifies exact-SHA staging proof
+The draft-only prompt below is a conservative rehearsal scope. The lead merges under
+AGENTS.md R-01, or the owner merges; after the merge the agent verifies exact-SHA staging proof
 read-only and performs authorized cleanup.
 
 Claude Code implements and owns integration; Codex reviews independently and takes a
@@ -210,8 +210,8 @@ hosted checks through; consolidate findings, verify corrections, and resolve the
 GitHub threads. An unresolved-finding delivery failure is a valid block. Once providers
 finish and threads are resolved, refresh only the failed delivery gate for unchanged
 source identity, then run `pnpm pr:review-ready -- <PR>`. Source pushes require current-head
-hosted evidence under the existing admission policy. Merge/deploy still require owner
-authority. Real integration regressions must run in a required repository lane, not
+hosted evidence under the existing admission policy. The lead merges under AGENTS.md R-01, or the owner merges;
+deploying requires owner authority. Real integration regressions must run in a required repository lane, not
 only through a manually supplied environment flag; record selection and execution.
 
 For remote delivery, wait for requested current-head review and required analysis
@@ -227,14 +227,17 @@ pnpm plan:audit
 # Load the task-local environment before orchestration, not inside Playwright.
 # Allocate this port for the task; 3100 is an example, not a universal default.
 TASK_PORT=3100
-PW_PORT="$TASK_PORT" node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm pr:verify
-PW_PORT="$TASK_PORT" node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm security:guard
+# Every heavy Mac job starts through mac-job (AGENTS.md R-04, Mac use); if it is unavailable, start none and tell the lead.
+HEAD_SHA="$(git rev-parse HEAD)"
+# A rehearsal or pre-check is class pre-check; only the final gate on a merge-ready head is class gate.
+# One ticket holds the lock for both commands, on one captured head.
+mac-job run pre-check "$SESSION" "$PWD" "$HEAD_SHA" -- env PW_PORT="$TASK_PORT" sh -c 'node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm pr:verify && node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm security:guard'
 git diff --check
 ```
 
 For instruction-only changes, run plan:audit and relevant instruction contracts
 instead of the runtime lane. Hosted protected checks are a later step when an
-actual PR is authorized. Merge and deployment are the owner's (AGENTS.md R-01).
+actual PR is authorized. The lead merges under AGENTS.md R-01, or the owner merges; deployment is the owner's.
 
 ## Executable launch preflight
 
@@ -254,10 +257,10 @@ non-secret evidence. A TCP pass is not SQL authentication, migration or RLS proo
 verify the owned service identity and the repo's DB readiness checks separately.
 It does not reserve the port. Confirm disk/competing jobs and compare the real
 gatekeeper port when starting proof; stop on mismatch. Do not log environment values
-or URLs containing credentials. A separate build uses the same early-env prefix:
+or URLs containing credentials. A separate build uses the same early-env prefix, through mac-job as a pre-check:
 
 ```bash
-node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web build
+mac-job run pre-check "$SESSION" "$PWD" "$(git rev-parse HEAD)" -- node --env-file=.env.local scripts/run-with-default-db-url.mjs pnpm --filter @interdomestik/web build
 ```
 
 ## Negative cases
@@ -414,7 +417,7 @@ product amendment. It is not published to main by updating the personal copy.
 
 Delivery record (AGENTS.md R-28): the PR is the record of a change. Do not edit
 the program, tracker, ledgers or an overview for it, and open no status-only or
-bookkeeping-only PR. After the owner merges, add the exact merge SHA, the
+bookkeeping-only PR. After the merge, add the exact merge SHA, the
 exact-SHA staging run and any remaining human acceptance to that PR. Keep
 technical delivery and human acceptance as distinct states, and never infer that
 the entire journey is complete.
@@ -484,11 +487,12 @@ and resolve it before the dependent implementation; do not silently substitute a
 
 Model routing (owner, 2026-11-17; AGENTS.md R-01 and R-02): Claude Code, with
 Claude Opus as orchestrator and implementer, implements and owns integration.
-Codex (GPT-6.1 Sol) reviews independently at xhigh. When the lead assigns Codex a
+Codex reviews independently, with the model and effort that R-01 and R-02 name. When the lead assigns Codex a
 bounded part with disjoint files in its own worktree, Codex implements that part at
 this role's configured effort and Claude reviews it. Astra, at high effort or above,
-is used only for the first full review of HIGH work, the final review of its exact
-head, and a concrete unresolved security, gate, concurrency, data-loss or
+reviews every round of HIGH work, fix rounds included, with its YES on the exact
+local head before each push (only the two skips of R-02 replace an Astra round),
+and a concrete unresolved security, gate, concurrency, data-loss or
 architecture ambiguity. No model approves its own work, a blocked reviewer is not
 an approval, and no paid API is a fallback.
 Assign any requested Claude coding a bounded packet with disjoint files, current

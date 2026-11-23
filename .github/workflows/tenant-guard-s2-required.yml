@@ -41,11 +41,14 @@ jobs:
           expected_branch='main'
           # Immutable approved S2 source. Advancing it requires a separately reviewed revision of this file.
           # OWNER PIN: the reviewed commit that adds the S2 source; it must be reachable from origin.
-          source_commit='ec593d6ac5217ab10bfdf6eca49387841265f004'
-          source_tree='8604cb13642e3b54afd35d08f8d817ed0619834d'
+          source_commit='916f4b7dc99107d9d0a12c6647777a2ad28f2e12'
+          source_tree='e791fa31536a76621617cc68609d23bb90e3ded4'
           # Owner-pinned trusted comparator; it must equal the pin inside the approved source.
           trusted_commit='a9e79c23f6c3d7a326774cee07b71054ee911793'
           trusted_tree='529031084338b3488c6e51413ede5cca79b77b82'
+          # Owner-pinned kernel anchor. Data only, and checked against the approved guard's pin.
+          anchor_commit='97c989ad62e99794a4426a2ed854697b83bb6c7b'
+          anchor_tree='cd975c118a17883a36419c0fb67e5e66a6f0a36d'
           # Identity comes only from GitHub event expressions; anything missing or unexpected fails closed.
           for name in EVENT_NAME EVENT_REPO EVENT_REF EVENT_SHA PR_NUMBER PR_BASE_REPO PR_BASE_REF PR_BASE_SHA PR_HEAD_SHA DEFAULT_BRANCH TS_EXPECTED_VERSION; do
             [[ -n "${!name:-}" ]] || fail "missing $name"
@@ -100,6 +103,11 @@ jobs:
           [[ "$trusted_commit" =~ $hex && "$trusted_tree" =~ $hex ]] || fail "trusted comparator pin"
           [[ "$("${gd[@]}" rev-parse -q --verify "$trusted_commit^{tree}" || true)" == "$trusted_tree" ]] || fail "trusted comparator tree mismatch"
           "${gd[@]}" merge-base --is-ancestor "$trusted_commit" "refs/protected/$expected_branch" || fail "trusted comparator not on protected $expected_branch"
+          [[ "$anchor_commit" =~ $hex && "$anchor_tree" =~ $hex ]] || fail "kernel anchor pin"
+          [[ "$("${gd[@]}" rev-parse -q --verify "$anchor_commit^{tree}" || true)" == "$anchor_tree" ]] \
+            || fail "kernel anchor tree mismatch"
+          "${gd[@]}" merge-base --is-ancestor "$anchor_commit" "$PR_BASE_SHA" \
+            || fail "kernel anchor not an ancestor of protected base"
           merge_tree="$("${gd[@]}" rev-parse --verify "$EVENT_SHA^{tree}")" || fail "merge tree"
           base_tree="$("${gd[@]}" rev-parse --verify "$PR_BASE_SHA^{tree}")" || fail "base tree"
           head_tree="$("${gd[@]}" rev-parse --verify "$PR_HEAD_SHA^{tree}")" || fail "head tree"
@@ -110,6 +118,7 @@ jobs:
           echo "head=$PR_HEAD_SHA tree=$head_tree role=candidate parent=2 executable=no"
           echo "source=$source_commit tree=$source_tree role=approved-guard executable=yes"
           echo "trusted=$trusted_commit tree=$trusted_tree role=comparator executable=no"
+          echo "anchor=$anchor_commit tree=$anchor_tree role=kernel-anchor executable=no"
           tgz="$work/typescript.tgz"
           if [[ -n "${DB_GUARD_FIXTURE_TYPESCRIPT_TGZ:-}" ]]; then
             # Local test seam only; the tarball is still bound to the approved source lock integrity.
@@ -253,16 +262,24 @@ jobs:
           set +e
           env -i PATH=/usr/bin:/bin HOME="$work/home" LC_ALL=C TZ=UTC CI=true \
             GIT_DIR="$work/git" GIT_CONFIG_NOSYSTEM=1 GIT_CONFIG_GLOBAL=/dev/null GIT_NO_REPLACE_OBJECTS=1 GIT_TERMINAL_PROMPT=0 \
-            "$node_bin" --no-addons "$entry" --root "$ws" --json > "$report"
+            "$node_bin" --no-addons "$entry" --root "$ws" --json \
+              --merge-commit "$EVENT_SHA" --merge-tree "$merge_tree" \
+              --base-commit "$PR_BASE_SHA" --base-tree "$base_tree" \
+              --anchor-commit "$anchor_commit" --anchor-tree "$anchor_tree" > "$report"
           status=$?
           set -e
           summary="$("${node_[@]}" -e '
             const fs = require("fs");
-            const [file, commit, tree] = process.argv.slice(1);
+            const [file, commit, tree, merge, mergeTree, base, baseTree, anchor, anchorTree] = process.argv.slice(1);
             const r = JSON.parse(fs.readFileSync(file, "utf8"));
             const t = r?.telemetry;
+            const names = (role, commit, tree) =>
+              r?.identity?.[role]?.commit === commit && r?.identity?.[role]?.tree === tree;
             const ok = r !== null && typeof r === "object"
               && r.trusted?.commit === commit && r.trusted?.tree === tree
+              && names("merge", merge, mergeTree) && names("base", base, baseTree)
+              && names("anchor", anchor, anchorTree)
+              && r.schemaAdmission?.version === 2 && r.schemaAdmission?.ok === true
               && Array.isArray(r.violations) && r.violations.length === 0
               && t !== null && typeof t === "object" && Number.isSafeInteger(t.files) && t.files > 0;
             if (!ok) {
@@ -271,6 +288,8 @@ jobs:
               process.exit(1);
             }
             process.stdout.write(`files=${t.files} tenant_state=${t.tenantState} receiver_sinks=${t.receiverSinks} violations=0`);
-          ' "$report" "$trusted_commit" "$trusted_tree")" || fail "protected report is not a passing scan"
+          ' "$report" "$trusted_commit" "$trusted_tree" "$EVENT_SHA" "$merge_tree" \
+            "$PR_BASE_SHA" "$base_tree" "$anchor_commit" "$anchor_tree")" \
+            || fail "protected report is not a passing scan"
           [[ "$status" == 0 ]] || fail "approved guard $source_commit exited $status"
           echo "Protected tenant guard S2 passed (source $source_commit, trusted $trusted_commit) on merge $EVENT_SHA: $summary"
