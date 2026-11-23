@@ -1,4 +1,4 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
+import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 // prettier-ignore
 import { account, db, dbAdmin, E2E_PASSWORD, eq, session as authSession, user } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';

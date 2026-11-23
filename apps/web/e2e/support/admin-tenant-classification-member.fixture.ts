@@ -1,4 +1,4 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
+import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 import { db, dbAdmin, eq, user } from '@interdomestik/database';
 import type { TestInfo } from '@playwright/test';
 import { randomUUID } from 'node:crypto';

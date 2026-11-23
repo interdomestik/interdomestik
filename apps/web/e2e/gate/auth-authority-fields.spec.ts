@@ -1,4 +1,4 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
+import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 import { account, db, dbAdmin, eq, session as authSession, user } from '@interdomestik/database';
 import { expect, test } from '@playwright/test';
 

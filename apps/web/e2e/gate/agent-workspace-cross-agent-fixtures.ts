@@ -1,4 +1,4 @@
-import { cleanupClaimNotificationRows } from '@interdomestik/database/seed-utils/claim-notification-cleanup';
+import { cleanupClaimNotificationRows } from '@interdomestik/database/testing/claim-notification-cleanup';
 import { agentClients, claimMessages, claims, db, dbAdmin, user } from '@interdomestik/database';
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
 import { and, desc, eq, ne } from 'drizzle-orm';

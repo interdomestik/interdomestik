@@ -1,7 +1,7 @@
 import { inArray, like, or } from 'drizzle-orm';
 import { db } from '../db';
 import * as schema from '../schema';
-import { cleanupClaimNotificationRows } from '../seed-utils/claim-notification-cleanup';
+import { cleanupClaimNotificationRows } from '../testing/claim-notification-cleanup';
 import { cleanupSeedClaims } from '../seed-utils/cleanup';
 
 export async function clearData() {

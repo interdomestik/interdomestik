@@ -1,7 +1,7 @@
 import { inArray } from 'drizzle-orm';
 import { db } from '../db';
 import * as schema from '../schema';
-import { cleanupClaimNotificationRows } from './claim-notification-cleanup';
+import { cleanupClaimNotificationRows } from '../testing/claim-notification-cleanup';
 import { cleanupByPrefixes, cleanupSeedClaims } from './cleanup';
 
 // Seed entry points load this only after the seed target and its database client are initialized.

@@ -1,7 +1,7 @@
 import { inArray, like, or } from 'drizzle-orm';
 import type { PostgresJsDatabase } from 'drizzle-orm/postgres-js';
 import * as schema from '../schema';
-import { cleanupClaimNotificationRows } from './claim-notification-cleanup';
+import { cleanupClaimNotificationRows } from '../testing/claim-notification-cleanup';
 import { seedIdentityCleanupPredicate } from './identity-cleanup';
 
 export async function cleanupSeedClaims(

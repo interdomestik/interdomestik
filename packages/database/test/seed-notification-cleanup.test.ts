@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import * as schema from '../src/schema';
-import { cleanupClaimNotificationRows } from '../src/seed-utils/claim-notification-cleanup';
+import { cleanupClaimNotificationRows } from '../src/testing/claim-notification-cleanup';
 import { cleanupByPrefixes } from '../src/seed-utils/cleanup';
 import { createFakeDb, type Operation } from './seed-cleanup.test-support';
 
