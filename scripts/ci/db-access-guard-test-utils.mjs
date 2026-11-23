@@ -120,12 +120,24 @@ export function sealFixture(root) {
     })
   );
 }
-export function runGuard(root, args = []) {
-  return spawnSync(process.execPath, [harness, ...args], {
+// An unloaded guard run takes well under a second. Under four parallel contract shards on the
+// Mac one run passed the former 30 s limit. The limit bounds a hung guard, not guard speed.
+export const GUARD_TIMEOUT_MS = 120_000;
+// A timed-out or killed run fails here with its cause, never later as a missing report.
+export function runGuard(root, args = [], { timeoutMs = GUARD_TIMEOUT_MS } = {}) {
+  const result = spawnSync(process.execPath, [harness, ...args], {
     cwd: root,
     encoding: 'utf8',
-    timeout: 30000,
+    timeout: timeoutMs,
   });
+  if (result.error?.code === 'ETIMEDOUT') {
+    throw new Error(`guard harness timed out after ${timeoutMs} ms in ${root}`);
+  }
+  if (result.error || result.signal) {
+    const cause = result.error?.message ?? result.stderr;
+    throw new Error(`guard harness did not finish (signal ${result.signal}): ${cause}`);
+  }
+  return result;
 }
 export const readReport = root =>
   JSON.parse(fs.readFileSync(path.join(root, 'tmp/db-access-guard/report.json'), 'utf8'));
