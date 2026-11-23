@@ -17,17 +17,18 @@ import {
 import { memberNoteActorOf, memberNoteScope } from './access';
 import { sanitizeNoteContent } from './schema';
 
-vi.mock(
-  '@interdomestik/database',
-  async () => (await import('../test/member-notes-db')).databaseModule
-);
-vi.mock('@interdomestik/database/tenant-authority-context', async () => ({
-  withTenantAuthority: (await import('../test/member-notes-db')).withFakeTenantAuthority,
-}));
+// The fake authority registry first, then the in-memory database and its transaction runner.
 vi.mock('@interdomestik/database/tenant-authority', async () => ({
   readTenantAuthority: (await import('../test/member-notes-fixture')).readFakeAuthority,
 }));
-vi.mock('nanoid', () => ({ nanoid: () => 'note-new' }));
+vi.mock('@interdomestik/database', async () => {
+  const fake = await import('../test/member-notes-db');
+  return fake.databaseModule;
+});
+vi.mock('@interdomestik/database/tenant-authority-context', async () => {
+  const fake = await import('../test/member-notes-db');
+  return { withTenantAuthority: fake.withFakeTenantAuthority };
+});
 
 beforeEach(seed);
 
