@@ -166,14 +166,18 @@ async function replayCandidate(
   };
 }
 
-async function scan(args, repo, report) {
-  report.base = ensureCommit(repo, args.base, 'base');
-  report.head = args.head ? ensureCommit(repo, args.head, 'head') : headSha(repo);
-  // A build-configuration change the scanner has not reviewed is refused under enforcement (the
-  // owner's decision of 2026-11-23) and recorded otherwise.
+// A build-configuration change the scanner has not reviewed is refused under enforcement (the
+// owner's decision of 2026-11-23) and recorded otherwise.
+function judgeConfigChanges(args, repo, report) {
   report.configChanges = buildConfigChanges(repo, report.base, report.head);
   if (args.enforcing && report.configChanges.length)
     throw new ScanError(configRefusal(report.configChanges));
+}
+
+async function scan(args, repo, report) {
+  report.base = ensureCommit(repo, args.base, 'base');
+  report.head = args.head ? ensureCommit(repo, args.head, 'head') : headSha(repo);
+  judgeConfigChanges(args, repo, report);
   // CI and local runs both lint an extracted head tree (H2).
   const root = extractRevision(repo, report.head);
   const cleanup = [root];

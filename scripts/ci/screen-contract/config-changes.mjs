@@ -18,9 +18,20 @@ import { REVIEWED_WRAPPERS } from './resolution.mjs';
 
 const GIT = '/usr/bin/git';
 
-// A build-configuration input, by its file name at any level.
-export const BUILD_CONFIG_RE =
-  /(?:^|\/)(?:next\.config\.[^/]*|\.babelrc(?:\.[^/]*)?|babel\.config\.[^/]*|tsconfig[^/]*\.json|jsconfig[^/]*\.json|\.swcrc)$/u;
+// A build-configuration input, by its file name at any level: one pattern per kind, matched against
+// the last path segment.
+const BUILD_CONFIG_NAMES = Object.freeze([
+  /^next\.config\./u,
+  /^\.babelrc(?:\.|$)/u,
+  /^babel\.config\./u,
+  /^tsconfig[^/]*\.json$/u,
+  /^jsconfig[^/]*\.json$/u,
+  /^\.swcrc$/u,
+]);
+export const isBuildConfig = rel => {
+  const name = rel.slice(rel.lastIndexOf('/') + 1);
+  return BUILD_CONFIG_NAMES.some(pattern => pattern.test(name));
+};
 
 // path -> the reviewed states it may change to (sha256 of the text, or `absent`); for a wrapper's
 // lockfile record, `pnpm-lock.yaml#<name>` -> its reviewed records as `stateOf` prints them. Empty:
@@ -93,7 +104,7 @@ export function buildConfigChanges(repo, baseSha, headSha) {
   const changed = changedPaths(repo, baseSha, headSha);
   if (changed.includes(LOCKFILE)) out.push(...wrapperChanges(repo, baseSha, headSha));
   for (const rel of changed) {
-    if (!BUILD_CONFIG_RE.test(rel)) continue;
+    if (!isBuildConfig(rel)) continue;
     const text = showAt(repo, headSha, rel);
     const state = text === null ? 'absent' : sha256(text);
     if (!(REVIEWED_CONFIG_CHANGES[rel] ?? []).includes(state)) out.push(`${rel} (${state})`);

@@ -8,7 +8,7 @@ import test from 'node:test';
 
 import { judgeHead } from './fixtures/screen-contract-check/cli-cases-fixtures.mjs';
 import { BASE_FILES } from './fixtures/screen-contract-check/harness.mjs';
-import { BUILD_CONFIG_RE } from './screen-contract/config-changes.mjs';
+import { isBuildConfig } from './screen-contract/config-changes.mjs';
 
 const REFUSED =
   /edits build configuration the scanner does not check \(.*\); a change to it needs a scanner PR first/u;
@@ -44,7 +44,7 @@ const ADDED = [
 
 test('config: each build-configuration kind added at any level is refused under enforcement', t => {
   for (const rel of ADDED) {
-    assert.match(rel, BUILD_CONFIG_RE, rel);
+    assert.ok(isBuildConfig(rel), rel);
     const { code, report } = enforced(t, {
       [rel]: rel.endsWith('json') || rel.endsWith('rc') ? '{}\n' : CONFIG,
     });
@@ -88,7 +88,7 @@ test('config: the advisory run records the change and refuses nothing; other fil
     'docs/next-config.md',
     'apps/web/src/lib/babel.ts',
   ])
-    assert.doesNotMatch(rel, BUILD_CONFIG_RE, rel);
+    assert.ok(!isBuildConfig(rel), rel);
   const plain = enforced(t, { 'apps/web/src/lib/tsconfig.ts': 'export const t = 1;\n' });
   assert.equal(plain.code, 0, JSON.stringify(plain.report.errors));
   assert.deepEqual(plain.report.configChanges, []);
