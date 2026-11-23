@@ -88,7 +88,10 @@ test('CLI case 5: hidden input, unmapped wrapper and spread control are out of A
 
 // --- 6. Root and web @/ mappings --------------------------------------------------------------
 
-test('CLI case 6: @/x follows the root tsconfig for a package and the web one for a web file', t => {
+// TypeScript compiles a package with the root tsconfig, but Next's build installs one paths plugin,
+// from the web app's tsconfig, for every module (the WP-05 flip, r4-S2b): a package's `@/x` names
+// both picks, and the lowest layer is judged.
+test('CLI case 6: @/x names the root pick and the web pick for a package, the web one for a web file', t => {
   const checks = okRun(
     judgeHead(t, {
       // Root: @/x is packages/database/src/x.ts (layer 4). Web: @/x is apps/web/src/x.ts (layer 1).
@@ -96,14 +99,17 @@ test('CLI case 6: @/x follows the root tsconfig for a package and the web one fo
         '{\n  "compilerOptions": { "moduleResolution": "bundler", "baseUrl": ".", "paths": { "@/*": ["packages/database/src/*"] } }\n}\n',
       'packages/database/src/x.ts': 'export const x = 4;\n',
       [`${W}/x.ts`]: 'export const x = 1;\n',
-      // Layer 3 importing layer 4: allowed. Under the web mapping it would import layer 1.
+      // Layer 3: TypeScript reads layer 4 (allowed), but the build loads layer 1 (a finding).
       'packages/domain-claims/src/p.ts': "import { x } from '@/x';\nexport const p = x;\n",
-      // Layer 2 importing layer 1: a finding. Under the root mapping it would import layer 4.
+      // Layer 2 importing layer 1: a finding. The root mapping is not this caller's.
       [`${W}/actions/c.ts`]:
         "'use server';\nimport { x } from '@/x';\nexport async function c() { return x; }\n",
     })
   );
-  assert.deepEqual(checks['CHK-15a'].new, [`CHK-15a|${W}/actions/c.ts|@/x`]);
+  assert.deepEqual(checks['CHK-15a'].new, [
+    `CHK-15a|${W}/actions/c.ts|@/x`,
+    'CHK-15a|packages/domain-claims/src/p.ts|@/x',
+  ]);
 });
 
 // --- 9. Rediscovery after a catalogue-only commit ---------------------------------------------

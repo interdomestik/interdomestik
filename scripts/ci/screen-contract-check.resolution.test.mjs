@@ -147,6 +147,59 @@ test('D-1: a request that reaches a directory with its own package.json is a sca
   assert.throws(() => resolver.resolveTargets(FROM, '@/lib/pkg'), /package\.json/u);
 });
 
+// r4-S1: Next's paths plugin passes over a substitution that ends in `.d.ts` and tries the next.
+test('D-1: a @/* substitution ending in .d.ts is skipped by the webpack pick, as Next does', t => {
+  const files = {
+    'apps/web/tsconfig.json':
+      '{ "compilerOptions": { "moduleResolution": "bundler", "paths": { "@/*": ["./types/*.d.ts", "./src/*"] } } }\n',
+    'apps/web/types/save.d.ts': 'export declare const x: number;\n',
+    [`${W}/save.js`]: X,
+  };
+  const got = targetsIn(t, files, '@/save');
+  assert.ok(got.targets.includes(`${W}/save.js`), JSON.stringify(got.targets));
+  assert.ok(!got.targets.includes(`${W}/save.js.d.ts`));
+});
+
+// r4-S2b: Next installs one paths plugin, from the web app's tsconfig, for every module of the
+// build; TypeScript still compiles a package with the root config.
+test('D-1: a package caller gets webpack’s pick through the web mapping, TypeScript’s through root', t => {
+  const files = {
+    'tsconfig.json':
+      '{ "compilerOptions": { "moduleResolution": "bundler", "baseUrl": ".", "paths": { "@/*": ["apps/web/src/lib/*"] } } }\n',
+    [`${W}/x.ts`]: X,
+    [`${W}/lib/x.ts`]: X,
+  };
+  const got = targetsIn(t, files, '@/x', 'packages/domain-claims/src/edge.ts');
+  assert.deepEqual(got.targets, [`${W}/lib/x.ts`, `${W}/x.ts`]);
+  assert.equal(got.file, `${W}/lib/x.ts`);
+});
+
+// r4-B2: a type-only import is erased; only TypeScript's pick is judged.
+test('D-1: an import type edge names TypeScript’s pick only (CHK-15a)', async t => {
+  const files = {
+    [`${W}/components/item.d.ts`]: 'export type T = number;\n',
+    [`${W}/components/item.js`]: 'export const item = 1;\n',
+    [`${W}/actions/do.ts`]:
+      "'use server';\nimport type { T } from '@/components/item';\nexport async function run(t: T) { return t; }\n",
+  };
+  const resolver = resolverFor(fs.realpathSync(tree(t, files)));
+  const from = `${W}/actions/do.ts`;
+  assert.deepEqual(resolver.resolveTargets(from, '@/components/item', 'type'), [
+    `${W}/components/item.d.ts`,
+  ]);
+  assert.deepEqual([...resolver.resolveTargets(from, '@/components/item', 'import')].sort(), [
+    `${W}/components/item.d.ts`,
+    `${W}/components/item.js`,
+  ]);
+  lacks(await lint(tree(t, files)), 'CHK-15a', `CHK-15a|${from}|`);
+  const valueImport = {
+    ...files,
+    [`${W}/actions/do.ts`]:
+      "'use server';\nimport { item } from '@/components/item';\nexport async function run() { return item; }\n",
+  };
+  has(await lint(tree(t, valueImport)), 'CHK-15a', `CHK-15a|${from}|@/components/item`);
+});
+
 const WEB = paths =>
   `{ "compilerOptions": { "moduleResolution": "bundler", "paths": ${JSON.stringify(paths)} } }\n`;
 const rejects = (t, files, pattern) =>
@@ -162,6 +215,9 @@ test('D-1: tsconfig settings the resolver does not model are scanner errors', t 
     /extends/u
   );
   for (const option of [
+    'verbatimModuleSyntax',
+    'preserveValueImports',
+    'importsNotUsedAsValues',
     'rootDirs',
     'moduleSuffixes',
     'customConditions',
@@ -208,6 +264,7 @@ test('D-1: workspace paths keys are accepted, and the real configs load', t => {
       'tsconfig.json': fs.readFileSync('tsconfig.json', 'utf8'),
       'apps/web/tsconfig.json': fs.readFileSync('apps/web/tsconfig.json', 'utf8'),
       'apps/web/next.config.mjs': fs.readFileSync('apps/web/next.config.mjs', 'utf8'),
+      'pnpm-lock.yaml': fs.readFileSync('pnpm-lock.yaml', 'utf8'),
       'apps/web/src/lib/supabase-deployment.mjs': fs.readFileSync(
         'apps/web/src/lib/supabase-deployment.mjs',
         'utf8'
@@ -223,7 +280,10 @@ const hook = body => `export default { webpack(config) { ${body} return config; 
 
 test('D-1: next.config that changes webpack resolution is a scanner error', t => {
   const refused = [
-    ['export default { experimental: { extensionAlias: { ".js": [".ts"] } } };\n', /extensionAlias/u],
+    [
+      'export default { experimental: { extensionAlias: { ".js": [".ts"] } } };\n',
+      /extensionAlias/u,
+    ],
     [hook('config.resolve.extensions = [".ts"];'), /resolve/u],
     [hook('config.resolve.mainFiles.push("main");'), /resolve/u],
     [hook('config.resolve.modules.unshift("src");'), /resolve/u],
@@ -236,6 +296,12 @@ test('D-1: next.config that changes webpack resolution is a scanner error', t =>
     [hook('const { resolve } = config; resolve.extensions = [];'), /resolve/u],
     [hook('return { ...config, resolve: {} };'), /resolve/u],
     [hook('config.plugins.push(new X());'), /plugins/u],
+    // r4-S2a: another tsconfig means other `paths`; refused rather than modelled.
+    ['export default { typescript: { tsconfigPath: "tsconfig.build.json" } };\n', /tsconfigPath/u],
+    [
+      "import { createRequire } from 'node:module';\nconst r = createRequire(import.meta.url);\nexport default r('./x.cjs');\n",
+      /createRequire/u,
+    ],
   ];
   for (const [text, pattern] of refused) rejects(t, { 'apps/web/next.config.mjs': text }, pattern);
 });
@@ -249,8 +315,10 @@ test('D-1: next.config imports are reviewed wrappers, builtins or checked local 
   rejects(
     t,
     {
-      'apps/web/next.config.mjs': "import { patch } from './local.mjs';\nexport default patch({});\n",
-      'apps/web/local.mjs': 'export const patch = c => ({ ...c, webpack(w) { w.resolve.modules = []; return w; } });\n',
+      'apps/web/next.config.mjs':
+        "import { patch } from './local.mjs';\nexport default patch({});\n",
+      'apps/web/local.mjs':
+        'export const patch = c => ({ ...c, webpack(w) { w.resolve.modules = []; return w; } });\n',
     },
     /local\.mjs changes webpack resolution/u
   );
@@ -259,12 +327,57 @@ test('D-1: next.config imports are reviewed wrappers, builtins or checked local 
     { 'apps/web/next.config.mjs': "import './missing.mjs';\nexport default {};\n" },
     /missing\.mjs.*missing/u
   );
+  // r4-B3: re-exports and literal `import()` are followed; a load it cannot name is refused.
+  const PATCH =
+    'export const patch = c => ({ ...c, webpack(w) { w.resolve.modules = []; return w; } });\n';
+  rejects(
+    t,
+    {
+      'apps/web/next.config.mjs': "export { default } from './local.mjs';\n",
+      'apps/web/local.mjs': `${PATCH}export default {};\n`,
+    },
+    /local\.mjs changes webpack resolution/u
+  );
+  rejects(
+    t,
+    {
+      'apps/web/next.config.mjs':
+        "const { patch } = await import('./local.mjs');\nexport default patch({});\n",
+      'apps/web/local.mjs': PATCH,
+    },
+    /local\.mjs changes webpack resolution/u
+  );
+  rejects(
+    t,
+    { 'apps/web/next.config.mjs': "export * from 'next-x';\nexport default {};\n" },
+    /next-x.*not a reviewed/u
+  );
+  for (const call of ['await import(name)', 'require(name)', "require('./a', 1)"])
+    rejects(
+      t,
+      { 'apps/web/next.config.mjs': `const name = './a.mjs';\nexport default ${call};\n` },
+      /does not name literally/u
+    );
+  // r4-B3: a wrapper is accepted only at the version its review read, from the tree's lockfile.
+  const SENTRY = "import { withSentryConfig } from '@sentry/nextjs';\nexport default {};\n";
+  const lockWith = version =>
+    `lockfileVersion: '9.0'\n\nimporters:\n\n  .:\n    devDependencies:\n      '@sentry/nextjs':\n        specifier: 1.0.0\n        version: 1.0.0\n\n  apps/web:\n    dependencies:\n      '@sentry/nextjs':\n        specifier: ${version}\n        version: ${version}(next@16.4.5)\n\npackages:\n`;
+  rejects(t, { 'apps/web/next.config.mjs': SENTRY }, /pnpm-lock\.yaml is missing/u);
+  rejects(
+    t,
+    { 'apps/web/next.config.mjs': SENTRY, 'pnpm-lock.yaml': lockWith('10.76.0') },
+    /@sentry\/nextjs 10\.76\.0 is not the reviewed 10\.75\.2/u
+  );
+  assert.ok(nextConfig(t, SENTRY, { 'pnpm-lock.yaml': lockWith('10.75.2') }));
   assert.ok(
     nextConfig(
       t,
       "import path from 'node:path';\nimport fs from 'fs';\nimport { withSentryConfig } from '@sentry/nextjs';\n" +
         `const dir = path.resolve('.'); require.resolve('x');\n` +
-        hook('config.resolve.alias["perf_hooks"] = false; config.resolve.alias["@scope/pkg/sub"] = false;')
+        hook(
+          'config.resolve.alias["perf_hooks"] = false; config.resolve.alias["@scope/pkg/sub"] = false;'
+        ),
+      { 'pnpm-lock.yaml': lockWith('10.75.2') }
     )
   );
 });
@@ -273,7 +386,10 @@ test('D-1: next.config imports are reviewed wrappers, builtins or checked local 
 // (the lead's note: 16.3.8 → 16.4.x). Read from the build's source text, `resolveConfig.extensions`.
 test('D-1: WEBPACK_EXTENSIONS equals the installed Next build’s resolve.extensions', () => {
   const web = createRequire(path.resolve('apps/web/package.json'));
-  const file = path.join(path.dirname(web.resolve('next/package.json')), 'dist/build/webpack-config.js');
+  const file = path.join(
+    path.dirname(web.resolve('next/package.json')),
+    'dist/build/webpack-config.js'
+  );
   const text = fs.readFileSync(file, 'utf8');
   const block = /const resolveConfig = \{[\s\S]*?extensions: \[([^\]]*)\]/u.exec(text);
   assert.ok(block, 'resolveConfig.extensions not found in Next’s webpack-config.js');

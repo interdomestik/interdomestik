@@ -166,3 +166,14 @@ test('§4: under the candidate a head registry entry is frozen (D-7)', () => {
   assert.deepEqual(j.checks['CHK-22'].tamper, ['CHK-22#registry-frozen:terms']);
   assert.deepEqual(j.wouldRefuse, ['CHK-22']);
 });
+
+// r4-S3: only a pre-adoption revision gets synthesized inputs. An adopted head that deletes its
+// rebuilt list is the production input error: no candidate judgment, and the pair is incomplete.
+test('r4-S3: an adopted head without its rebuilt list has no candidate judgment', t => {
+  const pair = adoptedPair(t, baselineOf({ 'CHK-15c': [LEGACY] }), { [REBUILT]: null });
+  const { code, report } = run(t, pair.root, ['--replay', '--base', pair.base, '--head', pair.head]);
+  assert.equal(code, 2);
+  assert.match(report.errors.join('\n'), /rebuilt-screens list is missing or empty/u);
+  assert.equal(report.replay?.candidateJudgment, undefined);
+  assert.equal(report.replay?.complete ?? false, false);
+});

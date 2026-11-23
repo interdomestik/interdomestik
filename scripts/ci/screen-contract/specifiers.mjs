@@ -151,20 +151,23 @@ export function resolverFor(root) {
   const inTree = rel => (rel.startsWith('..') ? null : rel);
   // Webpack's pick (resolution.mjs): relative to the caller, or for `@/` each `paths['@/*']` entry
   // in order, its `*` (if any) replaced, the first that names a file winning (B8, F7), as Next's
-  // JsConfigPathsPlugin applies them.
+  // JsConfigPathsPlugin applies them. Next installs one paths plugin for the whole build, from the
+  // web app's tsconfig, so every caller, `packages/**` included, uses the web app's mapping
+  // (r4-S2b). A substitution that ends in `.d.ts` is passed over, as the plugin does (r4-S1).
   const webpackTarget = (fromRel, specifier) => {
     if (kindOfSpecifier(specifier) === 'relative') {
-      const base = inTree(path.posix.normalize(path.posix.join(path.posix.dirname(fromRel), specifier)));
+      const base = inTree(
+        path.posix.normalize(path.posix.join(path.posix.dirname(fromRel), specifier))
+      );
       return base && webpackPick(isFile, base);
     }
     const rest = specifier.slice(2);
-    for (const pattern of alias[aliasConfigOf(fromRel)]) {
+    for (const pattern of alias.web) {
       const star = pattern.indexOf('*');
-      const candidate = inTree(
-        path.posix.normalize(
-          star === -1 ? pattern : `${pattern.slice(0, star)}${rest}${pattern.slice(star + 1)}`
-        )
-      );
+      const substituted =
+        star === -1 ? pattern : `${pattern.slice(0, star)}${rest}${pattern.slice(star + 1)}`;
+      if (substituted.endsWith('.d.ts')) continue;
+      const candidate = inTree(path.posix.normalize(substituted));
       const file = candidate && webpackPick(isFile, candidate);
       if (file) return file;
     }
@@ -192,6 +195,8 @@ export function resolverFor(root) {
     const kind = kindOfSpecifier(specifier);
     if (kind === 'workspace') return workspaceFiles(specifier, edgeKind);
     if (kind !== 'relative' && kind !== 'alias') return [];
+    // A type-only edge is erased: TypeScript reads it, webpack never loads it (r4-B2).
+    if (edgeKind === 'type') return [typescriptTarget(fromRel, specifier)].filter(Boolean);
     const picks = [typescriptTarget(fromRel, specifier), webpackTarget(fromRel, specifier)];
     return [...new Set(picks.filter(Boolean))];
   };

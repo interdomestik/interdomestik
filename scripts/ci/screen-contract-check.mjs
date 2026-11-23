@@ -120,7 +120,13 @@ async function replayBase(repo, report, root, cleanup) {
 // The candidate judgment of a replay pair (§4 of the flip plan): the parent tree is scanned with the
 // candidate scanner too (a pre-adoption base already was), and the pair is judged as PR-B's
 // required workflow would judge it.
-async function replayCandidate(repo, report, root, cleanup, { pre, real, inputs, lint, files, results }) {
+async function replayCandidate(
+  repo,
+  report,
+  root,
+  cleanup,
+  { pre, real, inputs, lint, files, results }
+) {
   let baseRoot = pre?.root ?? null;
   if (!baseRoot) {
     baseRoot = extractRevision(repo, report.base);

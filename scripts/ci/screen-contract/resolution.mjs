@@ -65,7 +65,9 @@ export function typescriptOptions(root, configRel, options) {
 export function confinedHost(root, isFile) {
   const relOf = abs => {
     const rel = path.relative(root, abs).split(path.sep).join('/');
-    return rel.startsWith('..') || path.isAbsolute(rel) || rel.includes('node_modules') ? null : rel;
+    return rel.startsWith('..') || path.isAbsolute(rel) || rel.includes('node_modules')
+      ? null
+      : rel;
   };
   return {
     fileExists: abs => {
@@ -84,6 +86,11 @@ export function confinedHost(root, isFile) {
 
 // The tsconfig options that change resolution and are not modelled: one present is an error.
 const UNMODELLED_OPTIONS = Object.freeze([
+  // Elision: with these an all-`type` import can stay a runtime load (r4-B2 keeps type edges to
+  // TypeScript's pick only).
+  'verbatimModuleSyntax',
+  'preserveValueImports',
+  'importsNotUsedAsValues',
   'rootDirs',
   'moduleSuffixes',
   'customConditions',
@@ -116,16 +123,17 @@ export function validateResolutionConfig(config, configRel) {
 }
 
 const NEXT_CONFIGS = Object.freeze(['js', 'mjs', 'cjs', 'ts', 'mts'].map(e => `next.config.${e}`));
-// The packages `next.config` may import, each reviewed for what it does to webpack's `resolve`
-// (2026-11-22, installed versions): `@next/bundle-analyzer` 16.3.5 nothing; `@sentry/nextjs`
-// 10.75.2 aliases `perf_hooks`; `next-axiom` 1.10.0 nothing; `next-intl/plugin` 4.14.5 aliases
-// `next-intl/config` and `use-intl/format-message`. All bare package names (r3-B3).
-const REVIEWED_WRAPPERS = Object.freeze([
-  '@next/bundle-analyzer',
-  '@sentry/nextjs',
-  'next-axiom',
-  'next-intl/plugin',
-]);
+// The packages `next.config` may import, each reviewed for what it does to webpack's `resolve` at
+// one version, which the scanned tree's lockfile must resolve for `apps/web` (r4-B3): the import
+// name, its package, and the reviewed version. `@next/bundle-analyzer` changes nothing;
+// `@sentry/nextjs` aliases `perf_hooks`; `next-axiom` changes nothing; `next-intl/plugin` aliases
+// `next-intl/config` and `use-intl/format-message`. All bare package keys (r3-B3; read 2026-11-22).
+const REVIEWED_WRAPPERS = Object.freeze({
+  '@next/bundle-analyzer': { pkg: '@next/bundle-analyzer', version: '16.3.5' },
+  '@sentry/nextjs': { pkg: '@sentry/nextjs', version: '10.75.2' },
+  'next-axiom': { pkg: 'next-axiom', version: '1.10.0' },
+  'next-intl/plugin': { pkg: 'next-intl', version: '4.14.5' },
+});
 // What `resolve.alias` may be given: a literal key naming a bare package, which can match no
 // relative (`.`, `/`) or `@/` request.
 const isBareKey = key => /^(?:@[^/]+\/)?[^./@][^/]*(?:\/.*)?$/u.test(key) && !key.startsWith('@/');
@@ -154,42 +162,96 @@ function isBareAliasKey(node) {
   );
 }
 
-// The text of a node that can change webpack's resolution, or null (r3-B3). Fail closed on the
-// name: every `extensionAlias` or `plugins` (a resolver or replacement plugin), and every
-// `resolve` (a member, a property, a destructured or computed name) except a `….resolve(…)` call
-// and `….resolve.alias[<bare literal>]`.
+// The text of a node that can change webpack's resolution or the tsconfig Next reads, or null
+// (r3-B3, r4-S2a). Fail closed on the name: every `extensionAlias`, `plugins` (a resolver or
+// replacement plugin), `tsconfigPath` (another tsconfig, so other `paths`) or `createRequire` (an
+// import the walk cannot follow), and every `resolve` (a member, a property, a destructured or
+// computed name) except a `….resolve(…)` call and `….resolve.alias[<bare literal>]`.
+const REFUSED_NAMES = Object.freeze(['extensionAlias', 'plugins', 'tsconfigPath', 'createRequire']);
 function resolutionChange(node, source) {
-  if (isName(node, 'extensionAlias') || isName(node, 'plugins'))
-    return node.parent.getText(source);
+  if (REFUSED_NAMES.some(name => isName(node, name))) return node.parent.getText(source);
   if (!isName(node, 'resolve') || isResolveCall(node) || isBareAliasKey(node)) return null;
   return node.parent.getText(source);
 }
 
-// The module specifiers a config file imports (static imports and `require` of a literal).
-function importsOf(source) {
+const isRequireCall = node =>
+  ts.isCallExpression(node) &&
+  ts.isIdentifier(node.expression) &&
+  node.expression.text === 'require';
+const isImportCall = node =>
+  ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword;
+
+// The module specifiers a config file loads: static imports, re-exports (`export … from`), and
+// `import()` / `require()` of a literal. A call with any other argument cannot be followed and is a
+// scanner error (r4-B3, fail closed).
+function importsOf(source, rel) {
   const out = [];
   const visit = node => {
-    if (ts.isImportDeclaration(node) && ts.isStringLiteral(node.moduleSpecifier))
-      out.push(node.moduleSpecifier.text);
     if (
-      ts.isCallExpression(node) &&
-      ts.isIdentifier(node.expression) &&
-      node.expression.text === 'require' &&
-      node.arguments.length === 1 &&
-      ts.isStringLiteralLike(node.arguments[0])
+      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier)
     )
-      out.push(node.arguments[0].text);
+      out.push(node.moduleSpecifier.text);
+    if (isRequireCall(node) || isImportCall(node)) {
+      const [arg] = node.arguments;
+      if (node.arguments.length !== 1 || !ts.isStringLiteralLike(arg))
+        throw new ScanError(
+          `${rel} loads a module it does not name literally (${node.getText(source)})`
+        );
+      out.push(arg.text);
+    }
     ts.forEachChild(node, visit);
   };
   visit(source);
   return out;
 }
 
-function checkConfigFile(root, rel, seen) {
+// The version the lockfile resolves for each direct dependency of `apps/web` (pnpm's `importers`).
+export function webDependencyVersions(text) {
+  const out = {};
+  let section = null;
+  let current = null;
+  for (const line of text.split('\n')) {
+    if (/^\S/u.test(line)) section = line.trim() === 'importers:' ? 'importers' : null;
+    if (section === null) continue;
+    const importer = /^ {2}(\S[^:]*):\s*$/u.exec(line);
+    if (importer) {
+      section = importer[1] === 'apps/web' ? 'web' : 'importers';
+      current = null;
+      continue;
+    }
+    if (section !== 'web') continue;
+    const dep = /^ {6}'?([^':\s]+)'?:\s*$/u.exec(line);
+    if (dep) current = dep[1];
+    const version = /^ {8}version: ([^(\s]+)/u.exec(line);
+    if (version && current) out[current] = version[1];
+  }
+  return out;
+}
+
+function checkWrapper(root, rel, specifier, versions) {
+  const reviewed = REVIEWED_WRAPPERS[specifier];
+  if (!reviewed)
+    throw new ScanError(`${rel} imports ${specifier}, which is not a reviewed Next wrapper`);
+  if (versions.value === undefined) {
+    const lock = readInside(root, 'pnpm-lock.yaml');
+    if (lock === null)
+      throw new ScanError('pnpm-lock.yaml is missing; the Next wrappers cannot be checked');
+    versions.value = webDependencyVersions(lock);
+  }
+  const found = versions.value[reviewed.pkg];
+  if (found !== reviewed.version)
+    throw new ScanError(
+      `${rel} imports ${specifier}, whose ${reviewed.pkg} ${found ?? '(absent)'} is not the reviewed ${reviewed.version}`
+    );
+}
+
+function checkConfigFile(root, rel, seen, versions) {
   if (seen.has(rel)) return;
   seen.add(rel);
   const text = readInside(root, rel);
-  if (text === null) throw new ScanError(`${rel} (imported by next.config) is missing`);
+  if (text === null) throw new ScanError(`${rel} (loaded by next.config) is missing`);
   const source = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
   let found = null;
   const visit = node => {
@@ -199,20 +261,21 @@ function checkConfigFile(root, rel, seen) {
   visit(source);
   if (found)
     throw new ScanError(`${rel} changes webpack resolution (${found}), which D-1 does not model`);
-  for (const specifier of importsOf(source)) {
-    if (specifier.startsWith('.'))
-      checkConfigFile(root, path.posix.normalize(path.posix.join(path.posix.dirname(rel), specifier)), seen);
-    else if (!isBuiltin(specifier) && !REVIEWED_WRAPPERS.includes(specifier))
-      throw new ScanError(`${rel} imports ${specifier}, which is not a reviewed Next wrapper`);
+  for (const specifier of importsOf(source, rel)) {
+    if (specifier.startsWith('.')) {
+      const next = path.posix.normalize(path.posix.join(path.posix.dirname(rel), specifier));
+      checkConfigFile(root, next, seen, versions);
+    } else if (!isBuiltin(specifier)) checkWrapper(root, rel, specifier, versions);
   }
 }
 
-// The web app's Next config, and the local files it imports, leave webpack's resolution of relative
-// and `@/` requests as D-1 models it.
+// The web app's Next config, and every local file it loads, leave webpack's resolution of relative
+// and `@/` requests, and the tsconfig Next reads, as D-1 models them.
 export function assertNextResolution(root) {
   const seen = new Set();
+  const versions = {};
   for (const name of NEXT_CONFIGS) {
     const rel = `apps/web/${name}`;
-    if (readInside(root, rel) !== null) checkConfigFile(root, rel, seen);
+    if (readInside(root, rel) !== null) checkConfigFile(root, rel, seen, versions);
   }
 }

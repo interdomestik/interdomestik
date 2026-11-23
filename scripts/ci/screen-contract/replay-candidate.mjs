@@ -14,7 +14,9 @@ import { applyRebuilt } from './transfer.mjs';
 // per-kind minimum; the lint already refuses a missing or ignored file) for a revision without one.
 const floorOf = (real, id) => {
   const floor = real?.checks?.[id]?.coverageMin;
-  return floor === undefined ? { source: 'completeness', value: 0 } : { source: 'real', value: floor };
+  return floor === undefined
+    ? { source: 'completeness', value: 0 }
+    : { source: 'real', value: floor };
 };
 
 const failSettings = (candidate, id) => ({ ...candidate.checks[id], mode: 'fail' });
