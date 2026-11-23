@@ -4,15 +4,15 @@ import {
   createMemberNote,
   deleteMemberNote,
   getMemberNotes,
-  MemberNote,
-  NoteType,
   toggleNotePin,
   updateMemberNote,
+  type MemberNote,
+  type NoteType,
 } from '@/actions/member-notes';
 import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { MessageCircle, Plus } from 'lucide-react';
 import { useTranslations } from 'next-intl';
-import { useCallback, useEffect, useState, useTransition } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 
 import { MemberNoteDialog } from './member-note-dialog';
@@ -32,24 +32,50 @@ export function MemberNotesCard({ memberId, memberName }: MemberNotesCardProps) 
   const [isPending, startTransition] = useTransition();
   const [noteContent, setNoteContent] = useState('');
   const [noteType, setNoteType] = useState<NoteType>('general');
-
-  const fetchNotes = useCallback(async () => {
-    const result = await getMemberNotes(memberId);
-    if (result.success && result.data) {
-      setNotes(result.data);
-    }
-    setIsLoading(false);
-  }, [memberId]);
-
-  useEffect(() => {
-    fetchNotes();
-  }, [fetchNotes]);
+  const [shownMemberId, setShownMemberId] = useState(memberId);
+  // The member on screen now, and the latest list request: an answer for another member, or for
+  // a request a newer one replaced, is dropped and never shown.
+  const currentMemberId = useRef(memberId);
+  const listRequest = useRef(0);
 
   const resetForm = () => {
     setEditingNote(null);
     setNoteContent('');
     setNoteType('general');
   };
+
+  // Another member: nothing of the previous member stays on screen, not even in the editor.
+  if (shownMemberId !== memberId) {
+    setShownMemberId(memberId);
+    setNotes([]);
+    setIsLoading(true);
+    setIsDialogOpen(false);
+    resetForm();
+  }
+
+  const fetchNotes = useCallback(async () => {
+    const request = ++listRequest.current;
+    const result = await getMemberNotes({ memberId });
+    if (request !== listRequest.current) return;
+    if (result.success) {
+      setNotes(result.data ?? []);
+    } else {
+      // Access ended (or the read failed): show no notes and close the editor.
+      setNotes([]);
+      setIsDialogOpen(false);
+      setEditingNote(null);
+      setNoteContent('');
+      setNoteType('general');
+    }
+    setIsLoading(false);
+  }, [memberId]);
+
+  useEffect(() => {
+    currentMemberId.current = memberId;
+    void fetchNotes();
+  }, [memberId, fetchNotes]);
+
+  const isCurrent = (requestedFor: string) => currentMemberId.current === requestedFor;
 
   const handleOpenDialog = (note?: MemberNote) => {
     if (note) {
@@ -69,29 +95,50 @@ export function MemberNotesCard({ memberId, memberName }: MemberNotesCardProps) 
 
   const handleSubmit = () => {
     if (!noteContent.trim()) return;
+    const requestedFor = memberId;
+    const editing = editingNote;
 
     startTransition(async () => {
-      await performSubmit(
-        editingNote,
-        memberId,
-        noteContent,
-        noteType,
-        t,
-        fetchNotes,
-        handleCloseDialog
-      );
+      const result = editing
+        ? await updateMemberNote({ id: editing.id, content: noteContent, type: noteType })
+        : await createMemberNote({ memberId: requestedFor, content: noteContent, type: noteType });
+      if (!isCurrent(requestedFor)) return;
+      if (!result.success) {
+        toast.error(result.error || t(editing ? 'updateError' : 'createError'));
+        return;
+      }
+      toast.success(editing ? t('noteUpdated') : t('noteCreated'));
+      handleCloseDialog();
+      await fetchNotes();
     });
   };
 
   const handleDelete = (noteId: string) => {
+    const requestedFor = memberId;
     startTransition(async () => {
-      await performDelete(noteId, t, setNotes);
+      const result = await deleteMemberNote({ noteId });
+      if (!isCurrent(requestedFor)) return;
+      if (!result.success) {
+        toast.error(result.error || t('deleteError'));
+        return;
+      }
+      toast.success(t('noteDeleted'));
+      setNotes(prev => prev.filter(n => n.id !== noteId));
     });
   };
 
   const handleTogglePin = (noteId: string) => {
+    const requestedFor = memberId;
     startTransition(async () => {
-      await performTogglePin(noteId, t, setNotes);
+      const result = await toggleNotePin({ noteId });
+      if (!isCurrent(requestedFor)) return;
+      if (!result.success) {
+        toast.error(result.error || t('pinError'));
+        return;
+      }
+      const isPinned = result.data?.isPinned;
+      if (isPinned === undefined) return;
+      setNotes(prev => prev.map(n => (n.id === noteId ? { ...n, isPinned } : n)));
     });
   };
 
@@ -156,55 +203,4 @@ export function MemberNotesCard({ memberId, memberName }: MemberNotesCardProps) 
       />
     </>
   );
-}
-
-async function performSubmit(
-  editingNote: MemberNote | null,
-  memberId: string,
-  noteContent: string,
-  noteType: NoteType,
-  t: (key: string) => string,
-  fetchNotes: () => void,
-  handleCloseDialog: () => void
-) {
-  const result = editingNote
-    ? await updateMemberNote({ id: editingNote.id, content: noteContent, type: noteType })
-    : await createMemberNote({ memberId, content: noteContent, type: noteType });
-
-  if (result.success) {
-    toast.success(editingNote ? t('noteUpdated') : t('noteCreated'));
-    fetchNotes();
-    handleCloseDialog();
-  } else {
-    toast.error(result.error || t(editingNote ? 'updateError' : 'createError'));
-  }
-}
-
-async function performDelete(
-  noteId: string,
-  t: (key: string) => string,
-  setNotes: React.Dispatch<React.SetStateAction<MemberNote[]>>
-) {
-  const result = await deleteMemberNote(noteId);
-  if (result.success) {
-    toast.success(t('noteDeleted'));
-    setNotes(prev => prev.filter(n => n.id !== noteId));
-  } else {
-    toast.error(result.error || t('deleteError'));
-  }
-}
-
-async function performTogglePin(
-  noteId: string,
-  t: (key: string) => string,
-  setNotes: React.Dispatch<React.SetStateAction<MemberNote[]>>
-) {
-  const result = await toggleNotePin(noteId);
-  if (result.success && result.data) {
-    setNotes(prev =>
-      prev.map(n => (n.id === noteId ? { ...n, isPinned: result.data!.isPinned } : n))
-    );
-  } else {
-    toast.error(result.error || t('pinError'));
-  }
 }
