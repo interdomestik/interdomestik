@@ -207,16 +207,20 @@ export async function holdAdminWrite(
 class RolledBack extends Error {}
 
 /** Waits until a restricted-role backend is blocked by the given admin backend. */
-export async function waitUntilBlockedBy(adminDb: AdminDb, holderPid: number): Promise<void> {
-  for (let attempt = 0; attempt < 200; attempt += 1) {
-    const rows = await adminDb.execute<{ pid: number }>(sql`
-      select pid from pg_stat_activity
-      where usename = ${TEST_DB_ROLE}
-        and ${holderPid}::int = any(pg_blocking_pids(pid))`);
-    if (rows.length > 0) return;
-    await sleep(25);
-  }
-  assert.fail(`no restricted-role backend was blocked by backend ${holderPid}`);
+export async function waitUntilBlockedBy(
+  adminDb: AdminDb,
+  holderPid: number,
+  attemptsLeft = 200
+): Promise<void> {
+  const rows = await adminDb.execute<{ pid: number }>(sql`
+    select pid from pg_stat_activity
+    where usename = ${TEST_DB_ROLE}
+      and ${holderPid}::int = any(pg_blocking_pids(pid))`);
+  if (rows.length > 0) return;
+  if (attemptsLeft <= 1)
+    assert.fail(`no restricted-role backend was blocked by backend ${holderPid}`);
+  await sleep(25);
+  return waitUntilBlockedBy(adminDb, holderPid, attemptsLeft - 1);
 }
 
 /** Asserts a promise is still pending (blocked), without consuming its outcome. */

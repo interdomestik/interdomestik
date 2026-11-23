@@ -121,7 +121,10 @@ test('member notes: actor matrix, tenant isolation and races under the restricte
             .orderBy(memberNotes.id)
         );
       const ks = await read(S().authority);
-      assert.deepEqual(ks.map(row => row.id).sort(), allNoteIds.filter(id => id !== n.nm).sort());
+      assert.deepEqual(
+        ks.map(row => row.id).sort((left, right) => left.localeCompare(right)),
+        allNoteIds.filter(id => id !== n.nm).sort((left, right) => left.localeCompare(right))
+      );
       const mk = await read(actor(u.mkAgent, 'agent', { authorityTenant: MK_TENANT_ID }).authority);
       assert.deepEqual(mk, [{ id: n.nm }]);
     });

@@ -49,7 +49,7 @@ export function memberNoteActorOf(
   authority: TenantAuthority
 ): MemberNoteActor | null {
   const descriptor = descriptorOf(authority);
-  if (!descriptor || descriptor.purpose !== 'session') return null;
+  if (descriptor?.purpose !== 'session') return null;
   const sessionTenant = effectiveTenantOf(session);
   if (
     !sessionTenant ||

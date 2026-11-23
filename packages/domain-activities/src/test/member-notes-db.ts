@@ -105,7 +105,22 @@ function selectQuery(txId: number, projection?: Record<string, string>) {
     joined: false,
     orders: [] as Order[],
   };
-  const query = {
+  // A real promise, run after the synchronous chain has set its state (as drizzle runs a query
+  // when it is awaited); each builder method returns the same promise.
+  const run = () => {
+    store.statements.push({ tx: txId, kind: 'select', table: state.table, lock: state.lock });
+    if (store.failNextSelect) {
+      const error = store.failNextSelect;
+      store.failNextSelect = null;
+      throw error;
+    }
+    return store.rows[state.table as keyof typeof store.rows]
+      .filter(row => matches(row, state.where))
+      .sort(compareDesc(state.orders))
+      .slice(0, state.limit)
+      .map(row => project(row, projection, state.joined));
+  };
+  const query = Object.assign(Promise.resolve().then(run), {
     from(target: FakeTable) {
       state.table = target.__name;
       return query;
@@ -130,21 +145,7 @@ function selectQuery(txId: number, projection?: Record<string, string>) {
       state.orders = orders;
       return query;
     },
-    then<T>(resolve: (rows: Row[]) => T, reject: (error: unknown) => T) {
-      store.statements.push({ tx: txId, kind: 'select', table: state.table, lock: state.lock });
-      if (store.failNextSelect) {
-        const error = store.failNextSelect;
-        store.failNextSelect = null;
-        return Promise.reject(error).then(resolve, reject);
-      }
-      const rows = store.rows[state.table as keyof typeof store.rows]
-        .filter(row => matches(row, state.where))
-        .sort(compareDesc(state.orders))
-        .slice(0, state.limit)
-        .map(row => project(row, projection, state.joined));
-      return Promise.resolve(rows).then(resolve, reject);
-    },
-  };
+  });
   return query;
 }
 
@@ -154,14 +155,15 @@ export function fakeTransaction() {
   return {
     select: (projection?: Record<string, string>) => selectQuery(txId, projection),
     insert: (target: FakeTable) => ({
-      values: async (row: Row) => {
+      values: (row: Row) => {
         store.statements.push({ tx: txId, kind: 'insert', table: target.__name, lock: null });
         store.rows[target.__name as keyof typeof store.rows].push({ ...row });
+        return Promise.resolve();
       },
     }),
     update: (target: FakeTable) => ({
       set: (values: Row) => ({
-        where: async (condition: Condition) => {
+        where: (condition: Condition) => {
           store.statements.push({ tx: txId, kind: 'update', table: target.__name, lock: null });
           for (const row of store.rows[target.__name as keyof typeof store.rows]) {
             // As drizzle's update: an undefined value leaves the column unchanged.
@@ -171,14 +173,16 @@ export function fakeTransaction() {
               }
             }
           }
+          return Promise.resolve();
         },
       }),
     }),
     delete: (target: FakeTable) => ({
-      where: async (condition: Condition) => {
+      where: (condition: Condition) => {
         store.statements.push({ tx: txId, kind: 'delete', table: target.__name, lock: null });
         const key = target.__name as keyof typeof store.rows;
         store.rows[key] = store.rows[key].filter(row => !matches(row, condition));
+        return Promise.resolve();
       },
     }),
   };
