@@ -43,8 +43,8 @@
             "member": "Më pas: ngarkim nga anëtari",
             "untracked": "Nuk ka kërkesë të hapur për dëshmi të regjistruar"
           },
-          "overdue_follow_up": "Ndjekje operative: data e regjistruar për kërkesën, {date} UTC, ka kaluar. Kontaktoni anëtarin.",
-          "overdue_register_follow_up": "Ndjekje operative: data e ndjekjes në regjistrin e rastit, {date} UTC, ka kaluar. Kontrolloni regjistrin e rastit."
+          "overdue_follow_up": "Ndjekje operative: data e regjistruar për kërkesën, {date}, ka kaluar. Kontaktoni anëtarin.",
+          "overdue_register_follow_up": "Ndjekje operative: data e ndjekjes në regjistrin e rastit, {date}, ka kaluar. Kontrolloni regjistrin e rastit."
         },
         "assignment_state": {
           "unassigned": "Pa përgjegjës",

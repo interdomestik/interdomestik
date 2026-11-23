@@ -43,8 +43,8 @@
             "member": "Next: member upload",
             "untracked": "No open evidence request recorded"
           },
-          "overdue_follow_up": "Operational follow-up: the recorded request due date {date} UTC has passed. Check with the member.",
-          "overdue_register_follow_up": "Operational follow-up: the case register follow-up date {date} UTC has passed. Check the case register."
+          "overdue_follow_up": "Operational follow-up: the recorded request due date {date} has passed. Check with the member.",
+          "overdue_register_follow_up": "Operational follow-up: the case register follow-up date {date} has passed. Check the case register."
         },
         "assignment_state": {
           "unassigned": "Unassigned",

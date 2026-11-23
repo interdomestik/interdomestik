@@ -48,6 +48,7 @@ test('assigned staff record legal bases, document disclosure, and an overdue una
   const queue = await page.context().newPage();
   try {
     const overdue = await openQueue(queue, claimId, origin, locale, info);
+    await expect(overdue).toBeVisible();
     await expect(overdue).toContainText(formatPilotDateTime(firstFollowUp, locale, ''));
 
     const form = recordForm(page);
@@ -71,6 +72,7 @@ test('assigned staff record legal bases, document disclosure, and an overdue una
 
     // The answered contact's deadline no longer counts; the remaining unanswered one does.
     await queue.reload();
+    await expect(overdue).toBeVisible();
     await expect(overdue).toContainText(formatPilotDateTime(secondFollowUp, locale, ''));
     await expect(overdue).not.toContainText(formatPilotDateTime(firstFollowUp, locale, ''));
   } finally {

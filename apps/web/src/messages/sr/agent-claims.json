@@ -43,8 +43,8 @@
             "member": "Sledeće: član otprema dokumentaciju",
             "untracked": "Nema evidentiranog otvorenog zahteva za dokumentaciju"
           },
-          "overdue_follow_up": "Operativno praćenje: evidentirani datum zahteva {date} UTC je prošao. Kontaktirajte člana.",
-          "overdue_register_follow_up": "Operativno praćenje: datum praćenja u evidenciji predmeta {date} UTC je prošao. Proverite evidenciju predmeta."
+          "overdue_follow_up": "Operativno praćenje: evidentirani datum zahteva {date} je prošao. Kontaktirajte člana.",
+          "overdue_register_follow_up": "Operativno praćenje: datum praćenja u evidenciji predmeta {date} je prošao. Proverite evidenciju predmeta."
         },
         "assignment_state": {
           "unassigned": "Nedodeljeno",
