@@ -4,7 +4,7 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 // prettier-ignore
 const h = vi.hoisted(() => { const limit = vi.fn(); const where = vi.fn(() => ({ limit })); const from = vi.fn(() => ({ where })); return { contexts: [] as unknown[], limit, rateLimit: vi.fn(), resolveSession: vi.fn(), resumeDraft: vi.fn(), select: vi.fn(() => ({ from })), submit: vi.fn(), where }; });
-vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 const audit = vi.hoisted(() => vi.fn());
 vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: vi.fn() }));
 vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: audit }));

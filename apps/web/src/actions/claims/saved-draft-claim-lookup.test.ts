@@ -30,7 +30,7 @@ const h = vi.hoisted(() => {
   };
 });
 
-vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: vi.fn() }));
 vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: h.audit }));
 vi.mock('@/actions/free-start-drafts/session.core', () => ({

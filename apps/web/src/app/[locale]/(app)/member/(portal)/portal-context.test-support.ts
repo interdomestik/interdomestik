@@ -3,12 +3,14 @@ import { vi } from 'vitest';
 const h = vi.hoisted(() => ({
   requests: new Map<unknown, Map<string, unknown>>(),
   session: vi.fn(),
-  cases: vi.fn(async () => []),
-  membership: vi.fn(async () => ({
-    bucket: 'active',
-    currentPeriodEnd: new Date('2026-12-31T00:00:00.000Z'),
-    grantsNewCaseAccess: true,
-  })),
+  cases: vi.fn(() => Promise.resolve([])),
+  membership: vi.fn(() =>
+    Promise.resolve({
+      bucket: 'active',
+      currentPeriodEnd: new Date('2026-12-31T00:00:00.000Z'),
+      grantsNewCaseAccess: true,
+    })
+  ),
   accepted: true,
   neutral: true,
   pathname: '/member',
@@ -49,39 +51,41 @@ vi.mock('next/navigation', () => ({
     throw new Error(`redirect:${to}`);
   },
 }));
-vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 vi.mock('@/app/api/auth/[...all]/neutral-otp-boundary', () => ({
   evaluateNeutralOtpHost: () => h.neutral,
 }));
 vi.mock('@/lib/tenant/tenant-hosts', () => ({ resolveDefaultPublicTenantId: () => 'tenant_ks' }));
 vi.mock('next-intl/server', () => ({
   setRequestLocale: vi.fn(),
-  getTranslations: async () =>
-    Object.assign((key: string) => key, {
-      raw: () => {
-        const values = new Proxy({}, { get: (_target, key) => String(key) });
-        return {
-          actions: values,
-          description: 'description',
-          disclaimer: 'disclaimer',
-          membership_status: new Proxy(
-            { statuses: values },
-            { get: (target, key) => (key === 'statuses' ? target.statuses : String(key)) }
-          ),
-          navigation: {
-            cases: 'cases',
-            documents: 'documents',
-            help_now: 'help',
-            label: 'label',
-            membership: 'membership',
-          },
-          next_steps: new Proxy({}, { get: (_target, key) => `portal-next-${String(key)}` }),
-          regions: { actions: values, case: values, updates: values },
-          title: 'portal.title',
-          warnings: new Proxy({}, { get: (_target, key) => `portal-warning-${String(key)}` }),
-        };
-      },
-    }),
+  getTranslations: () =>
+    Promise.resolve(
+      Object.assign((key: string) => key, {
+        raw: () => {
+          const values = new Proxy({}, { get: (_target, key) => String(key) });
+          return {
+            actions: values,
+            description: 'description',
+            disclaimer: 'disclaimer',
+            membership_status: new Proxy(
+              { statuses: values },
+              { get: (target, key) => (key === 'statuses' ? target.statuses : String(key)) }
+            ),
+            navigation: {
+              cases: 'cases',
+              documents: 'documents',
+              help_now: 'help',
+              label: 'label',
+              membership: 'membership',
+            },
+            next_steps: new Proxy({}, { get: (_target, key) => `portal-next-${String(key)}` }),
+            regions: { actions: values, case: values, updates: values },
+            title: 'portal.title',
+            warnings: new Proxy({}, { get: (_target, key) => `portal-warning-${String(key)}` }),
+          };
+        },
+      })
+    ),
 }));
 vi.mock('@/i18n/routing', () => ({ Link: 'a', usePathname: () => h.pathname }));
 

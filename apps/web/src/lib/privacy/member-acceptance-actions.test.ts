@@ -1,5 +1,4 @@
-import './member-acceptance-denial.test-support';
-
+import { acceptanceMocks, memberAuthority } from './member-acceptance-denial.test-support';
 import { describe, expect, it, vi } from 'vitest';
 import { cancelClaim, createClaim, updateClaimStatus, updateDraftClaim } from '@/actions/claims';
 import { submitClaim } from '@/actions/claims.core';
@@ -10,7 +9,6 @@ import { resubmitCashAttemptAction } from '@/features/admin/verification/actions
 import { getCountryGuidanceAction } from '@/actions/country-guidance';
 import { uploadVoiceNote } from '@/actions/uploads/upload';
 import { confirmUpload, generateUploadUrl } from '@/features/member/claims/actions';
-import { acceptanceMocks, memberAuthority } from './member-acceptance-denial.test-support';
 
 const effects = vi.hoisted(() => ({
   createClaim: vi.fn(),

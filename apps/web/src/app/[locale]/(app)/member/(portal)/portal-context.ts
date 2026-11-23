@@ -34,7 +34,8 @@ const portalContextMemo: (locale: string) => { pending?: Promise<PortalContext> 
 
 export function getMemberPortalContext(requestedLocale: string): Promise<PortalContext> {
   const memo = portalContextMemo(requestedLocale);
-  return (memo.pending ??= loadContext());
+  memo.pending ??= loadContext();
+  return memo.pending;
 
   async function loadContext(): Promise<PortalContext> {
     const locale = LOCALES.find(value => value === requestedLocale);

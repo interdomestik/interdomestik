@@ -28,19 +28,20 @@ vi.mock('@interdomestik/domain-claims', () => ({
   toMemberSafeRecoveryDecision: () => null,
 }));
 vi.mock('@/lib/privacy/require-member-acceptance', () => ({
-  requireAdmittedMember: async () => ({
-    ok: true,
-    authorized: {
-      session: { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
-      authority,
-    },
-  }),
+  requireAdmittedMember: () =>
+    Promise.resolve({
+      ok: true,
+      authorized: {
+        session: { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+        authority,
+      },
+    }),
 }));
 
 vi.mock('@interdomestik/database', () => ({ ERASURE_REDACTED_VALUE: '[erased]' }));
 vi.mock('@interdomestik/database/tenant-authority-context', () => ({
-  withTenantAuthority: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
-    callback({
+  withTenantAuthority: vi.fn((_context: unknown, callback: (tx: unknown) => unknown) => {
+    const tx = {
       query: { claims: { findFirst: mocks.claim } },
       select: () => ({
         from: () => ({
@@ -55,8 +56,9 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => ({
           }),
         }),
       }),
-    })
-  ),
+    };
+    return new Promise(resolve => resolve(callback(tx)));
+  }),
 }));
 vi.mock('@interdomestik/database/schema', () => ({
   claimDocuments: { createdAt: 'createdAt' },

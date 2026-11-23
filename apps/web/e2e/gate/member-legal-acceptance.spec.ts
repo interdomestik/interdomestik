@@ -15,6 +15,7 @@ const copy = messages['legal-acceptance'];
 test('a new member records both attestations before accessing the portal', async ({
   browser,
 }, testInfo) => {
+  // This journey consumes the unaccepted member fixture in the MK gate project.
   test.skip(
     testInfo.project.name !== 'gate-mk-mk',
     'The unaccepted seed belongs to the MK tenant.'

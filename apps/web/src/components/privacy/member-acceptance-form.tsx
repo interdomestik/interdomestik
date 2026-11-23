@@ -13,7 +13,7 @@ import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent } from '@interdomestik/ui/components/card';
 import { useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
-import { useEffect, useRef, useState, useTransition, type FormEvent } from 'react';
+import { useCallback, useEffect, useRef, useState, useTransition, type FormEvent } from 'react';
 
 const documentLabels = {
   terms: { read: 'readTerms', check: 'acceptTerms', confirm: 'confirmTerms' },
@@ -30,17 +30,20 @@ export function MemberAcceptanceForm({
   texts,
   pendingKinds,
   unavailable,
-}: {
+}: Readonly<{
   formToken?: string;
   locale: string;
   texts: readonly RenderedLegalText[];
   pendingKinds: readonly LegalDocumentKind[];
   unavailable?: LegalTextFailure;
-}) {
+}>) {
   const t = useTranslations('legal-acceptance');
   const router = useRouter();
   const heading = useRef<HTMLHeadingElement>(null);
-  const notice = useRef<HTMLParagraphElement>(null);
+  const notice = useRef<HTMLElement>(null);
+  const rememberNotice = useCallback((element: HTMLOutputElement | HTMLParagraphElement | null) => {
+    notice.current = element;
+  }, []);
   const [checked, setChecked] = useState<Partial<Record<LegalDocumentKind, boolean>>>({});
   const [phase, setPhase] = useState<'ready' | 'saving' | 'opening' | 'stale' | 'signing-out'>(
     'ready'
@@ -141,16 +144,7 @@ export function MemberAcceptanceForm({
           </h1>
           <LanguageSettings />
           {textFailure ? (
-            <div role="status">
-              {textFailure === 'legal_text_not_approved' ? (
-                <p>{t('pendingApproval')}</p>
-              ) : (
-                <>
-                  <p>{t('unavailable')}</p>
-                  <p>{t('contactOffice')}</p>
-                </>
-              )}
-            </div>
+            <UnavailableLegalText failure={textFailure} />
           ) : (
             <form onSubmit={submit} aria-busy={busy} className="space-y-5">
               <p>{t('intro')}</p>
@@ -194,18 +188,18 @@ export function MemberAcceptanceForm({
                 {t(singleDocument ? documentLabels[singleDocument.kind].confirm : 'confirmBoth')}
               </p>
               {stale && (
-                <p role="status" ref={notice} tabIndex={-1}>
+                <output className="block" ref={rememberNotice} tabIndex={-1}>
                   {t('stale')}
-                </p>
+                </output>
               )}
-              {opening && refreshing && <p role="status">{t('opening')}</p>}
+              {opening && refreshing && <output className="block">{t('opening')}</output>}
               {opening && !refreshing && (
-                <p role="alert" ref={notice} tabIndex={-1}>
+                <p role="alert" ref={rememberNotice} tabIndex={-1}>
                   {t('openError')}
                 </p>
               )}
               {failure === 'saveError' && (
-                <p role="alert" ref={notice} tabIndex={-1}>
+                <p role="alert" ref={rememberNotice} tabIndex={-1}>
                   {t(failure)}
                 </p>
               )}
@@ -219,13 +213,13 @@ export function MemberAcceptanceForm({
                   className="h-auto min-h-11 whitespace-normal"
                   disabled={!ready || !texts.every(text => checked[text.kind])}
                 >
-                  {t(saving ? 'saving' : failure === 'saveError' ? 'retry' : 'continue')}
+                  {t(submitLabel(saving, failure === 'saveError'))}
                 </Button>
               )}
             </form>
           )}
           {failure === 'signOutError' && (
-            <p role="alert" ref={notice} tabIndex={-1}>
+            <p role="alert" ref={rememberNotice} tabIndex={-1}>
               {t(failure)}
             </p>
           )}
@@ -236,6 +230,27 @@ export function MemberAcceptanceForm({
       </Card>
     </main>
   );
+}
+
+function UnavailableLegalText({ failure }: Readonly<{ failure: LegalTextFailure }>) {
+  const t = useTranslations('legal-acceptance');
+  return (
+    <output className="block">
+      {failure === 'legal_text_not_approved' ? (
+        <span className="block">{t('pendingApproval')}</span>
+      ) : (
+        <>
+          <span className="block">{t('unavailable')}</span>
+          <span className="block">{t('contactOffice')}</span>
+        </>
+      )}
+    </output>
+  );
+}
+
+function submitLabel(saving: boolean, retrying: boolean) {
+  if (saving) return 'saving';
+  return retrying ? 'retry' : 'continue';
 }
 
 function openOnDesktop(details: HTMLDetailsElement | null) {

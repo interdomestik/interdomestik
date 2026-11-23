@@ -17,8 +17,9 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => {
     select: hoisted.dbSelect,
   };
   return {
-    withTenantAuthority: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
-      callback(db)
+    withTenantAuthority: vi.fn(
+      (_context: unknown, callback: (tx: typeof db) => unknown) =>
+        new Promise(resolve => resolve(callback(db)))
     ),
   };
 });
@@ -60,10 +61,11 @@ import { getMemberClaimDetailsCore, getMemberClaimRedirect } from './_core';
 
 const authority = mintTestTenantAuthority('tenant_mk');
 vi.mock('@/lib/privacy/require-member-acceptance', () => ({
-  requireAdmittedMember: async () => ({
-    ok: true,
-    authorized: { authority, session: { user: { id: 'u1' } } },
-  }),
+  requireAdmittedMember: () =>
+    Promise.resolve({
+      ok: true,
+      authorized: { authority, session: { user: { id: 'u1' } } },
+    }),
 }));
 
 type SelectChain<T> = {

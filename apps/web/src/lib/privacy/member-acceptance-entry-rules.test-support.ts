@@ -269,7 +269,7 @@ export function validateEntry(inventory: Inventory, unit: SourceUnit, row: Entry
       if (row.via) validateChecked(inventory, unit, row.via);
       return;
     case 'deferred_13a2':
-      if (!deferredUnits.some(id => id === unit.id) || row.reason !== deferredReason) {
+      if (!deferredUnits.includes(unit.id) || row.reason !== deferredReason) {
         fail(unit, 'unexpected 13a-2 deferral');
       }
       return;

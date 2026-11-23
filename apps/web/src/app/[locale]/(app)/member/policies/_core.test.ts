@@ -35,8 +35,9 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => {
     },
   };
   return {
-    withTenantAuthority: vi.fn(async (_context: unknown, callback: (tx: typeof db) => unknown) =>
-      callback(db)
+    withTenantAuthority: vi.fn(
+      (_context: unknown, callback: (tx: typeof db) => unknown) =>
+        new Promise(resolve => resolve(callback(db)))
     ),
   };
 });
@@ -61,10 +62,11 @@ import { getPoliciesWithDocumentLinksCore } from './_core';
 
 const authority = mintTestTenantAuthority('tenant-1');
 vi.mock('@/lib/privacy/require-member-acceptance', () => ({
-  requireAdmittedMember: async () => ({
-    ok: true,
-    authorized: { authority, session: { user: { id: 'user-1' } } },
-  }),
+  requireAdmittedMember: () =>
+    Promise.resolve({
+      ok: true,
+      authorized: { authority, session: { user: { id: 'user-1' } } },
+    }),
 }));
 
 describe('getPoliciesWithDocumentLinksCore', () => {

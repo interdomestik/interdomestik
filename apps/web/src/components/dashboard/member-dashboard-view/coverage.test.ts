@@ -12,7 +12,9 @@ vi.mock('@interdomestik/database', async importOriginal => ({
   withTenantContext: (_authority: unknown, callback: (tx: unknown) => unknown) =>
     callback({
       query: { subscriptions: { findFirst: h.findFirst } },
-      select: () => ({ from: () => ({ leftJoin: () => ({ where: async () => [{ count: 0 }] }) }) }),
+      select: () => ({
+        from: () => ({ leftJoin: () => ({ where: () => Promise.resolve([{ count: 0 }]) }) }),
+      }),
     }),
 }));
 vi.mock('next-intl/server', () => ({ getTranslations: vi.fn() }));

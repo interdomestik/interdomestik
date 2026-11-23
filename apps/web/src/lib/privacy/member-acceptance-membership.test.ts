@@ -20,7 +20,7 @@ const protectedCalls = vi.hoisted(() => ({
   readOutlook: vi.fn(),
 }));
 
-vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 vi.mock('@interdomestik/domain-membership-billing/annual-membership', async importOriginal => ({
   ...(await importOriginal<
     typeof import('@interdomestik/domain-membership-billing/annual-membership')

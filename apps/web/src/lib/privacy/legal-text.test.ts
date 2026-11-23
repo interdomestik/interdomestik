@@ -17,11 +17,11 @@ const registry = JSON.parse(
   readFileSync(new URL('packages/database/src/legal-document-versions.json', root), 'utf8')
 );
 const migration = readFileSync(
-  new URL('packages/database/drizzle/0102_wp13a_legal_acceptance.sql', root),
+  new URL('packages/database/drizzle/0104_wp13a_legal_acceptance.sql', root),
   'utf8'
 );
 
-it('binds every pending version to the rendered catalogue and migration row', async () => {
+it('binds every pending version to the rendered catalogue and migration row', () => {
   const seen = [];
   for (const locale of LOCALES) {
     const ui = JSON.parse(

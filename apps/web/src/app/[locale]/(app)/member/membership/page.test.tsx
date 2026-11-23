@@ -11,12 +11,14 @@ const hoisted = vi.hoisted(() => ({
     return session.user.tenantId;
   }),
   getDocumentsMock: vi.fn(async () => []),
-  admitMock: vi.fn(async () => ({
-    user: {
-      id: 'member-1',
-      tenantId: 'tenant-ks',
-    },
-  })),
+  admitMock: vi.fn(() =>
+    Promise.resolve({
+      user: {
+        id: 'member-1',
+        tenantId: 'tenant-ks',
+      },
+    })
+  ),
   getSubscriptionsMock: vi.fn(async () => []),
   getLeaveMock: vi.fn(async () => 'entry-future'),
   membershipOpsPageMock: vi.fn((_: unknown) => <div>membership-ops-page</div>),

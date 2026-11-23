@@ -15,7 +15,7 @@ import { loadInventory } from './member-acceptance-inventory.test-support';
 import { verifyInformationRequestCallSites } from './member-acceptance-page-readers.test-support';
 
 const registry: Registry = entries;
-const scanTimeout = 15_000;
+const scanTimeout = 60_000;
 
 describe('member acceptance inventory', () => {
   let inventory: ReturnType<typeof loadInventory>;

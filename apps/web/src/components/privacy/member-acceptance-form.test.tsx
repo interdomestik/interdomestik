@@ -61,12 +61,10 @@ it('focuses the heading and requires every displayed attestation before continui
 
 it('preserves the only missing attestation during save recovery', async () => {
   let finishSave: (result: { success: false }) => void = () => undefined;
-  mocks.accept.mockImplementationOnce(
-    () =>
-      new Promise(resolve => {
-        finishSave = resolve;
-      })
-  );
+  const save = new Promise<{ success: false }>(resolve => {
+    finishSave = resolve;
+  });
+  mocks.accept.mockReturnValueOnce(save);
   render(
     <MemberAcceptanceForm formToken="signed-form" locale="en" texts={[notice]} pendingKinds={[]} />
   );
@@ -76,7 +74,10 @@ it('preserves the only missing attestation during save recovery', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'continue' }));
   expect(screen.getByRole('button', { name: 'saving' })).toBeDisabled();
   expect(check).toBeDisabled();
-  await act(async () => finishSave({ success: false }));
+  await act(() => {
+    finishSave({ success: false });
+    return save;
+  });
   expect(screen.getByRole('alert')).toHaveTextContent('saveError');
   expect(check).toBeChecked();
   expect(screen.getByRole('button', { name: 'retry' })).toBeEnabled();

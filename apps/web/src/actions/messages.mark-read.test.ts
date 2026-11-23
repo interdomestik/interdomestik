@@ -1,6 +1,5 @@
 import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import './messages.test-support';
 import { mocks, resetMocks } from './messages.test-support';
 
 let markMessagesAsRead: typeof import('./messages').markMessagesAsRead;

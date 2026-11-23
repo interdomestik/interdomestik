@@ -1,6 +1,5 @@
 import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import './messages.test-support';
 import { mocks, mockSelectChain, resetMocks, SUBMITTED } from './messages.test-support';
 
 let getMessagesForClaim: typeof import('./messages').getMessagesForClaim;

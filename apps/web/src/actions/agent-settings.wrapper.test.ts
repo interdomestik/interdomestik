@@ -6,10 +6,11 @@ import { getAgentSettings, updateAgentCommissionRates, updateAgentTier } from '.
 const authority = mintTestTenantAuthority('tenant-1', { userId: 'u1', role: 'admin' });
 
 vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionTenant: async () => ({
-    session: { user: { id: 'u1', role: 'admin' } },
-    authority,
-  }),
+  authorizeSessionTenant: () =>
+    Promise.resolve({
+      session: { user: { id: 'u1', role: 'admin' } },
+      authority,
+    }),
 }));
 vi.mock('@interdomestik/database/tenant-authority', async importOriginal => {
   const actual = await importOriginal<typeof import('@interdomestik/database/tenant-authority')>();

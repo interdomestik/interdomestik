@@ -11,7 +11,7 @@ test('principal context rejects delegated authorities before invoking the callba
     principal: { userId: 'fixture-member', role: 'member', branchId: null, agentId: null },
   });
   await assert.rejects(
-    withPrincipalTenantContext(authority, async () => assert.fail('unexpected tenant callback')),
+    withPrincipalTenantContext(authority, () => assert.fail('unexpected tenant callback')),
     /Session principal required/
   );
 });
@@ -23,7 +23,7 @@ test('principal context rejects sessions without an actor role', async () => {
     principal: { userId: 'fixture-member', role: null, branchId: null, agentId: null },
   });
   await assert.rejects(
-    withPrincipalTenantContext(authority, async () => assert.fail('unexpected tenant callback')),
+    withPrincipalTenantContext(authority, () => assert.fail('unexpected tenant callback')),
     /Session principal required/
   );
 });

@@ -29,7 +29,7 @@ vi.mock('@/lib/auth', async () => {
   return { auth: { $context: Promise.resolve({ secret: randomUUID() }) } };
 });
 vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: domain.audit }));
-vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 
 beforeEach(() => domain.audit.mockResolvedValue({ ok: true }));
 

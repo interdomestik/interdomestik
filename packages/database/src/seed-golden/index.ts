@@ -3,7 +3,6 @@ import { withDisposableClient } from '../disposable-client';
 import legalVersionRows from '../legal-document-versions.json';
 import { seedCleanupIdentities } from '../seed-utils/identity-cleanup';
 import { buildWorkloadUsers } from '../seed-workload/user-fixtures';
-import { UNACCEPTED_MEMBER_ID } from './users';
 import { assertSeedTargetAllowed, importSeedDatabase } from '../seed-target-guard';
 /**
  * Contract:
@@ -27,7 +26,7 @@ import { seedMemberships } from './memberships';
 import { seedTenants, seedBranches } from './tenants-branches';
 import { seedTrackingTokens } from './tracking-tokens';
 import type { SeedGoldenContext, SeedGoldenStepName } from './types';
-import { seedUsers } from './users';
+import { UNACCEPTED_MEMBER_ID, seedUsers } from './users';
 
 export { buildSeededMembershipCardIdentifiers } from './membership-cards';
 
@@ -111,14 +110,15 @@ export async function seedGolden(config: SeedConfig) {
 // Pure module - CLI execution removed. Use seed.ts runner only.
 
 function legalAcceptanceSeedIdentities() {
-  const fullMembers = (['mk', 'ks'] as const).flatMap(country =>
-    Array.from({ length: 9 }, (_, offset) => {
+  const fullMembers = (['mk', 'ks'] as const).flatMap(country => {
+    const goldenMemberCount = country === 'mk' ? 2 : 3;
+    return Array.from({ length: 9 }, (_, offset) => {
       const number = offset + 1;
-      const prefix = number <= (country === 'mk' ? 2 : 3) ? 'golden' : 'full';
+      const prefix = number <= goldenMemberCount ? 'golden' : 'full';
       const email = `member.${country}.${number}@interdomestik.com`;
       return { id: `${prefix}_${country}_member_${number}`, tenantId: `tenant_${country}`, email };
-    })
-  );
+    });
+  });
   return [...seedCleanupIdentities(), ...buildWorkloadUsers(), ...fullMembers].map(identity => ({
     id: identity.id,
     tenantId: identity.tenantId,

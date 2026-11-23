@@ -28,8 +28,9 @@ const hoisted = vi.hoisted(() => {
 vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
   db: hoisted.db,
-  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: typeof hoisted.db) => unknown) =>
-    cb(hoisted.db)
+  withTenantContext: vi.fn(
+    (_ctx: unknown, cb: (tx: typeof hoisted.db) => unknown) =>
+      new Promise(resolve => resolve(cb(hoisted.db)))
   ),
   eq: hoisted.eq,
 }));

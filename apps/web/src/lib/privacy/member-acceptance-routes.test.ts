@@ -45,7 +45,7 @@ vi.mock('@/app/api/uploads/_core', async importOriginal => ({
   createSignedUploadCore: protectedCalls.upload,
 }));
 vi.mock('@/lib/audit', () => ({ logAuditEvent: protectedCalls.audit }));
-vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: async () => null }));
+vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: () => Promise.resolve(null) }));
 
 describe('member acceptance on public routes', () => {
   it.each([

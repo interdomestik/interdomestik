@@ -21,7 +21,7 @@ export const protectedLoaderIds = [
   'features/member/policies/components/MemberPoliciesV2Page.tsx#MemberPoliciesV2Page',
 ];
 
-export const deferredUnits = [
+export const deferredUnits: readonly string[] = [
   'app/api/documents/[id]/route.ts#GET',
   'app/api/documents/[id]/download/route.ts#GET',
   'app/api/documents/cross-tenant-document-lookup.ts#lookupCrossGrantDoc',
@@ -31,7 +31,7 @@ export const deferredUnits = [
   'actions/notifications.core.ts#markAllAsRead',
   'actions/notifications.ts#markAsRead',
   'actions/notifications.ts#markAllAsRead',
-] as const;
+];
 export const deferredReason =
   'before accepting, a member can still reach, by direct link, the documents the existing access rules already allow them (own claims and case grants), plus their own notification flags';
 

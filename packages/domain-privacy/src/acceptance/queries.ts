@@ -13,7 +13,7 @@ import { currentAcceptanceVersions, getAcceptanceState } from './state';
 export async function readOwnAcceptanceState(authority: TenantAuthority, requireApproved: boolean) {
   const { principal } = readTenantAuthority(authority);
   if (!principal) throw new Error('Session principal required');
-  return withPrincipalTenantContext(authority, tx =>
+  return await withPrincipalTenantContext(authority, tx =>
     getAcceptanceState(tx, { subjectUserId: principal.userId, requireApproved })
   );
 }
@@ -22,7 +22,7 @@ export async function checkRenderedLegalTexts(
   authority: TenantAuthority,
   input: { locale: string; texts: readonly RenderedLegalText[]; requireApproved: boolean }
 ) {
-  return withPrincipalTenantContext(authority, async tx => {
+  return await withPrincipalTenantContext(authority, async tx => {
     const result = await verifyLegalTexts(tx, input);
     return result.ok ? ({ ok: true, pending: result.pending } as const) : result;
   });
@@ -37,7 +37,7 @@ export async function listMembersWithoutAcceptance(
     return { ok: false, code: 'forbidden' } as const;
   }
 
-  return withPrincipalTenantContext(authority, async tx => {
+  return await withPrincipalTenantContext(authority, async tx => {
     const current = tx
       .select({
         tenantId: legalAcceptances.tenantId,

@@ -54,7 +54,9 @@ vi.mock('@interdomestik/database', () => {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn((where: WhereClause) => ({
-          for: vi.fn(async () => hoisted.store.claims.filter(claim => matches(where, claim))),
+          for: vi.fn(() =>
+            Promise.resolve(hoisted.store.claims.filter(claim => matches(where, claim)))
+          ),
           limit: vi.fn(async (count: number) =>
             hoisted.store.tokens
               .filter(token => matches(where, token))

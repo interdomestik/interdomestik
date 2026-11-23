@@ -1,4 +1,4 @@
-import './member-acceptance-denial.test-support';
+import { acceptanceMocks, memberUser } from './member-acceptance-denial.test-support';
 
 import { describe, expect, it, vi } from 'vitest';
 import { getMemberActivities } from '@/actions/activities.core';
@@ -17,7 +17,6 @@ import { getActionContext as handoffsContext } from '@/actions/support-handoffs/
 import { createMemberSupportHandoff } from '@/actions/support-handoffs/create';
 import { getNotificationPreferences, updateResidenceCountry } from '@/actions/user-settings';
 import { getActionContext as settingsContext } from '@/actions/user-settings/context.core';
-import { acceptanceMocks, memberUser } from './member-acceptance-denial.test-support';
 
 const effects = vi.hoisted(() => ({
   messages: vi.fn(),
@@ -37,7 +36,7 @@ const effects = vi.hoisted(() => ({
   freshSession: vi.fn(),
 }));
 
-vi.mock('next/headers', () => ({ headers: async () => new Headers() }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 vi.mock('@/i18n/routing', () => ({
   redirect: ({ href }: { href: string }) => {
     throw new Error(href);

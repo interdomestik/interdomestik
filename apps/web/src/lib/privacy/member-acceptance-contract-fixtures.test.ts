@@ -194,6 +194,10 @@ describe('fail-closed acceptance inventory fixtures', () => {
     const readerPath = path.posix.relative(path.posix.dirname(page), domain).slice(0, -3);
     const downstream = _label === 'a downstream loader';
     const inline = _label === 'a domain call with another authority';
+    const otherCall = downstream ? ', unguarded()' : '';
+    const safeBody = inline
+      ? 'await read(authority); ' + badBody
+      : `return [read(authority)${otherCall}];`;
     write(domain, 'export function read(authority: TenantAuthority) { return authority; }');
     write(
       page,
@@ -205,7 +209,7 @@ describe('fail-closed acceptance inventory fixtures', () => {
         const admission = await requireAdmittedMember();
         if (!admission.ok) return null;
         const { authority } = admission.authorized;
-        ${inline ? 'await read(authority); ' + badBody : `return [read(authority)${downstream ? ', unguarded()' : ''}];`}
+        ${safeBody}
       }
       function unguarded() { ${badBody} }
     `

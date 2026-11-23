@@ -92,7 +92,7 @@ export async function acceptLegalDocuments(
     return { ok: false, code: 'forbidden' } as const;
   }
   const { userId: subjectUserId, role } = principal;
-  return withPrincipalTenantContext(authority, async tx => {
+  return await withPrincipalTenantContext(authority, async tx => {
     const [subject] = await tx
       .select({ id: user.id })
       .from(user)

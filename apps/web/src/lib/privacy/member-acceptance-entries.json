@@ -313,15 +313,42 @@
     "disposition": "checked",
     "via": "memberGuarded"
   },
-  "actions/claims.core.ts#cancelClaim": { "disposition": "checked", "via": "memberGuarded" },
-  "actions/claims.core.ts#createClaim": { "disposition": "checked", "via": "memberGuarded" },
-  "actions/claims.core.ts#submitClaim": { "disposition": "checked", "via": "memberGuarded" },
-  "actions/claims.core.ts#updateClaimStatus": { "disposition": "checked", "via": "memberGuarded" },
-  "actions/claims.core.ts#updateDraftClaim": { "disposition": "checked", "via": "memberGuarded" },
-  "actions/claims.ts#cancelClaim": { "disposition": "checked", "via": "memberGuarded" },
-  "actions/claims.ts#createClaim": { "disposition": "checked", "via": "memberGuarded" },
-  "actions/claims.ts#updateClaimStatus": { "disposition": "checked", "via": "memberGuarded" },
-  "actions/claims.ts#updateDraftClaim": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/claims.core.ts#cancelClaim": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/claims.core.ts#createClaim": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/claims.core.ts#submitClaim": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/claims.core.ts#updateClaimStatus": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/claims.core.ts#updateDraftClaim": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/claims.ts#cancelClaim": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/claims.ts#createClaim": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/claims.ts#updateClaimStatus": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
+  "actions/claims.ts#updateDraftClaim": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
   "actions/claims/create-from-saved-draft.ts#createClaimFromSavedDraft": {
     "disposition": "checked",
     "via": "actions/free-start-drafts/session.core.ts#resolveFreeStartDraftSession"
@@ -617,6 +644,26 @@
     "disposition": "checked",
     "via": "actions/member-referrals/context.core.ts#getActionContext"
   },
+  "actions/membership-billing/individual-sales.ts#getSaleOffer": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/membership-billing/individual-sales.ts:48",
+    "proof": "5b0d34ab4001"
+  },
+  "actions/membership-billing/individual-sales.ts#publishPlanVersion": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/membership-billing/individual-sales.ts:26",
+    "proof": "8dc8fb2bc5bc"
+  },
+  "actions/membership-billing/individual-sales.ts#recordSale": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/membership-billing/individual-sales.ts:59",
+    "proof": "0d0804c75927"
+  },
+  "actions/membership-billing/individual-sales.ts#withdrawPlanVersion": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/membership-billing/individual-sales.ts:37",
+    "proof": "2b033b5fdf09"
+  },
   "actions/membership-billing/record-exchange-rate.ts#recordExchangeRate": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/actions/membership-billing/record-exchange-rate.ts:10",
@@ -794,7 +841,10 @@
     "disposition": "checked",
     "via": "actions/support-handoffs/context.core.ts#getActionContext"
   },
-  "actions/uploads/upload.ts#uploadVoiceNote": { "disposition": "checked", "via": "memberGuarded" },
+  "actions/uploads/upload.ts#uploadVoiceNote": {
+    "disposition": "checked",
+    "via": "memberGuarded"
+  },
   "actions/user-settings.core.ts#getNotificationPreferences": {
     "disposition": "checked",
     "via": "actions/user-settings/context.core.ts#getActionContext"
@@ -1097,7 +1147,7 @@
   },
   "app/api/auth/[...all]/route.ts#GET /account-info": {
     "disposition": "exempt",
-    "reason": "Auth-owned lookup of the caller’s linked identity account",
+    "reason": "Auth-owned lookup of the caller\u2019s linked identity account",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#GET /callback/:id": {
@@ -1122,12 +1172,12 @@
   },
   "app/api/auth/[...all]/route.ts#GET /list-accounts": {
     "disposition": "exempt",
-    "reason": "Lists the caller’s linked identity accounts",
+    "reason": "Lists the caller\u2019s linked identity accounts",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#GET /list-sessions": {
     "disposition": "exempt",
-    "reason": "Lists the caller’s own sessions",
+    "reason": "Lists the caller\u2019s own sessions",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#GET /ok": {
@@ -1242,17 +1292,17 @@
   },
   "app/api/auth/[...all]/route.ts#POST /revoke-other-sessions": {
     "disposition": "exempt",
-    "reason": "Revokes other sessions for the caller’s account",
+    "reason": "Revokes other sessions for the caller\u2019s account",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#POST /revoke-session": {
     "disposition": "exempt",
-    "reason": "Revokes a session for the caller’s account",
+    "reason": "Revokes a session for the caller\u2019s account",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#POST /revoke-sessions": {
     "disposition": "exempt",
-    "reason": "Revokes sessions for the caller’s account",
+    "reason": "Revokes sessions for the caller\u2019s account",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#POST /send-verification-email": {
@@ -1314,7 +1364,10 @@
     "disposition": "checked",
     "via": "withMemberAcceptance"
   },
-  "app/api/claims/route.ts#GET": { "disposition": "checked", "via": "withMemberAcceptance" },
+  "app/api/claims/route.ts#GET": {
+    "disposition": "checked",
+    "via": "withMemberAcceptance"
+  },
   "app/api/cron/crm/forecast-snapshots/backfill/route.ts#POST": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
@@ -1490,13 +1543,19 @@
     "reason": "Public recipient access via the independently verified share-pack capability",
     "evidence": "apps/web/src/app/api/share-pack/route.ts:92"
   },
-  "app/api/share-pack/route.ts#POST": { "disposition": "checked", "via": "withMemberAcceptance" },
+  "app/api/share-pack/route.ts#POST": {
+    "disposition": "checked",
+    "via": "withMemberAcceptance"
+  },
   "app/api/simple-register/route.ts#POST": {
     "disposition": "exempt",
     "reason": "Public registration and activation bootstrap",
     "evidence": "apps/web/src/app/api/simple-register/route.ts:1"
   },
-  "app/api/uploads/route.ts#POST": { "disposition": "checked", "via": "withMemberAcceptance" },
+  "app/api/uploads/route.ts#POST": {
+    "disposition": "checked",
+    "via": "withMemberAcceptance"
+  },
   "app/api/verification/[id]/route.ts#GET": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/app/api/verification/[id]/_core.ts:42",
@@ -1511,6 +1570,10 @@
     "disposition": "exempt",
     "reason": "Paddle-signed ingress independent of the member session",
     "evidence": "apps/web/src/app/api/webhooks/paddle/route.ts:1"
+  },
+  "components/dashboard/member-dashboard-view/index.tsx#getDashboardSupplementalData": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
   },
   "features/admin/branches/server/getBranchesWithKpis.ts#getBranchesWithKpis": {
     "disposition": "not_member_reachable",
@@ -1598,11 +1661,15 @@
     "evidence": "apps/web/src/features/agent/pos/actions.ts:19",
     "proof": "7f1f7c05ab63"
   },
-  "components/dashboard/member-dashboard-view/index.tsx#getDashboardSupplementalData": {
+  "features/claims/tracking/server/getMemberClaimDetail.ts#getMemberClaimDetail": {
     "disposition": "checked",
     "via": "requireAdmittedMember"
   },
-  "features/claims/tracking/server/getMemberClaimDetail.ts#getMemberClaimDetail": {
+  "features/claims/tracking/server/getMemberVaultConsentDisplay.ts#getMemberVaultConsentDisplay": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
+  "features/claims/tracking/server/member-domain-event-timeline.ts#getMemberTimelineFromDomainEvents": {
     "disposition": "checked",
     "via": "requireAdmittedMember"
   },
@@ -1667,13 +1734,5 @@
     "disposition": "exempt",
     "reason": "Public intake of caller-supplied facts, no existing member records returned",
     "evidence": "apps/web/src/lib/actions/business-membership-lead.ts:104"
-  },
-  "features/claims/tracking/server/getMemberVaultConsentDisplay.ts#getMemberVaultConsentDisplay": {
-    "disposition": "checked",
-    "via": "requireAdmittedMember"
-  },
-  "features/claims/tracking/server/member-domain-event-timeline.ts#getMemberTimelineFromDomainEvents": {
-    "disposition": "checked",
-    "via": "requireAdmittedMember"
   }
 }

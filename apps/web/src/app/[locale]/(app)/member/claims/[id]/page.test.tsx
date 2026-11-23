@@ -5,15 +5,17 @@ import type { ClaimMatterAllowanceDto } from '@/features/claims/tracking/types';
 vi.mock('@interdomestik/domain-claims', () => ({ getInformationRequests: vi.fn(async () => []) }));
 
 const hoisted = vi.hoisted(() => ({
-  session: vi.fn(async () => ({
-    user: {
-      id: 'member-1',
-      name: 'Member One',
-      image: null,
-      role: 'member',
-      tenantId: 'tenant-ks',
-    },
-  })),
+  session: vi.fn(() =>
+    Promise.resolve({
+      user: {
+        id: 'member-1',
+        name: 'Member One',
+        image: null,
+        role: 'member',
+        tenantId: 'tenant-ks',
+      },
+    })
+  ),
   getMemberClaimDetailMock: vi.fn(async (..._args: unknown[]) => ({
     id: 'claim-1',
     title: 'Member Claim',

@@ -54,11 +54,11 @@ export async function migrateApprovedFixture(admin: ScratchClient) {
   const fixture = await mkdtemp(path.join(tmpdir(), 'wp13-approved-journal-'));
   try {
     await cp(journal, fixture, { recursive: true });
-    const migration = path.join(fixture, '0102_wp13a_legal_acceptance.sql');
+    const migration = path.join(fixture, '0104_wp13a_legal_acceptance.sql');
     const sql = await readFile(migration, 'utf8');
     const pendingGerman = /('de', '[a-f0-9]{64}', )'legal_review_pending'/gu;
     assert.equal([...sql.matchAll(pendingGerman)].length, 2);
-    await writeFile(migration, sql.replace(pendingGerman, "$1'approved'"));
+    await writeFile(migration, sql.replaceAll(pendingGerman, "$1'approved'"));
     await migrateJournal(admin, fixture);
   } finally {
     await rm(fixture, { recursive: true, force: true });

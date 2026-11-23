@@ -68,8 +68,9 @@ async function seedSubjects(admin: postgres.Sql) {
     [peer, tenant],
     [foreign, foreignTenant],
   ]) {
+    const email = `${id}@example.test`;
     await admin`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-      values (${id}, ${tenantId}, 'Acceptance fixture', ${`${id}@example.test`}, true, 'member', now(), now())`;
+      values (${id}, ${tenantId}, 'Acceptance fixture', ${email}, true, 'member', now(), now())`;
   }
 }
 

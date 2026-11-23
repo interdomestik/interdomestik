@@ -7,10 +7,10 @@ import { MemberAcceptanceForm } from './member-acceptance-form';
 export async function MemberAcceptanceStep({
   locale,
   refusal,
-}: {
+}: Readonly<{
   locale: string;
   refusal: { failure: { code: string }; missing?: LegalDocument[] };
-}) {
+}>) {
   if (refusal.failure.code === 'UNAUTHORIZED') redirect(`/${locale}/login`);
   if (!refusal.missing?.length) notFound();
 
