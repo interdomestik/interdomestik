@@ -622,14 +622,19 @@ checks:
       - packages/database/src/seed-full/**/*.ts
       - packages/database/src/seed-workload/**/*.ts
       - packages/database/src/seed-packs/**/*.ts
+    # Comments are removed before matching: comment text can neither hide nor fake a read.
+    strip_comments: true
     must_not_match:
-      # The one read allowed: the whole environment handed to the seed target guard.
-      - '(?<!(?<![\w$.])assertSeedTargetAllowed\()process\.env|assertSeedTargetAllowed\(process\.env(?!\))'
-      # The allowed call is the guard's own import, never a member, a local definition or an alias.
-      - '\.\s*(?:/\*(?:(?!\*/)[\s\S])*\*/\s*|//[^\n]*\n\s*)*assertSeedTargetAllowed\b'
-      - '(?:function\s*\*?\s*|\bas\s+)assertSeedTargetAllowed\b|\bassertSeedTargetAllowed\s*[=:(]\s*(?:async\b|function\b|\([^)]*\)\s*=>|\w+\s*=>)'
-      - '\{[^{}]*\bassertSeedTargetAllowed\b[^{}]*\}\s*='
-      - '\bimport\s*\{[^}]*\bassertSeedTargetAllowed\b[^}]*\}\s*from\s*[''"](?!\.\./seed-target-guard[''"])'
+      # The one read allowed is the whole environment handed to the seed target guard, as the bare
+      # call `assertSeedTargetAllowed(process.env)`. Any other `process` (member, index, binding) fails.
+      - '\bprocess\b(?!\.env\s*\))'
+      - '(?<!(?<![\w$.\s])\s*assertSeedTargetAllowed\(\s*)\bprocess\.env\s*\)'
+      # The guard name may appear only as that call or as an entry of an import list from the guard
+      # module: never a member, a local definition, a default or aliased import, or a binding.
+      - '\bassertSeedTargetAllowed\b(?!\(\s*process\.env\s*\)|\s*[,}])'
+      - '\.\s*assertSeedTargetAllowed\b'
+      - '\bas\s+assertSeedTargetAllowed\b|\bassertSeedTargetAllowed\s+as\b'
+      - '\{[^{}]*\bassertSeedTargetAllowed\b[^{}]*\}(?!\s*from\s*[''"]\.\./seed-target-guard[''"])'
 
   - id: seeding.no_seed_imports_outside_database
     description: No apps/packages may import database seed modules or packs (alias or relative path).
