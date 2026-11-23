@@ -65,9 +65,9 @@ These are outside the scanner's listed inputs (Astra round 6; the owner's bar, 2
 Also named limits:
 
 - Turbopack (`next dev`) is not modelled.
-- A `namespace` or `module` declaration named `module` that holds only types counts as a runtime binding, though the emit erases it (Sol confirmation round, 2026-11-23). A `module.require('…')` call beside it then yields no edge, so a CommonJS request can go unchecked.
-  - Today: no such declaration exists in the tree, and there is no `.cts` file.
-  - Noticed: a declaration named `module` shows in the PR diff, and review refuses it (`rg -n '\b(namespace|module)\s+module\b'`).
+- A non-ambient `namespace` or `module` declaration named `module` that holds only types counts as a runtime binding, though the emit erases it (Sol confirmation round, 2026-11-23). A `declare` one is treated as ambient and is not affected. With such a declaration, a `module.require('…')` call beside it yields no edge, so a CommonJS request can go unchecked. A namespace can also become types-only through an edit to its body alone.
+  - Today: `git ls-files` with a multi-line search of all tracked sources (`rg -lU '\b(namespace|module)\s+module\b'`) finds no such declaration, and there is no `.cts` file (2026-11-23).
+  - Noticed: by review that runs the same multi-line search over the head tree, not only over the diff.
 - A later Next that changes its built-in aliases is not detected by the scanner. The oracle test pins only `resolve.extensions` and the absence of `mainFiles`. Such a change is noticed by review of the Next upgrade PR, whose `next` lockfile change is a dependency PR reviewed on its own.
 
 ## Tests to run
