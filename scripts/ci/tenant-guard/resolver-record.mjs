@@ -52,8 +52,9 @@ function localTargetMatches(importer, specifier, target) {
 function allFilesReachable(localEdges) {
   const queue = [...localEdges.keys()].filter(file => isRoot(file));
   const reached = new Set(queue);
-  for (let i = 0; i < queue.length; i++) {
-    for (const target of localEdges.get(queue[i])) {
+  // The array iterator re-reads the length, so targets pushed below are visited too.
+  for (const file of queue) {
+    for (const target of localEdges.get(file)) {
       if (reached.has(target)) continue;
       reached.add(target);
       queue.push(target);
