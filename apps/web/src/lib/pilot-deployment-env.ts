@@ -24,12 +24,19 @@ function refusesNonEmptyValue(name: string): boolean {
   );
 }
 
+// Code-unit order: the same deterministic order as the default sort, stated explicitly.
+function byCodeUnit(left: string, right: string): number {
+  if (left === right) {
+    return 0;
+  }
+  return left < right ? -1 : 1;
+}
 export function refusedPilotEnvNames(env: Readonly<NodeJS.Dict<string>>): string[] {
   const refused = Object.keys(env).filter(name => env[name] && refusesNonEmptyValue(name));
   if (env.IDENTITY_PUBLIC_SIGN_UP === 'open') {
     refused.push('IDENTITY_PUBLIC_SIGN_UP');
   }
-  return refused.sort();
+  return refused.sort(byCodeUnit);
 }
 
 function readBuildManifest(manifest: string | undefined): string[] {
@@ -63,6 +70,6 @@ export function assertPilotDeploymentEnv(
 
   const refused = new Set([...readBuildManifest(buildManifest), ...refusedPilotEnvNames(env)]);
   if (refused.size > 0) {
-    throw new Error(`Production release refuses ${[...refused].sort().join(', ')}`);
+    throw new Error(`Production release refuses ${[...refused].sort(byCodeUnit).join(', ')}`);
   }
 }
