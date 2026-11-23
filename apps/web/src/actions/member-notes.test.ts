@@ -123,19 +123,26 @@ describe.each(CASES)('$name', c => {
     const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     expect(await c.action(c.input)).toMatchObject({ success: false, code: 'UNAUTHORIZED' });
     expect(c.command).not.toHaveBeenCalled();
-    expect(warn).toHaveBeenCalledTimes(1);
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      '[SafeAction] refused',
+      expect.objectContaining({ operation: c.name, code: 'UNAUTHORIZED' })
+    );
     expect(mocks.write).not.toHaveBeenCalled();
     expect(noteEvents()).toEqual([]);
   });
 
   it('answers MISSING_TENANT without a tenant: no write, no command', async () => {
     mocks.authorize.mockRejectedValue(new MissingTenantError('detail'));
-    vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
     expect(await c.action(c.input)).toEqual({
       success: false,
       code: 'MISSING_TENANT',
       error: 'Missing tenant context',
     });
+    expect(warn).toHaveBeenCalledExactlyOnceWith(
+      '[SafeAction] refused',
+      expect.objectContaining({ operation: c.name, code: 'MISSING_TENANT' })
+    );
     expect(c.command).not.toHaveBeenCalled();
     expect(mocks.write).not.toHaveBeenCalled();
     expect(noteEvents()).toEqual([]);

@@ -17,7 +17,7 @@ const NOT_FOUND = { ok: false, code: 'NOT_FOUND' };
 test('member notes: update, delete and pin under the restricted role', async t => {
   await withNotesProof(t, async proof => {
     const { adminDb, commands, n, setAssignment, snapshot, u } = proof;
-    const { A, D, S } = proof;
+    const { A, B, D, S } = proof;
     type Who = ReturnType<typeof A>;
     const changeAll = async (who: Who, id: string) => [
       await commands.updateMemberNote({ ...who, input: { id, content: 'x' } }),
@@ -53,15 +53,22 @@ test('member notes: update, delete and pin under the restricted role', async t =
     });
 
     await t.test('lets only the author or an admin edit or delete', async () => {
+      // A and S both reach m1: A's n1 and S's n2 are each other's colleague's notes.
       const before = await snapshot();
-      assert.deepEqual(
-        await commands.updateMemberNote({ ...A(), input: { id: n.n2, content: 'x' } }),
-        { ok: false, code: 'NOT_AUTHOR' }
-      );
-      assert.deepEqual(await commands.deleteMemberNote({ ...S(), input: { noteId: n.n1 } }), {
-        ok: false,
-        code: 'NOT_AUTHOR',
-      });
+      const notAuthor = { ok: false, code: 'NOT_AUTHOR' };
+      for (const [who, id] of [
+        [A, n.n2],
+        [S, n.n1],
+      ] as const) {
+        assert.deepEqual(
+          await commands.updateMemberNote({ ...who(), input: { id, content: 'x' } }),
+          notAuthor
+        );
+        assert.deepEqual(
+          await commands.deleteMemberNote({ ...who(), input: { noteId: id } }),
+          notAuthor
+        );
+      }
       assert.deepEqual(await snapshot(), before);
     });
 
@@ -80,10 +87,23 @@ test('member notes: update, delete and pin under the restricted role', async t =
       assert.ok(
         (await commands.updateMemberNote({ ...D(), input: { id: n.n3, type: 'call' } })).ok
       );
-      assert.deepEqual(await rowsOf([n.n1, n.n2, n.n3]), [
+      assert.ok(
+        (await commands.updateMemberNote({ ...S(), input: { id: n.n2, content: 'Staff edit' } })).ok
+      );
+      // B, the current assignee of m6, pins both its notes there, its own and the referrer's.
+      for (const noteId of [n.n6, n.n8]) {
+        assert.deepEqual(await commands.toggleMemberNotePin({ ...B(), input: { noteId } }), {
+          ok: true,
+          data: { isPinned: true },
+          audit: { memberId: u.m6, isPinned: true },
+        });
+      }
+      assert.deepEqual(await rowsOf([n.n1, n.n2, n.n3, n.n6, n.n8]), [
         { id: n.n1, content: 'Updated', isPinned: true, type: 'general' },
-        { id: n.n2, content: `content ${n.n2}`, isPinned: true, type: 'general' },
+        { id: n.n2, content: 'Staff edit', isPinned: true, type: 'general' },
         { id: n.n3, content: `content ${n.n3}`, isPinned: false, type: 'call' },
+        { id: n.n6, content: `content ${n.n6}`, isPinned: true, type: 'general' },
+        { id: n.n8, content: `content ${n.n8}`, isPinned: true, type: 'general' },
       ]);
     });
 

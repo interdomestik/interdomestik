@@ -7,7 +7,7 @@ import {
 import { ROLES } from '@interdomestik/shared-auth';
 import { ensureTenantId, type SessionWithTenant } from '@interdomestik/shared-auth/session';
 
-import { activityActorOf, isMemberSelfRole } from '../access';
+import { isMemberSelfRole, principalActorOf } from '../access';
 import { holdsActiveAssignment } from '../assignment';
 
 // Who may read and write member notes (R-16: the rule lives here, not in the entry points).
@@ -61,11 +61,8 @@ export function memberNoteActorOf(
   ) {
     return null;
   }
-  // The principal binding is the activities rule: the session's user, with exactly its role.
-  const actor = activityActorOf(
-    { user: { ...session.user, role: session.user.role ?? '' } },
-    authority
-  );
+  // The principal binding is the activities rule, over the descriptor read once above.
+  const actor = principalActorOf(session, descriptor);
   return actor ? Object.freeze(actor) : null;
 }
 

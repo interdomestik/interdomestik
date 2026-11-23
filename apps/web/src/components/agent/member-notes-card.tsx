@@ -44,8 +44,11 @@ function MemberNotesCardForMember({ memberId, memberName }: Readonly<MemberNotes
   // arrives after the card left, or for a request a newer one replaced, is dropped.
   const mounted = useRef(true);
   const listRequest = useRef(0);
+  // The note the editor holds, read by the list refresh without making it a dependency.
+  const editingId = useRef<string | null>(null);
 
   const resetForm = () => {
+    editingId.current = null;
     setEditingNote(null);
     setNoteContent('');
     setNoteType('general');
@@ -55,11 +58,12 @@ function MemberNotesCardForMember({ memberId, memberName }: Readonly<MemberNotes
     const request = ++listRequest.current;
     const result = await getMemberNotes({ memberId });
     if (!mounted.current || request !== listRequest.current) return;
-    if (result.success) {
-      setNotes(result.data ?? []);
-    } else {
-      // Access ended (or the read failed): show no notes and close the editor.
-      setNotes([]);
+    const rows = result.success ? (result.data ?? []) : [];
+    setNotes(rows);
+    // Access ended, the read failed, or the edited note is gone: close the editor and its draft.
+    const editing = editingId.current;
+    if (!result.success || (editing !== null && !rows.some(row => row.id === editing))) {
+      editingId.current = null;
       setIsDialogOpen(false);
       setEditingNote(null);
       setNoteContent('');
@@ -85,6 +89,7 @@ function MemberNotesCardForMember({ memberId, memberName }: Readonly<MemberNotes
 
   const handleOpenDialog = (note?: MemberNote) => {
     if (note) {
+      editingId.current = note.id;
       setEditingNote(note);
       setNoteContent(note.content);
       setNoteType(note.type);

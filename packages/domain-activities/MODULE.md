@@ -51,7 +51,7 @@ Written by this package: `crm_activities`, `member_activities` and `member_notes
   - its tenant and its access tenant both equal the session's effective tenant;
   - its principal names the session's user, with exactly the session's role.
 
-  The last check is `activityActorOf`; the first two are stricter than the activity commands. Anything else is UNAUTHORIZED. Tenant and author are always taken from the actor, never from the input.
+  The last check is the activities rule (`principalActorOf`, over the one descriptor read); the first two are stricter than the activity commands. Anything else is UNAUTHORIZED. Tenant and author are always taken from the actor, never from the input.
 
 - **Roles.** Unchanged from before:
   - `agent` acts only on a member it is **actively** assigned to (`agent_clients.status = 'active'`);

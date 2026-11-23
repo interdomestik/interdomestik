@@ -22,6 +22,8 @@ test('member notes: actor matrix and tenant isolation under the restricted role'
   await withNotesProof(t, async proof => {
     const { access, actor, adminDb, allNoteIds, commands, ctx, ids, n, seed, snapshot, u } = proof;
     const { A, B, C, D, S } = proof;
+    const MKD = () =>
+      actor(u.mkAdmin, 'admin', { authorityTenant: MK_TENANT_ID, sessionTenant: MK_TENANT_ID });
     const { memberNoteActorOf } = access;
     type Who = ReturnType<typeof A>;
     /** The five commands on reachable targets (n1 on m1, which A, S and D may act on). */
@@ -140,12 +142,25 @@ test('member notes: actor matrix and tenant isolation under the restricted role'
           ids(await commands.listMemberNotes({ ...S(), input: { memberId: u.m4 } })),
           [n.n3]
         );
-        for (const memberId of [u.staffT, u.mkMember]) {
-          assert.deepEqual(
-            ids(await commands.listMemberNotes({ ...D(), input: { memberId } })),
-            []
-          );
+        // Staff and admin get an empty list, as on base, for a non-member, a foreign member and
+        // an unknown id; the MK admin, under the MK authority, does read the MK member's note.
+        const empty = { ok: true, data: [], audit: null };
+        for (const who of [S, D]) {
+          for (const memberId of [u.staffT, u.mkMember, `${u.m1}_unknown`]) {
+            assert.deepEqual(
+              await commands.listMemberNotes({ ...who(), input: { memberId } }),
+              empty
+            );
+          }
         }
+        assert.deepEqual(
+          ids(await commands.listMemberNotes({ ...MKD(), input: { memberId: u.mkMember } })),
+          [n.nm]
+        );
+        assert.deepEqual(
+          await commands.listMemberNotes({ ...MKD(), input: { memberId: u.m1 } }),
+          empty
+        );
       }
     );
 
@@ -180,11 +195,9 @@ test('member notes: actor matrix and tenant isolation under the restricted role'
         });
         assert.ok(created.ok);
         seed.created.push(created.data.id);
-        const [stored] = await adminDb
-          .select()
-          .from(memberNotes)
-          .where(eq(memberNotes.id, created.data.id));
-        assert.partialDeepStrictEqual(stored, {
+        const stored = async (id: string) =>
+          (await adminDb.select().from(memberNotes).where(eq(memberNotes.id, id)))[0];
+        assert.partialDeepStrictEqual(await stored(created.data.id), {
           tenantId: KS_TENANT_ID,
           memberId: u.m1,
           authorId: u.agentA,
@@ -193,6 +206,30 @@ test('member notes: actor matrix and tenant isolation under the restricted role'
           isPinned: false,
           isInternal: true,
         });
+
+        // Every admitted actor on a reachable member: the legacy `user` member, the current
+        // assignee of a member another agent referred, staff and admin tenant-wide, and the MK
+        // admin in its own tenant.
+        for (const [who, memberId, authorId, tenantId] of [
+          [A, u.m2, u.agentA, KS_TENANT_ID],
+          [B, u.m4, u.agentB, KS_TENANT_ID],
+          [B, u.m6, u.agentB, KS_TENANT_ID],
+          [S, u.m3, u.staffS, KS_TENANT_ID],
+          [D, u.m3, u.adminD, KS_TENANT_ID],
+          [MKD, u.mkMember, u.mkAdmin, MK_TENANT_ID],
+        ] as const) {
+          const made = await commands.createMemberNote({
+            ...who(),
+            input: { memberId, content: 'ok' },
+          });
+          assert.ok(made.ok, memberId);
+          seed.created.push(made.data.id);
+          assert.partialDeepStrictEqual(await stored(made.data.id), {
+            tenantId,
+            memberId,
+            authorId,
+          });
+        }
       }
     );
   });

@@ -1,6 +1,7 @@
 import {
   readTenantAuthority,
   type TenantAuthority,
+  type TenantAuthorityDescriptor,
 } from '@interdomestik/database/tenant-authority';
 import { ROLES, isSuperAdmin, isTenantAdmin } from '@interdomestik/shared-auth';
 
@@ -20,7 +21,18 @@ export function activityActorOf(
   session: ActivitySession,
   authority: TenantAuthority
 ): ActivityActor | null {
-  const { tenantId, principal } = readTenantAuthority(authority);
+  return principalActorOf(session, readTenantAuthority(authority));
+}
+
+/**
+ * The principal binding over an authority descriptor already read: the principal must name the
+ * session's user with exactly the session's role. Shared by the activity and member-note commands.
+ */
+export function principalActorOf(
+  session: { user: { id: string; role?: string | null } },
+  descriptor: TenantAuthorityDescriptor
+): ActivityActor | null {
+  const { tenantId, principal } = descriptor;
   if (!principal?.role || principal.userId !== session.user.id) return null;
   // Exact: a padded session role is refused, as every role check on base compared it as stored.
   if (principal.role !== session.user.role) return null;

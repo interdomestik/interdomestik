@@ -49,6 +49,7 @@ export function noteSeedIds(newId: (prefix: string) => string) {
       m7: id('m7'),
       mkMember: id('mk_member'),
       mkAgent: id('mk_agent'),
+      mkAdmin: id('mk_admin'),
     },
     notes: {
       n1: id('n1'),
@@ -107,6 +108,7 @@ export async function seedNotes(adminDb: AdminDb, seed: NoteSeed): Promise<void>
       person(u.m7, 'member'),
       person(u.mkMember, 'member', MK_TENANT_ID),
       person(u.mkAgent, 'agent', MK_TENANT_ID),
+      person(u.mkAdmin, 'admin', MK_TENANT_ID),
     ]);
   const link = (agentId: string, memberId: string, status: string) => {
     const assignmentId = `${agentId}__${memberId}`;
