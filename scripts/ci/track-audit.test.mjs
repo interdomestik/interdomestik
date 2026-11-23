@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -172,4 +173,72 @@ test('track audit: an entry outside the targets, a duplicate or a malformed list
   }
   const onFileCheck = { id: 'e', type: 'file_exists', targets: ['src/a.ts'], exclude: [] };
   assert.match(audit(SRC, [onFileCheck])[0], /exclude must be a non-empty list on a regex check/u);
+});
+
+test('track audit: a regex check without patterns, or with an unknown key, fails', () => {
+  const target = { id: 'r', type: 'regex', targets: ['src/b.ts'] };
+  for (const check of [
+    target,
+    { ...target, must_match: [], must_not_match: [] },
+    { ...target, must_matches: ['seed'] },
+    { ...target, must_match: [7] },
+    { ...target, must_match: 'seed' },
+  ]) {
+    const failures = audit(SRC, [check]);
+    assert.ok(
+      failures.some(f =>
+        /has no patterns|unsupported keys|not a list of non-empty strings/u.test(f)
+      ),
+      `${JSON.stringify(check)}: ${failures.join('\n')}`
+    );
+  }
+});
+
+test('track audit: an entry with an unsupported key, or a duplicate, leaves its file checked', () => {
+  const violation = /src\/a\.ts must NOT match regex 'seed'/u;
+  const extra = audit(SRC, [noSeed({ exclude: [{ file: 'src/a.ts', reason, pattern: 'x' }] })]);
+  assert.ok(
+    extra.some(f => /unsupported keys: pattern/u.test(f)),
+    extra.join('\n')
+  );
+  assert.ok(
+    extra.some(f => violation.test(f)),
+    extra.join('\n')
+  );
+  const twice = audit(SRC, [
+    noSeed({
+      exclude: [
+        { file: 'src/a.ts', reason },
+        { file: 'src/a.ts', reason },
+      ],
+    }),
+  ]);
+  assert.ok(
+    twice.some(f => violation.test(f)),
+    twice.join('\n')
+  );
+  const mixed = audit(SRC, [
+    noSeed({ exclude: [{ file: 'src/a.ts' }, { file: 'src/a.ts', reason }] }),
+  ]);
+  assert.ok(
+    mixed.some(f => violation.test(f)),
+    mixed.join('\n')
+  );
+});
+
+test('track audit: the command exits 1 on a failing contract and 0 on a passing one', () => {
+  const script = path.join(root, 'scripts/track-audit.mjs');
+  const contract = checks => yaml.dump({ version: 1, checks });
+  for (const [checks, status] of [
+    [[noSeed()], 1],
+    [[noSeed({ exclude: [{ file: 'src/a.ts', reason }] })], 0],
+  ]) {
+    const dir = fixture({ ...SRC, [CONTRACT_PATH]: contract(checks) });
+    try {
+      const run = spawnSync(process.execPath, [script], { cwd: dir, encoding: 'utf8' });
+      assert.equal(run.status, status, `${run.stdout}${run.stderr}`);
+    } finally {
+      fs.rmSync(dir, { recursive: true, force: true });
+    }
+  }
 });

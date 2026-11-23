@@ -58,8 +58,9 @@ jobs:
         env:
           LEGACY_VALIDATION_SHOULD_RUN: ${{ needs.validation-surface.outputs.legacy_validation_should_run }}
           RUN_BROAD: ${{ needs.validation-surface.outputs.run_broad }}
+        shell: bash
         run: |
-          # Each audit runs on its own; a failure is collected and fails the step at the end.
+          # Every command runs on its own; a failure is collected and fails the step at the end.
           # Not `a && b && c`: under `bash -e` a failed non-final command of an AND list
           # neither stops the step nor runs the rest, so the step went green.
           failed=''
@@ -67,17 +68,17 @@ jobs:
           pnpm plan:audit || failed="$failed plan:audit"
           pnpm repo:size:check || failed="$failed repo:size:check"
           if [[ "$LEGACY_VALIDATION_SHOULD_RUN" == "true" ]]; then
-            pnpm legacy:validate
+            pnpm legacy:validate || failed="$failed legacy:validate"
           else
-            pnpm test:delivery-safety
+            pnpm test:delivery-safety || failed="$failed test:delivery-safety"
           fi
           if [[ "$RUN_BROAD" != "true" ]]; then
-            node --test scripts/ci/docs-closeout-main-push-contract.test.mjs scripts/ci/z620-parity-policy.test.mjs
+            node --test scripts/ci/docs-closeout-main-push-contract.test.mjs scripts/ci/z620-parity-policy.test.mjs || failed="$failed narrow-contract-tests"
             echo "Heavy audit lane skipped."
             echo "Reason: ${{ needs.validation-surface.outputs.certification_reason }}"
           fi
           if [[ -n "$failed" ]]; then
-            echo "::error::Governance audits failed:$failed"
+            echo "::error::Governance audit step failed:$failed"
             exit 1
           fi
       - name: Run Audits
