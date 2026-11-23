@@ -1,6 +1,7 @@
 'use client';
 
 import type { ClaimSlaPhase } from '@/features/claims/policy';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 import {
   Avatar,
   AvatarFallback,
@@ -20,7 +21,8 @@ interface ClaimInfoPaneProps {
     id: string;
     title: string;
     description: string | null;
-    status: string | null;
+    /** A canonical claim status, normalized by the server page; null renders as submitted. */
+    status: ClaimStatus | null;
     companyName: string | null;
     claimAmount: string | null;
     currency: string | null;
@@ -94,9 +96,7 @@ export function ClaimInfoPane({ claim, slaPhase }: Readonly<ClaimInfoPaneProps>)
         {/* Status */}
         <div>
           <p className="text-sm font-medium mb-2">{t('details.status_label')}</p>
-          <p className="text-sm text-muted-foreground">
-            {tStatus(claim.status && tStatus.has(claim.status) ? claim.status : 'submitted')}
-          </p>
+          <p className="text-sm text-muted-foreground">{tStatus(claim.status ?? 'submitted')}</p>
         </div>
 
         {slaPhase && slaPhase !== 'not_applicable' ? (

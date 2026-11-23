@@ -1,6 +1,8 @@
 import type { TenantTransaction } from '@interdomestik/database';
 import { auditLog, notificationDeliveries, notifications } from '@interdomestik/database/schema';
+import { drizzle } from 'drizzle-orm/postgres-js';
 import { describe, expect, it, vi } from 'vitest';
+import { INSERT_BATCH_ROWS } from './enqueue';
 import { enqueueStaffClaimNotification } from './staff';
 
 const claim = {
@@ -30,6 +32,35 @@ function enqueueHarness(conflicted: readonly string[] = []) {
   });
   const insert = vi.fn(() => ({ values }));
   return { tx: { insert } as unknown as TenantTransaction, insert, values };
+}
+
+/**
+ * Builds every statement with the real Drizzle builder and records its bind parameters; execution
+ * is simulated: every row is new.
+ */
+function builderHarness() {
+  const builder = drizzle.mock();
+  const statements: Array<{ rows: number; params: number }> = [];
+  const queued: string[] = [];
+  const insert = (table: typeof notifications | typeof notificationDeliveries) => ({
+    values: (rows: Array<{ id: string }>) => ({
+      onConflictDoNothing: (
+        config: Parameters<
+          ReturnType<ReturnType<typeof builder.insert>['values']>['onConflictDoNothing']
+        >[0]
+      ) => {
+        const query = builder
+          .insert(table)
+          .values(rows as never)
+          .onConflictDoNothing(config);
+        statements.push({ rows: rows.length, params: query.toSQL().params.length });
+        if (table === notificationDeliveries) queued.push(...rows.map(row => row.id));
+        const inserted = rows.map(row => ({ id: row.id }));
+        return Object.assign(Promise.resolve(), { returning: () => Promise.resolve(inserted) });
+      },
+    }),
+  });
+  return { tx: { insert } as unknown as TenantTransaction, statements, queued };
 }
 
 describe('staff claim notifications', () => {
@@ -86,6 +117,20 @@ describe('staff claim notifications', () => {
     ]);
     expect(h.insert.mock.calls).toEqual([[notifications]]);
     expect(ids).toEqual([]);
+  });
+
+  it('splits 20,000 recipients into bounded statements and keeps every id in order', async () => {
+    const recipients = Array.from({ length: 20_000 }, (_, index) => staff(`staff-${index}`));
+    const h = builderHarness();
+    const ids = await enqueueStaffClaimNotification(h.tx, claim, source, recipients);
+    const perTable = Math.ceil(recipients.length / INSERT_BATCH_ROWS);
+    expect(h.statements).toHaveLength(2 * perTable);
+    expect(h.statements.reduce((total, statement) => total + statement.rows, 0)).toBe(40_000);
+    expect(Math.max(...h.statements.map(statement => statement.rows))).toBe(INSERT_BATCH_ROWS);
+    expect(Math.max(...h.statements.map(statement => statement.params))).toBeLessThan(65_535);
+    expect(ids).toHaveLength(recipients.length);
+    expect(ids).toEqual(h.queued);
+    expect(new Set(ids).size).toBe(recipients.length);
   });
 
   it('records the unrouted claim and kind when a staff notification has no recipient', async () => {

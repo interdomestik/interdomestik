@@ -209,7 +209,7 @@ test(
                 [
                   { id: staffId, emailVerified: true },
                   { id: peerStaffId, emailVerified: false },
-                  { id: adminId, emailVerified: true },
+                  { id: ownerId, emailVerified: true },
                 ]
               )
             );
@@ -225,7 +225,7 @@ test(
             // Ids come back in recipient order; the rows are compared as a set.
             assert.deepEqual(
               new Set(deliveries.map(row => `${row.id}|${row.recipientUserId}|${row.channel}`)),
-              new Set([`${first[0]}|${staffId}|email`, `${first[1]}|${adminId}|email`])
+              new Set([`${first[0]}|${staffId}|email`, `${first[1]}|${ownerId}|email`])
             );
             const inbox = await adminDb
               .select()
@@ -234,7 +234,7 @@ test(
             assert.equal(inbox.length, 3);
             assert.deepEqual(
               new Set(inbox.map(row => row.userId)),
-              new Set([staffId, peerStaffId, adminId])
+              new Set([staffId, peerStaffId, ownerId])
             );
           } finally {
             await adminDb.delete(notifications).where(eq(notifications.actionUrl, actionUrl));

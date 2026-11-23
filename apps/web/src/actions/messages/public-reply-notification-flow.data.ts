@@ -73,6 +73,7 @@ const columns = [
   'category',
   'claimNumber',
   'answeredAt',
+  'idempotencyKey',
 ];
 export const tables = Object.fromEntries(
   [

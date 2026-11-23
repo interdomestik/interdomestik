@@ -59,6 +59,43 @@ function nameOf(table: unknown): string {
   if (!name) throw new Error('Unknown fixture table');
   return name;
 }
+// Unique keys the model enforces, as PostgreSQL does: the primary key and declared unique indexes.
+const UNIQUE_KEYS: Record<string, string[][]> = {
+  notificationDeliveries: [['id'], ['tenantId', 'idempotencyKey']],
+};
+/**
+ * Appends the rows of one statement. A row that repeats a unique key of an existing row or of an
+ * earlier row in the statement is skipped when ON CONFLICT DO NOTHING names that key (or no key);
+ * otherwise the whole statement fails before any write.
+ */
+function insertUnique(
+  name: string,
+  target: Row[],
+  inputs: readonly Row[],
+  onConflict: { target: string[] | null } | null
+): Row[] {
+  const keys = UNIQUE_KEYS[name] ?? [['id']];
+  const keyOf = (row: Row, fields: string[]) => JSON.stringify(fields.map(field => row[field]));
+  const seen = keys.map(fields => new Set(target.map(row => keyOf(row, fields))));
+  const fresh: Row[] = [];
+  for (const row of inputs) {
+    const hits = keys.filter((fields, index) => seen[index].has(keyOf(row, fields)));
+    if (hits.length > 0) {
+      const arbiter = onConflict?.target;
+      const skipped =
+        onConflict !== null &&
+        (arbiter === null || hits.some(fields => fields.join() === arbiter?.join()));
+      if (!skipped) throw new Error('Duplicate fixture key');
+      continue;
+    }
+    keys.forEach((fields, index) => seen[index].add(keyOf(row, fields)));
+    fresh.push(row);
+  }
+  target.push(
+    ...fresh.map(row => ({ createdAt: new Date('2026-10-15T00:00:00Z'), readAt: null, ...row }))
+  );
+  return fresh;
+}
 // Ambient clients never close; transaction clients get their own lifetime.
 const OPEN_LIFETIME = Object.freeze({ open: true });
 // Runs synchronously like an async body: a throw becomes a rejection, never a sync throw.
@@ -105,32 +142,26 @@ function client(
       ])
     ),
     insert: (table: unknown) => ({
-      // Single-row and multi-row inserts: every row is checked and conflicts on its own id.
+      // One atomic INSERT of one or more rows, checked against the table's unique keys.
       values: (input: Row | readonly Row[]) => {
         const name = nameOf(table);
         const inputs: readonly Row[] = Array.isArray(input) ? input : [input as Row];
-        let ignoreConflict = false;
+        let onConflict: { target: string[] | null } | null = null;
         const promise = Promise.resolve().then(() => {
           check();
           if (name === 'notifications' && state.notificationFault)
             throw new Error('Synthetic notification failure');
-          const target = (staged ?? state.rows)[name];
-          // One statement is atomic: a denied or duplicate row stops the batch before any write.
           const denied = (row: Row) =>
             (!context && state.mode === 'restricted') ||
             (context && row.tenantId !== context.tenantId);
           if (inputs.some(denied)) throw new Error('Fixture write denied');
-          const fresh = inputs.filter(row => !target.some(existing => existing.id === row.id));
-          if (fresh.length < inputs.length && !ignoreConflict)
-            throw new Error('Duplicate fixture id');
-          for (const row of fresh)
-            target.push({ createdAt: new Date('2026-10-15T00:00:00Z'), readAt: null, ...row });
-          return fresh;
+          return insertUnique(name, (staged ?? state.rows)[name], inputs, onConflict);
         });
         // The insert is awaitable like a Drizzle builder because it is the write promise itself.
         const returning = () => promise.then(inserted => inserted.map(row => ({ id: row.id })));
-        const onConflictDoNothing = () => {
-          ignoreConflict = true;
+        const onConflictDoNothing = (config?: { target?: Column | Column[] }) => {
+          const target = config?.target;
+          onConflict = { target: target ? [target].flat().map(column => column.field) : null };
           return Object.assign(promise, { returning });
         };
         return Object.assign(promise, { returning, onConflictDoNothing });
