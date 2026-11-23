@@ -48,6 +48,7 @@ vi.mock('@/lib/ai/claim-workflows', () => ({
 }));
 
 vi.mock('@/features/claims/upload/server/initial-claim-evidence-validation', () => ({
+  initialClaimEvidenceValidatorFor: vi.fn(() => vi.fn().mockResolvedValue(undefined)),
   validateInitialClaimEvidenceUpload: vi.fn().mockResolvedValue(undefined),
 }));
 

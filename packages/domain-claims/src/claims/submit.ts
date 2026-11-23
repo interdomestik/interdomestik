@@ -21,6 +21,10 @@ import { createClaimSchema, type CreateClaimValues } from '../validators/claims'
 import type { QueuedClaimAiRun } from './ai-workflow-types';
 import { buildClaimDocumentRows } from './documents';
 import {
+  assertDistinctEvidenceObjects,
+  assertEvidenceObjectsUnattached,
+} from './draft-attachments';
+import {
   buildClaimStartPublicNote,
   resolveSubmittedClaimIncidentCountry,
 } from './incident-country';
@@ -100,6 +104,9 @@ async function persistSubmittedClaim(args: {
     });
 
     if (files?.length) {
+      // One stored object is never the document of two claims: refused (and rolled back) if a
+      // concurrent or earlier command already attached it.
+      await assertEvidenceObjectsUnattached(tx, { tenantId, files });
       const documentRows = buildClaimDocumentRows({
         claimId: args.claimId,
         uploadedBy: args.userId,
@@ -149,6 +156,7 @@ export async function submitClaimCore(
     throw new ClaimValidationError('Validation failed', 'INVALID_PAYLOAD');
   }
 
+  assertDistinctEvidenceObjects(result.data.files ?? []);
   await validateClaimFiles(result.data.files, session, tenantId, deps);
 
   const claimId = params.trustedClaimId ?? nanoid();
@@ -183,6 +191,7 @@ export async function submitClaimCore(
     claimNumber = persistedClaim.claimNumber;
     deliveryIds = persistedClaim.deliveryIds;
   } catch (error) {
+    if (error instanceof ClaimValidationError) throw error;
     reportServerError('Failed to create claim:', error);
     throw new Error('Failed to create claim. Please try again.');
   }

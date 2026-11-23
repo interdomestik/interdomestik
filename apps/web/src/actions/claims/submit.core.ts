@@ -20,8 +20,7 @@ import { kickClaimNotificationDeliveries } from '@/lib/claim-notification-delive
 import { revalidatePath } from 'next/cache';
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
-import { validateInitialClaimEvidenceUpload } from '@/features/claims/upload/server/initial-claim-evidence-validation';
-import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
+import { initialClaimEvidenceValidatorFor } from '@/features/claims/upload/server/initial-claim-evidence-validation';
 import { resolveEntryHostIdFromHeaders } from '@/lib/tenant/host-id';
 import type { Session } from './context';
 import { resolveCommercialFlow, type SubmitClaimCommercialFlow } from './submit-commercial-flow';
@@ -93,16 +92,7 @@ export async function submitClaimCore(params: {
               return markClaimAiRunDispatchFailedService({ authority, runId, message });
             },
             revalidatePath,
-            validateSubmittedClaimFile: ({ actorId, file, tenantId }) => {
-              if (!authority) throw new Error('Missing tenant authority');
-              return validateInitialClaimEvidenceUpload({
-                authority,
-                actorId,
-                expectedBucket: resolveEvidenceBucketName(),
-                file,
-                tenantId,
-              });
-            },
+            validateSubmittedClaimFile: initialClaimEvidenceValidatorFor(authority),
           }
         );
         if (result.success && typeof result.claimId === 'string') {
