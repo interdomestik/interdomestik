@@ -54,6 +54,7 @@ async function expectAdmitted(
   expect(after.messages.find(row => row.id === eligible?.id)?.readAt).toBeInstanceOf(Date);
   expect(after.messages).toHaveLength(before.messages.length + 1);
   // One message audit per send, plus the routing audit the caller expects (WP-11).
+  expect(after.audits).toHaveLength(before.audits.length + 1 + routingAudits.length);
   const added = after.audits.filter(row => !before.audits.some(prior => prior.id === row.id));
   expect(added.filter(row => row.action === 'claim.message_sent')).toHaveLength(1);
   const others = added.filter(row => row.action !== 'claim.message_sent');
