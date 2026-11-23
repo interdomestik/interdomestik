@@ -8,6 +8,7 @@ import type { TenantAuthority } from '../src/tenant-authority';
 import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
 import { gate } from './wp11-claim-status-rls.fixture';
 import {
+  proveMalformedFacts,
   proveStaffRouting,
   proveStaleBoundary,
   proveTargetedKick,
@@ -234,6 +235,7 @@ async function proveConsumer(client: postgres.Sql, a: Rows, b: Rows) {
     await provePushRetirement(client, a, authority, dispatchNotificationDeliveries);
     await proveStaleBoundary(client, a, authority);
     await proveStaffRouting(client, a, b, authority, dispatchNotificationDeliveries);
+    await proveMalformedFacts(client, a, authority, dispatchNotificationDeliveries);
   } finally {
     const pools = globalThis as typeof globalThis & {
       queryClientAdmin?: postgres.Sql;

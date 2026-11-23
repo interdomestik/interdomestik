@@ -1,5 +1,5 @@
 {
-  "id": "3129da39-09cf-4275-b1d3-0fa905f48b2f",
+  "id": "a4de08e1-6b0f-4e59-b3db-12756920523e",
   "prevId": "9232b7a7-ac50-4b3a-8703-72c843e2a870",
   "version": "7",
   "dialect": "postgresql",
@@ -19365,7 +19365,7 @@
         "user_id": {
           "name": "user_id",
           "type": "text",
-          "primaryKey": true,
+          "primaryKey": false,
           "notNull": true
         },
         "tenant_id": {

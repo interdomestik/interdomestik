@@ -191,3 +191,49 @@ export async function proveStaffRouting(
   assert.equal(fallback.sent, 1);
   assert.deepEqual(sends, [`${scoped}@example.test`, `${a.user}@example.test`]);
 }
+
+/**
+ * R-08 for stored facts: the worker parses a delivery's facts for its kind. A malformed value is
+ * recorded on the delivery as the retryable `facts_unavailable` failure, under its lease, and no
+ * provider is called.
+ */
+export async function proveMalformedFacts(
+  client: postgres.Sql,
+  a: Rows,
+  authority: TenantAuthority,
+  dispatch: typeof dispatchNotificationDeliveries
+) {
+  const id = randomUUID();
+  await client`insert into notification_deliveries
+    (id, tenant_id, idempotency_key, kind, channel, recipient_user_id, claim_id, subject_message_id, facts)
+    values (${id}, ${a.tenant}, ${id}, 'claim_message_to_member', 'email', ${a.user}, ${a.claim},
+      ${a.message}, '{"previewRestricted":"no"}')`;
+  const sends: string[] = [];
+  const outcome = await dispatch(
+    authority,
+    {
+      appOrigin: () => 'https://example.test',
+      emailTransports: () => ['smtp'],
+      sendEmail: (transport, _to, _payload, options) => {
+        sends.push(options.idempotencyKey);
+        return Promise.resolve({ ok: true, transport });
+      },
+    },
+    { ids: [id] }
+  );
+  assert.deepEqual(sends, []);
+  assert.deepEqual(outcome.failures, [{ id, code: 'facts_unavailable' }]);
+  const [row] = await restricted(
+    client,
+    a.tenant,
+    tx => tx`select state, attempts, lease_until, last_error_code, sent_at
+      from notification_deliveries where id = ${id}`
+  );
+  assert.deepEqual(row, {
+    state: 'queued',
+    attempts: 1,
+    lease_until: null,
+    last_error_code: 'facts_unavailable',
+    sent_at: null,
+  });
+}

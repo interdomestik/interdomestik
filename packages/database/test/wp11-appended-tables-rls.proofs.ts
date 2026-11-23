@@ -15,7 +15,12 @@ import {
 } from './wp11-notification-deliveries-rls.fixture';
 
 /** Seeds a user as the owner, for parents the runtime role may not create. */
-async function insertUser(client: postgres.Sql, id: string, tenantId: string, userRole: string) {
+export async function insertUser(
+  client: postgres.Sql,
+  id: string,
+  tenantId: string,
+  userRole: string
+) {
   const email = `${id}@example.test`;
   await client`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
     values (${id}, ${tenantId}, 'Test user', ${email}, true, ${userRole}, now(), now())`;
@@ -79,6 +84,23 @@ export async function proveLegacyPreviewState(client: postgres.Sql, legacy: Lega
   });
 }
 
+/** 0102 copied exactly the handoffs answered once, at their UTC response time. */
+export async function proveFirstResponseBackfill(client: postgres.Sql, legacy: LegacyPreviews) {
+  const ids = Object.values(legacy.handoffs);
+  const rows = await client`select handoff_id, tenant_id, first_public_response_at
+    from support_handoff_first_responses where handoff_id in ${client(ids)} order by handoff_id`;
+  assert.deepEqual(
+    [...rows],
+    [
+      {
+        handoff_id: legacy.handoffs.first,
+        tenant_id: legacy.tenant,
+        first_public_response_at: new Date('2026-11-01T10:00:00Z'),
+      },
+    ]
+  );
+}
+
 /** Grants, tenant policies and FK tenant binding of the three appended tables. */
 export async function proveAppendedTableIsolation(client: postgres.Sql, a: Rows, b: Rows) {
   const posture = await client`select relname, relrowsecurity, relforcerowsecurity,
@@ -124,7 +146,7 @@ export async function proveAppendedTableIsolation(client: postgres.Sql, a: Rows,
     '42501'
   );
   // Own tenant, foreign parent: the composite FK refuses it. The parents have no child row yet,
-  // so the primary key cannot refuse first.
+  // so no unique key can refuse first.
   const bare = {
     user: `${b.tenant}-bare-user`,
     notification: `${b.tenant}-bare-notification`,
@@ -150,6 +172,19 @@ export async function proveAppendedTableIsolation(client: postgres.Sql, a: Rows,
       values (${bare.handoff}, ${a.tenant}, now())`,
     '23503'
   );
+  // The first-response policy refuses another tenant's row, and admits the same row in its tenant.
+  await denied(
+    tx => tx`insert into support_handoff_first_responses (handoff_id, tenant_id, first_public_response_at)
+      values (${bare.handoff}, ${b.tenant}, now())`,
+    '42501'
+  );
+  await restricted(client, b.tenant, async tx => {
+    await tx`insert into support_handoff_first_responses (handoff_id, tenant_id, first_public_response_at)
+      values (${bare.handoff}, ${b.tenant}, now())`;
+  });
+  const [admitted] =
+    await client`select tenant_id from support_handoff_first_responses where handoff_id = ${bare.handoff}`;
+  assert.deepEqual(admitted, { tenant_id: b.tenant });
   // No UPDATE on a flag or a first response, no DELETE anywhere.
   await denied(
     tx =>
@@ -200,56 +235,4 @@ export async function proveLocalePreference(client: postgres.Sql, a: Rows) {
       );
     })
   );
-}
-
-/** FK actions: children follow their parent, also when the runtime role deletes it under FORCE RLS. */
-export async function proveCascades(client: postgres.Sql, a: Rows, b: Rows) {
-  const count = async (table: string, column: string, value: string) => {
-    const [row] =
-      await client`select count(*)::int as n from ${client(table)} where ${client(column)} = ${value}`;
-    return row.n as number;
-  };
-
-  // The handoff cleanup path: the runtime role deletes an inbox row, and its flag goes with it
-  // although the role holds no DELETE on the flag table.
-  await restricted(client, a.tenant, async tx => {
-    const deleted = await tx`delete from notifications where id = ${a.notification} returning id`;
-    assert.equal(deleted.length, 1);
-  });
-  assert.equal(
-    await count('notification_preview_restrictions', 'notification_id', a.notification),
-    0
-  );
-
-  await client`delete from support_handoffs where id = ${b.handoff}`;
-  assert.equal(await count('support_handoff_first_responses', 'handoff_id', b.handoff), 0);
-
-  // A staff answer survives its actor's deletion, without the actor.
-  const staff = `${b.tenant}-staff`;
-  await insertUser(client, staff, b.tenant, 'staff');
-  await client`update claim_response_requests set answered_at = now(), answered_by = ${staff},
-    answer_kind = 'member_visible_status_change' where id = ${a.request}`;
-  await client`delete from "user" where id = ${staff}`;
-  const [answer] =
-    await client`select answered_by, answered_at is not null as answered from claim_response_requests where id = ${a.request}`;
-  assert.deepEqual(answer, { answered_by: null, answered: true });
-
-  // A source message takes its response request and its deliveries with it.
-  const sourceRequest = `${b.tenant}-source-request`;
-  await client`insert into claim_response_requests (id, tenant_id, claim_id, kind, source_message_id, requested_at)
-    values (${sourceRequest}, ${b.tenant}, ${b.claim}, 'member_message', ${b.message}, now())`;
-  await client`delete from claim_messages where id = ${b.message}`;
-  assert.equal(await count('claim_response_requests', 'source_message_id', b.message), 0);
-  assert.equal(await count('notification_deliveries', 'subject_message_id', b.message), 0);
-
-  // A claim takes its remaining requests and deliveries; a user takes its locale preference.
-  await client`delete from claim where id = ${b.claim}`;
-  assert.equal(await count('claim_response_requests', 'claim_id', b.claim), 0);
-  assert.equal(await count('notification_deliveries', 'claim_id', b.claim), 0);
-  const member = `${a.tenant}-member-two`;
-  await insertUser(client, member, a.tenant, 'member');
-  await client`insert into user_locale_preferences (user_id, tenant_id, locale)
-    values (${member}, ${a.tenant}, 'de')`;
-  await client`delete from "user" where id = ${member}`;
-  assert.equal(await count('user_locale_preferences', 'user_id', member), 0);
 }

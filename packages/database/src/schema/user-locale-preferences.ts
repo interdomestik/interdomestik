@@ -5,7 +5,7 @@ import { sponsorTenantPolicy } from './sponsors';
 export const userLocalePreferences = pgTable(
   'user_locale_preferences',
   {
-    userId: text('user_id').primaryKey(),
+    userId: text('user_id').notNull(),
     tenantId: text('tenant_id').notNull(),
     locale: text('locale', { enum: ['sq', 'en', 'sr', 'mk', 'de'] }).notNull(),
     updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),

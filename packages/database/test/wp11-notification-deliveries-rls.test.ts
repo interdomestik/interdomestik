@@ -2,9 +2,10 @@ import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 import type postgres from 'postgres';
+import { proveCascades } from './wp11-appended-tables-cascade-rls.proofs';
 import {
   proveAppendedTableIsolation,
-  proveCascades,
+  proveFirstResponseBackfill,
   proveLegacyPreviewState,
   proveLocalePreference,
 } from './wp11-appended-tables-rls.proofs';
@@ -104,6 +105,9 @@ test('WP-11 tables enforce the migration privileges, tenant policies and FK acti
         await proveLegacyPreviewState(client, legacy);
       }
     );
+    await t.test('backfills the first public response of handoffs answered once', async () => {
+      await proveFirstResponseBackfill(client, legacy);
+    });
     await t.test('isolates the appended tables and binds their FKs to the tenant', async () => {
       await proveAppendedTableIsolation(client, a, b);
     });

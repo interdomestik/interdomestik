@@ -38,6 +38,29 @@ async function writeLegacyPreview(
   });
 }
 
+/**
+ * Handoffs that exist before 0102: one answered once (the backfill copies it), one answered twice
+ * and one unanswered (controls the backfill leaves out). `public_response_at` has no time zone.
+ */
+async function writeLegacyHandoffs(client: postgres.Sql, owner: { tenant: string; user: string }) {
+  const handoffs = {
+    first: 'wp11-handoff-first',
+    repeated: 'wp11-handoff-repeated',
+    open: 'wp11-handoff-open',
+  };
+  const rows: Array<[string, number, string | null]> = [
+    [handoffs.first, 1, '2026-11-01 10:00:00'],
+    [handoffs.repeated, 2, '2026-11-02 10:00:00'],
+    [handoffs.open, 0, null],
+  ];
+  await runSequentially(rows, async ([id, version, at]) => {
+    await client`insert into support_handoffs
+      (id, tenant_id, member_id, subject, message, urgency, trust_risk, public_response_version, public_response_at)
+      values (${id}, ${owner.tenant}, ${owner.user}, 'Subject', 'Message', 'normal', 'low', ${version}, ${at})`;
+  });
+  return handoffs;
+}
+
 async function install(client: postgres.Sql) {
   const drizzleDb = drizzle(client, { schema: {} });
   const config = schema();
@@ -59,6 +82,7 @@ async function install(client: postgres.Sql) {
   const existing = 'wp11-notification-existing';
   const rollout = 'wp11-notification-rollout';
   await writeLegacyPreview(client, legacyOwner, existing);
+  const handoffs = await writeLegacyHandoffs(client, legacyOwner);
 
   await runSequentially(lockTables.slice(0, -1), async table => {
     await client.unsafe(`grant update (id) on public.${quoteIdentifier(table)} to ${role}`);
@@ -82,7 +106,7 @@ async function install(client: postgres.Sql) {
   await writeLegacyPreview(client, legacyOwner, rollout);
   // The runtime inbox writer and the handoff cleanup read, insert and delete inbox rows.
   await client.unsafe(`grant select, insert, delete on public.notifications to ${role}`);
-  return { ...legacyOwner, existing, rollout };
+  return { ...legacyOwner, existing, rollout, handoffs };
 }
 
 async function seedOwner(client: postgres.Sql, group: string, userRole: string) {

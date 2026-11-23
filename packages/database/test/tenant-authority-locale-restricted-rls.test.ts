@@ -20,7 +20,9 @@ test('saves the locale only when the session authority covers its own profile', 
   if (!session) return;
   const { adminDb, fixture } = session;
   const { ks, mk } = fixture;
-  const users = [ks.userId, mk.userId];
+  const raceUser = 'wp11-locale-race';
+  const lockUser = 'wp11-locale-lock';
+  const users = [ks.userId, mk.userId, raceUser];
   let revokeColumns: (() => Promise<void>) | undefined;
   let revokeTable: (() => Promise<void>) | undefined;
   try {
@@ -88,11 +90,61 @@ test('saves the locale only when the session authority covers its own profile', 
       .from(userLocalePreferences)
       .where(eq(userLocalePreferences.userId, absent));
     assert.deepEqual(ghostRows, []);
+
+    const seedUser = (id: string) =>
+      adminDb.insert(user).values({
+        id,
+        tenantId: MK_TENANT_ID,
+        name: 'Locale user',
+        email: `${id}@example.test`,
+        emailVerified: true,
+        role: 'admin',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    const sessionOf = (id: string) => ({ user: { ...admin, id, accessTenantId: MK_TENANT_ID } });
+
+    // Two first saves for one user overlap: both succeed and leave one row.
+    await seedUser(raceUser);
+    const raced = await Promise.all([
+      savePreferredLocale(authority(MK_TENANT_ID, raceUser), sessionOf(raceUser), 'mk'),
+      savePreferredLocale(authority(MK_TENANT_ID, raceUser), sessionOf(raceUser), 'de'),
+    ]);
+    assert.deepEqual(raced, ['saved', 'saved']);
+    const raceRows = await adminDb
+      .select({ locale: userLocalePreferences.locale })
+      .from(userLocalePreferences)
+      .where(eq(userLocalePreferences.userId, raceUser));
+    assert.equal(raceRows.length, 1);
+    assert.ok(['mk', 'de'].includes(raceRows[0]?.locale ?? ''));
+
+    // The save locks its user before it writes: while another transaction holds the row, the save
+    // waits; when that transaction deletes the user, the save reports a conflict. Without its own
+    // lock the save would read the user, then fail on the foreign key.
+    await seedUser(lockUser);
+    let pending: Promise<string> | undefined;
+    await adminDb.transaction(async tx => {
+      await tx.select({ id: user.id }).from(user).where(eq(user.id, lockUser)).for('update');
+      pending = savePreferredLocale(authority(MK_TENANT_ID, lockUser), sessionOf(lockUser), 'mk');
+      const early = await Promise.race([
+        pending.then(() => 'finished'),
+        new Promise(resolve => setTimeout(() => resolve('waiting'), 300)),
+      ]);
+      assert.equal(early, 'waiting');
+      await tx.delete(user).where(eq(user.id, lockUser));
+    });
+    assert.equal(await pending, 'conflict');
+    const lockRows = await adminDb
+      .select({ id: userLocalePreferences.userId })
+      .from(userLocalePreferences)
+      .where(eq(userLocalePreferences.userId, lockUser));
+    assert.deepEqual(lockRows, []);
   } finally {
     try {
       await adminDb
         .delete(userLocalePreferences)
         .where(inArray(userLocalePreferences.userId, users));
+      await adminDb.delete(user).where(inArray(user.id, [raceUser, lockUser]));
     } finally {
       try {
         await revokeTable?.();

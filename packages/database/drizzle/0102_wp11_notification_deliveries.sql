@@ -56,7 +56,7 @@ CREATE TABLE "claim_response_requests" (
 --> statement-breakpoint
 ALTER TABLE "claim_response_requests" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
 CREATE TABLE "user_locale_preferences" (
-	"user_id" text PRIMARY KEY NOT NULL,
+	"user_id" text NOT NULL,
 	"tenant_id" text NOT NULL,
 	"locale" text NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,

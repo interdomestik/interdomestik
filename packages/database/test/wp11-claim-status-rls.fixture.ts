@@ -20,6 +20,7 @@ import {
   serviceUsage,
   user,
 } from '../src/schema';
+import { grantTablePrivileges } from './activity-access-rls.support';
 import { grantColumnPrivileges } from './column-grants.support';
 import { runSequentially } from './in-order';
 import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
@@ -44,6 +45,7 @@ export async function withStatusFixture(
   const { adminDb } = session;
   const role = quoteIdentifier(TEST_DB_ROLE);
   let revokeColumns: (() => Promise<void>) | undefined;
+  let revokeFlags: (() => Promise<void>) | undefined;
   try {
     // Existing table grants exercise the read, write and lock operations used by the command.
     const existing = [
@@ -55,13 +57,16 @@ export async function withStatusFixture(
     const added = [
       'grant select, insert, update on notification_deliveries',
       'grant select, insert on claim_response_requests',
-      // The inbox writer flags the rows it creates; flags are never updated or deleted.
-      'grant select, insert on notification_preview_restrictions',
     ];
     await runSequentially([...existing, ...added], async grant => {
       await adminDb.execute(sql.raw(`${grant} to ${role}`));
     });
     // Column grants are revoked again below: the `test:rls` suites share this role.
+    // The inbox writer flags the rows it creates; flags are never updated or deleted. Revoked
+    // again below, like the column grants.
+    revokeFlags = await grantTablePrivileges(adminDb, [
+      ['select, insert', 'notification_preview_restrictions'],
+    ]);
     revokeColumns = await grantColumnPrivileges(adminDb, [
       ['select', 'notifications', ['id']],
       ...[
@@ -101,7 +106,11 @@ export async function withStatusFixture(
       try {
         await revokeColumns?.();
       } finally {
-        await session.close();
+        try {
+          await revokeFlags?.();
+        } finally {
+          await session.close();
+        }
       }
     }
   }
