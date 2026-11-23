@@ -90,7 +90,6 @@ function exactLocaleCatalogOwners(owner, namesByLocale) {
     names.map(name => [`${locale}/${name}.json`, owner])
   );
 }
-
 const LOCALE_CATALOG_OWNERS = new Map([
   ['admin-users.json', 's7-admin-user-read-recovery-i18n-contract'],
   ['admin-claims.json', 's7-admin-claims-read-consistency-i18n-contract'],
