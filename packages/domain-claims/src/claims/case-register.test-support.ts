@@ -44,6 +44,7 @@ vi.mock('@interdomestik/database/tenant-authority', async importOriginal => ({
 
 type Builder = Promise<unknown[]> & {
   from(table: unknown): Builder;
+  innerJoin(): Builder;
   where(where: SQL): Builder;
   for(lock: string): Builder;
   set(values: unknown): Builder;
@@ -64,6 +65,9 @@ function statement(operation: Statement) {
   const query: Builder = Object.assign(rows, {
     from(table: unknown) {
       operation.table = table;
+      return query;
+    },
+    innerJoin() {
       return query;
     },
     where(where: SQL) {

@@ -186,33 +186,44 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
       const claim = await insertClaim(admin, { branch: ownBranch });
       const other = await insertClaim(admin, { branch: ownBranch });
       await admin`update claim set "userId" = ${member} where id in (${claim.id}, ${other.id})`;
-      const { entry, evidence, sent, uncited, offCase } = await restricted(runtime, async tx => {
-        const evidence = await insertDocument(tx, {
-          ...documentInput(claim),
-          uploaded_by: member,
-          name: 'Member authority.pdf',
-        });
-        const sent = await insertDocument(tx, {
-          ...documentInput(claim, 'sent-document'),
-          uploaded_by: member,
-          name: 'Member evidence.pdf',
-        });
-        const uncited = await insertDocument(tx, documentInput(claim, ' sent-document '));
-        const offCase = await insertDocument(tx, documentInput(other));
-        await createBases(tx, other, offCase);
-        const omitted = await insertDocument(tx, documentInput(claim));
-        const bases = await createBases(tx, claim, evidence);
-        const entry = await insertEntry(tx, {
-          ...outboundInput(claim, bases, 2),
-          occurred_at: earlier,
-        });
-        await insertLink(tx, linkInput(entry, sent));
-        await insertLink(tx, linkInput(entry, omitted));
-        for (const _ of [1, 2]) {
-          await insertEntry(tx, { ...inboundInput(claim), in_reply_to_id: entry.id });
+      const { entry, evidence, sent, legal, uncited, offCase } = await restricted(
+        runtime,
+        async tx => {
+          const evidence = await insertDocument(tx, {
+            ...documentInput(claim),
+            uploaded_by: member,
+            name: 'Member authority.pdf',
+          });
+          const sent = await insertDocument(tx, {
+            ...documentInput(claim, 'sent-document'),
+            uploaded_by: member,
+            name: 'Member evidence.pdf',
+          });
+          const legalDocument = {
+            ...documentInput(claim),
+            uploaded_by: member,
+            name: 'Member legal.pdf',
+            category: 'legal',
+          };
+          const legal = await insertDocument(tx, legalDocument);
+          const uncited = await insertDocument(tx, documentInput(claim, ' sent-document '));
+          const offCase = await insertDocument(tx, documentInput(other));
+          await createBases(tx, other, offCase);
+          const omitted = await insertDocument(tx, documentInput(claim));
+          const bases = await createBases(tx, claim, evidence);
+          const entry = await insertEntry(tx, {
+            ...outboundInput(claim, bases, 3),
+            occurred_at: earlier,
+          });
+          await insertLink(tx, linkInput(entry, sent));
+          await insertLink(tx, linkInput(entry, legal));
+          await insertLink(tx, linkInput(entry, omitted));
+          for (const _ of [1, 2]) {
+            await insertEntry(tx, { ...inboundInput(claim), in_reply_to_id: entry.id });
+          }
+          return { entry, evidence, sent, legal, uncited, offCase };
         }
-        return { entry, evidence, sent, uncited, offCase };
-      });
+      );
       const page = (number: number) =>
         domain.listClaimCorrespondence(staff.session, staff.authority, {
           claimId: claim.id,
@@ -232,7 +243,7 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
       });
       const citationInput = {
         claimId: claim.id,
-        documentIds: [sent.id, evidence.id, uncited.id, offCase.id],
+        documentIds: [sent.id, evidence.id, legal.id, uncited.id, offCase.id],
       };
       const names = await domain.listRegisterCitationNames(
         staff.session,
@@ -242,7 +253,7 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
       assert.equal(names.ok, true);
       assert.deepEqual(
         new Map(names.documents.map(({ id, name }) => [id, name])),
-        new Map([sent, evidence].map(({ id, name }) => [id, name]))
+        new Map([sent, evidence, legal].map(({ id, name }) => [id, name]))
       );
       const colleague = actor(otherStaff, 'staff');
       assert.equal(
@@ -259,9 +270,11 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
         domain.listRegisterCitationNames(colleague.session, colleague.authority, citationInput);
       assert.deepEqual(await readAsColleague(), { ok: true, documents: [] });
       await admin`insert into case_scoped_access_grants
-        (id, tenant_id, access_tenant_id, case_id, actor_id, document_classes, created_by_id, correlation_id)
+        (id, tenant_id, access_tenant_id, case_id, actor_id, document_classes, created_by_id, correlation_id, expires_at)
         values (gen_random_uuid(), ${homeTenant}, ${homeTenant}, ${claim.id}, ${otherStaff}, array['evidence'],
-          ${homeActor}, gen_random_uuid())`;
+          ${homeActor}, gen_random_uuid(), now() - interval '1 day')`;
+      assert.deepEqual(await readAsColleague(), { ok: true, documents: [] });
+      await admin`update case_scoped_access_grants set expires_at = null where case_id = ${claim.id}`;
       const granted = await readAsColleague();
       assert.equal(granted.ok, true);
       assert.deepEqual(
@@ -295,6 +308,35 @@ async function proveWriters(t: TestContext, connections: Connection, domain: Dom
           })
         ).ok,
         true
+      );
+    }
+  );
+
+  await t.test(
+    'the register picker includes eligible request evidence outside ordinary pagination',
+    async () => {
+      const { getAssignedStaffClaimDocuments, getRegisterPickerDocuments } =
+        await import('../../../apps/web/src/features/staff/claims/server/get-assigned-claim-documents');
+      const claim = await insertClaim(admin, { branch: ownBranch });
+      await admin`update claim set "userId" = ${member} where id = ${claim.id}`;
+      const request = await insertRequest(admin, claim.id);
+      const linked = await insertDocument(admin, { ...documentInput(claim), uploaded_by: member });
+      const ordinary = await insertDocument(admin, documentInput(claim));
+      await admin`insert into claim_information_request_evidence (
+      tenant_id, claim_id, request_id, document_id, submitted_by_member_id
+    ) values (${homeTenant}, ${claim.id}, ${request}, ${linked.id}, ${member})`;
+
+      const input = { claimId: claim.id, ...staff };
+      const picker = await getRegisterPickerDocuments(input);
+      assert.deepEqual(new Set(picker.map(({ id }) => id)), new Set([linked.id, ordinary.id]));
+      const evidence = await getAssignedStaffClaimDocuments(input);
+      assert.deepEqual(
+        evidence.documents.map(({ id }) => id),
+        [ordinary.id]
+      );
+      assert.deepEqual(
+        await getRegisterPickerDocuments({ claimId: claim.id, ...actor(otherStaff, 'staff') }),
+        []
       );
     }
   );

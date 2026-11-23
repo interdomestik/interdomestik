@@ -100,10 +100,11 @@ export function RegisterReadError({ code }: Readonly<{ code?: string }>) {
 
 export function RegisterSubmit({
   children,
+  disabled = false,
   pending,
-}: Readonly<{ children: ReactNode; pending: boolean }>) {
+}: Readonly<{ children: ReactNode; disabled?: boolean; pending: boolean }>) {
   return (
-    <Button type="submit" aria-disabled={pending} className="w-fit">
+    <Button type="submit" disabled={disabled} aria-disabled={pending || disabled} className="w-fit">
       {children}
     </Button>
   );

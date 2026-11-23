@@ -351,6 +351,61 @@ describe('correspondence', () => {
     expect(checkboxes[20]).toBeEnabled();
   });
 
+  it.each(['keep', 'remove'])(
+    'requires an explicit choice to %s a selection after refresh',
+    async choice => {
+      const options = Array.from({ length: 100 }, (_, index) => ({
+        id: `doc-${index + 1}`,
+        name: `Evidence ${index + 1}`,
+      }));
+      const last = options[99]!;
+      const form = (pickerDocuments: typeof options) => (
+        <ClaimCorrespondenceForm
+          claimId={claimId}
+          authorities={[recovery, representation, consent]}
+          documents={pickerDocuments}
+          entries={[]}
+          maxSharedDocuments={20}
+        />
+      );
+      const view = show(form(options));
+      set(copy.entry.directionLabel, 'outbound');
+      enterContact();
+      set(copy.authorities.kinds.recovery_agreement, recovery.id);
+      set(copy.authorities.kinds.power_of_attorney, representation.id);
+      fireEvent.click(screen.getByRole('checkbox', { name: last.name }));
+      set(copy.authorities.kinds.consent_or_lawful_basis, consent.id);
+      fireEvent.click(screen.getByRole('checkbox', { name: copy.entry.attestSharing }));
+
+      view.rerender(form([{ id: 'doc-new', name: 'New evidence' }, ...options.slice(0, 99)]));
+
+      expect(screen.getByRole('checkbox', { name: 'New evidence' })).not.toBeChecked();
+      const unlisted = screen.getByRole('group', { name: 'Evidence 100 is no longer listed.' });
+      expect(unlisted).toBeVisible();
+      expect(screen.getByRole('checkbox', { name: copy.entry.attestSharing })).toBeChecked();
+      const save = screen.getByRole('button', { name: copy.entry.record });
+      expect(save).toBeDisabled();
+      fireEvent.submit(screen.getByRole('form', { name: copy.entry.title }));
+      expect(action.outbound).not.toHaveBeenCalled();
+
+      if (choice === 'keep') {
+        fireEvent.click(
+          within(unlisted).getByRole('checkbox', { name: copy.entry.keepUnlistedDocument })
+        );
+      } else {
+        fireEvent.click(
+          within(unlisted).getByRole('button', { name: copy.entry.removeUnlistedDocument })
+        );
+      }
+      expect(save).toBeEnabled();
+      submit(copy.entry.record);
+      expect(await screen.findByText(copy.feedback.saved)).toBeVisible();
+      expect(action.outbound).toHaveBeenCalledExactlyOnceWith(
+        expect.objectContaining({ sharedDocumentIds: choice === 'keep' ? [last.id] : [] })
+      );
+    }
+  );
+
   it('uses the generic label for citations whose names are unavailable', () => {
     show(
       <>

@@ -23,7 +23,11 @@ import {
   recordOutboundCorrespondence,
   setCorrespondenceFollowUp,
 } from './correspondence';
-import { getClaimCorrespondenceSummary, listClaimCorrespondence } from './correspondence-read';
+import {
+  getClaimCorrespondenceSummary,
+  listClaimCorrespondence,
+  listRegisterCitationNames,
+} from './correspondence-read';
 import { getGreenCardCaseFields, updateGreenCardCaseFields } from './green-card-case-fields';
 import { normalizeRegisterInput } from './case-register-access';
 
@@ -58,6 +62,40 @@ it('normalizes only UUIDs and editable display text while preserving opaque IDs'
     partyOrganisation: 'Example insurer',
     insuranceProofReference: 'Reference',
   });
+});
+
+it('pushes durable-grant activity filters into SQL and checks each returned grant', async () => {
+  const claim = { caseLifecycleState: 'submitted', staffId: 'assigned-staff', userId: 'member' };
+  const grant = { accessTenantId: tenantId, actorId, caseId: claimId };
+  db.results = [
+    admitted,
+    [
+      { id: 'evidence', name: 'Evidence.pdf', uploadedBy: 'member', category: 'evidence', claim },
+      { id: 'legal', name: 'Legal.pdf', uploadedBy: 'member', category: 'legal', claim },
+    ],
+    [
+      { ...grant, documentClasses: ['evidence'], revokedAt: null, expiresAt: null },
+      {
+        ...grant,
+        documentClasses: ['legal'],
+        revokedAt: null,
+        expiresAt: new Date('2000-01-01T00:00:00Z'),
+      },
+    ],
+  ];
+
+  expect(
+    await listRegisterCitationNames(caller(), authority, {
+      claimId,
+      documentIds: ['evidence', 'legal'],
+    })
+  ).toEqual({ ok: true, documents: [{ id: 'evidence', name: 'Evidence.pdf' }] });
+
+  const { sql } = queryWhere(2);
+  expect(sql).toContain('"case_scoped_access_grants"."revoked_at" is null');
+  expect(sql).toContain(
+    '("case_scoped_access_grants"."expires_at" is null or "case_scoped_access_grants"."expires_at" > $4)'
+  );
 });
 
 describe('register admission', () => {

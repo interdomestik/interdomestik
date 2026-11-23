@@ -183,7 +183,6 @@ describe('getAssignedStaffClaimDocuments', () => {
           { op: 'eq', left: 'claim_documents.claim_id', right: 'claim-1' },
           { op: 'eq', left: 'claim_documents.tenant_id', right: 'tenant-a' },
           { op: 'isNull', column: 'link.document_id' },
-          undefined,
         ],
       },
     ]);
@@ -317,16 +316,30 @@ describe('getAssignedStaffClaimDocuments', () => {
     expect(result.hasNextPage).toBe(true);
   });
 
-  it('filters the picker by citation provenance before the ordered 100-row limit', async () => {
-    hoisted.limit.mockResolvedValueOnce([{ id: 'claim-1' }]).mockResolvedValueOnce([]);
-    await getRegisterPickerDocuments({ claimId: 'claim-1', session: staff(), authority });
-    expect(hoisted.wheres[1]).toEqual(
-      expect.objectContaining({
-        args: expect.arrayContaining([
-          'public.claim_document_provenance_ok(claim_documents.tenant_id, claim_documents.claim_id, claim_documents.id)',
-        ]),
-      })
-    );
+  it('filters the 100-row picker by citation provenance without joining request evidence', async () => {
+    const document = {
+      id: 'doc-linked',
+      name: 'Request evidence.pdf',
+      fileType: 'application/pdf',
+      fileSize: 1024,
+    };
+    hoisted.limit.mockResolvedValueOnce([{ id: 'claim-1' }]).mockResolvedValueOnce([document]);
+
+    await expect(
+      getRegisterPickerDocuments({ claimId: 'claim-1', session: staff(), authority })
+    ).resolves.toEqual([{ ...document, url: '/api/documents/doc-linked/download' }]);
+
+    expect(hoisted.wheres[1]).toEqual({
+      op: 'and',
+      args: [
+        { op: 'eq', left: 'claim_documents.claim_id', right: 'claim-1' },
+        { op: 'eq', left: 'claim_documents.tenant_id', right: 'tenant-a' },
+        'public.claim_document_provenance_ok(claim_documents.tenant_id, claim_documents.claim_id, claim_documents.id)',
+      ],
+    });
+    expect(hoisted.joins).toEqual([
+      { table: expect.objectContaining({ id: 'claims.id' }), predicate: expect.anything() },
+    ]);
     expect(hoisted.orderBy).toHaveBeenCalledExactlyOnceWith(
       'claim_documents.created_at desc nulls last',
       'claim_documents.id'

@@ -6,7 +6,7 @@ import {
   isTenantAdmin,
   ROLES,
 } from '@interdomestik/shared-auth';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, gt, isNull, or } from 'drizzle-orm';
 import type { RegisterActor } from './case-register-access';
 import type { ClaimsSession } from './types';
 
@@ -72,7 +72,12 @@ export async function filterRegisterCitationNames(
       and(
         eq(caseScopedAccessGrants.accessTenantId, scope.accessTenantId),
         eq(caseScopedAccessGrants.actorId, userId),
-        eq(caseScopedAccessGrants.caseId, scope.caseId)
+        eq(caseScopedAccessGrants.caseId, scope.caseId),
+        isNull(caseScopedAccessGrants.revokedAt),
+        or(
+          isNull(caseScopedAccessGrants.expiresAt),
+          gt(caseScopedAccessGrants.expiresAt, new Date())
+        )
       )
     );
   for (const { id, name, category } of pending) {

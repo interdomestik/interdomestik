@@ -8,7 +8,7 @@ import { formatPilotDateTime } from '@/lib/utils/date';
 import { formatNumber } from '@/lib/utils/number';
 import type { CaseAuthorityEntry } from '@interdomestik/domain-claims/claims/case-authorities';
 import type { ClaimCorrespondenceEntry } from '@interdomestik/domain-claims/claims/correspondence-read';
-import { Textarea } from '@interdomestik/ui';
+import { Button, Textarea } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { useId, useState, type FormEvent } from 'react';
 import {
@@ -25,19 +25,22 @@ import {
 
 const parties = ['insurer', 'bureau', 'other'] as const;
 const channels = ['email', 'post', 'phone', 'portal', 'other'] as const;
+type SelectedDocument = RegisterDocument & { confirmedUnlisted?: boolean };
 
 function OutboundFields({
   authorities,
   documents,
   maxSharedDocuments,
   selectedDocuments,
+  unlistedDocuments,
   setSelectedDocuments,
 }: Readonly<{
   authorities: readonly CaseAuthorityEntry[];
   documents: readonly RegisterDocument[];
   maxSharedDocuments: number;
-  selectedDocuments: string[];
-  setSelectedDocuments: (ids: string[]) => void;
+  selectedDocuments: SelectedDocument[];
+  unlistedDocuments: SelectedDocument[];
+  setSelectedDocuments: (selection: SelectedDocument[]) => void;
 }>) {
   const t = useTranslations('staff-correspondence');
   const locale = useLocale();
@@ -74,7 +77,7 @@ function OutboundFields({
       {(!recovery || !representation) && (
         <p className="text-sm sm:col-span-2">{t('entry.basesRequired')}</p>
       )}
-      {documents.length > 0 && (
+      {(documents.length > 0 || unlistedDocuments.length > 0) && (
         <fieldset
           className="grid min-w-0 gap-1 rounded-md border p-3 sm:col-span-2"
           aria-describedby={pickerHint}
@@ -84,7 +87,7 @@ function OutboundFields({
             {t('entry.documentLimit', { limit: formatNumber(maxSharedDocuments, locale) ?? '' })}
           </p>
           {documents.map(document => {
-            const checked = selectedDocuments.includes(document.id);
+            const checked = selectedDocuments.some(selected => selected.id === document.id);
             return (
               <label
                 key={document.id}
@@ -92,16 +95,14 @@ function OutboundFields({
               >
                 <input
                   type="checkbox"
-                  name="sharedDocumentIds"
-                  value={document.id}
                   checked={checked}
                   disabled={!checked && selectedDocuments.length >= maxSharedDocuments}
                   className="size-5 shrink-0"
                   onChange={() =>
                     setSelectedDocuments(
                       checked
-                        ? selectedDocuments.filter(id => id !== document.id)
-                        : [...selectedDocuments, document.id]
+                        ? selectedDocuments.filter(selected => selected.id !== document.id)
+                        : [...selectedDocuments, document]
                     )
                   }
                 />
@@ -109,6 +110,46 @@ function OutboundFields({
               </label>
             );
           })}
+          <div aria-live="polite" className="grid gap-2">
+            {unlistedDocuments.map(document => (
+              <fieldset key={document.id} className="min-w-0 rounded-md border p-2 text-sm">
+                <legend className="break-all px-1">
+                  {t('entry.unlistedDocument', { name: document.name })}
+                </legend>
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1">
+                  <label className="flex min-h-10 items-center gap-2">
+                    <input
+                      type="checkbox"
+                      checked={document.confirmedUnlisted ?? false}
+                      className="size-5 shrink-0"
+                      onChange={event => {
+                        const confirmedUnlisted = event.currentTarget.checked;
+                        setSelectedDocuments(
+                          selectedDocuments.map(selected =>
+                            selected.id === document.id
+                              ? { ...selected, confirmedUnlisted }
+                              : selected
+                          )
+                        );
+                      }}
+                    />
+                    {t('entry.keepUnlistedDocument')}
+                  </label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() =>
+                      setSelectedDocuments(
+                        selectedDocuments.filter(selected => selected.id !== document.id)
+                      )
+                    }
+                  >
+                    {t('entry.removeUnlistedDocument')}
+                  </Button>
+                </div>
+              </fieldset>
+            ))}
+          </div>
         </fieldset>
       )}
       {selectedDocuments.length > 0 && (
@@ -162,14 +203,18 @@ export function ClaimCorrespondenceForm({
   const title = useId();
   const locale = useLocale();
   const [direction, setDirection] = useState('inbound');
-  const [selectedDocuments, setSelectedDocuments] = useState<string[]>([]);
+  const [selectedDocuments, setSelectedDocuments] = useState<SelectedDocument[]>([]);
   const mutation = useRegisterMutation();
   const correlation = useRegisterCorrelation();
   const outbound = entries.filter(entry => entry.direction === 'outbound');
-  const visibleSelection = selectedDocuments.filter(id => documents.some(doc => doc.id === id));
+  const unlistedDocuments = selectedDocuments.filter(
+    selected => !documents.some(document => document.id === selected.id)
+  );
+  const hasUnresolvedSelection = unlistedDocuments.some(document => !document.confirmedUnlisted);
 
   function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    if (hasUnresolvedSelection) return;
     const form = event.currentTarget;
     const data = new FormData(form);
     const save = () => {
@@ -190,7 +235,6 @@ export function ClaimCorrespondenceForm({
           correlationId: correlation.forInput(input),
         });
       }
-      const sharedDocumentIds = data.getAll('sharedDocumentIds');
       const input = {
         ...common,
         recoveryAuthorityId: formText(data, 'recoveryAuthorityId'),
@@ -199,7 +243,7 @@ export function ClaimCorrespondenceForm({
         sharingCoveredByConsentConfirmed: data.has('sharingCoveredByConsentConfirmed')
           ? true
           : undefined,
-        sharedDocumentIds,
+        sharedDocumentIds: selectedDocuments.map(document => document.id).sort(),
       };
       return recordOutboundCorrespondence({ ...input, correlationId: correlation.forInput(input) });
     };
@@ -280,12 +324,15 @@ export function ClaimCorrespondenceForm({
               authorities={authorities}
               documents={documents}
               maxSharedDocuments={maxSharedDocuments}
-              selectedDocuments={visibleSelection}
+              selectedDocuments={selectedDocuments}
+              unlistedDocuments={unlistedDocuments}
               setSelectedDocuments={setSelectedDocuments}
             />
           )}
         </fieldset>
-        <RegisterSubmit pending={mutation.pending}>{t('entry.record')}</RegisterSubmit>
+        <RegisterSubmit pending={mutation.pending} disabled={hasUnresolvedSelection}>
+          {t('entry.record')}
+        </RegisterSubmit>
         <RegisterFeedback {...mutation} />
       </form>
     </section>
