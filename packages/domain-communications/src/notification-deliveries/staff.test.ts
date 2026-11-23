@@ -159,7 +159,8 @@ describe('staff claim notifications', () => {
     expect(ids).toHaveLength(recipients.length);
     expect(ids).toEqual(h.queued);
     expect(new Set(ids).size).toBe(recipients.length);
-  });
+    // 60 real statements over 60,000 rows: more than the 5 s default on a busy runner.
+  }, 20_000);
 
   it('records the unrouted claim and kind when a staff notification has no recipient', async () => {
     const h = enqueueHarness();
