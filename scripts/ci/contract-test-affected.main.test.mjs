@@ -259,7 +259,7 @@ test('planWork fails safe: imported packages pin their workspace dependencies; o
   const repo = fixture(t, JSON.stringify({ ...manifest, scripts }), {
     'scripts/e2e-entry.mjs': "export const load = () => import('@interdomestik/db');\n",
     'packages/db/package.json': pkg('@interdomestik/db', {
-      utilsAlias: 'workspace:@interdomestik/utils@*',
+      utilsAlias: 'workspace:../utils',
     }),
     'packages/utils/package.json': pkg('@interdomestik/utils'),
     'packages/utils/src/b.ts': 'export {};\n',

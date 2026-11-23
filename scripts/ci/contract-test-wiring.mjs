@@ -27,14 +27,24 @@ const DEPENDENCY_KEYS = [
   'peerDependencies',
   'optionalDependencies',
 ];
-// A pnpm alias (`"x": "workspace:@scope/name@*"` or `"npm:@scope/name@…"`) names its target.
+// A pnpm alias (`"x": "workspace:@scope/name@*"` or `"npm:@scope/name@…"`) names its target; a
+// relative spec (`workspace:../leaf`, `link:`, `file:`) names a directory.
 const ALIAS_TARGET = /^(?:workspace|npm):(@[^@/]+\/[^@/]+)/u;
+const RELATIVE_SPEC = /^(?:workspace|link|file):(\.\.?(?:\/.*)?)$/u;
 
-// The package names a manifest depends on: each key, and an alias's target.
-export function dependencyNames(manifest) {
+function specTarget(spec, dir) {
+  const alias = ALIAS_TARGET.exec(spec)?.[1];
+  if (alias) return alias;
+  const relative = RELATIVE_SPEC.exec(spec)?.[1];
+  return relative ? `dir:${withoutTrailingSlashes(path.posix.join(dir, relative))}` : null;
+}
+
+// What a manifest in `dir` depends on: each key, an alias's target name, and a relative target as
+// `dir:<path>`.
+export function dependencyNames(manifest, dir = '.') {
   return DEPENDENCY_KEYS.flatMap(key =>
     Object.entries(manifest[key] ?? {}).flatMap(([name, spec]) => {
-      const target = ALIAS_TARGET.exec(String(spec))?.[1];
+      const target = specTarget(String(spec), dir);
       return target ? [name, target] : [name];
     })
   );
@@ -50,13 +60,19 @@ function readManifest(root, ref, file) {
   }
 }
 
-// The directories of a package and of its workspace dependencies, transitively.
-function packageDirs(manifests, name) {
+// The directories of a package and of its workspace dependencies, transitively. A `dir:` target
+// counts as a directory, and as the package found there.
+function packageDirs(manifests, name, byDir) {
   const dirs = new Set();
   const seen = new Set();
   const pending = [name];
   while (pending.length) {
     const next = pending.pop();
+    if (next.startsWith('dir:')) {
+      dirs.add(next.slice(4));
+      if (byDir.has(next.slice(4))) pending.push(byDir.get(next.slice(4)));
+      continue;
+    }
     if (seen.has(next) || !manifests.has(next)) continue;
     seen.add(next);
     manifests.get(next).dirs.forEach(dir => dirs.add(dir));
@@ -70,20 +86,23 @@ function packageDirs(manifests, name) {
 // unresolved, and a test importing it always runs.
 export function workspacePackages(root, refs, paths) {
   const manifests = new Map();
+  const byDir = new Map();
   const files = [...paths.files].filter(file => MANIFEST.test(file));
   for (const file of files) {
+    const dir = path.posix.dirname(file);
     for (const manifest of refs.map(ref => readManifest(root, ref, file)).filter(Boolean)) {
       const entry = manifests.get(manifest.name) ?? { dirs: new Set(), deps: new Set() };
-      entry.dirs.add(path.posix.dirname(file));
-      dependencyNames(manifest).forEach(dep => entry.deps.add(dep));
+      entry.dirs.add(dir);
+      byDir.set(dir, manifest.name);
+      dependencyNames(manifest, dir).forEach(dep => entry.deps.add(dep));
       manifests.set(manifest.name, entry);
     }
   }
-  return new Map([...manifests.keys()].map(name => [name, packageDirs(manifests, name)]));
+  return new Map([...manifests.keys()].map(name => [name, packageDirs(manifests, name, byDir)]));
 }
 
 // A side's package scripts, or null when its package.json is missing or unreadable.
-function packageScripts(root, ref) {
+export function packageScripts(root, ref) {
   try {
     const scripts = JSON.parse(git(root, ['show', `${ref}:package.json`])).scripts;
     return scripts && typeof scripts === 'object' ? scripts : {};
@@ -113,7 +132,13 @@ function withoutTrailingSlashes(text) {
 function nodeEntries([tool, entry, ...args]) {
   if (tool !== 'node' || !entry || entry.startsWith('-')) return null;
   // Normalized without a trailing slash, so `./dir/` and `dir` name the same directory.
-  const roots = [entry, ...args.filter(arg => !arg.startsWith('-'))].map(
+  // A flag's `=value` is an argument too (`--fixtures=./dir/`).
+  const values = args.flatMap(arg => {
+    if (!arg.startsWith('-')) return [arg];
+    const value = arg.slice(arg.indexOf('=') + 1);
+    return arg.includes('=') && value ? [value] : [];
+  });
+  const roots = [entry, ...values].map(
     arg => withoutTrailingSlashes(path.posix.normalize(arg)) || '.'
   );
   return roots.some(root => root.startsWith('..') || path.posix.isAbsolute(root)) ? null : roots;
@@ -145,13 +170,32 @@ export function commandScripts(scripts, name, seen = new Set(), stack = new Set(
   return entries;
 }
 
-// The E2E command's entry points on both sides; null when its wiring is not derivable.
-export function e2eWiring(root, mergeBase, read, paths) {
-  const [before, after] = [packageScripts(root, mergeBase), packageScripts(root, 'HEAD')];
+// Every package script a command reaches through `pnpm|npm|yarn [run] <script>` in any form.
+const SCRIPT_LINK = /\b(?:pnpm|npm|yarn)\s+(?:run\s+)?([\w:.@/-]+)/gu;
+function linkedScripts(scripts, name, seen) {
+  const pending = [name];
+  while (pending.length) {
+    const next = pending.pop();
+    if (seen.has(next)) continue;
+    seen.add(next);
+    const body = scripts[next];
+    if (typeof body === 'string') pending.push(...[...body.matchAll(SCRIPT_LINK)].map(m => m[1]));
+  }
+}
+
+// The E2E command's entry points on both sides; null when its wiring is not derivable. `sides`
+// (the package scripts at the merge-base and HEAD) is read from Git unless given.
+export function e2eWiring(root, mergeBase, read, paths, sides = null) {
+  const { before, after } = sides ?? {
+    before: packageScripts(root, mergeBase),
+    after: packageScripts(root, 'HEAD'),
+  };
   if (!before || !after) return { full: 'package.json is missing or unreadable on one side' };
-  // Every package script on either side's E2E chain, plus the contracts command: a changed
+  // Every package script the contracts command or either side's E2E chain reaches: a changed
   // definition means the hosted commands changed, so both run in full.
-  const wiring = new Set([CONTRACTS_COMMAND]);
+  const wiring = new Set();
+  linkedScripts(before, CONTRACTS_COMMAND, wiring);
+  linkedScripts(after, CONTRACTS_COMMAND, wiring);
   const chainBefore = commandScripts(before, E2E_COMMAND, wiring);
   const chain = commandScripts(after, E2E_COMMAND, wiring);
   const rewired = [...wiring].some(key => before[key] !== after[key]);

@@ -13,7 +13,7 @@ import {
   testSetChange,
   unrecognizedEntry,
 } from './contract-test-affected.mjs';
-import { commandScripts, dependencyNames } from './contract-test-wiring.mjs';
+import { commandScripts, dependencyNames, e2eWiring } from './contract-test-wiring.mjs';
 import { parseNameStatus } from '../lib/modularity-guard.mjs';
 import { inputClosure, inventory, touches } from './contract-test-inputs.mjs';
 import { contractTestPlan } from './contract-test-shards.mjs';
@@ -59,6 +59,7 @@ test('runner, lockfile and wiring changes fall back to both full commands', () =
     'scripts/ci/contract-test-scratch.mjs',
     'scripts/ci/contract-test-inputs.mjs',
     'scripts/ci/contract-test-affected.mjs',
+    'scripts/ci/contract-test-wiring.mjs',
     'scripts/lib/modularity-guard.mjs',
   ]) {
     assert.equal(select(['docs/a.md', file]).full, `${file} changed`);
@@ -147,7 +148,9 @@ test('fail safe: an unrecognized diff entry, and a test with an unresolved impor
 test('fail safe: a raw diff stream that does not parse runs full, before the parser absorbs it', () => {
   const absorbed = 'M\0\0A\0README.md\0M\0docs/other.md\0';
   assert.match(readDiff(absorbed, parseNameStatus).odd, /^unrecognized diff entry /u);
-  for (const raw of ['X\0a\0', 'R100\0old\0', 'M\0', '\0']) {
+  const unparsed = () => assert.fail('parsed before validation');
+  assert.match(readDiff(absorbed, unparsed).odd, /^unrecognized diff entry /u);
+  for (const raw of ['X\0a\0', 'R100\0old\0', 'M\0', '\0', 'M\0docs/other.md']) {
     assert.match(rawDiffProblem(raw), /^unrecognized diff entry /u, JSON.stringify(raw));
   }
   const good = 'M\0a\0R100\0old\0new\0C075\0src\0copy\0T\0link\0D\0gone\0A\0new.md\0';
@@ -176,6 +179,78 @@ test('fail safe: E2E roots normalize trailing slashes and the root; aliases and 
   assert.equal(
     select(['docs/a.md'], { e2eClosure: unresolved }).e2e,
     'unresolved import @interdomestik/x (e2e)'
+  );
+});
+
+test('final review: root-relative literals, followed helpers, quoted ls-files, .github itself', () => {
+  const files = {
+    'scripts/ci/a.test.mjs': [
+      "readFileSync('./docs/input.md');",
+      "run('scripts/check-example');",
+      "import { x } from '../../tools/check.mjs';",
+    ].join('\n'),
+    'scripts/check-example': '#!/bin/sh\ncat docs/example-input.md\n',
+    'tools/check.mjs': "export const x = readFileSync('docs/tool-input.md');\n",
+    'scripts/ci/b.test.mjs': "run('scripts/help.sh');\n",
+    'scripts/help.sh': "help='ls-files'\ntest -d fixtures/lanes\n",
+  };
+  const inputs = ['docs/input.md', 'docs/example-input.md', 'docs/tool-input.md'];
+  const tracked = inventory([
+    ...Object.keys(files),
+    ...inputs,
+    'fixtures/lanes/a.json',
+    '.github/dependabot.yml',
+  ]);
+  const a = inputClosure('scripts/ci/a.test.mjs', file => files[file], tracked);
+  for (const input of inputs) assert.ok(a.files.has(input), input);
+  const b = inputClosure('scripts/ci/b.test.mjs', file => files[file], tracked);
+  assert.equal(b.scanner, false);
+  assert.equal(touches(b, ['fixtures/lanes/a.json']), 'fixtures/lanes/a.json');
+  const scanning = inputClosure(
+    SCAN_TEST,
+    () => "readdirSync('.github', { recursive: true });\n",
+    tracked
+  );
+  assert.deepEqual([...scanning.dirs], ['.github/']);
+  const work = select(['.github/dependabot.yml'], {
+    closureOf: file => (file === SCAN_TEST ? scanning : closures[file]),
+  });
+  assert.equal(work.selected.get(SCAN_TEST), '.github/dependabot.yml (area .github)');
+});
+
+test('final review: linked contracts scripts, flag values, relative aliases, E2E unresolved', () => {
+  assert.deepEqual(
+    commandScripts({ e2e: 'node scripts/a.mjs --fixtures=./fixtures/lanes/ --quiet' }, 'e2e'),
+    ['scripts/a.mjs', 'fixtures/lanes']
+  );
+  const relative = {
+    dependencies: { leafAlias: 'workspace:../leaf' },
+    devDependencies: { vendored: 'link:./vendor/x/' },
+  };
+  assert.deepEqual(dependencyNames(relative, 'packages/db'), [
+    'leafAlias',
+    'dir:packages/leaf',
+    'vendored',
+    'dir:packages/db/vendor/x',
+  ]);
+  const base = {
+    'test:ci:contracts:parallel': 'pnpm run contracts:impl',
+    'contracts:impl': 'node scripts/c.mjs',
+    'check:e2e-contracts': 'node scripts/e2e.mjs',
+  };
+  const read = file =>
+    file === 'scripts/e2e.mjs' ? "await import('@interdomestik/ghost');\n" : undefined;
+  const paths = inventory(['scripts/e2e.mjs', 'scripts/c.mjs']);
+  paths.workspace = new Map();
+  const after = { ...base, 'contracts:impl': 'node scripts/c.mjs --all' };
+  const rewired = e2eWiring(null, null, read, paths, { before: base, after });
+  assert.match(rewired.full, /wiring changed/u);
+  const same = e2eWiring(null, null, read, paths, { before: base, after: base });
+  const reason = '@interdomestik/ghost (imported by scripts/e2e.mjs)';
+  assert.equal(same.closure.unresolved, reason);
+  assert.equal(
+    select(['docs/a.md'], { e2eClosure: same.closure }).e2e,
+    `unresolved import ${reason}`
   );
 });
 

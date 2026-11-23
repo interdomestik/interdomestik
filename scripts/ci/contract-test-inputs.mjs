@@ -127,7 +127,11 @@ function parseText(file, source) {
     ...quoted.flatMap(text => text.split(TEXT_SEPARATORS)),
     ...code.split(TEXT_SEPARATORS),
   ];
-  const scanner = TEXT_SCANNER.test(code) || quoted.includes('ls-files');
+  // A quoted `ls-files` counts only right after a quoted `git` (`["git", "ls-files"]`); elsewhere
+  // (an assignment, a message) it is uncertain listing text.
+  const scanner =
+    TEXT_SCANNER.test(code) ||
+    quoted.some((text, index) => text === 'ls-files' && quoted[index - 1] === 'git');
   return {
     texts: [...quoted, ...words].map(stripLeadingSlashes),
     scanner,
@@ -191,7 +195,8 @@ function stripTrailingSlashes(text) {
 }
 
 // `./x` and `../x` resolve from the file; every other literal (including `.github/...`) from the
-// repository root. Only tracked paths resolve, so prose never matches.
+// repository root. Only tracked paths resolve, so prose never matches. `.github` itself is a
+// directory; other single-segment directories are too broad to count.
 export function resolveLiteral(file, text, { files, dirs }) {
   if (!text || text.startsWith('/')) return null;
   const relative = RELATIVE.test(text);
@@ -201,14 +206,28 @@ export function resolveLiteral(file, text, { files, dirs }) {
   for (const suffix of relative ? SUFFIXES : ['']) {
     if (files.has(target + suffix)) return { kind: 'file', path: target + suffix };
   }
-  if (dirs.has(target) && target.includes('/') && !AREA_ROOTS.includes(target)) {
+  const named = target.includes('/') || target === '.github';
+  if (dirs.has(target) && named && !AREA_ROOTS.includes(target)) {
     return { kind: 'dir', path: `${target}/` };
   }
   return null;
 }
 
+// Helpers are followed anywhere outside the product trees (`apps/`, `packages/`: a named file there
+// is an input itself, and workspace imports pin whole packages): JavaScript, TypeScript, shell and
+// Python sources, and extensionless scripts.
+const PRODUCT_TREE = /^(?:apps|packages)\//u;
 const followed = file =>
-  file.startsWith('scripts/') && (JS_SOURCE.test(file) || SHELL_SOURCE.test(file));
+  !PRODUCT_TREE.test(file) &&
+  (JS_SOURCE.test(file) || SHELL_SOURCE.test(file) || path.posix.extname(file) === '');
+
+// A relative literal may be read from the file's directory (imports) or from the working directory,
+// which is the repository root for every contract test and E2E entry: both count.
+const AT_ROOT = 'repository-root';
+const literalHits = (file, text, tracked) =>
+  [file, ...(RELATIVE.test(text) ? [AT_ROOT] : [])]
+    .map(from => resolveLiteral(from, text, tracked))
+    .filter(Boolean);
 
 // `read(file)` returns the source at HEAD, or undefined for a path that no longer exists there.
 // `tracked.workspace` maps a workspace package name to its directories (itself and its workspace
@@ -240,11 +259,10 @@ function collectInputs(file, source, tracked, closure) {
     else closure.unresolved ??= `${name} (imported by ${file})`;
   }
   const follow = [];
-  for (const text of texts) {
-    const hit = resolveLiteral(file, text, tracked);
-    if (hit?.kind === 'dir') closure.dirs.add(hit.path);
-    if (hit?.kind === 'dir' && uncertain) closure.pinned.add(hit.path);
-    if (hit?.kind !== 'file' || closure.files.has(hit.path)) continue;
+  for (const hit of texts.flatMap(text => literalHits(file, text, tracked))) {
+    if (hit.kind === 'dir') closure.dirs.add(hit.path);
+    if (hit.kind === 'dir' && uncertain) closure.pinned.add(hit.path);
+    if (hit.kind !== 'file' || closure.files.has(hit.path)) continue;
     closure.files.add(hit.path);
     if (followed(hit.path)) follow.push(hit.path);
   }

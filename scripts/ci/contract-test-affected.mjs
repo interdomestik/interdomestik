@@ -81,8 +81,10 @@ export function unrecognizedEntry(entries) {
 // status, an empty or missing path), before any parser can absorb it into a different shape.
 const RAW_STATUS = /^(?:[ADMT]|[RC]\d{0,3})$/u;
 export function rawDiffProblem(output) {
+  // Every record ends with a NUL, so the last token is always empty: dropping it unconditionally
+  // turns an unterminated stream into a record with a missing path.
   const tokens = output.split('\0');
-  if (tokens.at(-1) === '') tokens.pop();
+  tokens.pop();
   for (let index = 0; index < tokens.length;) {
     const status = tokens[index++];
     if (!RAW_STATUS.test(status)) return `unrecognized diff entry ${status || '(empty)'}`;
@@ -99,11 +101,13 @@ export function rawDiffProblem(output) {
 // The parsed entries, every changed path (both sides of a rename), and why the diff is not
 // classifiable, if it is not.
 export function readDiff(raw, parseNameStatus) {
+  const problem = rawDiffProblem(raw);
+  if (problem) return { entries: [], changed: null, odd: problem };
   const entries = parseNameStatus(raw);
   const changed = [
     ...new Set(entries.flatMap(entry => [entry.file, entry.oldPath].filter(Boolean))),
   ];
-  return { entries, changed, odd: rawDiffProblem(raw) ?? unrecognizedEntry(entries) };
+  return { entries, changed, odd: unrecognizedEntry(entries) };
 }
 
 // Why the E2E command runs: an unresolved import in its closure, a touched input, or the E2E area.
