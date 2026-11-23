@@ -30,6 +30,11 @@ const SPAWN_CALLEE =
 // The same in the code of a shell or Python helper (strings and comments removed).
 const TEXT_SCANNER =
   /\bgit\s+ls-files\b|\bos\.(?:walk|listdir|scandir)\b|\b(?:i?glob|rglob|iterdir)\(/u;
+// Listing words anywhere (strings and comments included): a file that is not a certain scanner but
+// matches is uncertain, and its own directory literals become pinned inputs (fail safe).
+const LISTING_TEXT = /ls-files|\bos\.(?:walk|listdir|scandir)\b|\b(?:i?glob|rglob|iterdir)\b/u;
+// A workspace package import: its package directory becomes a pinned input.
+const WORKSPACE_IMPORT = /^(@interdomestik\/[^/]+)/u;
 const JS_SOURCE = /\.(?:[cm]?[jt]s|[jt]sx)$/u;
 const SHELL_SOURCE = /\.(?:sh|bash|zsh|py)$/u;
 // Separators between candidate paths in a non-JavaScript script.
@@ -106,22 +111,48 @@ function parseText(source) {
     ...quoted.flatMap(text => text.split(TEXT_SEPARATORS)),
     ...code.split(TEXT_SEPARATORS),
   ];
+  const scanner = TEXT_SCANNER.test(code) || quoted.includes('ls-files');
   return {
     texts: [...quoted, ...words].map(stripLeadingSlashes),
-    scanner: TEXT_SCANNER.test(code) || quoted.includes('ls-files'),
+    scanner,
+    uncertain: !scanner && LISTING_TEXT.test(source),
+    packages: [],
   };
+}
+
+const isModuleCall = node =>
+  ts.isCallExpression(node) &&
+  (node.expression.kind === ts.SyntaxKind.ImportKeyword ||
+    (ts.isIdentifier(node.expression) && node.expression.text === 'require'));
+
+// The specifier of an import or export declaration, or of import()/require() with a literal.
+function moduleSpecifier(node) {
+  if ((ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) && node.moduleSpecifier) {
+    return ts.isStringLiteralLike(node.moduleSpecifier) ? node.moduleSpecifier.text : null;
+  }
+  const [first] = isModuleCall(node) ? node.arguments : [];
+  return first && ts.isStringLiteralLike(first) ? first.text : null;
 }
 
 // The candidate path texts of one source, and whether it scans directories.
 export function parseSource(file, source) {
   if (!JS_SOURCE.test(file)) return parseText(source);
   const texts = [];
+  const packages = [];
   let scanner = false;
+  let uncertain = false;
   const visit = node => {
+    const workspace = WORKSPACE_IMPORT.exec(moduleSpecifier(node) ?? '');
+    if (workspace) packages.push(workspace[1]);
     if (ts.isStringLiteralLike(node)) {
       texts.push(node.text);
       if (listsFiles(node)) scanner = true;
-    } else if (ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
+      else if (node.text.includes('ls-files')) uncertain = true;
+    } else if (ts.isIdentifier(node) && SCAN_CALLS.has(node.text)) {
+      // A listing function named but not certainly called (passed on, destructured, wrapped).
+      uncertain = true;
+    }
+    if (ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
       texts.push(stripLeadingSlashes(node.text));
     } else if (ts.isCallExpression(node) && SCAN_CALLS.has(calleeName(node.expression))) {
       scanner = true;
@@ -129,7 +160,7 @@ export function parseSource(file, source) {
     ts.forEachChild(node, visit);
   };
   visit(ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true));
-  return { texts, scanner };
+  return { texts, scanner, uncertain: uncertain && !scanner, packages };
 }
 
 function stripTrailingSlashes(text) {
@@ -159,8 +190,16 @@ const followed = file =>
   file.startsWith('scripts/') && (JS_SOURCE.test(file) || SHELL_SOURCE.test(file));
 
 // `read(file)` returns the source at HEAD, or undefined for a path that no longer exists there.
+// `tracked.workspace` maps a workspace package name to its directories (itself and its workspace
+// dependencies).
 export function inputClosure(test, read, tracked) {
-  const closure = { files: new Set([test]), dirs: new Set(), scanner: false };
+  const closure = {
+    files: new Set([test]),
+    dirs: new Set(),
+    pinned: new Set(),
+    scanner: false,
+    unresolved: null,
+  };
   const pending = [test];
   while (pending.length) {
     const file = pending.pop();
@@ -172,12 +211,18 @@ export function inputClosure(test, read, tracked) {
 
 // Adds one file's inputs to the closure and returns the newly found scripts to follow.
 function collectInputs(file, source, tracked, closure) {
-  const { texts, scanner } = parseSource(file, source);
+  const { texts, scanner, uncertain, packages } = parseSource(file, source);
   if (scanner) closure.scanner = true;
+  for (const name of packages) {
+    const dirs = tracked.workspace?.get(name);
+    if (dirs) dirs.forEach(dir => closure.pinned.add(`${dir}/`));
+    else closure.unresolved ??= `${name} (imported by ${file})`;
+  }
   const follow = [];
   for (const text of texts) {
     const hit = resolveLiteral(file, text, tracked);
     if (hit?.kind === 'dir') closure.dirs.add(hit.path);
+    if (hit?.kind === 'dir' && uncertain) closure.pinned.add(hit.path);
     if (hit?.kind !== 'file' || closure.files.has(hit.path)) continue;
     closure.files.add(hit.path);
     if (followed(hit.path)) follow.push(hit.path);
@@ -186,56 +231,11 @@ function collectInputs(file, source, tracked, closure) {
 }
 
 // S-lite: a test without directory scans matches its file and directory inputs; a scanning test
-// matches its file inputs only (its directory reads are covered by the area table instead).
+// matches its file inputs only (its directory reads are covered by the area table instead). Pinned
+// directories (workspace packages, directories named by an uncertain listing) always match.
 export function touches(closure, changed) {
-  const prefixes = closure.scanner ? [] : [...closure.dirs];
+  const prefixes = [...(closure.pinned ?? []), ...(closure.scanner ? [] : closure.dirs)];
   return changed.find(
     file => closure.files.has(file) || prefixes.some(prefix => file.startsWith(prefix))
   );
-}
-
-// One word of a package-script step: no whitespace, quoting, expansion, globbing or redirection.
-const WORD = /^[\w./:=@,+-]+$/u;
-
-// `pnpm x` and `pnpm run x` both name the package script x; anything else is not a plain link.
-function pnpmTarget(words) {
-  if (words[0] !== 'pnpm') return null;
-  const rest = words[1] === 'run' ? words.slice(2) : words.slice(1);
-  return rest.length === 1 && !rest[0].startsWith('-') ? rest[0] : null;
-}
-
-// `node <entry> [args]`: the entry and every non-flag argument are closure roots (an argument
-// may name a file the entry reads). An argument that escapes the repository is not derivable.
-function nodeEntries([tool, entry, ...args]) {
-  if (tool !== 'node' || !entry || entry.startsWith('-')) return null;
-  const roots = [entry, ...args.filter(arg => !arg.startsWith('-'))].map(arg =>
-    path.posix.normalize(arg)
-  );
-  return roots.some(root => root.startsWith('..') || path.posix.isAbsolute(root)) ? null : roots;
-}
-
-function stepEntries(scripts, step, seen, stack) {
-  const words = step.trim().split(' ');
-  if (!words.every(word => WORD.test(word))) return null;
-  const linked = pnpmTarget(words);
-  return linked ? commandScripts(scripts, linked, seen, stack) : nodeEntries(words);
-}
-
-// The `node` entry points behind a package script, following `pnpm <script>` links. Returns null
-// when any `&&` step is not exactly a plain link or `node <entry> [args]` of plain words; the
-// caller then falls back to the full commands.
-export function commandScripts(scripts, name, seen = new Set(), stack = new Set()) {
-  if (stack.has(name) || typeof scripts[name] !== 'string') return null;
-  // Only spaces separate words: a newline or tab anywhere (even beside `&&`) is not derivable.
-  if (/[^\S ]/u.test(scripts[name])) return null;
-  seen.add(name);
-  stack.add(name);
-  const entries = [];
-  for (const step of scripts[name].split('&&')) {
-    const found = stepEntries(scripts, step, seen, stack);
-    if (!found) return null;
-    entries.push(...found);
-  }
-  stack.delete(name);
-  return entries;
 }

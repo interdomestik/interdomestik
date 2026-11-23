@@ -7,17 +7,23 @@
 // matched by its file inputs and the area table below only, so a change elsewhere under a scanned
 // directory does not select it; paths built at run time, glob patterns and package-name imports are
 // invisible to the static closure.
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { commandScripts, inputClosure, inventory, touches } from './contract-test-inputs.mjs';
+import { inputClosure, inventory, touches } from './contract-test-inputs.mjs';
+import {
+  CONTRACTS_COMMAND,
+  E2E_COMMAND,
+  e2eWiring,
+  git,
+  tracked,
+  workspacePackages,
+} from './contract-test-wiring.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const PLAN_TEST = 'scripts/ci/contract-test-shards.test.mjs';
 const CONTRACT_TEST = /^scripts\/ci\/[^/]+\.test\.mjs$/u;
-const E2E_COMMAND = 'check:e2e-contracts';
-const CONTRACTS_COMMAND = 'test:ci:contracts:parallel';
 const USAGE = 'usage: node scripts/ci/contract-test-affected.mjs [--base <ref>]';
 
 // Any change here can alter every test or the runner itself: run both full hosted commands.
@@ -29,6 +35,7 @@ export const FULL_FALLBACK = Object.freeze([
   'scripts/ci/contract-test-scratch.mjs',
   'scripts/ci/contract-test-inputs.mjs',
   'scripts/ci/contract-test-affected.mjs',
+  'scripts/ci/contract-test-wiring.mjs',
   'scripts/lib/modularity-guard.mjs',
 ]);
 
@@ -64,6 +71,19 @@ export function testSetChange(entries) {
 
 export const fullFallback = changed => changed.find(file => FULL_FALLBACK.includes(file));
 
+// A diff entry outside the statuses a commit-to-commit diff produces, or without a path, is not
+// classifiable: the full commands run.
+const KNOWN_STATUS = new Set(['A', 'C', 'D', 'M', 'R', 'T']);
+export function unrecognizedEntry(entries) {
+  const odd = entries.find(
+    entry =>
+      !KNOWN_STATUS.has(entry.status) ||
+      !entry.file ||
+      (['R', 'C'].includes(entry.status) && !entry.oldPath)
+  );
+  return odd ? `unrecognized diff entry ${odd.status ?? '?'} ${odd.file ?? ''}`.trim() : null;
+}
+
 // Pure selection over precomputed closures. Returns `full` when the full commands must run.
 export function selectContractWork({ tests, closureOf, changed, structural, e2eClosure }) {
   const fallback = fullFallback(changed);
@@ -72,7 +92,10 @@ export function selectContractWork({ tests, closureOf, changed, structural, e2eC
   const selected = new Map();
   for (const test of tests) {
     const closure = closureOf(test);
-    const input = touches(closure, changed);
+    // An import the workspace cannot resolve is not classifiable: the test always runs.
+    const input = closure.unresolved
+      ? `unresolved import ${closure.unresolved}`
+      : touches(closure, changed);
     if (input) selected.set(test, input);
     for (const entry of AREA_TABLE) {
       const hit = changed.find(file => entry.matches(file) && entry.selects(test, closure, file));
@@ -85,26 +108,6 @@ export function selectContractWork({ tests, closureOf, changed, structural, e2eC
   );
   const e2e = touches({ ...e2eClosure, scanner: false }, changed) ?? areaHit[0] ?? null;
   return { full: null, selected, e2e };
-}
-
-const git = (root, args) =>
-  execFileSync('/usr/bin/git', args, {
-    cwd: root,
-    encoding: 'utf8',
-    maxBuffer: 64 * 1024 * 1024,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
-const tracked = (root, ref) =>
-  git(root, ['ls-tree', '-r', '-z', '--name-only', ref]).split('\0').filter(Boolean);
-
-// A side's package scripts, or null when its package.json is missing or unreadable.
-function packageScripts(root, ref) {
-  try {
-    const scripts = JSON.parse(git(root, ['show', `${ref}:package.json`])).scripts;
-    return scripts && typeof scripts === 'object' ? scripts : {};
-  } catch {
-    return null;
-  }
 }
 
 // The runner and the diff parser load at run time, so a change that moves either still reaches
@@ -136,32 +139,6 @@ function resolveBase(root, baseRef) {
   }
 }
 
-// The E2E command's entry points on both sides; null when its wiring is not derivable.
-function e2eWiring(root, mergeBase, read, paths) {
-  const [before, after] = [packageScripts(root, mergeBase), packageScripts(root, 'HEAD')];
-  if (!before || !after) return { full: 'package.json is missing or unreadable on one side' };
-  // Every package script on either side's E2E chain, plus the contracts command: a changed
-  // definition means the hosted commands changed, so both run in full.
-  const wiring = new Set([CONTRACTS_COMMAND]);
-  const chainBefore = commandScripts(before, E2E_COMMAND, wiring);
-  const chain = commandScripts(after, E2E_COMMAND, wiring);
-  const rewired = [...wiring].some(key => before[key] !== after[key]);
-  if (rewired) return { full: 'package.json contract or E2E command wiring changed' };
-  if (!chain || !chainBefore) return { closure: null };
-  const closure = { files: new Set(), dirs: new Set() };
-  for (const script of chain) {
-    // A tracked directory argument is a directory input; anything else roots a closure.
-    if (paths.dirs.has(script)) {
-      closure.dirs.add(`${script}/`);
-      continue;
-    }
-    const found = inputClosure(script, read, paths);
-    found.files.forEach(file => closure.files.add(file));
-    found.dirs.forEach(dir => closure.dirs.add(dir));
-  }
-  return { closure };
-}
-
 export async function planWork(root, baseRef, load = loadDependencies) {
   const dirty = git(root, ['status', '--porcelain', '--untracked-files=all']);
   if (dirty.trim()) throw new Error('working tree is not clean');
@@ -176,6 +153,8 @@ export async function planWork(root, baseRef, load = loadDependencies) {
   const changed = [
     ...new Set(entries.flatMap(entry => [entry.file, entry.oldPath].filter(Boolean))),
   ];
+  const odd = unrecognizedEntry(entries);
+  if (odd) return { mergeBase, changed, tests: [], full: odd };
   const known = fullFallback(changed);
   if (known) return { mergeBase, changed, tests: [], full: `${known} changed` };
   let plan;
@@ -188,6 +167,7 @@ export async function planWork(root, baseRef, load = loadDependencies) {
   const tests = Object.values(plan.shards).flat();
   const headFiles = new Set(tracked(root, 'HEAD'));
   const paths = inventory([...headFiles, ...tracked(root, mergeBase)]);
+  paths.workspace = workspacePackages(root, [mergeBase, 'HEAD'], paths);
   const read = file =>
     headFiles.has(file) ? fs.readFileSync(path.join(root, file), 'utf8') : undefined;
   const wiring = e2eWiring(root, mergeBase, read, paths);

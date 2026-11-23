@@ -2,13 +2,13 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import {
-  commandScripts,
   inputClosure,
   inventory,
   parseSource,
   resolveLiteral,
   touches,
 } from './contract-test-inputs.mjs';
+import { commandScripts } from './contract-test-wiring.mjs';
 
 const byText = (left, right) => left.localeCompare(right);
 const sources = files => file => files[file];
@@ -230,4 +230,36 @@ test('command wiring follows pnpm links and refuses anything else', () => {
   ]);
   assert.equal(commandScripts(scripts, 'loop'), null);
   assert.equal(commandScripts(scripts, 'missing'), null);
+});
+
+test('fail safe: workspace imports pin package directories; an unknown package is unresolved', () => {
+  const files = {
+    'scripts/ci/a.test.mjs':
+      "import { db } from '@interdomestik/db/schema';\nconst m = await import('@interdomestik/ghost');\n",
+  };
+  const tracked = inventory([...Object.keys(files), 'packages/db/src/a.ts', 'packages/utils/b.ts']);
+  tracked.workspace = new Map([['@interdomestik/db', ['packages/db', 'packages/utils']]]);
+  const c = inputClosure('scripts/ci/a.test.mjs', sources(files), tracked);
+  assert.deepEqual([...c.pinned].sort(byText), ['packages/db/', 'packages/utils/']);
+  assert.equal(c.unresolved, '@interdomestik/ghost (imported by scripts/ci/a.test.mjs)');
+  const scanning = { ...c, scanner: true };
+  assert.equal(touches(scanning, ['packages/utils/b.ts']), 'packages/utils/b.ts');
+});
+
+test('fail safe: an uncertain listing pins its own directories even in a scanning closure', () => {
+  const helpers = {
+    'scripts/lister.mjs':
+      "const list = fs.readdirSync;\nexport const dir = 'packages/db/schema';\n",
+    'scripts/lister.sh': '# walk it like git ls-files would\nls packages/db/schema\n',
+  };
+  for (const [helper, body] of Object.entries(helpers)) {
+    const files = {
+      'scripts/ci/a.test.mjs': `run('${helper}');\nfs.readdirSync('docs');\n`,
+      [helper]: body,
+    };
+    const c = closureFor(files, 'scripts/ci/a.test.mjs', ['packages/db/schema/a.sql', 'docs/x.md']);
+    assert.equal(c.scanner, true, helper);
+    assert.deepEqual([...c.pinned], ['packages/db/schema/'], helper);
+    assert.equal(touches(c, ['packages/db/schema/b.sql']), 'packages/db/schema/b.sql', helper);
+  }
 });

@@ -236,6 +236,28 @@ test('planWork: deleted inputs, renames into tests, fallback order and unreadabl
   );
 });
 
+test('planWork fails safe: imported packages pin their workspace dependencies; odd entries run full', async t => {
+  const pkg = (name, dependencies = {}) => JSON.stringify({ name, dependencies });
+  const repo = fixture(t, JSON.stringify(manifest), {
+    'packages/db/package.json': pkg('@interdomestik/db', { '@interdomestik/utils': 'workspace:*' }),
+    'packages/utils/package.json': pkg('@interdomestik/utils'),
+    'packages/utils/src/b.ts': 'export {};\n',
+    'scripts/ci/pkg.test.mjs': `${passing}export const load = () => import('@interdomestik/db');\n`,
+  });
+  repo.write({ 'packages/utils/src/b.ts': 'export const b = 1;\n' });
+  repo.commit('edit a dependency of an imported package');
+  const work = await planWork(repo.dir, 'main');
+  assert.equal(work.full, null);
+  assert.equal(work.selected.get('scripts/ci/pkg.test.mjs'), 'packages/utils/src/b.ts');
+  const entry = { file: 'docs/other.md', oldPath: null, status: 'X' };
+  const odd = () =>
+    loadDependencies().then(found => ({ ...found, parseNameStatus: () => [entry] }));
+  assert.equal(
+    (await planWork(repo.dir, 'main', odd)).full,
+    'unrecognized diff entry X docs/other.md'
+  );
+});
+
 test('main refuses bad arguments, a non-commit base and an untracked file, and runs nothing', async t => {
   const repo = fixture(t);
   const errors = [];

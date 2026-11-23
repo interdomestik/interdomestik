@@ -9,6 +9,7 @@ import {
   parseArgs,
   selectContractWork,
   testSetChange,
+  unrecognizedEntry,
 } from './contract-test-affected.mjs';
 import { inputClosure, inventory } from './contract-test-inputs.mjs';
 import { contractTestPlan } from './contract-test-shards.mjs';
@@ -102,6 +103,40 @@ test('the test-set rule reads both sides of a rename and ignores modifications',
   assert.equal(testSetChange([entry('D', added)]), added);
   assert.equal(testSetChange([entry('M', added)]), undefined);
   assert.equal(testSetChange([entry('A', 'scripts/ci/fixtures/x.test.mjs')]), undefined);
+});
+
+test('fail safe: an unrecognized diff entry, and a test with an unresolved import always runs', () => {
+  const ok = { file: 'ok', oldPath: null, status: 'M' };
+  for (const entry of [
+    { file: 'a', oldPath: null, status: 'X' },
+    { file: 'a', oldPath: null, status: 'U' },
+    { file: undefined, oldPath: null, status: 'M' },
+    { file: 'b', oldPath: undefined, status: 'R' },
+  ]) {
+    assert.match(
+      unrecognizedEntry([ok, entry]),
+      /^unrecognized diff entry /u,
+      JSON.stringify(entry)
+    );
+  }
+  const known = ['A', 'C', 'D', 'M', 'R', 'T'].map(status => ({
+    file: 'f',
+    oldPath: ['R', 'C'].includes(status) ? 'g' : null,
+    status,
+  }));
+  assert.equal(unrecognizedEntry(known), null);
+  const unresolved = {
+    ...closures[OTHER_TEST],
+    unresolved: '@interdomestik/ghost (imported by x)',
+  };
+  const work = select(['docs/unrelated.md'], {
+    closureOf: file => (file === OTHER_TEST ? unresolved : closures[file]),
+  });
+  assert.deepEqual([...work.selected.keys()], [OTHER_TEST]);
+  assert.equal(
+    work.selected.get(OTHER_TEST),
+    'unresolved import @interdomestik/ghost (imported by x)'
+  );
 });
 
 test('arguments are no ref or exactly --base with a ref that is not an option', () => {
