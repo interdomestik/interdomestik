@@ -7,17 +7,18 @@
 // Webpack's order (`WEBPACK_EXTENSIONS`, read from Next's `webpack-config.js` and pinned by a test
 // against the installed Next): the request itself, then the request with each extension, then a
 // directory's `index` with each extension; a directory with its own `package.json` is an error
-// (webpack's `mainFields` are not modelled). `@/` requests try each `paths['@/*']` entry in order, as
-// Next's JsConfigPathsPlugin and TypeScript do.
+// (webpack's `mainFields` are not modelled). An `@/` request substitutes the one fixed `@/*` entry,
+// as Next's JsConfigPathsPlugin and TypeScript do.
 //
-// Relied on from Next's configuration, checked statically (`assertNextResolution`): `next.config`
-// and the local files it imports do not change webpack's `resolve` or add plugins, except by
-// aliasing a bare package name, which cannot match a relative or `@/` request; every package it
-// imports is a reviewed wrapper or a Node builtin. Next's own aliases (`create-compiler-aliases.js`)
-// and per-rule `resolve` blocks name packages only (read at 16.4.1). Named limits: a later version
-// of a reviewed wrapper, or of Next, that aliases a relative or `@/` key or changes the extension
-// list (the test pins the list against the installed Next).
-import { isBuiltin } from 'node:module';
+// The model holds for one fixed configuration only (the owner's decision B, 2026-11-23), and the
+// scanner refuses every other: the exact `next.config.mjs` and the helper it loads (by sha256), the
+// reviewed wrapper versions without a pnpm patch, no other `next.config` file, the exact `@/*`
+// mapping and `paths`/`baseUrl` of both tsconfigs, and no query or fragment on a relative or `@/`
+// request outside two reviewed edges. A change to any of them needs a scanner PR first. Next's own
+// aliases (`create-compiler-aliases.js`) and per-rule `resolve` blocks name packages only (read at
+// 16.4.1); a later Next that aliases a relative or `@/` key is a named limit, and its extension list
+// is pinned by the test against the installed Next.
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import ts from 'typescript';
 
@@ -99,12 +100,43 @@ const UNMODELLED_OPTIONS = Object.freeze([
   'resolvePackageJsonImports',
   'typeRoots',
 ]);
-// A `paths` key other than `@/*` must be a workspace package name, which cannot match a relative
-// or `@/` request; workspace edges resolve through `exports` (WP-05 design §2.2).
-const WORKSPACE_KEY_RE = /^@interdomestik\/[a-z0-9-]+(?:\/\*)?$/u;
 
-// A caller tsconfig the resolver can model (r2-B3): no inheritance, Bundler resolution, none of the
-// unmodelled options, and no `paths` key that could match a relative or `@/` request.
+// The fixed configuration (the owner's decision B, 2026-11-23): the scanner models the build for
+// one reviewed configuration and refuses every other. Each refusal names its reason and that a
+// change needs a scanner PR first, which reviews the new configuration and updates the pin here.
+const SCANNER_PR = 'a change to it needs a scanner PR first (WP-05 flip, D-1 fixed configuration)';
+const refuse = what => {
+  throw new ScanError(`${what}; ${SCANNER_PR}`);
+};
+const sha256 = text => createHash('sha256').update(text).digest('hex');
+// JSON with sorted object keys, arrays in order: one text per value.
+const canonical = value => {
+  if (Array.isArray(value)) return `[${value.map(canonical).join(',')}]`;
+  if (value && typeof value === 'object')
+    return `{${Object.keys(value)
+      .sort()
+      .map(key => `${JSON.stringify(key)}:${canonical(value[key])}`)
+      .join(',')}}`;
+  return JSON.stringify(value);
+};
+
+// Each caller tsconfig's exact `@/*` mapping and the sha256 of its exact `{ baseUrl, paths }`
+// value (canonical JSON, `baseUrl` null when absent). Both mappings name `apps/web/src/*`.
+const FIXED_TSCONFIGS = Object.freeze({
+  'apps/web/tsconfig.json': Object.freeze({
+    alias: Object.freeze(['./src/*']),
+    paths: '4c212762cc1e69169a276cb959c3abd23cd6206809ff5bc4c5bef64206069f01',
+  }),
+  'tsconfig.json': Object.freeze({
+    alias: Object.freeze(['apps/web/src/*']),
+    paths: '1c62a87259683c28e56f4e353fe735e9b80fb798b5ca74277a6bdbd922adba9d',
+  }),
+});
+// The one `@/*` pattern, repo-relative, that both fixed mappings resolve to.
+export const ALIAS_PATTERN = 'apps/web/src/*';
+
+// A caller tsconfig the resolver can model: no inheritance, Bundler resolution, none of the
+// unmodelled options, today's exact `@/*` mapping and today's exact `paths` and `baseUrl`.
 export function validateResolutionConfig(config, configRel) {
   if (config?.extends !== undefined)
     throw new ScanError(`${configRel} uses extends, which the resolver does not model`);
@@ -115,99 +147,42 @@ export function validateResolutionConfig(config, configRel) {
   const resolution = options.moduleResolution;
   if (typeof resolution !== 'string' || resolution.toLowerCase() !== 'bundler')
     throw new ScanError(`${configRel} moduleResolution is not bundler`);
-  for (const key of Object.keys(options.paths ?? {}))
-    if (key !== '@/*' && !WORKSPACE_KEY_RE.test(key))
-      throw new ScanError(
-        `${configRel} has the paths key ${key}, which the resolver does not model`
-      );
+  const fixed = FIXED_TSCONFIGS[configRel];
+  if (canonical(options.paths?.['@/*'] ?? null) !== canonical(fixed.alias))
+    refuse(`${configRel} has an @/* mapping other than the fixed ${JSON.stringify(fixed.alias)}`);
+  const value = { baseUrl: options.baseUrl ?? null, paths: options.paths };
+  if (sha256(canonical(value)) !== fixed.paths)
+    refuse(`${configRel} has paths or baseUrl other than the fixed configuration's`);
 }
 
-const NEXT_CONFIGS = Object.freeze(['js', 'mjs', 'cjs', 'ts', 'mts'].map(e => `next.config.${e}`));
-// The packages `next.config` may import, each reviewed for what it does to webpack's `resolve` at
-// one version, which the scanned tree's lockfile must resolve for `apps/web` (r4-B3): the import
-// name, its package, and the reviewed version. `@next/bundle-analyzer` changes nothing;
-// `@sentry/nextjs` aliases `perf_hooks`; `next-axiom` changes nothing; `next-intl/plugin` aliases
-// `next-intl/config` and `use-intl/format-message`. All bare package keys (r3-B3; read 2026-11-22).
-const REVIEWED_WRAPPERS = Object.freeze({
-  '@next/bundle-analyzer': { pkg: '@next/bundle-analyzer', version: '16.3.5' },
-  '@sentry/nextjs': { pkg: '@sentry/nextjs', version: '10.75.2' },
-  'next-axiom': { pkg: 'next-axiom', version: '1.10.0' },
-  'next-intl/plugin': { pkg: 'next-intl', version: '4.14.5' },
+// The web app's Next config and the one local file it loads, by sha256 of their exact text. Read
+// for this pin (2026-11-23): neither changes webpack's `resolve` or adds a plugin, and the config
+// selects no other tsconfig; it imports the four wrappers below and the helper, nothing else. An
+// absent `next.config.mjs` is Next's defaults, which D-1 models.
+const NEXT_CONFIG = 'apps/web/next.config.mjs';
+const FIXED_NEXT_FILES = Object.freeze({
+  [NEXT_CONFIG]: 'a26096d3b440844ebd8f7a33f65f4953c24f6d2a56b2480d654290e0add10b39',
+  'apps/web/src/lib/supabase-deployment.mjs':
+    'abb080e7b2a72cf4efba6240fe547a3e31e412b98dee84278dd238d3c3e6f253',
 });
-// What `resolve.alias` may be given: a literal key naming a bare package, which can match no
-// relative (`.`, `/`) or `@/` request.
-const isBareKey = key => /^(?:@[^/]+\/)?[^./@][^/]*(?:\/.*)?$/u.test(key) && !key.startsWith('@/');
+const OTHER_NEXT_CONFIGS = Object.freeze(
+  ['js', 'cjs', 'ts', 'mts', 'cts'].map(ext => `apps/web/next.config.${ext}`)
+);
+// The packages the fixed config imports, each reviewed for what it does to webpack's `resolve` at
+// one version and unpatched, as the scanned tree's lockfile resolves them for `apps/web`.
+// `@next/bundle-analyzer` changes nothing; `@sentry/nextjs` aliases `perf_hooks`; `next-axiom`
+// changes nothing; `next-intl` aliases `next-intl/config` and `use-intl/format-message`. All are
+// bare package keys, which match no relative or `@/` request (read 2026-11-22).
+const REVIEWED_WRAPPERS = Object.freeze({
+  '@next/bundle-analyzer': '16.3.5',
+  '@sentry/nextjs': '10.75.2',
+  'next-axiom': '1.10.0',
+  'next-intl': '4.14.5',
+});
 
-const isName = (node, text) =>
-  (ts.isIdentifier(node) || ts.isStringLiteralLike(node)) && node.text === text;
-// `<x>.resolve(…)`: a call such as `path.resolve` or `require.resolve`, not webpack's settings.
-const isResolveCall = node =>
-  ts.isPropertyAccessExpression(node.parent) &&
-  node.parent.name === node &&
-  ts.isCallExpression(node.parent.parent) &&
-  node.parent.parent.expression === node.parent;
-// `<x>.resolve.alias[<literal>]` with a bare package key (Sentry's `perf_hooks`, next-intl's).
-function isBareAliasKey(node) {
-  const access = node.parent;
-  if (!ts.isPropertyAccessExpression(access) || access.name !== node) return false;
-  const alias = access.parent;
-  if (!ts.isPropertyAccessExpression(alias) || alias.expression !== access) return false;
-  if (alias.name.text !== 'alias') return false;
-  const entry = alias.parent;
-  return (
-    ts.isElementAccessExpression(entry) &&
-    entry.expression === alias &&
-    ts.isStringLiteralLike(entry.argumentExpression) &&
-    isBareKey(entry.argumentExpression.text)
-  );
-}
-
-// The text of a node that can change webpack's resolution or the tsconfig Next reads, or null
-// (r3-B3, r4-S2a). Fail closed on the name: every `extensionAlias`, `plugins` (a resolver or
-// replacement plugin), `tsconfigPath` (another tsconfig, so other `paths`) or `createRequire` (an
-// import the walk cannot follow), and every `resolve` (a member, a property, a destructured or
-// computed name) except a `….resolve(…)` call and `….resolve.alias[<bare literal>]`.
-const REFUSED_NAMES = Object.freeze(['extensionAlias', 'plugins', 'tsconfigPath', 'createRequire']);
-function resolutionChange(node, source) {
-  if (REFUSED_NAMES.some(name => isName(node, name))) return node.parent.getText(source);
-  if (!isName(node, 'resolve') || isResolveCall(node) || isBareAliasKey(node)) return null;
-  return node.parent.getText(source);
-}
-
-const isRequireCall = node =>
-  ts.isCallExpression(node) &&
-  ts.isIdentifier(node.expression) &&
-  node.expression.text === 'require';
-const isImportCall = node =>
-  ts.isCallExpression(node) && node.expression.kind === ts.SyntaxKind.ImportKeyword;
-
-// The module specifiers a config file loads: static imports, re-exports (`export … from`), and
-// `import()` / `require()` of a literal. A call with any other argument cannot be followed and is a
-// scanner error (r4-B3, fail closed).
-function importsOf(source, rel) {
-  const out = [];
-  const visit = node => {
-    if (
-      (ts.isImportDeclaration(node) || ts.isExportDeclaration(node)) &&
-      node.moduleSpecifier &&
-      ts.isStringLiteral(node.moduleSpecifier)
-    )
-      out.push(node.moduleSpecifier.text);
-    if (isRequireCall(node) || isImportCall(node)) {
-      const [arg] = node.arguments;
-      if (node.arguments.length !== 1 || !ts.isStringLiteralLike(arg))
-        throw new ScanError(
-          `${rel} loads a module it does not name literally (${node.getText(source)})`
-        );
-      out.push(arg.text);
-    }
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  return out;
-}
-
-// The version the lockfile resolves for each direct dependency of `apps/web` (pnpm's `importers`).
+// The lockfile entry each direct dependency of `apps/web` resolves to (pnpm's `importers`): its
+// version and its own `patch_hash`, if pnpm patched it (the group right after the version; later
+// groups are peers, which may carry their own).
 export function webDependencyVersions(text) {
   const out = {};
   let section = null;
@@ -224,58 +199,68 @@ export function webDependencyVersions(text) {
     if (section !== 'web') continue;
     const dep = /^ {6}'?([^':\s]+)'?:\s*$/u.exec(line);
     if (dep) current = dep[1];
-    const version = /^ {8}version: ([^(\s]+)/u.exec(line);
-    if (version && current) out[current] = version[1];
+    const version = /^ {8}version: ([^(\s]+)(\(patch_hash=([^)]*)\))?/u.exec(line);
+    if (version && current) out[current] = { version: version[1], patch: version[3] ?? null };
   }
   return out;
 }
 
-function checkWrapper(root, rel, specifier, versions) {
-  const reviewed = REVIEWED_WRAPPERS[specifier];
-  if (!reviewed)
-    throw new ScanError(`${rel} imports ${specifier}, which is not a reviewed Next wrapper`);
-  if (versions.value === undefined) {
-    const lock = readInside(root, 'pnpm-lock.yaml');
-    if (lock === null)
-      throw new ScanError('pnpm-lock.yaml is missing; the Next wrappers cannot be checked');
-    versions.value = webDependencyVersions(lock);
+// A wrapper the lockfile's `patchedDependencies` names is patched, whatever its version line says.
+const patchedPackages = text => {
+  const out = new Set();
+  let inside = false;
+  for (const line of text.split('\n')) {
+    if (/^\S/u.test(line)) inside = line.trim() === 'patchedDependencies:';
+    const entry = inside && /^ {2}'?((?:@[^/@\s]+\/)?[^@'\s]+)@/u.exec(line);
+    if (entry) out.add(entry[1]);
   }
-  const found = versions.value[reviewed.pkg];
-  if (found !== reviewed.version)
-    throw new ScanError(
-      `${rel} imports ${specifier}, whose ${reviewed.pkg} ${found ?? '(absent)'} is not the reviewed ${reviewed.version}`
-    );
-}
+  return out;
+};
 
-function checkConfigFile(root, rel, seen, versions) {
-  if (seen.has(rel)) return;
-  seen.add(rel);
-  const text = readInside(root, rel);
-  if (text === null) throw new ScanError(`${rel} (loaded by next.config) is missing`);
-  const source = ts.createSourceFile(rel, text, ts.ScriptTarget.Latest, true, ts.ScriptKind.TS);
-  let found = null;
-  const visit = node => {
-    found ??= resolutionChange(node, source);
-    ts.forEachChild(node, visit);
-  };
-  visit(source);
-  if (found)
-    throw new ScanError(`${rel} changes webpack resolution (${found}), which D-1 does not model`);
-  for (const specifier of importsOf(source, rel)) {
-    if (specifier.startsWith('.')) {
-      const next = path.posix.normalize(path.posix.join(path.posix.dirname(rel), specifier));
-      checkConfigFile(root, next, seen, versions);
-    } else if (!isBuiltin(specifier)) checkWrapper(root, rel, specifier, versions);
+function assertWrappers(root) {
+  const lock = readInside(root, 'pnpm-lock.yaml');
+  if (lock === null)
+    throw new ScanError('pnpm-lock.yaml is missing; the Next wrappers cannot be checked');
+  const versions = webDependencyVersions(lock);
+  const patched = patchedPackages(lock);
+  for (const [pkg, reviewed] of Object.entries(REVIEWED_WRAPPERS)) {
+    const found = versions[pkg];
+    if (found?.version !== reviewed)
+      refuse(
+        `${NEXT_CONFIG} loads ${pkg} ${found?.version ?? '(absent)'}, not the reviewed ${reviewed}`
+      );
+    if (found.patch !== null || patched.has(pkg))
+      refuse(`${NEXT_CONFIG} loads ${pkg} ${reviewed} with a pnpm patch, which was not reviewed`);
   }
 }
 
-// The web app's Next config, and every local file it loads, leave webpack's resolution of relative
-// and `@/` requests, and the tsconfig Next reads, as D-1 models them.
+// Next's configuration is the fixed one: today's exact `next.config.mjs` and helper, the reviewed
+// wrapper versions, unpatched, and no other `next.config` file.
 export function assertNextResolution(root) {
-  const seen = new Set();
-  const versions = {};
-  for (const name of NEXT_CONFIGS) {
-    const rel = `apps/web/${name}`;
-    if (readInside(root, rel) !== null) checkConfigFile(root, rel, seen, versions);
+  for (const rel of OTHER_NEXT_CONFIGS)
+    if (readInside(root, rel) !== null) refuse(`${rel} is not the fixed ${NEXT_CONFIG}`);
+  if (readInside(root, NEXT_CONFIG) === null) return;
+  for (const [rel, digest] of Object.entries(FIXED_NEXT_FILES)) {
+    const text = readInside(root, rel);
+    if (text === null) refuse(`${rel} (loaded by ${NEXT_CONFIG}) is missing`);
+    if (sha256(text) !== digest) refuse(`${rel} is not the fixed configuration's exact file`);
   }
+  assertWrappers(root);
+}
+
+// A relative or `@/` request with a query or fragment (`?raw`, `#x`): webpack loads the path part
+// through whatever loader the query selects, which D-1 does not model. Only the reviewed edges
+// below are accepted, and they name the path part's file; every other one is refused. Both load
+// `public/offline.html` as text (a test, and the help-now service-worker test helper).
+const REVIEWED_QUERY_EDGES = Object.freeze({
+  'apps/web/src/features/help-now/sw-test-utils.ts': '../../../public/offline.html?raw',
+  'apps/web/src/lib/pwa/pwa-i18n-contract.test.ts': '../../../public/offline.html?raw',
+});
+// The request webpack resolves: the specifier, or the path part of a reviewed query edge.
+export function requestPath(fromRel, specifier) {
+  const cut = specifier.search(/[?#]/u);
+  if (cut === -1) return specifier;
+  if (REVIEWED_QUERY_EDGES[fromRel] !== specifier)
+    refuse(`${fromRel} imports ${specifier}, a request with a query or fragment`);
+  return specifier.slice(0, cut);
 }

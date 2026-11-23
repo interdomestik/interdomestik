@@ -119,7 +119,9 @@ async function replayBase(repo, report, root, cleanup) {
 
 // The candidate judgment of a replay pair (§4 of the flip plan): the parent tree is scanned with the
 // candidate scanner too (a pre-adoption base already was), and the pair is judged as PR-B's
-// required workflow would judge it.
+// required workflow would judge it. A parent that predates adoption (no baseline: the adoption
+// pair's parent) gets the adoption-created inputs synthesized as empty, as the historical path does
+// for a pre-adoption pair, and they are recorded (r5-B6); an adopted parent gets nothing.
 async function replayCandidate(
   repo,
   report,
@@ -128,15 +130,17 @@ async function replayCandidate(
   { pre, real, inputs, lint, files, results }
 ) {
   let baseRoot = pre?.root ?? null;
+  let synthesizedBase = [];
   if (!baseRoot) {
     baseRoot = extractRevision(repo, report.base);
     cleanup.push(baseRoot);
     assertNoLinks(baseRoot);
+    if (readInside(baseRoot, BASELINE_PATH) === null) synthesizedBase = synthesizeInputs(baseRoot);
   }
   const baseFiles = linted(baseRoot);
   const baseLint = pre?.lint ?? (await lintTree(baseRoot, baseFiles));
   const headRegistry = registryFor(root);
-  return candidateJudgment({
+  const judgment = candidateJudgment({
     candidate: candidateBaseline(),
     baseLint,
     headLint: lint,
@@ -149,6 +153,7 @@ async function replayCandidate(
     tamper: Object.fromEntries(results.map(r => [r.id, r.tamper])),
     shas: { base: report.base, head: report.head },
   });
+  return { ...judgment, synthesizedBase };
 }
 
 async function scan(args, repo, report) {
@@ -183,16 +188,10 @@ async function scan(args, repo, report) {
     });
     report.changes = changeReport(repo, report.base, report.head, root, head, inputs.rebuilt);
     if (replay) {
-      report.replay = replaySummary({
-        takenAt: pre ? pre.baseline.takenAt : (base?.takenAt ?? null),
-        synthesized: replay.synthesized,
-        baseLint: pre?.lint ?? null,
-        results,
-        empty,
-        versions: toolVersions(),
-      });
+      // The summary, which marks the pair complete, is written only after the candidate judgment
+      // succeeds: a candidate error leaves no replay record (r5).
       const real = { base: pre ? null : base, head: pre ? null : head };
-      report.replay.candidateJudgment = await replayCandidate(repo, report, root, cleanup, {
+      const judgment = await replayCandidate(repo, report, root, cleanup, {
         pre,
         real,
         inputs,
@@ -200,6 +199,17 @@ async function scan(args, repo, report) {
         files,
         results,
       });
+      report.replay = {
+        ...replaySummary({
+          takenAt: pre ? pre.baseline.takenAt : (base?.takenAt ?? null),
+          synthesized: replay.synthesized,
+          baseLint: pre?.lint ?? null,
+          results,
+          empty,
+          versions: toolVersions(),
+        }),
+        candidateJudgment: judgment,
+      };
     }
     return results;
   } finally {

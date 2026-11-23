@@ -11,8 +11,10 @@ import ts from 'typescript';
 import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
 import { environmentsFor, resolveEnvironment, validateExports } from './exports.mjs';
 import {
+  ALIAS_PATTERN,
   assertNextResolution,
   confinedHost,
+  requestPath,
   typescriptOptions,
   validateResolutionConfig,
   webpackPick,
@@ -43,28 +45,12 @@ function parseTsconfig(text) {
   return config;
 }
 
-// A `paths` entry TypeScript accepts: a string with at most one `*`. One without `*` is a fixed
-// file every specifier the key matches maps to (F7).
-const isPathsEntry = entry =>
-  typeof entry === 'string' && entry.indexOf('*') === entry.lastIndexOf('*');
-
-// One caller tsconfig: its `@/` patterns (every entry of `paths['@/*']`, in order, relative to
-// `baseUrl` or, without one, to the config's directory, repo-relative: `apps/web/src/*`) and the
-// compiler options TypeScript resolves its requests with.
+// One caller tsconfig, which must be the fixed configuration's (resolution.mjs): the compiler
+// options TypeScript resolves its requests with.
 function callerConfig(root, configRel) {
   const config = readJson(path.join(root, configRel), configRel, parseTsconfig);
   validateResolutionConfig(config, configRel);
-  const options = config?.compilerOptions;
-  const mapping = options?.paths?.['@/*'];
-  if (mapping === undefined) throw new ScanError(`${configRel} has no @/* mapping`);
-  if (!Array.isArray(mapping) || mapping.length === 0 || !mapping.every(isPathsEntry))
-    throw new ScanError(`${configRel} has no usable @/* mapping`);
-  const baseUrl = typeof options.baseUrl === 'string' ? options.baseUrl : '.';
-  const base = path.posix.join(path.posix.dirname(configRel), baseUrl);
-  return Object.freeze({
-    patterns: Object.freeze(mapping.map(entry => path.posix.join(base, entry))),
-    tsOptions: typescriptOptions(root, configRel, options),
-  });
+  return Object.freeze({ tsOptions: typescriptOptions(root, configRel, config.compilerOptions) });
 }
 
 // The tsconfig that compiles each caller (H7): the web app's for `apps/web/**`; the root one for
@@ -108,9 +94,6 @@ export function resolverFor(root) {
       callerConfig(root, configRel),
     ])
   );
-  const alias = Object.fromEntries(
-    Object.entries(callers).map(([caller, config]) => [caller, config.patterns])
-  );
   assertNextResolution(root);
   const packages = workspacePackages(root);
   const existing = new Map();
@@ -149,11 +132,10 @@ export function resolverFor(root) {
     return rel.startsWith('..') || !isFile(rel) ? null : rel;
   };
   const inTree = rel => (rel.startsWith('..') ? null : rel);
-  // Webpack's pick (resolution.mjs): relative to the caller, or for `@/` each `paths['@/*']` entry
-  // in order, its `*` (if any) replaced, the first that names a file winning (B8, F7), as Next's
-  // JsConfigPathsPlugin applies them. Next installs one paths plugin for the whole build, from the
-  // web app's tsconfig, so every caller, `packages/**` included, uses the web app's mapping
-  // (r4-S2b). A substitution that ends in `.d.ts` is passed over, as the plugin does (r4-S1).
+  // Webpack's pick (resolution.mjs): relative to the caller, or for `@/` the fixed `@/*` pattern
+  // with its `*` replaced. Next installs one paths plugin for the whole build, from the web app's
+  // tsconfig, so every caller, `packages/**` included, uses it (r4-S2b); a substitution that ends in
+  // `.d.ts` is passed over, as the plugin does (r4-S1).
   const webpackTarget = (fromRel, specifier) => {
     if (kindOfSpecifier(specifier) === 'relative') {
       const base = inTree(
@@ -161,17 +143,10 @@ export function resolverFor(root) {
       );
       return base && webpackPick(isFile, base);
     }
-    const rest = specifier.slice(2);
-    for (const pattern of alias.web) {
-      const star = pattern.indexOf('*');
-      const substituted =
-        star === -1 ? pattern : `${pattern.slice(0, star)}${rest}${pattern.slice(star + 1)}`;
-      if (substituted.endsWith('.d.ts')) continue;
-      const candidate = inTree(path.posix.normalize(substituted));
-      const file = candidate && webpackPick(isFile, candidate);
-      if (file) return file;
-    }
-    return null;
+    const substituted = ALIAS_PATTERN.replace('*', specifier.slice(2));
+    if (substituted.endsWith('.d.ts')) return null;
+    const candidate = inTree(path.posix.normalize(substituted));
+    return candidate && webpackPick(isFile, candidate);
   };
   // A file check for `exports` targets ('./src/x.ts') of the package in `dir`.
   const existsIn = dir => target => isFile(path.posix.join(dir, target));
@@ -189,12 +164,14 @@ export function resolverFor(root) {
     return [...files];
   };
   // The repo-relative files a specifier names for an edge of `edgeKind` (empty: external, or not
-  // found). A relative or `@/` path names TypeScript's pick and webpack's pick, deduplicated (D-1);
-  // `@/` follows the caller's tsconfig.
+  // found). A relative or `@/` path names TypeScript's pick and webpack's pick, deduplicated (D-1).
   const resolveTargets = (fromRel, specifier, edgeKind = 'import') => {
     const kind = kindOfSpecifier(specifier);
     if (kind === 'workspace') return workspaceFiles(specifier, edgeKind);
     if (kind !== 'relative' && kind !== 'alias') return [];
+    // A query or fragment is refused, except on a reviewed edge, which names its path part.
+    const request = requestPath(fromRel, specifier);
+    if (request !== specifier) return resolveTargets(fromRel, request, edgeKind);
     // A type-only edge is erased: TypeScript reads it, webpack never loads it (r4-B2).
     if (edgeKind === 'type') return [typescriptTarget(fromRel, specifier)].filter(Boolean);
     const picks = [typescriptTarget(fromRel, specifier), webpackTarget(fromRel, specifier)];
@@ -206,7 +183,6 @@ export function resolverFor(root) {
     resolveTargets(fromRel, specifier, edgeKind)[0] ?? null;
   const resolver = {
     root,
-    alias,
     packages,
     workspace,
     resolveTargets,

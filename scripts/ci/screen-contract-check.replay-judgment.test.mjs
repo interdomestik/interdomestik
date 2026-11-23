@@ -171,9 +171,93 @@ test('§4: under the candidate a head registry entry is frozen (D-7)', () => {
 // rebuilt list is the production input error: no candidate judgment, and the pair is incomplete.
 test('r4-S3: an adopted head without its rebuilt list has no candidate judgment', t => {
   const pair = adoptedPair(t, baselineOf({ 'CHK-15c': [LEGACY] }), { [REBUILT]: null });
-  const { code, report } = run(t, pair.root, ['--replay', '--base', pair.base, '--head', pair.head]);
+  const { code, report } = run(t, pair.root, [
+    '--replay',
+    '--base',
+    pair.base,
+    '--head',
+    pair.head,
+  ]);
   assert.equal(code, 2);
   assert.match(report.errors.join('\n'), /rebuilt-screens list is missing or empty/u);
   assert.equal(report.replay?.candidateJudgment, undefined);
   assert.equal(report.replay?.complete ?? false, false);
+});
+
+// r5-B6: the adoption pair (#2097) has a parent that predates every adoption-created input. The
+// candidate scans that parent with them synthesized as empty, as the historical path does for a
+// pre-adoption pair, and records what it wrote.
+test('r5-B6: the adoption pair’s parent gets its inputs synthesized and recorded', t => {
+  const root = repo(t, {
+    ...LANES,
+    [REG]: null,
+    [DB_PAGE]: DB_IMPORT,
+    [OK_PAGE]: 'export default () => null;\n',
+  });
+  const base = git(root, 'rev-parse', 'HEAD');
+  const head = commit(root, {
+    [REG]: '{ "version": 1, "entries": [] }\n',
+    [REBUILT]: '[]\n',
+    [BASELINE]: baselineOf({ 'CHK-15c': [LEGACY] }),
+  });
+  const j = judged(t, { root, base, head });
+  assert.deepEqual([...j.synthesizedBase].sort(), [REBUILT, REG].sort());
+  assert.deepEqual(j.errors, []);
+  // An adopted parent gets nothing synthesized.
+  const pair = adoptedPair(t, baselineOf({ 'CHK-15c': [LEGACY] }), {
+    [`${W}/app/ok2/page.tsx`]: 'export default () => null;\n',
+  });
+  assert.deepEqual(judged(t, pair).synthesizedBase, []);
+});
+
+// r5-S3: adoption creates the baseline, the registry and the rebuilt list together. A base that
+// has the baseline but lacks either of the others is an input error, in production and in replay.
+test('r5-S3: an adopted base without its registry or rebuilt list is an input error', t => {
+  for (const missing of [REG, REBUILT]) {
+    const root = repo(t, {
+      ...LANES,
+      [REG]: '{ "version": 1, "entries": [] }\n',
+      [REBUILT]: '[]\n',
+      [DB_PAGE]: DB_IMPORT,
+      [BASELINE]: baselineOf({ 'CHK-15c': [LEGACY] }),
+      [missing]: null,
+    });
+    const base = git(root, 'rev-parse', 'HEAD');
+    const head = commit(root, {
+      [missing]: missing === REG ? '{ "version": 1, "entries": [] }\n' : '[]\n',
+    });
+    for (const args of [[], ['--replay']]) {
+      const { code, report } = run(t, root, [...args, '--base', base, '--head', head]);
+      assert.equal(code, 2, `${missing} ${args}`);
+      assert.match(
+        report.errors.join('\n'),
+        new RegExp(`base has the baseline but no ${missing}`, 'u')
+      );
+      assert.equal(report.replay?.complete ?? false, false);
+    }
+  }
+});
+
+// r5: the summary that marks a pair complete is written only after the candidate judgment
+// succeeds. Here only the candidate scans the adopted parent, whose query import the fixed
+// configuration refuses: production passes the pair, the replay is a scanner error with no record.
+test('r5: a candidate judgment error leaves the replay pair incomplete', t => {
+  const query = `${W}/components/q.tsx`;
+  const root = repo(t, {
+    ...LANES,
+    [REG]: '{ "version": 1, "entries": [] }\n',
+    [REBUILT]: '[]\n',
+    [DB_PAGE]: DB_IMPORT,
+    [OK_PAGE]: 'export default () => null;\n',
+    [`${W}/components/x.ts`]: 'export const x = 1;\n',
+    [query]: "import t from './x?raw';\nexport const Q = () => t;\n",
+    [BASELINE]: baselineOf({ 'CHK-15c': [LEGACY] }),
+  });
+  const base = git(root, 'rev-parse', 'HEAD');
+  const head = commit(root, { [query]: null });
+  assert.equal(run(t, root, ['--base', base, '--head', head]).code, 0);
+  const { code, report } = run(t, root, ['--replay', '--base', base, '--head', head]);
+  assert.equal(code, 2);
+  assert.match(report.errors.join('\n'), /a request with a query or fragment/u);
+  assert.equal(report.replay, undefined);
 });

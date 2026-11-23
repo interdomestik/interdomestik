@@ -6,8 +6,9 @@ import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import test from 'node:test';
+import ts from 'typescript';
 
-import { lint, tree } from './fixtures/screen-contract-check/harness.mjs';
+import { lint, tree, webTsconfig } from './fixtures/screen-contract-check/harness.mjs';
 import { has, lacks } from './fixtures/screen-contract-check/rules-fixtures.mjs';
 import { WEBPACK_EXTENSIONS } from './screen-contract/resolution.mjs';
 import { resolverFor } from './screen-contract/specifiers.mjs';
@@ -72,9 +73,10 @@ test('D-1: ./x.jsx names a lone x.ts; ./x.js names a lone x.jsx', t => {
   assert.deepEqual(targetsIn(t, { [`${W}/components/x.ts`]: X }, './x.jsx').targets, [
     `${W}/components/x.ts`,
   ]);
-  const allowJs =
-    '{ "compilerOptions": { "moduleResolution": "bundler", "allowJs": true, "paths": { "@/*": ["./src/*"] } } }\n';
-  const files = { 'apps/web/tsconfig.json': allowJs, [`${W}/components/x.jsx`]: X };
+  const files = {
+    'apps/web/tsconfig.json': webTsconfig({ allowJs: true }),
+    [`${W}/components/x.jsx`]: X,
+  };
   assert.deepEqual(targetsIn(t, files, './x.js').targets, [`${W}/components/x.jsx`]);
   // Without allowJs TypeScript still selects the untyped x.jsx (its JavaScript pass); it is judged.
   assert.deepEqual(targetsIn(t, { [`${W}/components/x.jsx`]: X }, './x.js').targets, [
@@ -147,31 +149,24 @@ test('D-1: a request that reaches a directory with its own package.json is a sca
   assert.throws(() => resolver.resolveTargets(FROM, '@/lib/pkg'), /package\.json/u);
 });
 
-// r4-S1: Next's paths plugin passes over a substitution that ends in `.d.ts` and tries the next.
+// r4-S1: Next's paths plugin passes over a substitution that ends in `.d.ts`; with the one fixed
+// entry, webpack then has no pick and only TypeScript's is judged.
 test('D-1: a @/* substitution ending in .d.ts is skipped by the webpack pick, as Next does', t => {
-  const files = {
-    'apps/web/tsconfig.json':
-      '{ "compilerOptions": { "moduleResolution": "bundler", "paths": { "@/*": ["./types/*.d.ts", "./src/*"] } } }\n',
-    'apps/web/types/save.d.ts': 'export declare const x: number;\n',
-    [`${W}/save.js`]: X,
-  };
-  const got = targetsIn(t, files, '@/save');
-  assert.ok(got.targets.includes(`${W}/save.js`), JSON.stringify(got.targets));
-  assert.ok(!got.targets.includes(`${W}/save.js.d.ts`));
+  const resolver = resolverFor(
+    fs.realpathSync(tree(t, { [`${W}/types/save.d.ts`]: 'export declare const x: number;\n' }))
+  );
+  const spec = '@/types/save.d.ts';
+  assert.deepEqual(
+    resolver.resolveTargets(FROM, spec),
+    resolver.resolveTargets(FROM, spec, 'type')
+  );
 });
 
 // r4-S2b: Next installs one paths plugin, from the web app's tsconfig, for every module of the
-// build; TypeScript still compiles a package with the root config.
-test('D-1: a package caller gets webpack’s pick through the web mapping, TypeScript’s through root', t => {
-  const files = {
-    'tsconfig.json':
-      '{ "compilerOptions": { "moduleResolution": "bundler", "baseUrl": ".", "paths": { "@/*": ["apps/web/src/lib/*"] } } }\n',
-    [`${W}/x.ts`]: X,
-    [`${W}/lib/x.ts`]: X,
-  };
-  const got = targetsIn(t, files, '@/x', 'packages/domain-claims/src/edge.ts');
-  assert.deepEqual(got.targets, [`${W}/lib/x.ts`, `${W}/x.ts`]);
-  assert.equal(got.file, `${W}/lib/x.ts`);
+// build; TypeScript compiles a package with the root config. Both fixed mappings name apps/web/src.
+test('D-1: a package caller gets the same @/ file from both picks', t => {
+  const got = targetsIn(t, { [`${W}/x.ts`]: X }, '@/x', 'packages/domain-claims/src/edge.ts');
+  assert.deepEqual(got.targets, [`${W}/x.ts`]);
 });
 
 // r4-B2: a type-only import is erased; only TypeScript's pick is judged.
@@ -204,6 +199,12 @@ const WEB = paths =>
   `{ "compilerOptions": { "moduleResolution": "bundler", "paths": ${JSON.stringify(paths)} } }\n`;
 const rejects = (t, files, pattern) =>
   assert.throws(() => resolverFor(fs.realpathSync(tree(t, files))), pattern);
+const SCANNER_PR = /scanner PR first/u;
+// Every pattern matches the error's message (a validation function for assert.throws).
+const both =
+  (...patterns) =>
+  error =>
+    patterns.every(pattern => pattern.test(error.message));
 
 test('D-1: tsconfig settings the resolver does not model are scanner errors', t => {
   rejects(
@@ -228,157 +229,215 @@ test('D-1: tsconfig settings the resolver does not model are scanner errors', t 
   ])
     rejects(
       t,
-      {
-        'apps/web/tsconfig.json': `{ "compilerOptions": { "moduleResolution": "bundler", "${option}": [], "paths": { "@/*": ["./src/*"] } } }\n`,
-      },
+      { 'apps/web/tsconfig.json': webTsconfig({ [option]: [] }) },
       new RegExp(option, 'u')
     );
   rejects(
     t,
-    {
-      'apps/web/tsconfig.json':
-        '{ "compilerOptions": { "moduleResolution": "node", "paths": { "@/*": ["./src/*"] } } }\n',
-    },
+    { 'apps/web/tsconfig.json': webTsconfig({ moduleResolution: 'node' }) },
     /moduleResolution/u
-  );
-  rejects(
-    t,
-    { 'apps/web/tsconfig.json': WEB({ '@/*': ['./src/*'], '@/components/*': ['./src/ui/*'] }) },
-    /@\/components\/\*/u
   );
 });
 
-test('D-1: workspace paths keys are accepted, and the real configs load', t => {
-  const root = fs.realpathSync(
-    tree(t, {
-      'apps/web/tsconfig.json': WEB({
-        '@/*': ['./src/*'],
-        '@interdomestik/ui': ['../../packages/ui/src'],
-        '@interdomestik/ui/*': ['../../packages/ui/src/*'],
-      }),
-    })
+// The fixed configuration (the owner's decision B, 2026-11-23): the exact `@/*` mapping and the
+// exact `paths` and `baseUrl` of both tsconfigs; every other value is refused, naming the reason
+// and that a change needs a scanner PR first.
+test('D-1: tsconfig paths and baseUrl other than the fixed ones are refused', t => {
+  const real = rel =>
+    JSON.parse(
+      JSON.stringify(
+        ts.parseConfigFileTextToJson(rel, fs.readFileSync(rel, 'utf8')).config.compilerOptions
+      )
+    );
+  const web = real('apps/web/tsconfig.json');
+  const root = real('tsconfig.json');
+  const mapping = /has an @\/\* mapping other than the fixed/u;
+  const other = /has paths or baseUrl other than the fixed configuration's/u;
+  for (const alias of [['./src/*', './src'], ['./types/*.d.ts', './src/*'], ['./src/lib/*']])
+    rejects(
+      t,
+      { 'apps/web/tsconfig.json': WEB({ ...web.paths, '@/*': alias }) },
+      both(mapping, SCANNER_PR)
+    );
+  // r5: a root mapping that differs from the web one (B2), or erases a crossing with `..` (r5).
+  for (const alias of [['packages/database/src/*'], ['apps/web/src/../../../packages/*/../src/*']])
+    rejects(
+      t,
+      {
+        'tsconfig.json': `${JSON.stringify({ compilerOptions: { moduleResolution: 'bundler', baseUrl: '.', paths: { ...root.paths, '@/*': alias } } })}\n`,
+      },
+      both(/^tsconfig\.json has an @\/\* mapping/u, SCANNER_PR)
+    );
+  // Any other key, a changed workspace entry, or another baseUrl.
+  rejects(
+    t,
+    { 'apps/web/tsconfig.json': WEB({ ...web.paths, '@/components/*': ['./src/ui/*'] }) },
+    both(other, SCANNER_PR)
   );
-  assert.ok(resolverFor(root));
+  const { '@interdomestik/ui': _ui, ...withoutUi } = web.paths;
+  rejects(t, { 'apps/web/tsconfig.json': WEB(withoutUi) }, both(other, SCANNER_PR));
+  rejects(
+    t,
+    {
+      'tsconfig.json': `${JSON.stringify({ compilerOptions: { moduleResolution: 'bundler', baseUrl: './apps/..', paths: root.paths } })}\n`,
+    },
+    both(other, SCANNER_PR)
+  );
+  // The fixed value, with its keys in another order, is accepted (a value, not a text, is pinned).
+  const reordered = Object.fromEntries(Object.entries(web.paths).reverse());
+  assert.ok(resolverFor(fs.realpathSync(tree(t, { 'apps/web/tsconfig.json': WEB(reordered) }))));
+});
+
+const REAL_NEXT = Object.freeze({
+  'apps/web/next.config.mjs': fs.readFileSync('apps/web/next.config.mjs', 'utf8'),
+  'apps/web/src/lib/supabase-deployment.mjs': fs.readFileSync(
+    'apps/web/src/lib/supabase-deployment.mjs',
+    'utf8'
+  ),
+  'pnpm-lock.yaml': fs.readFileSync('pnpm-lock.yaml', 'utf8'),
+});
+
+test('D-1: the real configs load, and an absent next.config is Next’s defaults', t => {
   const real = fs.realpathSync(
     tree(t, {
       'tsconfig.json': fs.readFileSync('tsconfig.json', 'utf8'),
       'apps/web/tsconfig.json': fs.readFileSync('apps/web/tsconfig.json', 'utf8'),
-      'apps/web/next.config.mjs': fs.readFileSync('apps/web/next.config.mjs', 'utf8'),
-      'pnpm-lock.yaml': fs.readFileSync('pnpm-lock.yaml', 'utf8'),
-      'apps/web/src/lib/supabase-deployment.mjs': fs.readFileSync(
-        'apps/web/src/lib/supabase-deployment.mjs',
-        'utf8'
-      ),
+      ...REAL_NEXT,
     })
   );
   assert.ok(resolverFor(real));
+  assert.ok(resolverFor(fs.realpathSync(tree(t, {}))));
 });
 
-const nextConfig = (t, text, extra = {}) =>
-  resolverFor(fs.realpathSync(tree(t, { 'apps/web/next.config.mjs': text, ...extra })));
-const hook = body => `export default { webpack(config) { ${body} return config; } };\n`;
-
-test('D-1: next.config that changes webpack resolution is a scanner error', t => {
-  const refused = [
-    [
-      'export default { experimental: { extensionAlias: { ".js": [".ts"] } } };\n',
-      /extensionAlias/u,
-    ],
-    [hook('config.resolve.extensions = [".ts"];'), /resolve/u],
-    [hook('config.resolve.mainFiles.push("main");'), /resolve/u],
-    [hook('config.resolve.modules.unshift("src");'), /resolve/u],
-    [hook('config.resolve = { ...config.resolve };'), /resolve/u],
-    [hook('config.resolve.alias = { ...config.resolve.alias, x: "y" };'), /resolve/u],
-    [hook('config.resolve.alias["@/lib/x"] = "./y";'), /resolve/u],
-    [hook('config.resolve.alias["./x"] = "./y";'), /resolve/u],
-    [hook('config.resolve.alias[name] = "./y";'), /resolve/u],
-    [hook('config["resolve"].extensions = [];'), /resolve/u],
-    [hook('const { resolve } = config; resolve.extensions = [];'), /resolve/u],
-    [hook('return { ...config, resolve: {} };'), /resolve/u],
-    [hook('config.plugins.push(new X());'), /plugins/u],
-    // r4-S2a: another tsconfig means other `paths`; refused rather than modelled.
-    ['export default { typescript: { tsconfigPath: "tsconfig.build.json" } };\n', /tsconfigPath/u],
-    [
-      "import { createRequire } from 'node:module';\nconst r = createRequire(import.meta.url);\nexport default r('./x.cjs');\n",
-      /createRequire/u,
-    ],
-  ];
-  for (const [text, pattern] of refused) rejects(t, { 'apps/web/next.config.mjs': text }, pattern);
-});
-
-test('D-1: next.config imports are reviewed wrappers, builtins or checked local files', t => {
+// The fixed Next configuration: today's exact `next.config.mjs` and helper (by sha256), no other
+// `next.config` file, and the four reviewed wrappers at their reviewed versions without a patch.
+test('D-1: a Next configuration other than the fixed one is refused', t => {
+  const config = REAL_NEXT['apps/web/next.config.mjs'];
+  const notFixed = /is not the fixed configuration's exact file/u;
   rejects(
     t,
-    { 'apps/web/next.config.mjs': "import withX from 'next-x';\nexport default withX({});\n" },
-    /next-x.*not a reviewed/u
+    { ...REAL_NEXT, 'apps/web/next.config.mjs': `${config}\n` },
+    both(notFixed, SCANNER_PR)
   );
   rejects(
     t,
     {
-      'apps/web/next.config.mjs':
-        "import { patch } from './local.mjs';\nexport default patch({});\n",
-      'apps/web/local.mjs':
-        'export const patch = c => ({ ...c, webpack(w) { w.resolve.modules = []; return w; } });\n',
+      ...REAL_NEXT,
+      'apps/web/next.config.mjs': config.replace(
+        'serverExternalPackages',
+        'serverExternalPackages '
+      ),
     },
-    /local\.mjs changes webpack resolution/u
+    both(/next\.config\.mjs is not/u, SCANNER_PR)
   );
   rejects(
     t,
-    { 'apps/web/next.config.mjs': "import './missing.mjs';\nexport default {};\n" },
-    /missing\.mjs.*missing/u
-  );
-  // r4-B3: re-exports and literal `import()` are followed; a load it cannot name is refused.
-  const PATCH =
-    'export const patch = c => ({ ...c, webpack(w) { w.resolve.modules = []; return w; } });\n';
-  rejects(
-    t,
-    {
-      'apps/web/next.config.mjs': "export { default } from './local.mjs';\n",
-      'apps/web/local.mjs': `${PATCH}export default {};\n`,
-    },
-    /local\.mjs changes webpack resolution/u
+    { ...REAL_NEXT, 'apps/web/src/lib/supabase-deployment.mjs': '// changed\n' },
+    both(/supabase-deployment\.mjs is not the fixed/u, SCANNER_PR)
   );
   rejects(
     t,
-    {
-      'apps/web/next.config.mjs':
-        "const { patch } = await import('./local.mjs');\nexport default patch({});\n",
-      'apps/web/local.mjs': PATCH,
-    },
-    /local\.mjs changes webpack resolution/u
+    { ...REAL_NEXT, 'apps/web/src/lib/supabase-deployment.mjs': null },
+    both(/supabase-deployment\.mjs .*is missing/u, SCANNER_PR)
   );
-  rejects(
-    t,
-    { 'apps/web/next.config.mjs': "export * from 'next-x';\nexport default {};\n" },
-    /next-x.*not a reviewed/u
-  );
-  for (const call of ['await import(name)', 'require(name)', "require('./a', 1)"])
+  for (const ext of ['js', 'cjs', 'ts', 'mts', 'cts']) {
     rejects(
       t,
-      { 'apps/web/next.config.mjs': `const name = './a.mjs';\nexport default ${call};\n` },
-      /does not name literally/u
+      { [`apps/web/next.config.${ext}`]: 'export default {};\n' },
+      both(new RegExp(`next\\.config\\.${ext} is not the fixed`, 'u'), SCANNER_PR)
     );
-  // r4-B3: a wrapper is accepted only at the version its review read, from the tree's lockfile.
-  const SENTRY = "import { withSentryConfig } from '@sentry/nextjs';\nexport default {};\n";
-  const lockWith = version =>
-    `lockfileVersion: '9.0'\n\nimporters:\n\n  .:\n    devDependencies:\n      '@sentry/nextjs':\n        specifier: 1.0.0\n        version: 1.0.0\n\n  apps/web:\n    dependencies:\n      '@sentry/nextjs':\n        specifier: ${version}\n        version: ${version}(next@16.4.5)\n\npackages:\n`;
-  rejects(t, { 'apps/web/next.config.mjs': SENTRY }, /pnpm-lock\.yaml is missing/u);
+    rejects(
+      t,
+      { ...REAL_NEXT, [`apps/web/next.config.${ext}`]: 'export default {};\n' },
+      SCANNER_PR
+    );
+  }
+  rejects(t, { ...REAL_NEXT, 'pnpm-lock.yaml': null }, /pnpm-lock\.yaml is missing/u);
+});
+
+test('D-1: a wrapper at another version, or with a pnpm patch, is refused', t => {
+  const lock = REAL_NEXT['pnpm-lock.yaml'];
+  // In the `apps/web` importer, `@sentry/nextjs` resolves `10.75.2(<peers>)`.
+  const sentry = /( {6}'@sentry\/nextjs':\n {8}specifier: [^\n]+\n {8}version: )10\.75\.2/u;
+  assert.match(lock, sentry);
   rejects(
     t,
-    { 'apps/web/next.config.mjs': SENTRY, 'pnpm-lock.yaml': lockWith('10.76.0') },
-    /@sentry\/nextjs 10\.76\.0 is not the reviewed 10\.75\.2/u
+    { ...REAL_NEXT, 'pnpm-lock.yaml': lock.replace(sentry, '$110.76.0') },
+    both(/@sentry\/nextjs 10\.76\.0, not the reviewed 10\.75\.2/u, SCANNER_PR)
   );
-  assert.ok(nextConfig(t, SENTRY, { 'pnpm-lock.yaml': lockWith('10.75.2') }));
-  assert.ok(
-    nextConfig(
-      t,
-      "import path from 'node:path';\nimport fs from 'fs';\nimport { withSentryConfig } from '@sentry/nextjs';\n" +
-        `const dir = path.resolve('.'); require.resolve('x');\n` +
-        hook(
-          'config.resolve.alias["perf_hooks"] = false; config.resolve.alias["@scope/pkg/sub"] = false;'
-        ),
-      { 'pnpm-lock.yaml': lockWith('10.75.2') }
+  // r5: pnpm's own patch group right after the version.
+  rejects(
+    t,
+    {
+      ...REAL_NEXT,
+      'pnpm-lock.yaml': lock.replace(sentry, `$110.75.2(patch_hash=${'a'.repeat(64)})`),
+    },
+    both(/@sentry\/nextjs 10\.75\.2 with a pnpm patch/u, SCANNER_PR)
+  );
+  // r5: a wrapper named in `patchedDependencies`.
+  const patched = lock.replace(
+    /^patchedDependencies:\n/mu,
+    'patchedDependencies:\n  next-intl@4.14.5:\n    hash: abc\n    path: patches/next-intl@4.14.5.patch\n'
+  );
+  assert.notEqual(patched, lock);
+  rejects(
+    t,
+    { ...REAL_NEXT, 'pnpm-lock.yaml': patched },
+    both(/next-intl 4\.14\.5 with a pnpm patch/u, SCANNER_PR)
+  );
+  // A peer's patch (Next's own, inside a wrapper's peer list) is not the wrapper's: the real
+  // lockfile has it on next-axiom and next-intl, and loads (the test above).
+  assert.match(lock, /version: 4\.14\.5\([^\n]*next@[^\n]*patch_hash=/u);
+});
+
+// r5: a query or fragment on a relative or `@/` request is refused (webpack loads the path part
+// through a loader D-1 does not model), except on the two reviewed edges, which name the path part.
+test('D-1: a request with a query or fragment is refused outside the reviewed edges', t => {
+  const resolver = resolverFor(
+    fs.realpathSync(
+      tree(t, {
+        'apps/web/public/offline.html': '<html></html>\n',
+        'packages/database/src/constants.ts': X,
+        [`${W}/components/x.ts`]: X,
+      })
     )
+  );
+  const refused = /a request with a query or fragment; .*scanner PR first/u;
+  for (const spec of [
+    './x?raw',
+    './x#frag',
+    '@/components/x?asset',
+    '../../../../packages/database/src/constants?asset',
+  ])
+    assert.throws(() => resolver.resolveTargets(FROM, spec), refused, spec);
+  assert.throws(() => resolver.resolveTargets(FROM, './x?raw', 'type'), refused);
+  const reviewed = '../../../public/offline.html?raw';
+  for (const from of [
+    `${W}/features/help-now/sw-test-utils.ts`,
+    `${W}/lib/pwa/pwa-i18n-contract.test.ts`,
+  ])
+    assert.deepEqual(resolver.resolveTargets(from, reviewed), ['apps/web/public/offline.html']);
+  // The reviewed specifier from another file, or another query on a reviewed file, is refused.
+  assert.throws(() => resolver.resolveTargets(`${W}/lib/pwa/other.ts`, reviewed), refused);
+  assert.throws(
+    () =>
+      resolver.resolveTargets(
+        `${W}/features/help-now/sw-test-utils.ts`,
+        '../../../public/offline.html?url'
+      ),
+    refused
+  );
+});
+
+test('D-1: a query edge in a linted file makes the scan a scanner error', async t => {
+  await assert.rejects(
+    lint(
+      tree(t, {
+        [`${W}/components/q.tsx`]: "import t from './x?raw';\nexport const Q = () => t;\n",
+        [`${W}/components/x.ts`]: X,
+      })
+    ),
+    /a request with a query or fragment/u
   );
 });
 
