@@ -8,6 +8,15 @@ export type UniqueKey = {
   of: (row: Row) => unknown[];
 };
 
+/** PostgreSQL btrim(text) without characters: strips spaces only, not tabs or newlines. */
+function btrimSpaces(value: string): string {
+  let start = 0;
+  let end = value.length;
+  while (start < end && value[start] === ' ') start++;
+  while (end > start && value[end - 1] === ' ') end--;
+  return value.slice(start, end);
+}
+
 const key = (name: string, ...fields: string[]): UniqueKey => ({
   name,
   columns: fields,
@@ -34,7 +43,7 @@ export const UNIQUE_KEYS: Record<string, readonly UniqueKey[]> = {
     key('user_tenant_id_id_uq', 'tenantId', 'id'),
     expression('user_email_lower_unique', row => [
       // lower(btrim(email)): btrim without characters strips spaces only, not tabs or newlines.
-      typeof row.email === 'string' ? row.email.replace(/^ +| +$/g, '').toLowerCase() : row.email,
+      typeof row.email === 'string' ? btrimSpaces(row.email).toLowerCase() : row.email,
     ]),
   ],
   agentClients: [
