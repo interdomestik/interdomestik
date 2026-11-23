@@ -1,6 +1,6 @@
 import { sql } from '@interdomestik/database';
+import { readDisposableTargetClass } from '@interdomestik/database/constants';
 import type { PilotSwitchKey } from '@interdomestik/database/pilot-switch';
-import { readDisposableTargetClass } from '@interdomestik/database/seed-target-guard';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { resolveTenantClassificationCore } from '@interdomestik/domain-users/admin/resolve-tenant-classification';
@@ -74,11 +74,14 @@ function confirm(userId: string) {
   });
 }
 
+type ContractDatabaseIdentity = { database: string; started: string; pid: number };
+
 export function installIdentityContractHooks() {
   beforeAll(async () => {
     // The app opens the configured admin and RLS pools. The pinned library gets its own
     // connection to the same local database through the existing OTP contract harness.
     if (
+      !process.env.DATABASE_URL_RLS ||
       readDisposableTargetClass(process.env) !== 'local' ||
       (process.env.BETTER_AUTH_CONTRACT_DATABASE_URL &&
         process.env.BETTER_AUTH_CONTRACT_DATABASE_URL !== process.env.DATABASE_URL)
@@ -86,14 +89,22 @@ export function installIdentityContractHooks() {
       throw new Error('Pilot identity contract requires matching isolated local database targets');
     }
     vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', 'tenant_ks');
-    const [library] = await sqlClient<{ pid: number }[]>`select pg_backend_pid() as pid`;
+    const [library] = await sqlClient<ContractDatabaseIdentity[]>`
+      select current_database() as database,
+        extract(epoch from pg_postmaster_start_time())::text as started,
+        pg_backend_pid() as pid
+    `;
     const [classification] = await withTenantAuthority(authority, tx =>
-      tx.execute<{ pid: number; restricted: boolean }>(sql`
-        select pg_backend_pid() as pid, not rolsuper and not rolbypassrls as restricted
+      tx.execute<ContractDatabaseIdentity & { restricted: boolean }>(sql`
+        select current_database() as database,
+          extract(epoch from pg_postmaster_start_time())::text as started,
+          pg_backend_pid() as pid, not rolsuper and not rolbypassrls as restricted
         from pg_roles where rolname = current_user
       `)
     );
     expect(classification?.restricted).toBe(true);
+    expect(classification?.database).toBe(library?.database);
+    expect(classification?.started).toBe(library?.started);
     expect(classification?.pid).not.toBe(library?.pid);
     const stored = await sqlClient<{ key: PilotSwitchKey; value: unknown }[]>`
       select key, value from tenant_settings where tenant_id = 'tenant_ks' and category = 'pilot'

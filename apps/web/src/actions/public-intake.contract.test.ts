@@ -1,3 +1,4 @@
+import { readDisposableTargetClass } from '@interdomestik/database/constants';
 import { PILOT_SWITCH_CATEGORY, PILOT_SWITCH_KEYS } from '@interdomestik/database/pilot-switch';
 import {
   account,
@@ -9,13 +10,15 @@ import {
   tenantSettings,
   user,
 } from '@interdomestik/database/schema';
-import { readDisposableTargetClass } from '@interdomestik/database/seed-target-classification';
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 
 const request = vi.hoisted(() => ({ headers: new Headers() }));
 vi.mock('next/headers', () => ({ headers: async () => request.headers }));
+vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
+
+type ContractDatabaseIdentity = { database: string; started: string };
 
 const tenantId = 'tenant_ks';
 const origin = 'http://ida.localhost:3000';
@@ -117,7 +120,6 @@ describe.runIf(process.env.REQUIRE_PUBLIC_INTAKE_CONTRACT === '1')(
         eq(tenantSettings.category, PILOT_SWITCH_CATEGORY),
         inArray(tenantSettings.key, [...PILOT_SWITCH_KEYS])
       );
-      const previous = await dbAdmin.select().from(tenantSettings).where(existingSettings);
       const fixtureSettings = PILOT_SWITCH_KEYS.map(key => ({
         id: randomUUID(),
         tenantId,
@@ -126,17 +128,28 @@ describe.runIf(process.env.REQUIRE_PUBLIC_INTAKE_CONTRACT === '1')(
         value: { enabled: false, revision: 2 },
       }));
       const now = new Date();
+      let previous: (typeof tenantSettings.$inferSelect)[] | undefined;
 
       try {
         expect(resolvePublicAdmissionTenant(request.headers)).toBe(tenantId);
         const authority = await authorizePublicSiteTenant(tenantId);
         if (!authority)
           throw new Error('The public intake contract requires the active KS tenant.');
+        const [owner] = await dbAdmin.execute<ContractDatabaseIdentity>(sql`
+          select current_database() as database,
+            extract(epoch from pg_postmaster_start_time())::text as started
+        `);
         const [posture] = await withTenantAuthority(authority, tx =>
-          tx.execute<{ bypass: boolean }>(sql`
-            select rolsuper or rolbypassrls as bypass from pg_roles where rolname = current_user`)
+          tx.execute<ContractDatabaseIdentity & { bypass: boolean }>(sql`
+            select current_database() as database,
+              extract(epoch from pg_postmaster_start_time())::text as started,
+              rolsuper or rolbypassrls as bypass
+            from pg_roles where rolname = current_user
+          `)
         );
-        expect(posture).toEqual({ bypass: false });
+        expect(owner).toBeDefined();
+        expect(posture).toEqual({ ...owner, bypass: false });
+        previous = await dbAdmin.select().from(tenantSettings).where(existingSettings);
 
         // A positive control ensures the request and restricted role can see the tenant's switch.
         for (const setting of fixtureSettings) {
@@ -190,6 +203,7 @@ describe.runIf(process.env.REQUIRE_PUBLIC_INTAKE_CONTRACT === '1')(
         expect(await submitFreeStartIntake(facts, intakeKey)).toMatchObject({
           success: false,
           code: 'CLOSED',
+          error: 'CLOSED',
         });
         expect(
           await generateClaimPackAction({
@@ -252,28 +266,30 @@ describe.runIf(process.env.REQUIRE_PUBLIC_INTAKE_CONTRACT === '1')(
         expect(await dbAdmin.select().from(freeStartDrafts).where(ownedDrafts)).toEqual([]);
       } finally {
         try {
-          await dbAdmin.delete(auditLog).where(eq(auditLog.actorId, ownerUserId));
-          await dbAdmin.delete(commercialActionIdempotency).where(reservations);
-          await dbAdmin.delete(memberLeads).where(eq(memberLeads.email, leadEmail));
-          await dbAdmin.delete(freeStartDrafts).where(ownedDrafts);
-          await dbAdmin.delete(session).where(eq(session.userId, ownerUserId));
-          await dbAdmin.delete(account).where(eq(account.userId, ownerUserId));
-          await dbAdmin.delete(user).where(eq(user.id, ownerUserId));
-          await dbAdmin.delete(tenantSettings).where(
-            inArray(
-              tenantSettings.id,
-              fixtureSettings.map(row => row.id)
-            )
-          );
-          for (const row of previous) {
-            await dbAdmin
-              .update(tenantSettings)
-              .set({ value: row.value, updatedAt: row.updatedAt })
-              .where(eq(tenantSettings.id, row.id));
+          if (previous) {
+            await dbAdmin.delete(auditLog).where(eq(auditLog.actorId, ownerUserId));
+            await dbAdmin.delete(commercialActionIdempotency).where(reservations);
+            await dbAdmin.delete(memberLeads).where(eq(memberLeads.email, leadEmail));
+            await dbAdmin.delete(freeStartDrafts).where(ownedDrafts);
+            await dbAdmin.delete(session).where(eq(session.userId, ownerUserId));
+            await dbAdmin.delete(account).where(eq(account.userId, ownerUserId));
+            await dbAdmin.delete(user).where(eq(user.id, ownerUserId));
+            await dbAdmin.delete(tenantSettings).where(
+              inArray(
+                tenantSettings.id,
+                fixtureSettings.map(row => row.id)
+              )
+            );
+            for (const row of previous) {
+              await dbAdmin
+                .update(tenantSettings)
+                .set({ value: row.value, updatedAt: row.updatedAt })
+                .where(eq(tenantSettings.id, row.id));
+            }
           }
         } finally {
-          await Promise.all([dbAdmin.$client.end(), dbRls.$client.end()]);
           vi.unstubAllEnvs();
+          await Promise.all([dbAdmin.$client.end(), dbRls.$client.end()]);
         }
       }
     }, 20_000);

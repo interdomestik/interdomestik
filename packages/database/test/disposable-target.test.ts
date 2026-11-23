@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import test, { beforeEach } from 'node:test';
-import { readDisposableTargetClass } from '../src/seed-target-classification';
+import { readDisposableTargetClass } from '@interdomestik/database/constants';
 import {
   assertDisposableTarget,
   assertSeedTargetAllowed,

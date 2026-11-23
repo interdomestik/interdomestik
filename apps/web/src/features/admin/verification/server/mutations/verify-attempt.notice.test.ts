@@ -28,9 +28,33 @@ describe('verifyCashAttemptCore notice', () => {
     }
   );
 
-  it('keeps the stored decision when the notice fails', async () => {
-    hoisted.notify.mockRejectedValue(new Error('recipient read failed'));
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+  it('reports a pending notice when the notifier returns a failure after commit', async () => {
+    const failure = { success: false };
+    hoisted.notify.mockResolvedValue(failure);
+    using consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+    const result = await verifyCashAttemptCore(ctx, {
+      attemptId: 'att-1',
+      decision: 'reject',
+      note: 'n',
+    });
+
+    expect(result).toMatchObject({ success: true, status: 'rejected', notice: 'pending' });
+    expect(hoisted.updates[0]?.values.status).toBe('rejected');
+    expect(hoisted.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ action: 'VERIFY_PAYMENT_REJECT', entityId: 'att-1' })
+    );
+    expect(hoisted.rollback).not.toHaveBeenCalled();
+    expect(consoleError).toHaveBeenCalledWith('Payment verification notice not sent', {
+      attemptId: 'att-1',
+      err: expect.objectContaining({ cause: failure }),
+    });
+  });
+
+  it('keeps the stored decision when the notice throws', async () => {
+    const err = new Error('recipient read failed');
+    hoisted.notify.mockRejectedValue(err);
+    using consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const result = await verifyCashAttemptCore(ctx, {
       attemptId: 'att-1',
@@ -38,8 +62,11 @@ describe('verifyCashAttemptCore notice', () => {
       note: 'n',
     });
 
-    consoleError.mockRestore();
-    expect(result).toMatchObject({ success: true, status: 'needs_info' });
+    expect(result).toMatchObject({ success: true, status: 'needs_info', notice: 'pending' });
+    expect(consoleError).toHaveBeenCalledWith('Payment verification notice not sent', {
+      attemptId: 'att-1',
+      err,
+    });
   });
 
   it('sends no notice when the decision transaction fails', async () => {

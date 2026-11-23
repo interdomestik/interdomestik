@@ -3,6 +3,11 @@ import { withSentryConfig } from '@sentry/nextjs';
 import { withAxiom } from 'next-axiom';
 import createNextIntlPlugin from 'next-intl/plugin';
 import { PHASE_PRODUCTION_BUILD } from 'next/constants.js';
+import {
+  publicPilotEnvNames,
+  readPilotBuildEnvManifest,
+  refusedPilotEnvNames,
+} from './src/lib/pilot-env-refusals.mjs';
 import { validateSupabaseDeploymentSeparation } from './src/lib/supabase-deployment.mjs';
 
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts');
@@ -144,10 +149,21 @@ const wrappedConfig = withSentryConfig(withAxiom(finalConfig), {
 
 /** @param {string} phase */
 export default function configureNext(phase) {
-  if (phase === PHASE_PRODUCTION_BUILD && builtPilotEnv === undefined) {
-    throw new Error(
-      'Missing INTERDOMESTIK_BUILT_PILOT_ENV. Run pnpm --filter @interdomestik/web build to generate the pilot manifest.'
-    );
+  if (phase === PHASE_PRODUCTION_BUILD) {
+    if (builtPilotEnv === undefined) {
+      throw new Error(
+        'Missing INTERDOMESTIK_BUILT_PILOT_ENV. Run pnpm --filter @interdomestik/web build to generate the pilot manifest.'
+      );
+    }
+
+    const suppliedNames = readPilotBuildEnvManifest(builtPilotEnv);
+    const resolvedNames = publicPilotEnvNames(refusedPilotEnvNames(process.env));
+    if (
+      suppliedNames.length !== resolvedNames.length ||
+      !resolvedNames.every(name => suppliedNames.includes(name))
+    ) {
+      throw new Error('INTERDOMESTIK_BUILT_PILOT_ENV does not match the build environment.');
+    }
   }
 
   return wrappedConfig;

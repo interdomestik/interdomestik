@@ -15,10 +15,10 @@ const STAGING_INGRESS = new Map<string, TenantId | 'door'>([
   ['mk.staging.interdomestik.com', 'tenant_mk'],
 ]);
 
-export function resolvePublicAdmissionTenant(
+export function resolvePublicAdmission(
   requestHeaders: Pick<Headers, 'get'>,
   env: Readonly<Record<string, string | undefined>> = process.env
-): TenantId | null {
+): { kind: 'door' | 'country'; tenantId: TenantId } | null {
   const authority = requestHeaders.get('host')?.toLowerCase();
   if (!authority) {
     return null;
@@ -44,7 +44,21 @@ export function resolvePublicAdmissionTenant(
   }
 
   if (ingress === 'door') {
-    return coerceTenantId(env.DEFAULT_PUBLIC_TENANT_ID);
+    const tenantId = coerceTenantId(env.DEFAULT_PUBLIC_TENANT_ID);
+    if (!tenantId) {
+      return null;
+    }
+    return { kind: 'door', tenantId };
   }
-  return ingress ?? null;
+  if (!ingress) {
+    return null;
+  }
+  return { kind: 'country', tenantId: ingress };
+}
+
+export function resolvePublicAdmissionTenant(
+  requestHeaders: Pick<Headers, 'get'>,
+  env: Readonly<Record<string, string | undefined>> = process.env
+): TenantId | null {
+  return resolvePublicAdmission(requestHeaders, env)?.tenantId ?? null;
 }

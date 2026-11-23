@@ -79,18 +79,24 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
   afterEach(() => vi.unstubAllEnvs());
 
   it('C07 checks a known eligible account after both limits and forwards only matching hints', async () => {
-    const response = await POST(
-      verifyRequest({
-        onboarding: { tenant: 'tenant_ks', mode: 'deferred' },
-        role: 'admin',
-        branchId: 'attacker-branch',
-        memberNumber: 'attacker-member',
-      })
-    );
+    const request = verifyRequest({
+      onboarding: { tenant: 'tenant_ks', mode: 'deferred' },
+      role: 'admin',
+      branchId: 'attacker-branch',
+      memberNumber: 'attacker-member',
+    });
+    const clone = vi.spyOn(request, 'clone');
+    const response = await POST(request);
 
     expect(response.status).toBe(200);
     expect(mocks.lookupAccount).toHaveBeenCalledWith('member@example.com');
     expect(mocks.isPublicIntakeOpen).not.toHaveBeenCalled();
+    expect(mocks.enforceOtpRateLimits.mock.invocationCallOrder[0]).toBeLessThan(
+      clone.mock.invocationCallOrder[0]
+    );
+    expect(clone.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.enforceOtpRateLimits.mock.invocationCallOrder[1]
+    );
     expect(mocks.enforceOtpRateLimits.mock.invocationCallOrder[1]).toBeLessThan(
       mocks.lookupAccount.mock.invocationCallOrder[0]
     );
@@ -167,6 +173,21 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
     expect(mocks.enforceOtpRateLimits).not.toHaveBeenCalled();
     expect(mocks.handlerPost).not.toHaveBeenCalled();
     expect(mocks.getSession).not.toHaveBeenCalled();
+  });
+
+  it('refuses a missing explicit default before the quota, body parse, or account lookup', async () => {
+    vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', undefined);
+    const request = verifyRequest({ onboarding: { tenant: 'tenant_ks', mode: 'deferred' } });
+    const clone = vi.spyOn(request, 'clone');
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ code: 'INVALID_OTP', message: 'Invalid OTP' });
+    expect(mocks.enforceOtpRateLimits).not.toHaveBeenCalled();
+    expect(clone).not.toHaveBeenCalled();
+    expect(mocks.lookupAccount).not.toHaveBeenCalled();
+    expect(mocks.handlerPost).not.toHaveBeenCalled();
   });
 
   it.each([

@@ -1,4 +1,4 @@
-import { readDisposableTargetClass } from '@interdomestik/database/seed-target-classification';
+import { readDisposableTargetClass } from '@interdomestik/database/constants';
 import { test, expect } from '@playwright/test';
 import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';

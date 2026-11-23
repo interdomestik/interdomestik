@@ -222,10 +222,14 @@ export async function verifyCashAttemptCore(
 
   if (pending.notice) {
     try {
-      await notifyPaymentVerificationUpdate(...pending.notice);
+      const result = await notifyPaymentVerificationUpdate(...pending.notice);
+      if (!result.success) {
+        throw new Error('Payment verification notifier returned a failure', { cause: result });
+      }
     } catch (err) {
       // The decision is committed; a failed notice must not report it as failed.
       console.error('Payment verification notice not sent', { attemptId, err });
+      return { ...txResult, notice: 'pending' as const };
     }
   }
 

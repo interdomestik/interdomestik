@@ -8,7 +8,7 @@ The HTTP and RSC surface of the product: route handlers under `app/api/`, export
 
 ## Public API
 
-Password sign-up and unknown-address door OTP sign-up require `pilot/public_intake` for the ingress tenant. Better Auth disables both sign-up mechanisms unless `IDENTITY_PUBLIC_SIGN_UP` is exactly `open`. Door OTP requires known accounts to belong to the door tenant and still have pending tenant classification. Tenant classification confirmation returns `EMAIL_NOT_PROVEN` until the account holder has proven their email.
+Password sign-up and unknown-address door OTP sign-up require `pilot/public_intake` for the ingress tenant. Better Auth disables both sign-up mechanisms unless `IDENTITY_PUBLIC_SIGN_UP` is exactly `open`. Door OTP requires exact door ingress and an explicit default tenant before applying the IP limit or parsing the body. Known accounts must belong to the door tenant and still have pending tenant classification. Tenant classification confirmation returns `EMAIL_NOT_PROVEN` until the account holder has proven their email.
 
 `setPilotSwitch` declares the `super_admin` and `tenant_admin` roles and a strict input schema on `defineAction`. It uses the session's access tenant. The database pilot command requires the current revision and writes the switch and its audit row in one transaction.
 
@@ -19,6 +19,8 @@ The enabled billing-test activation and staff sponsor approval actions report `C
 `importMembers` checks `pilot/new_sales` in each sponsored registration transaction. At the first closed row the action returns `CLOSED` with the partial import summary. Earlier committed rows remain available.
 
 The agent lead payment and status actions return `CLOSED` when `pilot/new_sales` refuses a payment start or a status-only conversion. The lead commands apply the check in the tenant write transaction.
+
+The cash verification action returns the committed decision with `notice: 'pending'` when the agent notification fails after commit.
 
 `apps/web/src/lib/safe-action.ts:14-26` — `ActionResult<T>`, a **promise** of the union `ActionSuccess<T> | ActionError` (`{success:true,data?}` | `{success:false,error,code?,issues?}`): the alias wraps the promise at `:26`, so it types what an action returns, not the awaited value (corrected in the closing pass, review comment R3-C05); `:91-144` — `runAuthenticatedAction(handler)`, which resolves the session, throws on a missing tenant and maps `UnauthorizedError` / `MissingTenantError` to the codes `UNAUTHORIZED` / `MISSING_TENANT` (`:170-176`). Route handlers are reached by path, not by import. `apps/web/src/proxy.ts:8-10` does **not** run for `/api`.
 
@@ -46,7 +48,7 @@ None of its own: this layer writes the tables of `packages/database` through the
 
 WP-10 public intake resolves the tenant from request headers using the release-specific ingress table. The server checks `pilot/public_intake` under the public site authority before action work starts and uses that authority for the effect. Pricing also requires `pilot/new_sales` and a matching checkout tenant. Free Start draft create and update check `pilot/public_intake` under the existing draft session context.
 
-The web build scripts check the release environment before Next inlines public settings. The Node server repeats the check in `instrumentation.ts` at startup. Production refusal messages list variable names.
+The web build scripts check the release environment before Next inlines public settings. The Next production build phase verifies that the supplied manifest matches the refused public names resolved from the build environment. The Node server checks the manifest and runtime environment in `instrumentation.ts` at startup. Production refusal messages list variable names.
 
 The tenant comes from the session's authority, resolved per request (`apps/web/src/lib/tenant-authority.server.ts:27-47`) and carried into `withTenantAuthority`. An exported action that _takes_ an authority argument is safe by construction: a client cannot produce a registered token (`A/modules/tenancy.md:170`). The proxy is not a tenant source and never sees `/api` (`apps/web/src/proxy.ts:8-10`), so route handlers get no proxy-set header and no proxy security header (SEC-07).
 

@@ -32,12 +32,16 @@ vi.mock('better-auth/next-js', () => ({
 
 import { POST } from './route';
 
-function sendRequest(email: string, extra: Record<string, unknown> = {}) {
-  return new Request('https://ida.interdomestik.com/api/auth/email-otp/send-verification-otp', {
+function sendRequest(
+  email: string,
+  extra: Record<string, unknown> = {},
+  host = 'ida.interdomestik.com'
+) {
+  return new Request(`https://${host}/api/auth/email-otp/send-verification-otp`, {
     method: 'POST',
     headers: {
-      host: 'ida.interdomestik.com',
-      origin: 'https://ida.interdomestik.com',
+      host,
+      origin: `https://${host}`,
       'content-type': 'application/json',
       'x-forwarded-for': '203.0.113.8',
     },
@@ -151,9 +155,34 @@ describe('IDA-UI03a0b2 neutral OTP send route', () => {
 
   it('does not use the fallback door tenant when the explicit default is missing', async () => {
     vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', undefined);
-    const response = await POST(sendRequest('registered@example.com'));
+    const request = sendRequest('registered@example.com');
+    const clone = vi.spyOn(request, 'clone');
+    const response = await POST(request);
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ success: true });
+    expect(mocks.enforceOtpRateLimits).not.toHaveBeenCalled();
+    expect(clone).not.toHaveBeenCalled();
+    expect(mocks.lookupAccount).not.toHaveBeenCalled();
+    expect(mocks.handlerPost).not.toHaveBeenCalled();
+  });
+
+  it('requires exact door ingress before the quota and body parse even when IDA_HOST matches', async () => {
+    const host = 'ks.staging.interdomestik.com';
+    vi.stubEnv('INTERDOMESTIK_PRODUCTION', undefined);
+    vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', 'staging');
+    vi.stubEnv('VERCEL', '1');
+    vi.stubEnv('VERCEL_ENV', 'preview');
+    vi.stubEnv('VERCEL_TARGET_ENV', 'preview');
+    vi.stubEnv('IDA_HOST', host);
+    const request = sendRequest('registered@example.com', {}, host);
+    const clone = vi.spyOn(request, 'clone');
+
+    const response = await POST(request);
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toEqual({ success: true });
+    expect(mocks.enforceOtpRateLimits).not.toHaveBeenCalled();
+    expect(clone).not.toHaveBeenCalled();
     expect(mocks.lookupAccount).not.toHaveBeenCalled();
     expect(mocks.handlerPost).not.toHaveBeenCalled();
   });

@@ -27,8 +27,7 @@
     "./testing/tenant-authority": "./src/testing/tenant-authority.ts",
     "./tenant-directory": "./src/tenant-directory.ts",
     "./tenant-authority-context": "./src/tenant-authority-context.ts",
-    "./pilot-switch": "./src/pilot-switch.ts",
-    "./seed-target-classification": "./src/seed-target-classification.ts"
+    "./pilot-switch": "./src/pilot-switch.ts"
   },
   "scripts": {
     "db:generate": "pnpm run generate",

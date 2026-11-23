@@ -26,6 +26,7 @@ beforeEach(() => {
   vi.resetModules();
   vi.stubEnv('SENTRY_VALIDATE_SOURCEMAPS', 'false');
   vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', '[]');
+  vi.stubEnv('NEXT_PUBLIC_BILLING_TEST_MODE', undefined);
 });
 
 afterEach(() => {
@@ -85,6 +86,25 @@ describe('Next rendering configuration', () => {
     expect(config.env?.INTERDOMESTIK_BUILT_PILOT_ENV).toBe('[]');
   });
 
+  it('refuses a stale empty manifest when the build resolves a refused public value', async () => {
+    vi.stubEnv('NEXT_PUBLIC_BILLING_TEST_MODE', 'build-value');
+    const { default: configureNext } = await import('../../next.config.mjs');
+
+    expect(() => configureNext(PHASE_PRODUCTION_BUILD)).toThrow(
+      'INTERDOMESTIK_BUILT_PILOT_ENV does not match the build environment'
+    );
+    expect(() => configureNext(PHASE_PRODUCTION_BUILD)).not.toThrow('build-value');
+  });
+
+  it('refuses a manifest containing a refused public name absent from the build', async () => {
+    vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', '["NEXT_PUBLIC_BILLING_TEST_MODE"]');
+    const { default: configureNext } = await import('../../next.config.mjs');
+
+    expect(() => configureNext(PHASE_PRODUCTION_BUILD)).toThrow(
+      'INTERDOMESTIK_BUILT_PILOT_ENV does not match the build environment'
+    );
+  });
+
   it.each([
     PHASE_ANALYZE,
     PHASE_DEVELOPMENT_SERVER,
@@ -109,6 +129,7 @@ describe('Next rendering configuration', () => {
     vi.stubEnv('CSP_NONCE_MODE', raw);
     vi.stubEnv('INTERDOMESTIK_BUILT_CSP_NONCE_MODE', 'forged');
     vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', '["NEXT_PUBLIC_BILLING_TEST_MODE"]');
+    vi.stubEnv('NEXT_PUBLIC_BILLING_TEST_MODE', '1');
     const { default: configureNext } = await import('../../next.config.mjs');
     const config = configureNext(PHASE_PRODUCTION_BUILD);
 

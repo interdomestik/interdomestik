@@ -168,7 +168,7 @@ async function applyCase(tx: TenantTransaction, input: CaseInput): Promise<Provi
     return 'not_eligible';
   }
   // new_user, immediate, or a handover that fell back to the immediate path.
-  if (kase === 'immediate' && row?.provider !== 'paddle') {
+  if (kase === 'immediate') {
     await assertSponsorSalesOpen(tx, tenantId);
   }
   if (!row) await insertGroupSponsorRow(tx, facts, userId);

@@ -152,6 +152,66 @@ describe.runIf(pilotSalesContractEnabled)(
       }
     }, 30_000);
 
+    it('leaves a member with expired Paddle coverage pending without mail while sales are closed', async () => {
+      const { dbAdmin } = contract!;
+      const year = randomInt(2200, 9000);
+      const now = new Date(Date.UTC(year, 0, 15, 12));
+      const fixture = sponsorFixture({
+        tenantId: 'tenant_ks',
+        enabled: false,
+        termCount: 1,
+        entryCount: 1,
+        year,
+      });
+      const [entry] = fixture.entries;
+      const memberId = `${fixture.prefix}-member`;
+      const { runSponsorProvisioning } =
+        await import('@interdomestik/domain-membership-billing/sponsors/sponsor-jobs');
+
+      await withSponsors(dbAdmin, [fixture], async () => {
+        await dbAdmin.transaction(async tx => {
+          await tx.insert(user).values({
+            id: memberId,
+            tenantId: fixture.tenantId,
+            branchId: fixture.branchId,
+            role: 'member',
+            name: 'Pilot sponsor fixture member',
+            email: entry.email,
+            emailVerified: true,
+            createdAt: now,
+            updatedAt: now,
+          });
+          await tx.insert(subscriptions).values({
+            id: `${memberId}-subscription`,
+            tenantId: fixture.tenantId,
+            userId: memberId,
+            status: 'expired',
+            provider: 'paddle',
+            providerSubscriptionId: `${memberId}-paddle`,
+            currentPeriodEnd: new Date(fixture.terms[0].start),
+            planId: 'standard',
+            planKey: fixture.planKey,
+          });
+          await tx
+            .update(sponsorRosterEntries)
+            .set({ userId: memberId })
+            .where(eq(sponsorRosterEntries.id, entry.id));
+        });
+
+        expect(await runSponsorProvisioning(fixture.work, { now, limit: 1 })).toEqual({
+          processed: 1,
+          failed: 0,
+          outcomes: { sales_closed: 1 },
+        });
+        expect(await entryState(dbAdmin, entry)).toEqual({
+          roster: { outcome: 'pending', userId: memberId, startsAt: null, conflictDecision: null },
+          members: [{ id: memberId }],
+          coverage: [{ provider: 'paddle' }],
+          mail: [],
+        });
+      });
+    }, 30_000);
+
     it('refuses company approval while closed, permits rejection and serializes approval with a flip', async () => {
       const { dbAdmin } = contract!;
       const fixture = sponsorFixture({

@@ -2,12 +2,10 @@ import { auth } from '@/lib/auth';
 import { recordValue } from '@/lib/auth/authority-fields';
 import { lookupNeutralOtpAccountByEmail } from '@/lib/auth/tenant-lookup';
 import { enforceOtpRateLimits } from '@/lib/rate-limit-otp';
-import { resolvePublicAdmissionTenant } from '@/lib/tenant/public-admission-tenant';
 import { isPublicIntakeOpenForTenant } from '@/lib/tenant/public-intake-admission';
-import { coerceTenantId, resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
+import type { TenantId } from '@/lib/tenant/tenant-hosts';
 
 import {
-  evaluateNeutralOtpHost,
   extractNeutralOtpEmail,
   hasValidNeutralVerifyHints,
   otpUnavailable,
@@ -71,18 +69,10 @@ export async function handleNeutralOtpPost(args: {
   request: Request;
   body: unknown;
   kind: NeutralOtpKind;
+  tenantId: TenantId;
   handler: PostHandler;
 }): Promise<Response> {
-  const { request, body, kind, handler } = args;
-  if (!evaluateNeutralOtpHost(request.headers)) return otpUnavailable();
-  const admissionTenant = resolvePublicAdmissionTenant(request.headers);
-  const tenantId = resolveDefaultPublicTenantId();
-  if (
-    admissionTenant !== tenantId ||
-    coerceTenantId(process.env.DEFAULT_PUBLIC_TENANT_ID) !== tenantId
-  ) {
-    return refuseNeutralOtpAccount(kind);
-  }
+  const { request, body, kind, tenantId, handler } = args;
   const email = extractNeutralOtpEmail(body);
   if (!email) return otpUnavailable();
   const otp = recordValue(body)?.otp;
@@ -104,9 +94,9 @@ export async function handleNeutralOtpPost(args: {
   const account = await lookupNeutralOtpAccountByEmail(email);
   let eligible: boolean;
   if (account) {
-    eligible = account.tenantId === admissionTenant && account.tenantClassificationPending === true;
+    eligible = account.tenantId === tenantId && account.tenantClassificationPending === true;
   } else {
-    eligible = await isPublicIntakeOpenForTenant(admissionTenant);
+    eligible = await isPublicIntakeOpenForTenant(tenantId);
   }
   if (!eligible) {
     return refuseNeutralOtpAccount(kind);

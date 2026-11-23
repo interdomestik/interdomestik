@@ -83,6 +83,7 @@ export async function POST(req: Request) {
       request: req,
       body: neutral.body,
       kind: neutralOtp,
+      tenantId: neutral.tenantId,
       handler: request => handler.POST(request as unknown as Parameters<typeof handler.POST>[0]),
     });
   }

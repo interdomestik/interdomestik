@@ -1,4 +1,4 @@
-import { readDisposableTargetClass } from '@interdomestik/database/seed-target-classification';
+import { readDisposableTargetClass } from '@interdomestik/database/constants';
 import { hostedAuthEnvironmentOf, isHostedDeployment } from './auth/deployment-hosts';
 
 export function isAutomatedRuntime(env: NodeJS.ProcessEnv = process.env): boolean {
