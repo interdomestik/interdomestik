@@ -4,7 +4,6 @@ import { spawn } from 'node:child_process';
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { setTimeout as pause } from 'node:timers/promises';
-import { resolveE2eRuntimeUrl } from '../../../../scripts/e2e-runtime-role.mjs';
 import { freePort } from './test/isolated-port';
 
 async function respondsToReadiness(port: number): Promise<boolean> {
@@ -67,6 +66,7 @@ test('the built CI server starts on disposable targets and exits before readines
 
   const adminUrl = process.env.DATABASE_URL;
   if (!adminUrl) throw new Error('Expected the CI lane admin database URL');
+  const { resolveE2eRuntimeUrl } = await import('../../../../scripts/e2e-runtime-role.mjs');
   const env: NodeJS.ProcessEnv = {
     ...process.env,
     ...testInfo.config.webServer?.env,

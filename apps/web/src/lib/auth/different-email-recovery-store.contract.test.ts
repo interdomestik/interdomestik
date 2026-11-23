@@ -37,6 +37,24 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       expect(restored?.value).toEqual(original);
     });
 
+    it('restores a stored switch revision beyond JavaScript integer precision exactly', async () => {
+      const [original] = await support.recoverySql<{ value: string }[]>`
+        update tenant_settings set value = '{"enabled":true,"revision":9007199254740993}'::jsonb
+        where tenant_id = ${support.recoveryTenant} and category = 'pilot' and key = 'public_intake'
+        returning value::text as value
+      `;
+      expect(original?.value).toContain('9007199254740993');
+
+      const restore = await support.openRecoveryContractIntake();
+      await restore();
+
+      const [restored] = await support.recoverySql<{ value: string }[]>`
+        select value::text as value from tenant_settings
+        where tenant_id = ${support.recoveryTenant} and category = 'pilot' and key = 'public_intake'
+      `;
+      expect(restored).toEqual(original);
+    });
+
     it('preserves a committed proof on preflight drift and disables superseded reservations', async () => {
       const owner = await support.createRecoveryOwner('reservation');
       const first = nonce();

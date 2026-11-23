@@ -17,8 +17,8 @@ const challengePattern = (userId: string) => `ida-ui03b:${userId}:%`;
 export const recoveryTenant = 'tenant_ks';
 
 async function readRecoveryContractIntake() {
-  const [previous] = await recoverySql<{ value: unknown }[]>`
-    select value from tenant_settings
+  const [previous] = await recoverySql<{ value: string }[]>`
+    select value::text as value from tenant_settings
     where tenant_id = ${recoveryTenant} and category = 'pilot' and key = 'public_intake'
   `;
   return previous;
@@ -36,7 +36,7 @@ export async function openRecoveryContractIntake() {
   return async () => {
     if (previous) {
       await recoverySql`
-        update tenant_settings set value = ${JSON.stringify(previous.value)}::text::jsonb
+        update tenant_settings set value = ${previous.value}::text::jsonb
         where tenant_id = ${recoveryTenant} and category = 'pilot' and key = 'public_intake'
       `;
     } else {

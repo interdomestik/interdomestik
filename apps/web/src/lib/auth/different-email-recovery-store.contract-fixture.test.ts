@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
 const { fixtureQuery, applicationQuery } = vi.hoisted(() => ({
-  fixtureQuery: vi.fn<(statement: TemplateStringsArray) => unknown>(),
+  fixtureQuery: vi.fn<(statement: TemplateStringsArray, ...parameters: unknown[]) => unknown>(),
   applicationQuery: vi.fn(),
 }));
 
@@ -52,4 +52,28 @@ it('refuses a different live database after only read-only identity probes', asy
   expect(fixtureQuery).toHaveBeenCalledTimes(1);
   expect(fixtureQuery.mock.calls[0][0][0]).toMatch(/^\s*select current_database\(\)/u);
   expect(applicationQuery).toHaveBeenCalledTimes(1);
+});
+
+it('restores the exact switch snapshot and rejects a rounded read-back', async () => {
+  vi.stubEnv('DIFFERENT_EMAIL_RECOVERY_DATABASE_URL', applicationUrl);
+  const original = '{"enabled": true, "revision": 9007199254740993}';
+  const rounded = '{"enabled": true, "revision": 9007199254740992}';
+  fixtureQuery
+    .mockResolvedValueOnce([{ database: 'recovery_test', started: '1', pid: 10 }])
+    .mockResolvedValueOnce([{ value: original }])
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce([{ value: rounded }]);
+  applicationQuery.mockResolvedValue([{ database: 'recovery_test', started: '1', pid: 11 }]);
+  const { openRecoveryContractIntake } =
+    await import('./different-email-recovery-store.contract-test-support');
+
+  const restore = await openRecoveryContractIntake();
+  await expect(restore()).rejects.toThrow();
+
+  const [, [snapshot], , [update, value], [readBack]] = fixtureQuery.mock.calls;
+  expect(snapshot[0]).toContain('select value::text as value');
+  expect(update.join('?')).toContain('set value = ?::text::jsonb');
+  expect(value).toBe(original);
+  expect(readBack).toEqual(snapshot);
 });
