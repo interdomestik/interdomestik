@@ -5,6 +5,7 @@ import {
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { CreateClaimValues } from '@interdomestik/domain-claims/validators/claims';
 
+import { initialClaimEvidenceValidatorFor } from '@/features/claims/upload/server/initial-claim-evidence-validation';
 import { logAuditEvent } from '@/lib/audit';
 import { revalidatePath } from 'next/cache';
 
@@ -20,6 +21,9 @@ export async function updateDraftClaimCore(params: {
   return updateDraftClaimCoreDomain(params, {
     logAuditEvent,
     revalidatePath,
+    validateSubmittedClaimFile: initialClaimEvidenceValidatorFor(params.authority, {
+      actorRole: params.session?.user.role ?? null,
+    }),
   });
 }
 

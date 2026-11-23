@@ -33,8 +33,8 @@ export const LEGACY = new Map([
 
 /** Exact reviewed Git identity and per-entry v2 digests of its full kernel closure. */
 export const KERNEL_ANCHOR = Object.freeze({
-  commit: '97c989ad62e99794a4426a2ed854697b83bb6c7b',
-  tree: 'cd975c118a17883a36419c0fb67e5e66a6f0a36d',
+  commit: '127ebe483bc075a91aa202c915f04bd25aadf2aa',
+  tree: '09035328e2fcdd0713493cee89f3ccbf8512e107',
 });
 export const LEGACY_PINS = new Map([
   [`${DB}/tenant.ts#withTenantContext`, 'v2:28386bc3ebe2bad1cb2d8d516ca100a3a5727da907e5c3cf4a75ba698415ab1b'],

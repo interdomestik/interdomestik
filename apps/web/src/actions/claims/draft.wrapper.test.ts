@@ -42,6 +42,7 @@ describe('claims draft.core', () => {
     expect(domainDraft.updateDraftClaimCore).toHaveBeenCalledWith(params, {
       logAuditEvent,
       revalidatePath,
+      validateSubmittedClaimFile: expect.any(Function),
     });
   });
 
