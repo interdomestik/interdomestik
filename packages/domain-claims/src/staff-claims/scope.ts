@@ -1,4 +1,4 @@
-import { and, claims, eq } from '@interdomestik/database';
+import { and, claims, eq, inArray } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { isNull, or, sql } from 'drizzle-orm';
@@ -21,18 +21,19 @@ export const STAFF_SCOPE_ACCESS_DENIED_ERROR = 'Claim not found or access denied
  * this scope, so a draft is denied like an unknown claim. A malformed lifecycle pair reads as NULL
  * and is denied too.
  */
-export function buildStaffClaimReadScope(args: Omit<StaffClaimScopeArgs, 'tenantId'>) {
+export function buildStaffClaimReadScope(
+  args: Omit<StaffClaimScopeArgs, 'claimId' | 'tenantId'> &
+    ({ claimId: string } | { claimIds: readonly string[] })
+) {
   const submitted = claimLifecycleStatusNotIn(['draft']);
   if (args.role === 'branch_manager' && !args.branchId?.trim()) return sql`false`;
+  const selection =
+    'claimId' in args ? eq(claims.id, args.claimId) : inArray(claims.id, [...args.claimIds]);
   if (args.branchId == null) {
-    return and(
-      eq(claims.id, args.claimId),
-      submitted,
-      or(eq(claims.staffId, args.userId), isNull(claims.staffId))
-    );
+    return and(selection, submitted, or(eq(claims.staffId, args.userId), isNull(claims.staffId)));
   }
 
-  return and(eq(claims.id, args.claimId), submitted, eq(claims.branchId, args.branchId));
+  return and(selection, submitted, eq(claims.branchId, args.branchId));
 }
 
 export function buildScopedStaffClaimWhere(args: StaffClaimScopeArgs) {

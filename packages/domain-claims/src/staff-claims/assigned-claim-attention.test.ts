@@ -180,7 +180,11 @@ describe('getAssignedStaffClaimAttention', () => {
         op: 'and',
         conditions: expect.arrayContaining([
           { op: 'eq', left: 'request.tenant_id', right: 'tenant-1' },
-          { op: 'inArray', left: 'request.claim_id', values: ['claim-1'] },
+          expect.objectContaining({
+            conditions: expect.arrayContaining([
+              { op: 'inArray', left: 'claim.id', values: ['claim-1'] },
+            ]),
+          }),
           { op: 'eq', left: 'request.status', right: 'open' },
           { op: 'eq', left: 'claim.staff_id', right: 'staff-1' },
         ]),
@@ -287,7 +291,11 @@ describe('getAssignedStaffClaimAttention', () => {
       expect.objectContaining({
         conditions: expect.arrayContaining([
           { op: 'eq', left: 'claim.staff_id', right: 'staff-1' },
-          { op: 'eq', left: 'claim.branch_id', right: 'branch-1' },
+          expect.objectContaining({
+            conditions: expect.arrayContaining([
+              { op: 'eq', left: 'claim.branch_id', right: 'branch-1' },
+            ]),
+          }),
         ]),
       })
     );

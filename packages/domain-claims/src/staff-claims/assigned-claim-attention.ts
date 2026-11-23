@@ -15,6 +15,8 @@ import { withTenant } from '@interdomestik/database/tenant-security';
 import { resolveRegisterQueueActor, type RegisterActor } from '../claims/case-register-access';
 import { claimLifecycleStatusNotIn } from '../claims/lifecycle-read-sql';
 import type { ClaimsSession } from '../claims/types';
+import { resolveStaffClaimReader } from './reader-policy';
+import { buildStaffClaimReadScope } from './scope';
 
 export type AssignedClaimAttention = {
   nextActor: 'staff' | 'member' | 'untracked';
@@ -121,9 +123,16 @@ export async function getAssignedStaffClaimAttention(
 ): Promise<Record<string, AssignedClaimAttention>> {
   if (session?.user.role !== 'staff' || !authority) throw new Error('Staff access required');
   if (claimIds.length === 0) return {};
+  const reader = resolveStaffClaimReader(authority);
+  if (
+    reader?.role !== 'staff' ||
+    reader.staffId !== session.user.id ||
+    reader.branchId !== (session.user.branchId?.trim() || null)
+  ) {
+    return deriveAssignedClaimAttention(claimIds, [], now);
+  }
+  const { tenantId, staffId, branchId, role } = reader;
   const register = resolveRegisterQueueActor(session, authority);
-  if (!register) return deriveAssignedClaimAttention(claimIds, [], now);
-  const { tenantId, actor } = register;
 
   return withTenantAuthority(authority, async tx => {
     const rows = await tx
@@ -154,16 +163,16 @@ export async function getAssignedStaffClaimAttention(
       .where(
         and(
           eq(claimInformationRequests.tenantId, tenantId),
-          inArray(claimInformationRequests.claimId, [...claimIds]),
           eq(claimInformationRequests.status, 'open'),
-          eq(claims.staffId, actor.userId),
-          actor.branchId ? eq(claims.branchId, actor.branchId) : undefined,
-          claimLifecycleStatusNotIn(['draft'])
+          eq(claims.staffId, staffId),
+          buildStaffClaimReadScope({ claimIds, userId: staffId, branchId, role })
         )
       )
       .groupBy(claimInformationRequests.claimId);
     const attention = deriveAssignedClaimAttention(claimIds, rows, now);
-    const followUps = await readCaseFollowUps(tx, tenantId, actor, claimIds);
+    const followUps = register
+      ? await readCaseFollowUps(tx, register.tenantId, register.actor, claimIds)
+      : [];
     for (const row of followUps) {
       const item = attention[row.claimId];
       if (row.caseDueAt) recordOverdueFollowUp(item, row.caseDueAt, now, 'case_register');
