@@ -105,31 +105,30 @@ function client(
       ])
     ),
     insert: (table: unknown) => ({
-      values: (input: Row) => {
+      // Single-row and multi-row inserts: every row is checked and conflicts on its own id.
+      values: (input: Row | readonly Row[]) => {
         const name = nameOf(table);
+        const inputs: readonly Row[] = Array.isArray(input) ? input : [input as Row];
         let ignoreConflict = false;
         const promise = Promise.resolve().then(() => {
           check();
           if (name === 'notifications' && state.notificationFault)
             throw new Error('Synthetic notification failure');
-          if (
+          const target = (staged ?? state.rows)[name];
+          // One statement is atomic: a denied or duplicate row stops the batch before any write.
+          const denied = (row: Row) =>
             (!context && state.mode === 'restricted') ||
-            (context && input.tenantId !== context.tenantId)
-          )
-            throw new Error('Fixture write denied');
-          if ((staged ?? state.rows)[name].some(row => row.id === input.id)) {
-            if (ignoreConflict) return false;
+            (context && row.tenantId !== context.tenantId);
+          if (inputs.some(denied)) throw new Error('Fixture write denied');
+          const fresh = inputs.filter(row => !target.some(existing => existing.id === row.id));
+          if (fresh.length < inputs.length && !ignoreConflict)
             throw new Error('Duplicate fixture id');
-          }
-          (staged ?? state.rows)[name].push({
-            createdAt: new Date('2026-10-15T00:00:00Z'),
-            readAt: null,
-            ...input,
-          });
-          return true;
+          for (const row of fresh)
+            target.push({ createdAt: new Date('2026-10-15T00:00:00Z'), readAt: null, ...row });
+          return fresh;
         });
         // The insert is awaitable like a Drizzle builder because it is the write promise itself.
-        const returning = () => promise.then(inserted => (inserted ? [{ id: input.id }] : []));
+        const returning = () => promise.then(inserted => inserted.map(row => ({ id: row.id })));
         const onConflictDoNothing = () => {
           ignoreConflict = true;
           return Object.assign(promise, { returning });

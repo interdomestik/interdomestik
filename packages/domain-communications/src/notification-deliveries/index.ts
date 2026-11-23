@@ -1,4 +1,4 @@
-export { enqueueNotificationDelivery } from './store';
+export { enqueueNotificationDelivery } from './enqueue';
 export { notificationDeliveryKey, type EnqueueDelivery } from './keys';
 export { listFailedNotificationDeliveries, redriveNotificationDelivery } from './failed';
 export type { DeliveryDependencies, RunSummary } from './types';

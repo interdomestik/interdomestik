@@ -12,7 +12,7 @@ import { CLAIM_MAIL_COPY } from '../claim-mail';
 import { resolveRecipientLocale } from '../recipient-locale';
 import { enqueueClaimInboxNotification } from './in-app';
 import { notificationDeliveryKey, type EnqueueDelivery } from './keys';
-import { enqueueNotificationDelivery } from './store';
+import { enqueueNotificationDelivery } from './enqueue';
 
 export async function lockClaimNotificationRecipient(
   tx: TenantTransaction,

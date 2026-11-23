@@ -4,7 +4,7 @@ import { randomUUID } from 'node:crypto';
 import { CLAIM_MAIL_COPY } from '../claim-mail';
 import { enqueueClaimInboxNotifications } from './in-app';
 import { notificationDeliveryKey } from './keys';
-import { enqueueNotificationDeliveries } from './store';
+import { enqueueNotificationDeliveries } from './enqueue';
 
 type ClaimScope = { tenantId: string; claimId: string };
 type StaffRecipient = {
