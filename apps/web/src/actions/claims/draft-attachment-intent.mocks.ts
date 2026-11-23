@@ -1,17 +1,29 @@
 import { vi } from 'vitest';
 
-vi.mock('@/lib/storage/service-role', async () => {
-  const { db } = await import('./draft-attachment-intent.state');
-  return {
-    listTenantObjectsForSingleFile: db.storage.list,
-    removeTenantObject: db.storage.remove,
-    usesDeterministicE2EStorage: () => false,
-  };
-});
-vi.mock('@/lib/storage/object-prefix', async () => {
-  const { db } = await import('./draft-attachment-intent.state');
-  return { readTenantObjectPrefix: db.storage.prefix, readTenantObjectTail: db.storage.tail };
-});
+// Synchronous factories that reach the shared doubles at call time: an async factory can lose a
+// race when two files are verified in parallel and hand one of them the real storage module.
+const storage = () => import('./draft-attachment-intent.state').then(({ db }) => db.storage);
+vi.mock('@/lib/storage/service-role', () => ({
+  listTenantObjectsForSingleFile: async (...args: unknown[]) => (await storage()).list(...args),
+  removeTenantObject: async (...args: unknown[]) => (await storage()).remove(...args),
+  usesDeterministicE2EStorage: () => false,
+}));
+// The storage boundary itself, for any path that still reaches the real storage module.
+vi.mock('@interdomestik/database', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database')>()),
+  createAdminClient: () => ({
+    storage: {
+      from: () => ({
+        list: async (...args: unknown[]) => (await storage()).list(...args),
+        remove: async (...args: unknown[]) => (await storage()).remove(...args),
+      }),
+    },
+  }),
+}));
+vi.mock('@/lib/storage/object-prefix', () => ({
+  readTenantObjectPrefix: async (...args: unknown[]) => (await storage()).prefix(...args),
+  readTenantObjectTail: async (...args: unknown[]) => (await storage()).tail(...args),
+}));
 vi.mock('@interdomestik/database/claim-evidence-object-lock', async () => {
   const { db } = await import('./draft-attachment-intent.state');
   return {

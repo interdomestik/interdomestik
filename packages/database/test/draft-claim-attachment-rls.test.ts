@@ -1,7 +1,5 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
-import { type SQL } from 'drizzle-orm';
-import { PgDialect } from 'drizzle-orm/pg-core';
 import postgres from 'postgres';
 
 // The real member-upload role rule the web validator applies (a pure module, no runtime deps).
@@ -11,13 +9,13 @@ import { assertDisposableUrl, openDisposableClient } from '../src/disposable-cli
 import {
   BUCKET,
   draftAttachmentHarness,
-  EDITED_TITLE,
   evidence,
   initialPath,
   INVALID_PATH_REFUSAL,
   KS,
   MK,
   objectLockKey,
+  recordingTransaction as recording,
   rowId,
   seedDraftFixtures,
   session,
@@ -104,32 +102,36 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
         },
       ]
     );
-    const resent: Partial<typeof fileX> = { ...fileX };
-    delete resent.uploadIntentToken;
-    const neverVerify: Validator = () => Promise.reject(new Error('no-op must not be verified'));
-    assert.deepEqual(await h.update(session(member), draftA, [resent], neverVerify), {
+    // A re-send is verified like a new file; once verified it is not inserted again.
+    const verified: string[] = [];
+    const recordingValidator: Validator = () => {
+      verified.push(fileX.path);
+      return Promise.resolve();
+    };
+    assert.deepEqual(await h.update(session(member), draftA, [fileX], recordingValidator), {
       success: true,
     });
+    assert.deepEqual(verified, [fileX.path]);
     assert.equal((await h.rowsOf(draftA)).length, 1);
-    // Ownership and this draft's attachments come from one statement: once the draft changes
-    // hands, its former owner reads none of its attachments, whatever an earlier check saw.
-    const ownedRead = (ownerId: string) =>
-      withTenantAuthority(h.authorityOf(session(ownerId)), tx =>
-        attachments.readOwnedDraftAttachments(tx, {
-          claimId: draftA,
-          ownerId,
-          tenantId: KS,
-          files: [fileX],
-        })
+
+    // The re-read row-locks what it finds until commit: a row the decision rests on can be
+    // neither deleted nor moved by another connection meanwhile.
+    await withTenantAuthority(h.authorityOf(session(member)), async tx => {
+      const rows = await attachments.readAttachedObjects(tx, {
+        tenantId: KS,
+        files: [fileX],
+        lockRows: true,
+      });
+      assert.equal(rows.length, 1);
+      await assert.rejects(
+        admin.begin(async other => {
+          await other`set local lock_timeout = '300ms'`;
+          await other`delete from claim_documents where claim_id = ${draftA} and file_path = ${fileX.path}`;
+        }),
+        { code: '55P03' }
       );
-    assert.equal((await ownedRead(member)).length, 1);
-    await admin`update "claim" set "userId" = ${otherMember} where id = ${draftA}`;
-    try {
-      assert.deepEqual(await ownedRead(member), []);
-      assert.equal((await ownedRead(otherMember)).length, 1);
-    } finally {
-      await admin`update "claim" set "userId" = ${member} where id = ${draftA}`;
-    }
+    });
+    assert.equal((await h.rowsOf(draftA)).length, 1);
     // The same object on a second draft of the same member is refused.
     assert.deepEqual(await h.update(session(member), draftB, [fileX]), INVALID_PATH_REFUSAL);
     assert.equal(await h.titleOf(draftB), TITLE);
@@ -156,23 +158,6 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
       () => h.insertDocument(draftC, fileZ.path, member)
     );
     await assert.rejects(submitCheck, { name: 'ClaimValidationError', code: 'INVALID_PATH' });
-
-    // The lock only executes statements; this runs them on one postgres.js transaction and keeps
-    // the ids it locks, in the order it locks them.
-    const dialect = new PgDialect();
-    const recording = (conn: postgres.TransactionSql) => {
-      const lockedIds: bigint[] = [];
-      const tx = {
-        execute: (statement: SQL) => {
-          const query = dialect.sqlToQuery(statement);
-          if (query.sql.includes('pg_advisory_xact_lock')) {
-            lockedIds.push(BigInt(String(query.params[0])));
-          }
-          return conn.unsafe(query.sql, query.params as never[]);
-        },
-      };
-      return { lockedIds, tx: tx as never };
-    };
 
     // It refuses an isolation level whose snapshot would miss the previous holder's commit, before
     // it takes any lock, also when the caller only re-reads (nothing to lock).
@@ -252,9 +237,14 @@ test('R-37 draft attachments: refusal, rollback and object locks under the restr
     });
     assert.equal(await h.titleOf(auditorDraft), TITLE, 'a refused mixed request keeps the fields');
     assert.deepEqual(await h.rowsOf(auditorDraft), auditorRowsBefore);
-    assert.deepEqual(await auditorUpdate([fileOld]), { success: true });
+    // Every file is verified, a re-send too: the read-only owner is refused it as well.
+    assert.deepEqual(await auditorUpdate([fileOld]), {
+      success: false,
+      error: 'evidence_upload_forbidden',
+      code: 'INVALID_PATH',
+    });
     assert.deepEqual(await h.rowsOf(auditorDraft), auditorRowsBefore);
-    assert.equal(await h.titleOf(auditorDraft), EDITED_TITLE);
+    assert.equal(await h.titleOf(auditorDraft), TITLE);
 
     // A failing insert after the claim update rolls the update back.
     await admin.unsafe(`revoke insert on "claim_documents" from ${quoteIdentifier(TEST_DB_ROLE)}`);

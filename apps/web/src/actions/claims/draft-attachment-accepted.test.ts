@@ -53,12 +53,19 @@ describe('updateDraftClaim attachments — accepted', () => {
     expect(db.writeTxId).toBeGreaterThan(0);
   });
 
-  it('takes the isolation-checking lock call for a re-send-only update too', async () => {
-    const file = withoutToken(initialFile());
+  it('locks and row-locks a re-sent file of this draft, and does not insert it again', async () => {
+    const file = initialFile();
     db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }];
 
     await expect(update([file])).resolves.toEqual({ success: true });
-    expect(db.locks).toEqual([{ objects: [], tenantId: TENANT, txId: db.writeTxId }]);
+    expect(db.locks).toEqual([
+      {
+        objects: [expect.objectContaining({ path: file.path })],
+        tenantId: TENANT,
+        txId: db.writeTxId,
+      },
+    ]);
+    expect(db.rowLocks).toEqual(['share']);
     expect(db.inserted).toHaveLength(0);
   });
 
@@ -76,27 +83,28 @@ describe('updateDraftClaim attachments — accepted', () => {
     ]);
   });
 
-  it('lets a read-only owner edit text and re-send an attached file', async () => {
+  it('lets a read-only owner edit text without files, and refuses its re-send of a file', async () => {
     actAsOwnerWithRole('auditor');
+    await expect(update([])).resolves.toEqual({ success: true });
+
     const file = withoutToken(initialFile());
     db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }];
-
-    await expect(update([file])).resolves.toEqual({ success: true });
+    await expect(update([file])).resolves.toMatchObject({ success: false, code: 'INVALID_PATH' });
+    expect(db.updatedClaims).toBe(1);
     expect(db.inserted).toHaveLength(0);
   });
 
-  it('treats a re-sent file of this claim as a no-op, even with an expired or missing token', async () => {
+  it('verifies a re-sent file of this draft like a new one: refused without a valid intent', async () => {
     const file = withoutToken(initialFile());
     db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }];
 
-    await expect(update([file])).resolves.toEqual({ success: true });
-    expect(db.updatedClaims).toBe(1);
+    await expect(update([file])).resolves.toMatchObject({ success: false, code: 'INVALID_PATH' });
+    expect(db.updatedClaims).toBe(0);
     expect(db.inserted).toHaveLength(0);
-    expect(db.storage.list).not.toHaveBeenCalled();
   });
 
   it('inserts only the new file when an existing one is re-sent with it', async () => {
-    const existing = withoutToken(initialFile({ fileId: 'file-0' }));
+    const existing = initialFile({ fileId: 'file-0' });
     db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: existing.path }];
     const fresh = initialFile();
 

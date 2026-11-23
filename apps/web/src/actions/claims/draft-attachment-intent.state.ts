@@ -19,8 +19,8 @@ export const db = {
   /** When set, consumed by the next document read instead of the stored rows. */
   nextReads: [] as DocumentRow[][],
   updatedClaims: 0,
-  /** False models a draft that changed hands after the ownership check, before the joined read. */
-  callerOwnsAtRead: true,
+  /** Row-lock strengths the command asked for on its document reads. */
+  rowLocks: [] as string[],
   /** The transaction that updated the claim, once one did. */
   writeTxId: 0,
   txSequence: 0,
@@ -52,15 +52,17 @@ export async function withTenantAuthorityDouble(
     execute: () => Promise.reject(new Error('unexpected raw statement')),
     select: () => ({
       from: () => ({
-        // Tenant-wide read of the rows holding the requested paths.
-        where: () => Promise.resolve(nextRows()),
-        // Owner-joined read: this draft's rows, only while the caller still owns it.
-        innerJoin: () => ({
-          where: () =>
-            Promise.resolve(
-              db.callerOwnsAtRead ? nextRows().filter(row => row.claimId === CLAIM) : []
-            ),
-        }),
+        // Tenant-wide read of the rows holding the requested paths; `.for('share')` records that
+        // the write transaction row-locked what it read.
+        where: () => {
+          const rows = Promise.resolve(nextRows());
+          return Object.assign(rows, {
+            for: (strength: string) => {
+              db.rowLocks.push(strength);
+              return rows;
+            },
+          });
+        },
       }),
     }),
     update: () => ({

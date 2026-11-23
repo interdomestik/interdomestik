@@ -109,10 +109,13 @@ export function resetDraftAttachmentFixture(): void {
   db.inserted = [];
   db.updatedClaims = 0;
   db.updateMatches = true;
-  db.callerOwnsAtRead = true;
+  db.rowLocks = [];
   db.storage.remove.mockResolvedValue({ error: null });
   db.storage.list.mockResolvedValue({
-    data: [{ name: 'file-1-proof.pdf', metadata: { size: 100, mimetype: 'application/pdf' } }],
+    data: ['file-0', 'file-1', 'file-2'].map(fileId => ({
+      name: `${fileId}-proof.pdf`,
+      metadata: { size: 100, mimetype: 'application/pdf' },
+    })),
     error: null,
   });
   db.storage.prefix.mockResolvedValue(new TextEncoder().encode('%PDF-1.7\n'));

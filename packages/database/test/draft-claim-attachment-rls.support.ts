@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { type SQL } from 'drizzle-orm';
+import { PgDialect } from 'drizzle-orm/pg-core';
 import postgres from 'postgres';
 
 import { mintTestTenantAuthority } from '../src/testing/tenant-authority';
@@ -50,6 +52,26 @@ export function evidence(path: string, fileId: string) {
     category: 'evidence' as const,
     uploadIntentToken: 'verified-by-stub',
   };
+}
+
+const dialect = new PgDialect();
+
+/**
+ * A stand-in for a tenant transaction for code that only executes statements: runs them on one
+ * postgres.js transaction and keeps the ids passed to `pg_advisory_xact_lock`, in order.
+ */
+export function recordingTransaction(conn: postgres.TransactionSql) {
+  const lockedIds: bigint[] = [];
+  const tx = {
+    execute: (statement: SQL) => {
+      const query = dialect.sqlToQuery(statement);
+      if (query.sql.includes('pg_advisory_xact_lock')) {
+        lockedIds.push(BigInt(String(query.params[0])));
+      }
+      return conn.unsafe(query.sql, query.params as never[]);
+    },
+  };
+  return { lockedIds, tx: tx as never };
 }
 
 export function session(id: string, tenantId = KS, role = 'member'): Session {
@@ -163,9 +185,16 @@ export function draftAttachmentHarness(
       locked(Number(pid));
       await released;
     });
+    // A holder that fails before it locks rejects here instead of leaving the waiter hanging.
+    const holderStarted = Promise.race([
+      lockTaken,
+      done.then(() => {
+        throw new Error('the lock holder ended before it took the lock');
+      }),
+    ]);
     let outcome: Promise<T> | undefined;
     try {
-      const holderPid = await lockTaken;
+      const holderPid = await holderStarted;
       outcome = contender();
       outcome.catch(() => undefined);
       await waitForBlockedBy(holderPid);

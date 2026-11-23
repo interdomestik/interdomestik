@@ -205,42 +205,29 @@ describe('updateDraftClaim attachments — refused without a verified upload int
     expectNothingWritten();
   });
 
-  it('rolls back with a conflict when a no-op row vanished before the write', async () => {
-    const file = withoutToken(initialFile());
-    db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }];
-    db.nextReads = [[...db.documents], []];
+  it.each([
+    ['a member whose draft changed hands or state after the check', 'member', false],
+    ['a branch manager owning the draft', 'branch_manager', true],
+    ['an agent owning the draft', 'agent', true],
+  ])(
+    'answers %s the same whether or not the draft holds the path',
+    async (_who, role, updateMatches) => {
+      actAsOwnerWithRole(role);
+      db.updateMatches = updateMatches;
+      const file = withoutToken(initialFile());
+      const absent = await update([file]);
+      db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }];
 
-    await expect(update([file])).resolves.toMatchObject({ success: false, code: 'CONFLICT' });
-    expectNothingWritten();
-  });
-
-  it('answers a former owner the same whether or not the draft holds the path', async () => {
-    // The draft changes hands after the ownership check: the joined read and the update see it.
-    const file = withoutToken(initialFile());
-    db.callerOwnsAtRead = false;
-    db.updateMatches = false;
-    const absent = await update([file]);
-    db.documents = [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }];
-
-    await expect(update([file])).resolves.toEqual(absent);
-    expect(absent).toMatchObject({ success: false, code: 'INVALID_PATH' });
-    expectNothingWritten();
-  });
-
-  it('rolls back with a conflict when a no-op row moved to another claim before the write', async () => {
-    const file = withoutToken(initialFile());
-    db.nextReads = [
-      [{ bucket: BUCKET, claimId: CLAIM, filePath: file.path }],
-      [{ bucket: BUCKET, claimId: OTHER_CLAIM, filePath: file.path }],
-    ];
-
-    await expect(update([file])).resolves.toMatchObject({ success: false, code: 'CONFLICT' });
-    expectNothingWritten();
-  });
+      await expect(update([file])).resolves.toEqual(absent);
+      expect(absent).toMatchObject({ success: false, code: 'INVALID_PATH' });
+      expectNothingWritten();
+    }
+  );
 
   it('rolls back when another claim attached the object between verification and write', async () => {
     const file = initialFile();
-    db.nextReads = [[], [{ bucket: BUCKET, claimId: OTHER_CLAIM, filePath: file.path }]];
+    // Verification read nothing; the in-transaction re-read finds it on another claim.
+    db.nextReads = [[{ bucket: BUCKET, claimId: OTHER_CLAIM, filePath: file.path }]];
 
     await expect(update([file])).resolves.toMatchObject({ success: false, code: 'INVALID_PATH' });
     expectNothingWritten();
