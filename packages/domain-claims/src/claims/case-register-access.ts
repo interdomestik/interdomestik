@@ -48,7 +48,7 @@ export const registerId = z
   .min(1)
   .refine(value => !value.includes('\u0000'));
 // PostgreSQL returns UUIDs in lower case; replay and basis lookups compare them as strings.
-export const registerUuid = z.uuid().transform(value => value.toLowerCase());
+export const registerUuid = z.uuid().toLowerCase();
 export const registerClaimInput = z.object({ claimId: registerId }).strict();
 
 const adminRoles = new Set<string>([ROLES.admin, ROLES.tenant_admin]);

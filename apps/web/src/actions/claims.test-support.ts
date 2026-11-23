@@ -196,11 +196,11 @@ export function resetClaimActionMocks() {
   process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET = 'claim-evidence';
 }
 
-export function retailClaimFormData(claimAmount?: string): FormData {
+export function openCategoryClaimFormData(claimAmount?: string): FormData {
   const formData = new FormData();
   formData.append('title', 'Test Claim');
   formData.append('companyName', 'Bad Company');
-  formData.append('category', 'retail');
+  formData.append('category', 'property');
   if (claimAmount !== undefined) formData.append('claimAmount', claimAmount);
   return formData;
 }
