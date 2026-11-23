@@ -27,7 +27,7 @@ import {
   requestedBuyer,
   type SaleBuyer,
 } from './sale-buyers';
-import { claimSale, replaySale, saleHash, saleResult } from './sale-claim';
+import { claimSale, replaySale, SaleInputRefusal, saleHash, saleResult } from './sale-claim';
 import { recordSaleInputSchema, validateSaleBuyer, type SaleInput } from './sale-input';
 import { readSaleOffer } from './sale-offer';
 
@@ -45,10 +45,26 @@ function prepareSale(authority: TenantAuthority, input: unknown, actor: SaleActo
   return { ok: true, principal, input: { ...parsed.data, buyer: buyer.buyer } } as const;
 }
 
-export async function recordSale(authority: TenantAuthority, input: unknown, actor: SaleActor) {
+type RecordSaleResult =
+  | Awaited<ReturnType<typeof saveSale>>
+  | Extract<ReturnType<typeof prepareSale>, { ok: false }>
+  | { ok: false; code: 'invalid'; issues: SaleInputRefusal['issues'] };
+
+export async function recordSale(
+  authority: TenantAuthority,
+  input: unknown,
+  actor: SaleActor
+): Promise<RecordSaleResult> {
   const sale = prepareSale(authority, input, actor);
   if (!sale.ok) return sale;
-  return withTenantAuthority(authority, tx => saveSale(tx, sale.principal, sale.input));
+  try {
+    return await withTenantAuthority(authority, tx => saveSale(tx, sale.principal, sale.input));
+  } catch (error) {
+    if (error instanceof SaleInputRefusal) {
+      return { ok: false, code: 'invalid', issues: error.issues };
+    }
+    throw error;
+  }
 }
 
 export async function recordSaleInTx(
@@ -56,13 +72,18 @@ export async function recordSaleInTx(
   authority: TenantAuthority,
   input: unknown,
   actor: SaleActor
-) {
+): Promise<RecordSaleResult> {
   if (activeSaleTransactions.has(tx)) return { ok: false, code: 'invalid' } as const;
   const sale = prepareSale(authority, input, actor);
   if (!sale.ok) return sale;
   activeSaleTransactions.add(tx);
   try {
     return await saveSale(tx, sale.principal, sale.input);
+  } catch (error) {
+    if (error instanceof SaleInputRefusal) {
+      return { ok: false, code: 'invalid', issues: error.issues };
+    }
+    throw error;
   } finally {
     activeSaleTransactions.delete(tx);
   }

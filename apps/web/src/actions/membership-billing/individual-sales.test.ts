@@ -245,4 +245,33 @@ describe('recordSale input validation', () => {
     expect(mocks.sell).not.toHaveBeenCalled();
     expect(mocks.write).not.toHaveBeenCalled();
   });
+
+  it('returns the same validation response for a refused key from the command', async () => {
+    const issues = { operationKey: 'too_big' };
+    mocks.sell.mockResolvedValue({ ok: false, code: 'invalid', issues });
+
+    expect(await recordSale(saleInput)).toStrictEqual({
+      success: false,
+      code: 'VALIDATION_ERROR',
+      error: 'Invalid input',
+      issues,
+    });
+    expect(mocks.sell).toHaveBeenCalledExactlyOnceWith(
+      authorized.authority,
+      saleInput,
+      authorized.session.user
+    );
+    expect(mocks.write).not.toHaveBeenCalled();
+  });
+
+  it('preserves a plain invalid command response as a business failure', async () => {
+    mocks.sell.mockResolvedValue({ ok: false, code: 'invalid' });
+
+    expect(await recordSale(saleInput)).toStrictEqual({
+      success: false,
+      code: 'invalid',
+      error: 'Request failed',
+    });
+    expect(mocks.write).not.toHaveBeenCalled();
+  });
 });

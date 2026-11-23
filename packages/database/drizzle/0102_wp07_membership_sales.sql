@@ -476,8 +476,10 @@ BEGIN
       public.membership_plan_versions, public.membership_sale_claims,
       public.membership_sales, public.membership_ledger_entries FROM interdomestik_runtime_rls;
     GRANT SELECT ON public.membership_sale_kinds, public.membership_sale_channels TO interdomestik_runtime_rls;
-    GRANT SELECT, INSERT ON public.membership_plan_versions, public.membership_sale_claims,
+    GRANT SELECT, INSERT ON public.membership_plan_versions,
       public.membership_sales, public.membership_ledger_entries TO interdomestik_runtime_rls;
+    GRANT INSERT ON public.membership_sale_claims TO interdomestik_runtime_rls;
+    GRANT SELECT (tenant_id, operation_key, request_hash) ON public.membership_sale_claims TO interdomestik_runtime_rls;
     GRANT UPDATE (withdrawn_at, withdrawn_by) ON public.membership_plan_versions TO interdomestik_runtime_rls;
   END IF;
 END;

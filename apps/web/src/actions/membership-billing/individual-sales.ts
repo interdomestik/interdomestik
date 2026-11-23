@@ -65,6 +65,9 @@ export const recordSale = defineAction({
     const buyer = validateSaleBuyer(input.buyer);
     if (!buyer.ok) return actionFailure('VALIDATION_ERROR', undefined, { issues: buyer.issues });
     const result = await sell(authority, input, session.user);
+    if ('issues' in result) {
+      return actionFailure('VALIDATION_ERROR', undefined, { issues: result.issues });
+    }
     return result.ok ? result.sale : saleFailure(result.code);
   },
 });

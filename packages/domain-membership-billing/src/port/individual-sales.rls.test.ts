@@ -11,6 +11,7 @@ import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { registerClaimErrorCases } from '../test/individual-sales/individual-sale-claim-errors.test-support';
 import { registerCoverageCases } from '../test/individual-sales/individual-sale-coverage.test-support';
 import {
   directSaleRow,
@@ -114,6 +115,7 @@ describe.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
     });
 
     registerOfferCases(fixture);
+    registerClaimErrorCases(fixture);
     registerInvariantCases(fixture);
     registerScopeCases(fixture);
     registerRaceCases(fixture);
