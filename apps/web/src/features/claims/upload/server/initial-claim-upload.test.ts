@@ -15,6 +15,7 @@ import {
   verifyInitialClaimUploadIntentToken,
 } from './initial-claim-upload';
 import { validateInitialClaimEvidenceUpload } from './initial-claim-evidence-validation';
+import { createClaimUploadIntentToken } from './claim-upload-intent';
 vi.mock('./validate-evidence-content', () => ({
   validateEvidenceContent: vi.fn().mockResolvedValue({ success: true }),
 }));
@@ -71,6 +72,24 @@ describe('initial claim upload intents', () => {
         tenantId: 'tenant-1',
       })
     ).toEqual({
+      success: false,
+      error: 'Upload confirmation expired. Please retry upload.',
+    });
+  });
+
+  it('rejects a claim-bound intent even when it names the exact initial path and metadata', () => {
+    const params = {
+      actorId: 'member-1',
+      bucket: 'claim-evidence',
+      fileId: 'evidence-123',
+      fileSize: 1024,
+      mimeType: 'application/pdf',
+      storagePath: 'pii/tenants/tenant-1/claims/member-1/unassigned/evidence-123-receipt.pdf',
+      tenantId: 'tenant-1',
+    };
+    const claimBound = createClaimUploadIntentToken({ ...params, claimId: 'claim-2' });
+
+    expect(verifyInitialClaimUploadIntentToken({ ...params, intentToken: claimBound })).toEqual({
       success: false,
       error: 'Upload confirmation expired. Please retry upload.',
     });

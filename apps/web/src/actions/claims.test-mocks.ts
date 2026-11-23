@@ -13,6 +13,9 @@ vi.mock('@interdomestik/domain-membership-billing/subscription', async importOri
   };
 });
 vi.mock('@/lib/auth', async () => (await import('./claims.test-support')).authModuleMock());
+vi.mock('@interdomestik/database/claim-evidence-object-lock', async () =>
+  (await import('./claims.test-support')).claimEvidenceObjectLockModuleMock()
+);
 vi.mock('@interdomestik/database/claim-number', async () =>
   (await import('./claims.test-support')).claimNumberModuleMock()
 );
