@@ -11,8 +11,8 @@ import ts from 'typescript';
 // tests for any change below them.
 export const AREA_ROOTS = Object.freeze(['scripts/ci', 'apps/web']);
 
-// A call that enumerates a directory, or a Git listing argument, makes the file a scanner. Only
-// parsed calls and string arguments count, never comments or prose.
+// A call that enumerates a directory, or `ls-files` passed as a command argument, makes the file a
+// scanner. Only parsed calls and arguments count, never comments or prose.
 const SCAN_CALLS = new Set([
   'readdirSync',
   'readdir',
@@ -23,7 +23,12 @@ const SCAN_CALLS = new Set([
   'walkSync',
   'walk',
 ]);
-const LS_FILES = /^(?:git\s+)?ls-files(?:\s|$)/u;
+const LS_FILES_COMMAND = /^git\s+ls-files(?:\s|$)/u;
+// The same in a shell or Python helper, outside comment lines.
+const TEXT_SCANNER =
+  /\bgit\s+ls-files\b|\bos\.(?:walk|listdir|scandir)\b|\b(?:i?glob|rglob|iterdir)\(/u;
+// A quoted string in a shell or Python helper is one candidate path, spaces included.
+const QUOTED = /"([^"\n]*)"|'([^'\n]*)'/gu;
 const JS_SOURCE = /\.(?:[cm]?[jt]s|[jt]sx)$/u;
 const SHELL_SOURCE = /\.(?:sh|bash|zsh|py)$/u;
 // Separators between candidate paths in a non-JavaScript script.
@@ -57,15 +62,36 @@ function stripLeadingSlashes(text) {
   return text.slice(start);
 }
 
+const isArgument = node =>
+  ts.isArrayLiteralExpression(node.parent) ||
+  (ts.isCallExpression(node.parent) && node.parent.arguments.includes(node));
+const listsFiles = node =>
+  isArgument(node) && (node.text === 'ls-files' || LS_FILES_COMMAND.test(node.text));
+
+// Shell and Python helpers: quoted strings and the words between separators are candidates;
+// comment lines are skipped.
+function parseText(source) {
+  const code = source
+    .split('\n')
+    .filter(line => !line.trimStart().startsWith('#'))
+    .join('\n');
+  const quoted = [...code.matchAll(QUOTED)].map(match => match[1] ?? match[2]);
+  const words = code.split(TEXT_SEPARATORS);
+  return {
+    texts: [...quoted, ...words].map(stripLeadingSlashes),
+    scanner: TEXT_SCANNER.test(code),
+  };
+}
+
 // The candidate path texts of one source, and whether it scans directories.
 export function parseSource(file, source) {
-  if (!JS_SOURCE.test(file)) return { texts: source.split(TEXT_SEPARATORS), scanner: false };
+  if (!JS_SOURCE.test(file)) return parseText(source);
   const texts = [];
   let scanner = false;
   const visit = node => {
     if (ts.isStringLiteralLike(node)) {
       texts.push(node.text);
-      if (LS_FILES.test(node.text)) scanner = true;
+      if (listsFiles(node)) scanner = true;
     } else if (ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node)) {
       texts.push(stripLeadingSlashes(node.text));
     } else if (ts.isCallExpression(node) && SCAN_CALLS.has(calleeName(node.expression))) {
@@ -73,7 +99,7 @@ export function parseSource(file, source) {
     }
     ts.forEachChild(node, visit);
   };
-  visit(ts.createSourceFile(file, source, ts.ScriptTarget.Latest, false));
+  visit(ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true));
   return { texts, scanner };
 }
 
@@ -137,4 +163,48 @@ export function touches(closure, changed) {
   return changed.find(
     file => closure.files.has(file) || prefixes.some(prefix => file.startsWith(prefix))
   );
+}
+
+// One word of a package-script step: no whitespace, quoting, expansion, globbing or redirection.
+const WORD = /^[\w./:=@,+-]+$/u;
+
+// `pnpm x` and `pnpm run x` both name the package script x; anything else is not a plain link.
+function pnpmTarget(words) {
+  if (words[0] !== 'pnpm') return null;
+  const rest = words[1] === 'run' ? words.slice(2) : words.slice(1);
+  return rest.length === 1 && !rest[0].startsWith('-') ? rest[0] : null;
+}
+
+// `node <entry> [args]`: the entry and every non-flag argument are closure roots (an argument
+// may name a file the entry reads). An argument that escapes the repository is not derivable.
+function nodeEntries([tool, entry, ...args]) {
+  if (tool !== 'node' || !entry || entry.startsWith('-')) return null;
+  const roots = [entry, ...args.filter(arg => !arg.startsWith('-'))].map(arg =>
+    path.posix.normalize(arg)
+  );
+  return roots.some(root => root.startsWith('..') || path.posix.isAbsolute(root)) ? null : roots;
+}
+
+function stepEntries(scripts, step, seen, stack) {
+  const words = step.trim().split(' ');
+  if (!words.every(word => WORD.test(word))) return null;
+  const linked = pnpmTarget(words);
+  return linked ? commandScripts(scripts, linked, seen, stack) : nodeEntries(words);
+}
+
+// The `node` entry points behind a package script, following `pnpm <script>` links. Returns null
+// when any `&&` step is not exactly a plain link or `node <entry> [args]` of plain words; the
+// caller then falls back to the full commands.
+export function commandScripts(scripts, name, seen = new Set(), stack = new Set()) {
+  if (stack.has(name) || typeof scripts[name] !== 'string') return null;
+  seen.add(name);
+  stack.add(name);
+  const entries = [];
+  for (const step of scripts[name].split('&&')) {
+    const found = stepEntries(scripts, step, seen, stack);
+    if (!found) return null;
+    entries.push(...found);
+  }
+  stack.delete(name);
+  return entries;
 }

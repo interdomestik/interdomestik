@@ -11,9 +11,7 @@ import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseNameStatus } from '../lib/modularity-guard.mjs';
-import { contractTestPlan, runParallel } from './contract-test-shards.mjs';
-import { inputClosure, inventory, touches } from './contract-test-inputs.mjs';
+import { commandScripts, inputClosure, inventory, touches } from './contract-test-inputs.mjs';
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const PLAN_TEST = 'scripts/ci/contract-test-shards.test.mjs';
@@ -53,43 +51,6 @@ export const AREA_TABLE = Object.freeze([
     e2e: false,
   },
 ]);
-
-// Anything a shell would interpret beyond `&&`: such a step's entry points cannot be derived.
-const SHELL_SYNTAX = /[|;&<>$`(){}*?~\\'"!#]/u;
-
-// `pnpm x` and `pnpm run x` both name the package script x; anything else is not a plain link.
-function pnpmTarget(words) {
-  if (words[0] !== 'pnpm') return null;
-  const rest = words[1] === 'run' ? words.slice(2) : words.slice(1);
-  return rest.length === 1 && !rest[0].startsWith('-') ? rest[0] : null;
-}
-
-function stepEntries(scripts, step, seen, stack) {
-  if (SHELL_SYNTAX.test(step)) return null;
-  const words = step.trim().split(/\s+/u);
-  const linked = pnpmTarget(words);
-  if (linked) return commandScripts(scripts, linked, seen, stack);
-  const [tool, entry] = words;
-  if (tool !== 'node' || !entry || entry.startsWith('-')) return null;
-  const normalized = path.posix.normalize(entry);
-  return normalized.startsWith('..') || path.posix.isAbsolute(normalized) ? null : [normalized];
-}
-
-// The `node <script>` entry points behind a package script, following `pnpm <script>` links.
-// Returns null when any step is not a plain link or `node <script> [args]`.
-export function commandScripts(scripts, name, seen = new Set(), stack = new Set()) {
-  if (stack.has(name) || typeof scripts[name] !== 'string') return null;
-  seen.add(name);
-  stack.add(name);
-  const entries = [];
-  for (const step of scripts[name].split('&&')) {
-    const found = stepEntries(scripts, step, seen, stack);
-    if (!found) return null; // Unknown wiring: the caller falls back to the full commands.
-    entries.push(...found);
-  }
-  stack.delete(name);
-  return entries;
-}
 
 // The first added, deleted, renamed or copied contract test (either side of a rename counts).
 export function testSetChange(entries) {
@@ -136,8 +97,29 @@ const git = (root, args) =>
 const tracked = (root, ref) =>
   git(root, ['ls-tree', '-r', '-z', '--name-only', ref]).split('\0').filter(Boolean);
 
+// A side's package scripts, or null when its package.json is missing or unreadable.
 function packageScripts(root, ref) {
-  return JSON.parse(git(root, ['show', `${ref}:package.json`])).scripts ?? {};
+  try {
+    const scripts = JSON.parse(git(root, ['show', `${ref}:package.json`])).scripts;
+    return scripts && typeof scripts === 'object' ? scripts : {};
+  } catch {
+    return null;
+  }
+}
+
+// The runner and the diff parser load at run time, so a change that moves either still reaches
+// the full fallback instead of failing at import.
+export async function loadDependencies() {
+  try {
+    const [guard, shards] = await Promise.all([
+      import('../lib/modularity-guard.mjs'),
+      import('./contract-test-shards.mjs'),
+    ]);
+    const { contractTestPlan, runParallel } = shards;
+    return { parseNameStatus: guard.parseNameStatus, contractTestPlan, runParallel };
+  } catch (error) {
+    return { error };
+  }
 }
 
 function resolveBase(root, baseRef) {
@@ -151,6 +133,7 @@ function resolveBase(root, baseRef) {
 // The E2E command's entry points on both sides; null when its wiring is not derivable.
 function e2eWiring(root, mergeBase, read, paths) {
   const [before, after] = [packageScripts(root, mergeBase), packageScripts(root, 'HEAD')];
+  if (!before || !after) return { full: 'package.json is missing or unreadable on one side' };
   // Every package script on either side's E2E chain, plus the contracts command: a changed
   // definition means the hosted commands changed, so both run in full.
   const wiring = new Set([CONTRACTS_COMMAND]);
@@ -168,10 +151,14 @@ function e2eWiring(root, mergeBase, read, paths) {
   return { closure };
 }
 
-export function planWork(root, baseRef) {
+export async function planWork(root, baseRef, load = loadDependencies) {
   const dirty = git(root, ['status', '--porcelain', '--untracked-files=all']);
   if (dirty.trim()) throw new Error('working tree is not clean');
   const mergeBase = git(root, ['merge-base', resolveBase(root, baseRef), 'HEAD']).trim();
+  const { error, parseNameStatus, contractTestPlan, runParallel } = await load();
+  if (error) {
+    return { mergeBase, changed: [], tests: [], full: `runner unavailable: ${error.message}` };
+  }
   const entries = parseNameStatus(
     git(root, ['diff', '--name-status', '-z', '--find-renames', mergeBase, 'HEAD'])
   );
@@ -201,7 +188,7 @@ export function planWork(root, baseRef) {
     structural: testSetChange(entries),
     e2eClosure: wiring.closure,
   });
-  return { mergeBase, changed, tests, ...work };
+  return { mergeBase, changed, tests, runParallel, ...work };
 }
 
 // The base ref, or null for any other argument shape.
@@ -225,7 +212,7 @@ async function runWork(root, work, log) {
   for (const [test, input] of work.selected) log(`  ${test}  <- ${input}`);
   if (work.selected.size) {
     const select = files => files.filter(file => work.selected.has(file));
-    results.push((await runParallel({ root, select })) === 0);
+    results.push((await work.runParallel({ root, select })) === 0);
   }
   const e2eState = work.e2e ? `selected <- ${work.e2e}` : 'not selected';
   log(`${E2E_COMMAND}: ${e2eState}`);
@@ -233,7 +220,7 @@ async function runWork(root, work, log) {
   return results;
 }
 
-export async function main(argv, root = REPO_ROOT) {
+export async function main(argv, root = REPO_ROOT, load = loadDependencies) {
   const baseRef = parseArgs(argv);
   if (!baseRef) {
     console.error(`contract-test-affected refused: ${USAGE}. Nothing ran.`);
@@ -242,7 +229,7 @@ export async function main(argv, root = REPO_ROOT) {
   const started = Date.now();
   let work;
   try {
-    work = planWork(root, baseRef);
+    work = await planWork(root, baseRef, load);
   } catch (error) {
     console.error(`contract-test-affected refused: ${error.message}. Nothing ran.`);
     return 2;
