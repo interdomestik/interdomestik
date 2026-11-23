@@ -15,7 +15,11 @@ The shared `interdomestik_e2e_runtime` LOGIN and its grants are provisioned in p
 remain after success or failure; other restricted lanes use the same role, so the runner
 never drops it. The proof flags are child-process environment variables only.
 
-The runner requires a fresh restricted login before starting the single Vitest file,
+The same run also executes `apps/web/src/features/admin/branches/branch-dashboard-rls.integration.test.ts`,
+the R-06 proof of the branch dashboard role checks (the admin-portal allow-list and a branch
+manager bound to its assigned branch id), which creates and removes its own tenant and branches.
+
+The runner requires a fresh restricted login before starting the Vitest files,
 sets `REQUIRE_RLS_INTEGRATION=1` and `S8_STAFF_DETAIL_DB_PROOF=1`, and supplies a run
 token and a single-connection pool. The test overrides the web unit configuration's
 inert database URL before importing database code. Missing/unreachable databases,
