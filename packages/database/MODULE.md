@@ -16,7 +16,7 @@ The seed runner uses the internal `src/seed-receipt.ts` module to build and prin
 
 `@interdomestik/database/free-start-drafts` exposes `readFreeStartDraftIntakeOpen` for create and update admission using the same session context as the draft repository.
 
-The edge-safe `@interdomestik/database/constants` export also exposes the pure `readDisposableTargetClass` for deployment classification. Both runtime database URLs must be explicitly disposable, and production target evidence is refused. Seed commands retain their separate refusal for `NODE_ENV=production`.
+The lead-approved `@interdomestik/database/seed-target-classification` export exposes the pure `readDisposableTargetClass` for deployment classification. Both runtime database URLs must be explicitly disposable, and production target evidence is refused. Seed commands retain their separate refusal for `NODE_ENV=production`.
 
 ## Owned tables
 

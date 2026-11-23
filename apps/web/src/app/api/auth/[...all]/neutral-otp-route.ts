@@ -92,16 +92,17 @@ export async function handleNeutralOtpPost(args: {
   if (limited) return limited;
 
   const account = await lookupNeutralOtpAccountByEmail(email);
-  let eligible: boolean;
-  if (account) {
-    eligible =
-      account.tenantId === tenantId &&
-      account.tenantClassificationPending === true &&
-      (kind === 'send' || account.emailVerified === true);
-  } else {
-    eligible = await isPublicIntakeOpenForTenant(tenantId);
+  if (!account) {
+    if (kind === 'verify' || !(await isPublicIntakeOpenForTenant(tenantId))) {
+      return refuseNeutralOtpAccount(kind);
+    }
+    return handler(sanitizedRequest({ request, body, email, kind, tenantId }));
   }
-  if (!eligible) {
+  if (
+    account.tenantId !== tenantId ||
+    account.tenantClassificationPending !== true ||
+    (kind === 'verify' && account.emailVerified !== true)
+  ) {
     return refuseNeutralOtpAccount(kind);
   }
 
@@ -109,7 +110,7 @@ export async function handleNeutralOtpPost(args: {
   if (kind === 'send' || !response.ok) return response;
   const guarded = await protectNeutralOtpSession({
     auth,
-    admittedAccountId: account?.id ?? null,
+    admittedAccountId: account.id,
     verifyData: await parseVerifyData(response),
     responseHeaders: response.headers,
     resolveDefaultTenantId: () => tenantId,

@@ -8,7 +8,7 @@ The HTTP and RSC surface of the product: route handlers under `app/api/`, export
 
 ## Public API
 
-Password sign-up and unknown-address door OTP sign-up require `pilot/public_intake` for the ingress tenant. Better Auth disables both sign-up mechanisms unless `IDENTITY_PUBLIC_SIGN_UP` is exactly `open`. Door OTP checks the request host and forwarded host, then requires exact door ingress and an explicit default tenant before applying the IP limit or parsing the body. The OTP host check accepts `staging.interdomestik.com` without a port only in the staging release class. Known accounts must belong to the door tenant and still have pending tenant classification. Tenant classification confirmation returns `EMAIL_NOT_PROVEN` until the account holder has proven their email.
+Password sign-up and unknown-address door OTP send require `pilot/public_intake` for the ingress tenant. Better Auth disables public sign-up unless `IDENTITY_PUBLIC_SIGN_UP` is exactly `open`. Door OTP checks the request host and forwarded host, then requires exact door ingress and an explicit default tenant before applying the IP limit or parsing the body. The OTP host check accepts `staging.interdomestik.com` without a port only in the staging release class. Known accounts must belong to the door tenant and still have pending tenant classification. Door verify also requires a verified email and returns `INVALID_OTP` for an absent account before calling Better Auth, regardless of the intake phase. Tenant classification confirmation returns `EMAIL_NOT_PROVEN` until the account holder has proven their email.
 
 `setPilotSwitch` declares the `super_admin` and `tenant_admin` roles and a strict input schema on `defineAction`. It uses the session's access tenant. The database pilot command requires the current revision and writes the switch and its audit row in one transaction.
 
@@ -48,7 +48,7 @@ None of its own: this layer writes the tables of `packages/database` through the
 
 ## Tenant boundary
 
-WP-10 public intake resolves the tenant from request headers using the release-specific ingress table. The server checks `pilot/public_intake` under the public site authority before action work starts and uses that authority for the effect. Pricing also requires `pilot/new_sales` and a matching checkout tenant. Free Start draft create and update check `pilot/public_intake` under the existing draft session context.
+WP-10 public intake resolves the tenant from request headers using the release-specific ingress table. The server checks `pilot/public_intake` under the public site authority before action work starts and uses that authority for the effect. Pricing also requires `pilot/new_sales` and a matching checkout tenant. Draft create and update use the filing screen's active-membership check to admit verified owners under the same tenant authority. Other signed-in owners still need open `pilot/public_intake` and verified email to write drafts. Draft writes always require a session.
 
 The web build scripts check the release environment before Next inlines public settings. The Next production build phase verifies that the supplied manifest matches the refused public names resolved from the build environment. The Node server checks the manifest and runtime environment in `instrumentation.ts` at startup. Production refusal messages list variable names.
 

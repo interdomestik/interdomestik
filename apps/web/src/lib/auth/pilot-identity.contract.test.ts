@@ -1,5 +1,14 @@
+import { randomUUID } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
 import { contractAuth, send, uniqueEmail } from './better-auth-email-otp.contract-test-support';
+import {
+  activateCurrentProof,
+  activateReplacementProof,
+  confirmReplacementProof,
+  discardProof,
+  reserveCurrentProof,
+  reserveReplacementProof,
+} from './different-email-recovery-store';
 import {
   installIdentityContractHooks,
   setSwitch,
@@ -51,7 +60,7 @@ describe.runIf(process.env.REQUIRE_PILOT_IDENTITY_CONTRACT === '1')(
       expect(await userCount(email)).toHaveLength(0);
     });
 
-    it('keeps unknown code send and valid pre-existing code verify generic through both independent layers', async () => {
+    it('keeps unknown send generic and refuses absent-account verify with intake closed or open', async () => {
       const known = uniqueEmail('pilot-pending-known');
       await insertDoorAccount(known);
       const unknown = uniqueEmail('pilot-unknown');
@@ -65,7 +74,8 @@ describe.runIf(process.env.REQUIRE_PILOT_IDENTITY_CONTRACT === '1')(
 
       const fixture = contractAuth();
       await send(fixture, unknown);
-      expect(await challenges(unknown)).toHaveLength(1);
+      const issued = await challenges(unknown);
+      expect(issued).toHaveLength(1);
       useAuth(pilotAuth({ open: true }));
       wiring.handler.mockClear();
       const routeClosed = await POST(verifyRequest(unknown));
@@ -73,20 +83,75 @@ describe.runIf(process.env.REQUIRE_PILOT_IDENTITY_CONTRACT === '1')(
       expect(wiring.handler).not.toHaveBeenCalled();
 
       await setSwitch('public_intake', true);
-      useAuth();
-      const libraryClosed = await POST(verifyRequest(unknown));
-      expect(libraryClosed.status).toBe(routeClosed.status);
-      expect(await libraryClosed.json()).toEqual({ code: 'INVALID_OTP', message: 'Invalid OTP' });
-      expect(wiring.handler).toHaveBeenCalledTimes(1);
+      const routeOpen = await POST(verifyRequest(unknown));
+      expect(routeOpen.status).toBe(routeClosed.status);
+      expect(await routeOpen.json()).toEqual({ code: 'INVALID_OTP', message: 'Invalid OTP' });
+      expect(routeOpen.headers.get('set-cookie')).toBeNull();
+      expect(wiring.handler).not.toHaveBeenCalled();
+      expect(await challenges(unknown)).toEqual(issued);
       expect(await userCount(unknown)).toHaveLength(0);
 
+      useAuth();
       wiring.after.length = 0;
       const sendViaLibrary = await POST(sendRequest(unknown));
       expect(sendViaLibrary.status).toBe(200);
       expect(await sendViaLibrary.json()).toEqual({ success: true });
+      expect(wiring.handler).toHaveBeenCalledOnce();
       expect(wiring.after).toHaveLength(0);
       expect(wiring.sendSignInOtpEmail).not.toHaveBeenCalled();
       expect(await challenges(unknown)).toHaveLength(0);
+    });
+
+    it('invalidates sign-in codes for both mailboxes when an account replaces its email', async () => {
+      const oldEmail = uniqueEmail('pilot-replaced-old');
+      const newEmail = uniqueEmail('pilot-replaced-new');
+      const id = await insertDoorAccount(oldEmail, { verified: true });
+      const fixture = contractAuth();
+      const checkOldCode = () =>
+        fixture.api.checkVerificationOTP({
+          body: { email: oldEmail, otp: '123456', type: 'sign-in' },
+        });
+      expect((await send(fixture, oldEmail)).status).toBe(200);
+      expect((await send(fixture, newEmail)).status).toBe(200);
+      await expect(checkOldCode()).resolves.toEqual({ success: true });
+      expect(await challenges(oldEmail)).toHaveLength(1);
+      expect(await challenges(newEmail)).toHaveLength(1);
+
+      const current = randomUUID();
+      const replacement = randomUUID();
+      const now = new Date();
+      try {
+        expect(
+          await reserveCurrentProof({
+            currentEmail: oldEmail,
+            digest: 'current',
+            nonce: current,
+            now,
+            userId: id,
+          })
+        ).toEqual({ ok: true });
+        expect(await activateCurrentProof(id, current, oldEmail, now)).toBe(true);
+        expect(
+          await reserveReplacementProof({
+            currentDigest: 'current',
+            newEmail,
+            nonce: replacement,
+            now,
+            replacementDigest: 'replacement',
+            userId: id,
+          })
+        ).toEqual({ ok: true });
+        expect(await activateReplacementProof(id, replacement, now)).toBe(true);
+        expect(await confirmReplacementProof(id, () => 'replacement', now)).toEqual({ ok: true });
+        expect(await userCount(oldEmail)).toEqual([]);
+        expect(await userCount(newEmail)).toEqual([{ id }]);
+        await expect(checkOldCode()).rejects.toMatchObject({ body: { code: 'INVALID_OTP' } });
+        expect(await challenges(oldEmail)).toHaveLength(0);
+        expect(await challenges(newEmail)).toHaveLength(0);
+      } finally {
+        await discardProof(id, 'current', current);
+        await discardProof(id, 'replacement', replacement);
+      }
     });
 
     it.each([

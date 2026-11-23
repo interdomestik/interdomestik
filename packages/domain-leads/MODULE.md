@@ -8,7 +8,7 @@ The member-lead lifecycle: capture (`create`), payment attempts (`payment`), con
 
 ## Public API
 
-`package.json` exports `.`, `./create`, `./payment`, `./list`, `./convert`, `./member-email-conflict` and `./sales-admission`. From `./list`:
+`package.json` exports `.`, `./create`, `./payment`, `./list`, `./convert`, `./member-email-conflict`, `./agent-status` and `./sales-admission`. From `./list`:
 
 - `listVisibleMemberLeads(actor, authority, input)`: the member leads the actor may see, newest first, at most 100, with their payment attempts. It returns `{ ok: true, leads }` or `{ ok: false, code }`, where `code` is `FORBIDDEN`, `FORBIDDEN_NO_BRANCH` or `VALIDATION_ERROR`.
 - `memberLeadListRefusal(actor, authority)`: the same refusal, decided before any input is parsed, or `null`.

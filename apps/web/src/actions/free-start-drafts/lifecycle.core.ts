@@ -8,10 +8,15 @@ import {
   type FreeStartDraftContext,
   type FreeStartDraftFacts,
 } from '@interdomestik/database/free-start-drafts';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import * as Sentry from '@sentry/nextjs';
 import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 
+import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
+import { isPublicIntakeOpenForTenant } from '@/lib/tenant/public-intake-admission';
+import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
 import { freeStartDraftPayloadSchema } from '@/lib/validators/free-start-draft';
 
 import { resolveFreeStartDraftSession, type FreeStartDraftSessionResult } from './session.core';
@@ -48,8 +53,10 @@ const listSchema = z.strictObject({
 export type FreeStartDraftLifecycleDependencies = {
   createDraft: typeof createFreeStartDraft;
   deleteDraft: typeof deleteFreeStartDraft;
+  hasClaimEntitlement: (context: FreeStartDraftContext) => Promise<boolean>;
   listDrafts: typeof listFreeStartDrafts;
   readIntakeOpen: typeof readFreeStartDraftIntakeOpen;
+  readPublicIntakeOpen: () => Promise<boolean>;
   resolveSession: typeof resolveFreeStartDraftSession;
   resumeDraft: typeof resumeFreeStartDraft;
   updateDraft: typeof updateFreeStartDraft;
@@ -58,8 +65,19 @@ export type FreeStartDraftLifecycleDependencies = {
 const defaultDependencies: FreeStartDraftLifecycleDependencies = {
   createDraft: createFreeStartDraft,
   deleteDraft: deleteFreeStartDraft,
+  async hasClaimEntitlement(context) {
+    const authority = await authorizeSessionUserTenant(context.ownerUserId);
+    if (!authority) return false;
+    const { tenantId, accessTenantId } = readTenantAuthority(authority);
+    if (tenantId !== context.tenantId || accessTenantId !== context.accessTenantId) return false;
+    return hasActiveMembership(context.ownerUserId, authority);
+  },
   listDrafts: listFreeStartDrafts,
   readIntakeOpen: readFreeStartDraftIntakeOpen,
+  async readPublicIntakeOpen() {
+    const tenantId = resolveDefaultPublicTenantId();
+    return tenantId ? isPublicIntakeOpenForTenant(tenantId) : false;
+  },
   resolveSession: resolveFreeStartDraftSession,
   resumeDraft: resumeFreeStartDraft,
   updateDraft: updateFreeStartDraft,
@@ -128,26 +146,34 @@ async function runWithContext<T>(
   }
 }
 
-async function withOpenDraftIntake<T>(
+async function draftIntakeClosed() {
+  const t = await getTranslations('freeStart');
+  return { ok: false, code: 'CLOSED', error: t('draft.CLOSED') } as const;
+}
+
+async function withDraftWriteAdmission<T>(
   requestHeaders: Headers,
   dependencies: FreeStartDraftLifecycleDependencies,
   operation: (session: Extract<FreeStartDraftSessionResult, { ok: true }>) => Promise<T>
 ) {
   const session = await dependencies.resolveSession(requestHeaders);
   if (!session.ok) {
+    if (session.code === 'authRequired' && !(await dependencies.readPublicIntakeOpen())) {
+      return draftIntakeClosed();
+    }
     return session;
   }
 
   let open = false;
   try {
-    open = await dependencies.readIntakeOpen(session.context);
+    open =
+      (session.emailVerified === true &&
+        (await dependencies.hasClaimEntitlement(session.context))) ||
+      (await dependencies.readIntakeOpen(session.context));
   } catch (error) {
     Sentry.captureException(error, { tags: { operation: 'pilot.freeStartDraftIntake' } });
   }
-  if (!open) {
-    const t = await getTranslations('freeStart');
-    return { ok: false, code: 'CLOSED', error: t('draft.CLOSED') } as const;
-  }
+  if (!open) return draftIntakeClosed();
   return operation(session);
 }
 
@@ -176,7 +202,7 @@ export async function createFreeStartDraftCore(
   input: unknown,
   dependencies = defaultDependencies
 ) {
-  return withOpenDraftIntake(requestHeaders, dependencies, async session => {
+  return withDraftWriteAdmission(requestHeaders, dependencies, async session => {
     const parsed = createSchema.safeParse(input);
     if (!parsed.success) {
       return { ok: false, code: 'invalid' } as const;
@@ -240,7 +266,7 @@ export async function updateFreeStartDraftCore(
   input: unknown,
   dependencies = defaultDependencies
 ) {
-  return withOpenDraftIntake(requestHeaders, dependencies, async session => {
+  return withDraftWriteAdmission(requestHeaders, dependencies, async session => {
     const parsed = updateSchema.safeParse(input);
     if (!parsed.success) {
       return { ok: false, code: 'invalid' } as const;

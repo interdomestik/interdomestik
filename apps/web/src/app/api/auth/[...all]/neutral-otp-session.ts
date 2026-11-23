@@ -51,7 +51,7 @@ function stopDecision(accountMismatch: boolean): 'invalidOtp' | 'accountStop' {
 
 export async function protectNeutralOtpSession(args: {
   auth: NeutralOtpAuth;
-  admittedAccountId: string | null;
+  admittedAccountId: string;
   verifyData: VerifyData;
   responseHeaders: Headers;
   resolveDefaultTenantId: () => string;
@@ -67,7 +67,7 @@ export async function protectNeutralOtpSession(args: {
   }
 
   const headers = new Headers({ cookie });
-  const responseAccountMismatch = admittedAccountId !== null && userId !== admittedAccountId;
+  const responseAccountMismatch = userId !== admittedAccountId;
   if (responseAccountMismatch || verifyData?.user?.tenantId !== resolveDefaultTenantId()) {
     await revokeNewSession({ auth, token, headers, log });
     return {
@@ -98,9 +98,7 @@ export async function protectNeutralOtpSession(args: {
     fresh?.user?.tenantClassificationPending === true;
   if (authoritative) return { decision: 'continue', headers: new Headers(responseHeaders) };
   const sessionAccountMismatch =
-    admittedAccountId !== null &&
-    typeof sessionUserId === 'string' &&
-    sessionUserId !== admittedAccountId;
+    typeof sessionUserId === 'string' && sessionUserId !== admittedAccountId;
   await revokeNewSession({ auth, token, headers, log });
   return {
     decision: stopDecision(sessionAccountMismatch),

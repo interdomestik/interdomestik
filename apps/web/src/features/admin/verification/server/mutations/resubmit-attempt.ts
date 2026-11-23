@@ -1,5 +1,5 @@
 import type { ProtectedActionContext } from '@/lib/safe-action';
-import { actionFailure } from '@/lib/safe-action.failure';
+import { actionFailure } from '../../../../../lib/safe-action.failure';
 
 import { auditLog, leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
 import { assertLeadSalesOpen } from '@interdomestik/domain-leads/sales-admission';

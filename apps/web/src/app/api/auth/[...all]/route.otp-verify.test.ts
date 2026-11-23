@@ -231,7 +231,7 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
     },
     { id: 'user-1', emailVerified: true, tenantId: null, tenantClassificationPending: true },
   ])(
-    'returns INVALID_OTP without Better Auth for a closed or ineligible account (%j)',
+    'returns INVALID_OTP without Better Auth for an absent or ineligible account (%j)',
     async account => {
       mocks.lookupAccount.mockResolvedValueOnce(account);
       const response = await POST(
@@ -243,8 +243,7 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
       expect(mocks.handlerPost).not.toHaveBeenCalled();
       expect(mocks.getSession).not.toHaveBeenCalled();
       expect(mocks.revokeSession).not.toHaveBeenCalled();
-      if (!account) expect(mocks.isPublicIntakeOpen).toHaveBeenCalledExactlyOnceWith('tenant_ks');
-      else expect(mocks.isPublicIntakeOpen).not.toHaveBeenCalled();
+      expect(mocks.isPublicIntakeOpen).not.toHaveBeenCalled();
     }
   );
 
@@ -268,17 +267,18 @@ describe('IDA-UI03a0b2 neutral OTP verify route', () => {
     expect(revocation.headers.get('cookie')).toBe('better-auth.session_token=signed');
   });
 
-  it('allows an absent account through to Better Auth when public intake is open', async () => {
+  it('refuses an absent account before Better Auth even when public intake is open', async () => {
     mocks.lookupAccount.mockResolvedValueOnce(null);
     mocks.isPublicIntakeOpen.mockResolvedValueOnce(true);
     const response = await POST(
       verifyRequest({ onboarding: { tenant: 'tenant_ks', mode: 'deferred' } })
     );
 
-    expect(mocks.isPublicIntakeOpen).toHaveBeenCalledExactlyOnceWith('tenant_ks');
-    expect(mocks.handlerPost).toHaveBeenCalledTimes(1);
-    expect(response.status).toBe(200);
-    expect(response.headers.get('set-cookie')).toContain('better-auth.session_token=signed');
+    expect(mocks.isPublicIntakeOpen).not.toHaveBeenCalled();
+    expect(mocks.handlerPost).not.toHaveBeenCalled();
+    expect(response.status).toBe(400);
+    expect(await response.json()).toEqual({ code: 'INVALID_OTP', message: 'Invalid OTP' });
+    expect(response.headers.get('set-cookie')).toBeNull();
   });
 
   it('throttles verify before looking up the account or calling Better Auth', async () => {

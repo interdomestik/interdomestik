@@ -1,6 +1,6 @@
 import { dbAdmin } from '@interdomestik/database/db';
 import { user, verification } from '@interdomestik/database/schema';
-import { and, eq, like, ne, sql } from 'drizzle-orm';
+import { and, eq, inArray, like, ne, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
 type Stage = 'current' | 'replacement';
@@ -122,11 +122,18 @@ export async function confirmReplacementProof(userId: string, digest: (email: st
       const current = await owner(tx, userId), oldEmail = proof.data.oldEmail;
       if (!current || !oldEmail || current.email !== oldEmail || await collision(tx, userId, newEmail)) { await clearStage(tx, userId, 'replacement'); return { ok: false }; }
       // db-access-guard: system-exempt -- reason: dual-proof completion updates only session user by exact old-email compare-and-swap
-      const [updated] = await tx.update(user).set({ email: newEmail, emailVerified: true }).where(and(eq(user.id, userId), eq(user.email, oldEmail))).returning({ id: user.id });
-      // ACQ-2c: links sent to the old mailbox die with the change; a cleanup failure rolls the change back.
-      // db-access-guard: system-exempt -- reason: email change withdraws only the session user's outstanding reset tokens
-      if (updated?.id === userId) await tx.delete(verification).where(and(eq(verification.value, userId), like(verification.identifier, `${RESET_PREFIX}%`)));
-      await clearStage(tx, userId, 'replacement'); return { ok: updated?.id === userId };
+      const updated = await tx.update(user).set({ email: newEmail, emailVerified: true }).where(and(eq(user.id, userId), eq(user.email, oldEmail))).returning({ id: user.id });
+      const changed = updated.length === 1 && updated[0]?.id === userId;
+      if (changed) {
+        // ACQ-2c: a cleanup failure rolls back the mailbox change.
+        // db-access-guard: system-exempt -- reason: email change withdraws only the session user's outstanding reset tokens
+        await tx.delete(verification).where(and(eq(verification.value, userId), like(verification.identifier, `${RESET_PREFIX}%`)));
+        // Match Better Auth's toOTPIdentifier('sign-in', email) for both affected mailboxes.
+        const signInIdentifiers = [oldEmail, newEmail].map(email => `sign-in-otp-${canonical(email)}`);
+        // db-access-guard: system-exempt -- reason: exact sign-in challenge identifiers for the old and dual-proof replacement addresses
+        await tx.delete(verification).where(inArray(verification.identifier, signInIdentifiers));
+      }
+      await clearStage(tx, userId, 'replacement'); return { ok: changed };
     });
   } catch { return { ok: false }; }
 }
