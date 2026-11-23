@@ -3,8 +3,6 @@ import { randomUUID } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 
 import { sql } from 'drizzle-orm';
-import { readMigrationFiles } from 'drizzle-orm/migrator';
-import { PgDialect } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
 
@@ -15,6 +13,7 @@ import * as schema from '../src/schema';
 import { mintTenantAuthority, type TenantAuthority } from '../src/tenant-authority';
 import { restricted, runtimeRole } from './exchange-rates-restricted.fixture';
 import { runSequentially } from './in-order';
+import { migrateJournalBeforeNotificationDeliveries } from './journal-prefix.support';
 import { withScratchDatabase } from './pg16/scratch-database';
 import {
   applyRlsTestConnectionEnv,
@@ -31,17 +30,6 @@ export { TEST_DB_ROLE as paymentPortTestGuardRole } from './rls-test-connection'
 
 export const tables = ['exchange_rate_books', 'exchange_rates'] as const;
 const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
-
-async function migrateJournalBeforeNotificationDeliveries(admin: postgres.Sql) {
-  const config = { migrationsFolder: migrations };
-  const journal = readMigrationFiles(config);
-  const wp11 = journal.findIndex(migration =>
-    migration.sql.some(statement => statement.includes('CREATE TABLE "notification_deliveries"'))
-  );
-  assert.ok(wp11 > 0, 'the WP-11 notification migration is journaled');
-  const adminDb = drizzle(admin, { schema: {} });
-  await new PgDialect().migrate(journal.slice(0, wp11), adminDb._.session, config);
-}
 export const rateInput = (effectiveOn: string) => ({
   base: 'EUR',
   quote: 'MKD',
@@ -171,11 +159,8 @@ export async function withPaymentPortDatabase(
   // The scratch database owns all append-only rows and disappears after the proof.
   await withScratchDatabase('wp07_payment', admin =>
     withRuntimeLogin(admin, async (username, password) => {
-      // Migrations 0101 to 0103 grant privileges to the runtime role when it exists. The journal is
-      // applied up to, not including, WP-11's notification migration: that migration requires the
-      // runtime role's row-lock privileges on claim tables this fixture does not grant, and WP-11's
-      // own fixture proves it against the journal.
-      await migrateJournalBeforeNotificationDeliveries(admin);
+      // Migrations 0101 to 0103 grant privileges to the runtime role when it exists.
+      await migrateJournalBeforeNotificationDeliveries(admin, migrations);
       const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
       const url = new URL(process.env.DATABASE_URL!);
       url.pathname = `/${name}`;
