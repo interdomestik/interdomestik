@@ -225,3 +225,27 @@ it('keeps contact names out of unexpected insert exception data', async () => {
   expect(mocks.capture.mock.calls[0]?.[0]).not.toHaveProperty('cause');
   vi.restoreAllMocks();
 });
+
+it.each([
+  ['recordCaseAuthority', 'Synthetic consent purpose', 'case authority write'],
+  ['updateGreenCardCaseFields', 'Synthetic insurance reference', 'case fields write'],
+] as const)(
+  'keeps %s parameters out of unexpected exception data',
+  async (name, secret, operation) => {
+    const { action, command, input } = actions.find(entry => entry.name === name)!;
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mocks.authorize.mockResolvedValue(authorizedSession(STAFF_A));
+    command.mockRejectedValue(
+      new Error(`Query parameters: ${secret}`, { cause: { code: '23514', detail: secret } })
+    );
+    expect(await action(input as never)).toMatchObject({
+      success: false,
+      code: 'INTERNAL_SERVER_ERROR',
+    });
+    expect(mocks.capture).toHaveBeenCalledExactlyOnceWith(
+      new Error(`Unexpected ${operation} failure (SQLSTATE 23514)`)
+    );
+    expect(mocks.capture.mock.calls[0]?.[0]).not.toHaveProperty('cause');
+    vi.restoreAllMocks();
+  }
+);

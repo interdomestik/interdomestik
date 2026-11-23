@@ -10,17 +10,7 @@ import {
   setCorrespondenceFollowUpInputSchema,
 } from '@interdomestik/domain-claims/claims/correspondence';
 import { ROLES } from '@interdomestik/shared-auth';
-import { unstable_rethrow } from 'next/navigation';
-
-async function recordEntry(record: ReturnType<typeof recordInbound | typeof recordOutbound>) {
-  try {
-    return await record;
-  } catch (error) {
-    unstable_rethrow(error);
-    // Database exceptions can contain insert parameters, including a party contact name.
-    throw new Error('Unexpected correspondence insert failure');
-  }
-}
+import { withoutParameters } from './register-failure';
 
 export const recordOutboundCorrespondence = defineAction({
   name: 'staffClaims.recordOutboundCorrespondence',
@@ -28,7 +18,10 @@ export const recordOutboundCorrespondence = defineAction({
   subject: { type: 'claim', from: 'claimId' },
   input: recordOutboundCorrespondenceInputSchema,
   async handler(input, { authority, session }) {
-    const result = await recordEntry(recordOutbound(session, authority, input));
+    const result = await withoutParameters(
+      recordOutbound(session, authority, input),
+      'correspondence insert'
+    );
     if (result.ok) return { correspondenceId: result.correspondenceId };
     if (result.code === 'forbidden') {
       return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });
@@ -43,7 +36,10 @@ export const recordInboundCorrespondence = defineAction({
   subject: { type: 'claim', from: 'claimId' },
   input: recordInboundCorrespondenceInputSchema,
   async handler(input, { authority, session }) {
-    const result = await recordEntry(recordInbound(session, authority, input));
+    const result = await withoutParameters(
+      recordInbound(session, authority, input),
+      'correspondence insert'
+    );
     if (result.ok) return { correspondenceId: result.correspondenceId };
     if (result.code === 'forbidden') {
       return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });

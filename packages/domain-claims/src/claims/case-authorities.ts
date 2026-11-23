@@ -24,6 +24,7 @@ import {
   resolveRegisterRead,
   resolveRegisterWrite,
   type LockedRegister,
+  registerUuid,
 } from './case-register-access';
 import { caseAuthorityScopes } from './outward-action-requirements';
 import type { ClaimsSession } from './types';
@@ -31,7 +32,7 @@ import type { ClaimsSession } from './types';
 type AuthorityKind = keyof typeof caseAuthorityScopes;
 
 export const recordCaseAuthorityInputSchema = registerClaimInput.extend({
-  correlationId: z.uuid(),
+  correlationId: registerUuid,
   kind: z.enum(Object.keys(caseAuthorityScopes) as AuthorityKind[]),
   evidenceDocumentId: registerId,
   version: registerText(50),
@@ -56,7 +57,9 @@ const grantDecisionSchema = recordCaseAuthorityInputSchema.refine(input => {
   );
 });
 
-export const revokeCaseAuthorityInputSchema = registerClaimInput.extend({ authorityId: z.uuid() });
+export const revokeCaseAuthorityInputSchema = registerClaimInput.extend({
+  authorityId: registerUuid,
+});
 export const listCaseAuthoritiesInputSchema = registerClaimInput;
 
 type RecordAuthority = z.infer<typeof recordCaseAuthorityInputSchema>;

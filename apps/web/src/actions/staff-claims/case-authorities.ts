@@ -12,6 +12,7 @@ import {
   updateGreenCardCaseFieldsInputSchema,
 } from '@interdomestik/domain-claims/claims/green-card-case-fields';
 import { ROLES } from '@interdomestik/shared-auth';
+import { withoutParameters } from './register-failure';
 
 export const recordCaseAuthority = defineAction({
   name: 'staffClaims.recordCaseAuthority',
@@ -19,7 +20,10 @@ export const recordCaseAuthority = defineAction({
   subject: { type: 'claim', from: 'claimId' },
   input: recordCaseAuthorityInputSchema,
   async handler(input, { authority, session }) {
-    const result = await recordAuthority(session, authority, input);
+    const result = await withoutParameters(
+      recordAuthority(session, authority, input),
+      'case authority write'
+    );
     if (result.ok) return { authorityId: result.authorityId };
     if (result.code === 'forbidden') {
       return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });
@@ -34,7 +38,10 @@ export const revokeCaseAuthority = defineAction({
   subject: { type: 'claim', from: 'claimId' },
   input: revokeCaseAuthorityInputSchema,
   async handler(input, { authority, session }) {
-    const result = await revokeAuthority(session, authority, input);
+    const result = await withoutParameters(
+      revokeAuthority(session, authority, input),
+      'case authority write'
+    );
     if (result.ok) return { authorityId: result.authorityId };
     if (result.code === 'forbidden') {
       return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });
@@ -49,7 +56,10 @@ export const updateGreenCardCaseFields = defineAction({
   subject: { type: 'claim', from: 'claimId' },
   input: updateGreenCardCaseFieldsInputSchema,
   async handler(input, { authority, session }) {
-    const result = await updateCaseFields(session, authority, input);
+    const result = await withoutParameters(
+      updateCaseFields(session, authority, input),
+      'case fields write'
+    );
     if (result.ok) return result.fields;
     if (result.code === 'forbidden') {
       return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });

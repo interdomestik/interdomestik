@@ -226,6 +226,38 @@ describe('correspondence decisions', () => {
     expect(db.statements.filter(item => item.kind === 'insert')).toHaveLength(1);
   });
 
+  it('lower-cases UUID inputs so an identical upper-case retry replays', async () => {
+    const outbound = 'abcdef12-1234-4234-8234-abcdefabcdef';
+    const correlation = 'fedcba98-1234-4234-8234-fedcbafedcba';
+    const input = {
+      ...inboundInput,
+      correlationId: correlation.toUpperCase(),
+      inReplyToId: outbound.toUpperCase(),
+    };
+    const session = caller();
+    db.results = [
+      admitted,
+      [],
+      [{ id: outbound }],
+      now,
+      [{ id: ids.inbound }],
+      admitted,
+      [
+        {
+          ...recorded,
+          id: ids.inbound,
+          correlationId: correlation,
+          direction: 'inbound',
+          inReplyToId: outbound,
+        },
+      ],
+    ];
+    const success = { ok: true, correspondenceId: ids.inbound };
+    expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
+    expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
+    expect(db.statements.filter(item => item.kind === 'insert')).toHaveLength(1);
+  });
+
   it('refuses a cross-case follow-up and detects a stale follow-up compare-and-set', async () => {
     const session = caller();
     db.results = [admitted, []];

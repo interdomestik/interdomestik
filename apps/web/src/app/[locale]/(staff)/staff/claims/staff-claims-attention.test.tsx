@@ -1,4 +1,5 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { formatPilotDateTime } from '@/lib/utils/date';
 import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -186,7 +187,8 @@ describe('staff claim attention', () => {
         'claim-staff': { nextActor: 'staff', overdueFollowUpDueAt: null },
         'claim-no-request': {
           nextActor: 'untracked',
-          overdueFollowUpDueAt: '2026-09-27T09:00:00.000Z',
+          // 22:30 UTC is 00:30 the next day in Skopje (CEST): the pilot-time date, not UTC's.
+          overdueFollowUpDueAt: '2026-09-27T22:30:00.000Z',
           overdueFollowUpSource: 'case_register',
         },
       });
@@ -223,6 +225,10 @@ describe('staff claim attention', () => {
         copy.overdue_register_follow_up.split('{date}')[0]
       );
       expect(registerFollowUp).not.toHaveTextContent(copy.overdue_follow_up.split('{date}')[0]);
+      expect(registerFollowUp).toHaveTextContent(
+        formatPilotDateTime('2026-09-27T22:30:00.000Z', locale, '')
+      );
+      expect(registerFollowUp).toHaveTextContent('00:30');
       expect(mocks.getAttention).toHaveBeenCalledWith(
         expect.objectContaining({ user: expect.objectContaining({ id: 'staff-1' }) }),
         authority,

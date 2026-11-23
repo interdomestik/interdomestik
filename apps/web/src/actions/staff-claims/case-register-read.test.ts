@@ -27,7 +27,9 @@ describe('case register reads', () => {
   beforeEach(() => vi.clearAllMocks());
 
   it('records an unexpected read failure and answers with a typed failure', async () => {
-    const failure = new Error('read failed');
+    const failure = new Error('read failed', {
+      cause: { code: '57014', parameters: ['Synthetic insurance reference'] },
+    });
     mocks.fields.mockResolvedValue({ ok: true, fields: {} });
     mocks.authorities.mockRejectedValue(failure);
     mocks.correspondence.mockResolvedValue({ ok: false, code: 'forbidden' });
@@ -37,7 +39,10 @@ describe('case register reads', () => {
     expect(fields).toEqual({ ok: true, fields: {} });
     expect(authorities).toEqual({ ok: false, code: 'INTERNAL_SERVER_ERROR' });
     expect(correspondence).toEqual({ ok: false, code: 'forbidden' });
-    expect(mocks.capture).toHaveBeenCalledExactlyOnceWith(failure);
+    expect(mocks.capture).toHaveBeenCalledExactlyOnceWith(
+      new Error('Unexpected case register read failure (SQLSTATE 57014)')
+    );
+    expect(mocks.capture.mock.calls[0]?.[0]).not.toHaveProperty('cause');
   });
 
   it('does not record a domain refusal of the branch summary', async () => {

@@ -19,6 +19,7 @@ import {
   registerTimestamp,
   resolveRegisterWrite,
   type LockedRegister,
+  registerUuid,
 } from './case-register-access';
 import {
   lockOutboundAuthorities,
@@ -34,7 +35,7 @@ export {
 } from './correspondence-follow-up';
 
 const correspondenceInput = registerClaimInput.extend({
-  correlationId: z.uuid(),
+  correlationId: registerUuid,
   partyKind: z.enum(['insurer', 'bureau', 'other']),
   partyOrganisation: registerText(200),
   partyReference: registerText(200).nullish(),
@@ -51,7 +52,7 @@ const outboundDecisionSchema =
   recordOutboundCorrespondenceInputSchema.refine(outboundSharingIsAttested);
 
 export const recordInboundCorrespondenceInputSchema = correspondenceInput.extend({
-  inReplyToId: z.uuid().nullish(),
+  inReplyToId: registerUuid.nullish(),
 });
 
 type Inbound = z.infer<typeof recordInboundCorrespondenceInputSchema>;

@@ -11,11 +11,12 @@ import {
   registerTimestamp,
   resolveRegisterWrite,
   type LockedRegister,
+  registerUuid,
 } from './case-register-access';
 import type { ClaimsSession } from './types';
 
 export const setCorrespondenceFollowUpInputSchema = registerClaimInput.extend({
-  correspondenceId: z.uuid(),
+  correspondenceId: registerUuid,
   expectedFollowUpAt: registerTimestamp.nullable(),
   followUpAt: registerTimestamp.nullable(),
 });

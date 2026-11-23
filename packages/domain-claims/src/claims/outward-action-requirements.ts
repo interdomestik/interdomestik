@@ -1,7 +1,7 @@
 import { and, asc, claimAuthorities, eq, inArray, sql } from '@interdomestik/database';
 import { z } from 'zod';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { registerId, type LockedRegister } from './case-register-access';
+import { registerId, registerUuid, type LockedRegister } from './case-register-access';
 
 export const caseAuthorityScopes = {
   recovery_agreement: 'recovery',
@@ -35,9 +35,9 @@ export const outwardActionRequirements = {
 } as const;
 
 export const outboundAuthorityFields = z.object({
-  recoveryAuthorityId: z.uuid(),
-  representationAuthorityId: z.uuid(),
-  sharingAuthorityId: z.uuid().optional(),
+  recoveryAuthorityId: registerUuid,
+  representationAuthorityId: registerUuid,
+  sharingAuthorityId: registerUuid.optional(),
   sharingCoveredByConsentConfirmed: z.literal(true).optional(),
   sharedDocumentIds: z.array(registerId).optional(),
 });

@@ -7,7 +7,7 @@ import {
 } from '@interdomestik/domain-claims/claims/correspondence-read';
 import { getGreenCardCaseFields } from '@interdomestik/domain-claims/claims/green-card-case-fields';
 import * as Sentry from '@sentry/nextjs';
-import { unstable_rethrow } from 'next/navigation';
+import { parameterFreeFailure } from './register-failure';
 
 type RegisterReadContext = Pick<Parameters<typeof listClaimCorrespondence>, 0 | 1>;
 
@@ -15,9 +15,9 @@ async function settleRead<T extends object>(read: Promise<T>) {
   try {
     return await read;
   } catch (error) {
-    unstable_rethrow(error);
-    // The panel shows its error and retry state; the failure itself is recorded (R-08).
-    Sentry.captureException(error);
+    // The panel shows its error and retry state; the failure itself is recorded (R-08), without
+    // the query parameters a database exception can carry.
+    Sentry.captureException(parameterFreeFailure(error, 'case register read'));
     return { ok: false, code: 'INTERNAL_SERVER_ERROR' } as const;
   }
 }
