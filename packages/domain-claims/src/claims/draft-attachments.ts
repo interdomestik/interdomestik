@@ -55,11 +55,11 @@ export async function lockEvidenceObjects(
  * the transaction ends: they can be neither deleted nor changed under a decision that rests on
  * them.
  */
-export async function readAttachedObjects(
+export function readAttachedObjects(
   tx: TenantTransaction,
   params: { tenantId: string; files: readonly EvidenceObject[]; lockRows?: boolean }
 ): Promise<AttachedObject[]> {
-  if (params.files.length === 0) return [];
+  if (params.files.length === 0) return Promise.resolve([]);
   const paths = [...new Set(params.files.map(file => file.path))];
   const query = tx
     .select({

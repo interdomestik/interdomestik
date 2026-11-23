@@ -197,7 +197,9 @@ export function draftAttachmentHarness(
         throw new Error('the lock holder ended before it took the lock');
       }),
     ]);
-    let outcome: Promise<T> | undefined;
+    // Replaced by the contender's outcome once it starts; otherwise the call rejects with this.
+    let outcome: Promise<T> = Promise.reject(new Error('the contender never started'));
+    outcome.catch(() => undefined);
     try {
       const holderPid = await holderStarted;
       outcome = contender();
@@ -208,7 +210,6 @@ export function draftAttachmentHarness(
       release();
       await done;
     }
-    if (!outcome) throw new Error('the contender never started');
     return outcome;
   };
   return {
