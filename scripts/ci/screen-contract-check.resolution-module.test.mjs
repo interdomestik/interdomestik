@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { ids, lint, tree } from './fixtures/screen-contract-check/harness.mjs';
-import { W, X, both } from './fixtures/screen-contract-check/resolution-fixtures.mjs';
+import { W, X } from './fixtures/screen-contract-check/resolution-fixtures.mjs';
 import { has, lacks } from './fixtures/screen-contract-check/rules-fixtures.mjs';
 
 // r6: `module.require('<literal>')` is a CommonJS request webpack records, and a JSDoc `@import` or
