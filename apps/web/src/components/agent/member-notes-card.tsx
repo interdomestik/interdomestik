@@ -27,11 +27,11 @@ interface MemberNotesCardProps {
  * One card instance per member (keyed by the member id): no state, request or late answer of one
  * member can reach the card of another, because the previous member's instance is unmounted.
  */
-export function MemberNotesCard(props: MemberNotesCardProps) {
+export function MemberNotesCard(props: Readonly<MemberNotesCardProps>) {
   return <MemberNotesCardForMember key={props.memberId} {...props} />;
 }
 
-function MemberNotesCardForMember({ memberId, memberName }: MemberNotesCardProps) {
+function MemberNotesCardForMember({ memberId, memberName }: Readonly<MemberNotesCardProps>) {
   const t = useTranslations('agent.notes');
   const [notes, setNotes] = useState<MemberNote[]>([]);
   const [isLoading, setIsLoading] = useState(true);
