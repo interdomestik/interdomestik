@@ -251,6 +251,30 @@ const REVIEWED = [
     reason:
       'Parameterized transaction-scoped advisory lock keyed by tenant and subscription to serialize matter allowance counting; no row data.',
   },
+  {
+    file: 'packages/domain-membership-billing/src/port/record-sale.ts',
+    unit: 'saveSale',
+    kinds: { execute: 4 },
+    sha256: '378c4fbb80d7f375615b8c12c529ac339772cfe215feae6cbad11b0f3de61369',
+    reason:
+      "WP-07 PR-1b sale entry: one fixed read of transaction_isolation and the tenant, access-tenant and role GUCs, compared with the session principal before any write; then a fixed SAVEPOINT, ROLLBACK TO and RELEASE around the claim and insert inside the caller's tenant transaction. No parameters, no connection-control.",
+  },
+  {
+    file: 'packages/domain-membership-billing/src/port/record-sale.ts',
+    unit: 'claimAndRecord',
+    kinds: { execute: 1 },
+    sha256: '3b00c72e5863c5af0bea3820550113fe9bb112c7aaef3f7ec8654760bd80cb9e',
+    reason:
+      'WP-07 PR-1b: fixed SET CONSTRAINTS public.membership_claims_require_sale DEFERRED inside the sale savepoint, so a caller that set it IMMEDIATE still gets the claim-requires-sale check at commit. No parameters, no tenant data.',
+  },
+  {
+    file: 'packages/domain-membership-billing/src/port/record-sale.ts',
+    unit: 'insertSale',
+    kinds: { execute: 1 },
+    sha256: 'b581ce15c0a6144e626fe97cec82d82ee908dc310c2f46b44f928bdd2a72b1ce',
+    reason:
+      "WP-07 PR-1b: parameterized call of public.membership_try_insert_individual_sale(jsonb) in the caller's tenant transaction; the server-built candidate takes tenant, seller and attribution from the principal and locked rows, and the function returns conflict, stale_offer or stale_rate instead of raising.",
+  },
 ];
 
 // An open transition (one per unit, see rules-report.mjs): a reviewed entry re-bound to the exact

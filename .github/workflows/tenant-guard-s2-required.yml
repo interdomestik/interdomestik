@@ -41,14 +41,14 @@ jobs:
           expected_branch='main'
           # Immutable approved S2 source. Advancing it requires a separately reviewed revision of this file.
           # OWNER PIN: the reviewed commit that adds the S2 source; it must be reachable from origin.
-          source_commit='916f4b7dc99107d9d0a12c6647777a2ad28f2e12'
-          source_tree='e791fa31536a76621617cc68609d23bb90e3ded4'
+          source_commit='7514bc965e5956d9c695538db4493b31bbbcaa29'
+          source_tree='923e4f784c51f4c6a818858eced7081169902505'
           # Owner-pinned trusted comparator; it must equal the pin inside the approved source.
           trusted_commit='a9e79c23f6c3d7a326774cee07b71054ee911793'
           trusted_tree='529031084338b3488c6e51413ede5cca79b77b82'
           # Owner-pinned kernel anchor. Data only, and checked against the approved guard's pin.
-          anchor_commit='97c989ad62e99794a4426a2ed854697b83bb6c7b'
-          anchor_tree='cd975c118a17883a36419c0fb67e5e66a6f0a36d'
+          anchor_commit='127ebe483bc075a91aa202c915f04bd25aadf2aa'
+          anchor_tree='09035328e2fcdd0713493cee89f3ccbf8512e107'
           # Identity comes only from GitHub event expressions; anything missing or unexpected fails closed.
           for name in EVENT_NAME EVENT_REPO EVENT_REF EVENT_SHA PR_NUMBER PR_BASE_REPO PR_BASE_REF PR_BASE_SHA PR_HEAD_SHA DEFAULT_BRANCH TS_EXPECTED_VERSION; do
             [[ -n "${!name:-}" ]] || fail "missing $name"
