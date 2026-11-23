@@ -154,6 +154,8 @@ So a person with a verified address and their drafts are placed in the Kosovo te
 
 Effort: S is up to about ten files, M up to about thirty, L up to about seventy, XL more. Where R1 counted files, the count is given; for new work the size is an estimate from the list of missing parts, not a measurement. Hours are `NOT MEASURED`. Tiers T1 to T6 are those of rule R-04.
 
+**A work package that adds tables** (your answer of 2026-11-23: "yes") shows in its PR, for each new table: a tenant-first index for each read path; `EXPLAIN ANALYZE` on a realistic volume; no N+1 query; pagination of every list; and an estimate of its budget.
+
 ### Group 1 — before any new feature
 
 #### WP-01 — Close the two S0 findings, the trusted-host list and two requests that cannot complete; delete four unguarded exports
@@ -372,7 +374,7 @@ The same three tests are the detection of suspension trigger (c) (part 6.4): a m
 | **Touches** | Staging. The staging acceptance guide (`docs/guides/staging-staff-member-admin-acceptance.md`) is replaced by the rehearsal procedure, or updated to it |
 | **Effort, risk** | M, in people's time. Medium |
 | **Needs first** | WP-07 to WP-16 |
-| **Done when** | A record exists for each journey, for the restore drill with its measured recovery point and time, and for the release with one revert. One run with concurrent sessions on the pilot journeys in which no function reaches its time limit (`DB-BASELINE.md`, DB-19). Upload and download of a document with the Data API off and without storage policies (DB-24) |
+| **Done when** | A record exists for each journey, for the restore drill with its measured recovery point and time, and for the release with one revert. One run with concurrent sessions on the pilot journeys in which no function reaches its time limit (`DB-BASELINE.md`, DB-19). Upload and download of a document with the Data API off and without storage policies (DB-24). **Performance** (your answer of 2026-11-23: "yes"): one repeatable rehearsal on production-like settings, with both tenants, representative roles, a mobile profile and a consistent 4G profile, replays the 13-session workload and the recovery from a failed upload. On a small fixed set of critical journeys, the 75th percentile per journey is at most 0.8 s for TTFB, 2.5 s for LCP, 200 ms for a scripted interaction and 1.5 s for a key action, each with its sample count. Every expected action completes, with zero hung requests and zero function timeouts. Real-user metrics are collected from the launch |
 
 #### WP-18 — The pilot screens on the new interface
 
