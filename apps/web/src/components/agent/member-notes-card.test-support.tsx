@@ -1,7 +1,14 @@
 import { vi } from 'vitest';
 
-// Shared doubles for the member-notes card tests. vi.mock stays in each test file (it is
-// hoisted); the factories import these, so a test and its mocks share one instance.
+// Shared doubles for the member-notes card tests. Each test file imports this module before
+// the card, so the mocks below are registered first and a test and its mocks share one instance.
+
+vi.mock('@/actions/member-notes', () => actions);
+vi.mock('sonner', () => ({ toast }));
+vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
+vi.mock('@interdomestik/ui', () => uiMock);
+vi.mock('./member-note-item', () => noteItemMock);
+vi.mock('./member-note-dialog', () => noteDialogMock);
 
 export const actions = {
   getMemberNotes: vi.fn(),

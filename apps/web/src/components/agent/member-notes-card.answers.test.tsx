@@ -1,24 +1,8 @@
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock(
-  '@/actions/member-notes',
-  async () => (await import('./member-notes-card.test-support')).actions
-);
-vi.mock('sonner', async () => ({
-  toast: (await import('./member-notes-card.test-support')).toast,
-}));
-vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
-vi.mock('@interdomestik/ui', async () => (await import('./member-notes-card.test-support')).uiMock);
-vi.mock(
-  './member-note-item',
-  async () => (await import('./member-notes-card.test-support')).noteItemMock
-);
-vi.mock(
-  './member-note-dialog',
-  async () => (await import('./member-notes-card.test-support')).noteDialogMock
-);
-
+// The module doubles (vi.mock) are registered by the support module, imported first.
+import './member-notes-card.test-support';
 import { MemberNotesCard } from './member-notes-card';
 import { actions, deferred, note, toast } from './member-notes-card.test-support';
 

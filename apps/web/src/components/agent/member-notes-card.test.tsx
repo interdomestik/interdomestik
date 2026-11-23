@@ -1,24 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-vi.mock(
-  '@/actions/member-notes',
-  async () => (await import('./member-notes-card.test-support')).actions
-);
-vi.mock('sonner', async () => ({
-  toast: (await import('./member-notes-card.test-support')).toast,
-}));
-vi.mock('next-intl', () => ({ useTranslations: () => (key: string) => key }));
-vi.mock('@interdomestik/ui', async () => (await import('./member-notes-card.test-support')).uiMock);
-vi.mock(
-  './member-note-item',
-  async () => (await import('./member-notes-card.test-support')).noteItemMock
-);
-vi.mock(
-  './member-note-dialog',
-  async () => (await import('./member-notes-card.test-support')).noteDialogMock
-);
-
+// The module doubles (vi.mock) are registered by the support module, imported first.
+import './member-notes-card.test-support';
 import { MemberNotesCard } from './member-notes-card';
 import { actions, note, toast } from './member-notes-card.test-support';
 
@@ -35,27 +19,30 @@ describe('MemberNotesCard', () => {
     expect(actions.getMemberNotes).toHaveBeenCalledWith({ memberId: 'm1' });
   });
 
-  it('re-reads after a refused edit and, when access ended, clears the rows and the open editor', async () => {
+  it.each([
+    ['access ended', { success: false, code: 'FORBIDDEN', error: 'Access denied' }, []],
+    ['the note is gone', { success: true, data: [note('n2', 'm1')] }, ['note-n2']],
+  ])('closes the open editor after a refused edit when %s', async (_case, refresh, shown) => {
     actions.getMemberNotes
-      .mockResolvedValueOnce({ success: true, data: [note('n1', 'm1')] })
-      .mockResolvedValueOnce({ success: false, code: 'FORBIDDEN', error: 'Access denied' });
+      .mockResolvedValueOnce({ success: true, data: [note('n1', 'm1'), note('n2', 'm1')] })
+      .mockResolvedValueOnce(refresh);
     actions.updateMemberNote.mockResolvedValue({
       success: false,
-      code: 'FORBIDDEN',
+      code: 'NOT_FOUND',
       error: 'Not found',
     });
     render(<MemberNotesCard memberId="m1" memberName="Member One" />);
     await screen.findByTestId('note-n1');
 
     fireEvent.click(screen.getByText('edit n1'));
-    fireEvent.change(screen.getByLabelText('content'), { target: { value: 'late edit' } });
+    fireEvent.change(screen.getByLabelText('content'), { target: { value: 'draft' } });
     fireEvent.click(screen.getByText('submit'));
 
     await waitFor(() => expect(toast.error).toHaveBeenCalledWith('Not found'));
     await waitFor(() => expect(screen.queryByTestId('note-n1')).toBeNull());
     expect(actions.getMemberNotes).toHaveBeenCalledTimes(2);
     expect(screen.queryByTestId('editor')).toBeNull();
-    expect(screen.getByText('noNotes')).toBeTruthy();
+    expect(screen.queryAllByTestId(/^note-/).map(row => row.dataset.testid)).toEqual(shown);
   });
 
   it('clears the rows when the refresh after a successful create is refused', async () => {
@@ -140,26 +127,5 @@ describe('MemberNotesCard', () => {
     fireEvent.click(screen.getByText('pin n1'));
     await waitFor(() => expect(screen.getByTestId('note-n1').dataset.pinned).toBe('true'));
     expect(actions.getMemberNotes).toHaveBeenCalledTimes(2);
-  });
-
-  it('closes the editor when the note it edits is gone after a refused edit', async () => {
-    actions.getMemberNotes
-      .mockResolvedValueOnce({ success: true, data: [note('n1', 'm1'), note('n2', 'm1')] })
-      .mockResolvedValueOnce({ success: true, data: [note('n2', 'm1')] });
-    actions.updateMemberNote.mockResolvedValue({
-      success: false,
-      code: 'NOT_FOUND',
-      error: 'Not found',
-    });
-    render(<MemberNotesCard memberId="m1" memberName="Member One" />);
-    await screen.findByTestId('note-n1');
-
-    fireEvent.click(screen.getByText('edit n1'));
-    fireEvent.change(screen.getByLabelText('content'), { target: { value: 'draft' } });
-    fireEvent.click(screen.getByText('submit'));
-
-    await waitFor(() => expect(screen.queryByTestId('note-n1')).toBeNull());
-    expect(screen.queryByTestId('editor')).toBeNull();
-    expect(screen.getByTestId('note-n2')).toBeTruthy();
   });
 });
