@@ -90,6 +90,8 @@ test('only parsed calls and listing arguments make a scanner, never comments or 
     "assert.ok(true, 'no readdirSync( call and no ls-files listing');\n",
     "const help = 'ls-files output is sorted';\n",
     "const help = 'git ls-files lists tracked files';\n",
+    "test('git ls-files output stays sorted', () => {});\n",
+    "assert.equal(run('ls-files'), 1);\n",
     'const walker = 1;\n',
   ]) {
     assert.equal(parseSource(file, source).scanner, false, source);
@@ -111,6 +113,24 @@ test('prose that starts with ls-files keeps the directory inputs', () => {
   };
   const c = closureFor(files, 'scripts/ci/a.test.mjs', ['packages/db/src/schema/a.ts']);
   assert.equal(touches(c, ['packages/db/src/schema/a.ts']), 'packages/db/src/schema/a.ts');
+});
+
+test('shell and Python prose about ls-files keeps the directory inputs', () => {
+  for (const body of [
+    'echo "git ls-files lists tracked files"\n',
+    'cat docs/x.md # read like git ls-files would\n',
+    "print('git ls-files is not run here')\n",
+  ]) {
+    const files = {
+      'scripts/ci/a.test.mjs': "run('scripts/tool.sh');\nconst dir = 'packages/db/schema';\n",
+      'scripts/tool.sh': body,
+    };
+    const c = closureFor(files, 'scripts/ci/a.test.mjs', ['packages/db/schema/a.sql', 'docs/x.md']);
+    assert.equal(c.scanner, false, body);
+    assert.equal(touches(c, ['packages/db/schema/a.sql']), 'packages/db/schema/a.sql', body);
+  }
+  assert.equal(parseSource('scripts/t.py', 'run(["git", "ls-files", "-z"])\n').scanner, true);
+  assert.equal(parseSource('scripts/t.sh', 'n=${#list}; git ls-files\n').scanner, true);
 });
 
 test('shell and Python helpers keep quoted paths with spaces and see their listings', () => {
@@ -160,6 +180,8 @@ test('command wiring follows pnpm links and refuses anything else', () => {
     odd: 'pnpm a && tsx scripts/d.ts',
     piped: 'node scripts/a.mjs | node scripts/b.mjs',
     lines: 'node scripts/a.mjs\nnode scripts/b.mjs',
+    beforeAnd: 'node scripts/a.mjs\n&& node scripts/b.mjs',
+    afterAnd: 'node scripts/a.mjs &&\tnode scripts/b.mjs',
     bracketed: 'node scripts/[ab].mjs',
     quoted: 'node "scripts/a.mjs"',
     expanded: 'node $ENTRY',
@@ -185,6 +207,8 @@ test('command wiring follows pnpm links and refuses anything else', () => {
     'odd',
     'piped',
     'lines',
+    'beforeAnd',
+    'afterAnd',
     'bracketed',
     'quoted',
     'expanded',

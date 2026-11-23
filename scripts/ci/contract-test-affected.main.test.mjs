@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
-import { main, planWork } from './contract-test-affected.mjs';
+import { loadDependencies, main, planWork } from './contract-test-affected.mjs';
 import {
   GUARD_TRUST_SHARDS,
   RETIRED_LEGACY_FILES,
@@ -63,7 +63,7 @@ function suite(packageJson) {
 }
 
 // A repository whose main moves on after `topic` forks, so the merge-base is neither tip.
-function fixture(t, packageJson = JSON.stringify(manifest)) {
+function fixture(t, packageJson = JSON.stringify(manifest), extra = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'contract-affected-'));
   t.after(() => fs.rmSync(dir, { recursive: true, force: true }));
   const git = (...args) =>
@@ -80,7 +80,7 @@ function fixture(t, packageJson = JSON.stringify(manifest)) {
     return git('rev-parse', 'HEAD').trim();
   };
   git('init', '-q', '-b', 'main');
-  write(suite(packageJson));
+  write({ ...suite(packageJson), ...extra });
   const base = commit('base');
   git('checkout', '-q', '-b', 'topic');
   git('checkout', '-q', 'main');
@@ -127,8 +127,13 @@ test('an E2E-area diff runs the e2e tests and the E2E command; an E2E failure fa
 test('the guard gets the merge-base, not a tip, even with nothing selected; its failure counts', async t => {
   const repo = fixture(t);
   repo.write({ 'docs/other.md': 'changed\n' });
-  repo.commit('docs');
+  const firstTopic = repo.commit('docs');
+  // A second topic commit: HEAD^ is then neither the fork point nor a tip.
+  repo.write({ 'docs/other.md': 'changed again\n' });
+  repo.commit('docs again');
   assert.notEqual(repo.base, repo.mainTip);
+  assert.equal(repo.git('rev-parse', 'HEAD^').trim(), firstTopic);
+  assert.notEqual(firstTopic, repo.base);
   const green = await run(t, repo);
   assert.equal(green.code, 0, green.output);
   assert.match(green.output, /0 of \d+ contract test file\(s\) selected/u);
@@ -150,6 +155,36 @@ test('a committed wiring change runs both hosted commands, and either failure fa
   }
 });
 
+test('an edit to a linked child of the E2E command is a wiring change', async t => {
+  const scripts = {
+    ...manifest.scripts,
+    'check:e2e-contracts': 'pnpm e2e:base',
+    'e2e:base': 'node scripts/stub.mjs e2e',
+  };
+  const repo = fixture(t, JSON.stringify({ ...manifest, scripts }));
+  const rewired = { ...scripts, 'e2e:base': 'node scripts/stub.mjs e2e x' };
+  repo.write({ 'package.json': JSON.stringify({ ...manifest, scripts: rewired }) });
+  repo.commit('rewire only the linked child');
+  const result = await run(t, repo);
+  assert.equal(result.code, 0, result.output);
+  assert.match(result.output, /FULL fallback \(package\.json contract or E2E command wiring/u);
+  assert.deepEqual(result.ran, ['contracts ', 'e2e ', `guard ${repo.base}`]);
+});
+
+test('an edit inside a directory the E2E command names runs the E2E command', async t => {
+  const scripts = {
+    ...manifest.scripts,
+    'check:e2e-contracts': 'node scripts/stub.mjs e2e fixtures/lanes',
+  };
+  const extra = { 'fixtures/lanes/case.json': '{}\n' };
+  const repo = fixture(t, JSON.stringify({ ...manifest, scripts }), extra);
+  repo.write({ 'fixtures/lanes/case.json': '{"changed":true}\n' });
+  repo.commit('edit a case inside the directory argument');
+  const result = await run(t, repo);
+  assert.equal(result.code, 0, result.output);
+  assert.deepEqual(result.ran, ['e2e ', `guard ${repo.base}`]);
+});
+
 test('a runner that cannot load still runs both hosted commands and the guard', async t => {
   const repo = fixture(t);
   repo.write({ 'docs/other.md': 'changed\n' });
@@ -159,6 +194,18 @@ test('a runner that cannot load still runs both hosted commands and the guard', 
   assert.equal(result.code, 0, result.output);
   assert.match(result.output, /FULL fallback \(runner unavailable: moved\)/u);
   assert.deepEqual(result.ran, ['contracts ', 'e2e ', `guard ${repo.base}`]);
+  // A module that imports but lacks a required export takes the same fallback.
+  const renamed = () =>
+    loadDependencies(specifier =>
+      import(specifier).then(module =>
+        specifier.includes('modularity-guard') ? { ...module, parseNameStatus: undefined } : module
+      )
+    );
+  const missing = await run(t, repo, { load: renamed });
+  assert.equal(missing.code, 0, missing.output);
+  assert.match(missing.output, /runner unavailable: missing export\(s\) parseNameStatus/u);
+  assert.match(missing.output, /unknown changed path/u);
+  assert.deepEqual(missing.ran, ['contracts ', 'e2e ', `guard ${repo.base}`]);
 });
 
 test('planWork: deleted inputs, renames into tests, fallback order and unreadable manifests', async t => {

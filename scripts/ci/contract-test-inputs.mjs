@@ -24,11 +24,12 @@ const SCAN_CALLS = new Set([
   'walk',
 ]);
 const LS_FILES_COMMAND = /^git\s+ls-files(?:\s|$)/u;
-// The same in a shell or Python helper, outside comment lines.
+// Calls that run a command: a `git ls-files …` string counts only as their argument.
+const SPAWN_CALLEE =
+  /^(?:exec|execSync|execFile|execFileSync|spawn|spawnSync|execa|execaSync|git)$/u;
+// The same in the code of a shell or Python helper (strings and comments removed).
 const TEXT_SCANNER =
   /\bgit\s+ls-files\b|\bos\.(?:walk|listdir|scandir)\b|\b(?:i?glob|rglob|iterdir)\(/u;
-// A quoted string in a shell or Python helper is one candidate path, spaces included.
-const QUOTED = /"([^"\n]*)"|'([^'\n]*)'/gu;
 const JS_SOURCE = /\.(?:[cm]?[jt]s|[jt]sx)$/u;
 const SHELL_SOURCE = /\.(?:sh|bash|zsh|py)$/u;
 // Separators between candidate paths in a non-JavaScript script.
@@ -62,24 +63,52 @@ function stripLeadingSlashes(text) {
   return text.slice(start);
 }
 
-const isArgument = node =>
-  ts.isArrayLiteralExpression(node.parent) ||
-  (ts.isCallExpression(node.parent) && node.parent.arguments.includes(node));
+const spawnArgument = node =>
+  ts.isCallExpression(node.parent) &&
+  node.parent.arguments.includes(node) &&
+  SPAWN_CALLEE.test(calleeName(node.parent.expression) ?? '');
+// `ls-files` as a Git argument (an array element or a spawn argument), or a `git ls-files …`
+// command string passed to a spawn: test names, messages and other prose never count.
 const listsFiles = node =>
-  isArgument(node) && (node.text === 'ls-files' || LS_FILES_COMMAND.test(node.text));
+  (node.text === 'ls-files' && (ts.isArrayLiteralExpression(node.parent) || spawnArgument(node))) ||
+  (LS_FILES_COMMAND.test(node.text) && spawnArgument(node));
 
-// Shell and Python helpers: quoted strings and the words between separators are candidates;
-// comment lines are skipped.
+// One shell or Python line: its quoted strings, and its code with the strings and a trailing
+// comment removed.
+function splitLine(line) {
+  const quoted = [];
+  let code = '';
+  let quote = null;
+  let current = '';
+  for (let index = 0; index < line.length; index += 1) {
+    const char = line[index];
+    if (quote) {
+      if (char === quote) {
+        quoted.push(current);
+        [current, quote] = ['', null];
+      } else current += char;
+    } else if (char === '"' || char === "'") {
+      [quote, code] = [char, `${code} `];
+    } else if (char === '#' && (index === 0 || /\s/u.test(line[index - 1]))) {
+      break;
+    } else code += char;
+  }
+  return { code, quoted };
+}
+
+// Shell and Python helpers: each quoted string whole (a path may hold spaces) and split, and the
+// words of the code. A listing counts only in code, or as a quoted `ls-files` argument.
 function parseText(source) {
-  const code = source
-    .split('\n')
-    .filter(line => !line.trimStart().startsWith('#'))
-    .join('\n');
-  const quoted = [...code.matchAll(QUOTED)].map(match => match[1] ?? match[2]);
-  const words = code.split(TEXT_SEPARATORS);
+  const lines = source.split('\n').map(splitLine);
+  const quoted = lines.flatMap(line => line.quoted);
+  const code = lines.map(line => line.code).join('\n');
+  const words = [
+    ...quoted.flatMap(text => text.split(TEXT_SEPARATORS)),
+    ...code.split(TEXT_SEPARATORS),
+  ];
   return {
     texts: [...quoted, ...words].map(stripLeadingSlashes),
-    scanner: TEXT_SCANNER.test(code),
+    scanner: TEXT_SCANNER.test(code) || quoted.includes('ls-files'),
   };
 }
 
@@ -197,6 +226,8 @@ function stepEntries(scripts, step, seen, stack) {
 // caller then falls back to the full commands.
 export function commandScripts(scripts, name, seen = new Set(), stack = new Set()) {
   if (stack.has(name) || typeof scripts[name] !== 'string') return null;
+  // Only spaces separate words: a newline or tab anywhere (even beside `&&`) is not derivable.
+  if (/[^\S ]/u.test(scripts[name])) return null;
   seen.add(name);
   stack.add(name);
   const entries = [];

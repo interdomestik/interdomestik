@@ -109,14 +109,20 @@ function packageScripts(root, ref) {
 
 // The runner and the diff parser load at run time, so a change that moves either still reaches
 // the full fallback instead of failing at import.
-export async function loadDependencies() {
+export async function loadDependencies(load = specifier => import(specifier)) {
   try {
     const [guard, shards] = await Promise.all([
-      import('../lib/modularity-guard.mjs'),
-      import('./contract-test-shards.mjs'),
+      load('../lib/modularity-guard.mjs'),
+      load('./contract-test-shards.mjs'),
     ]);
-    const { contractTestPlan, runParallel } = shards;
-    return { parseNameStatus: guard.parseNameStatus, contractTestPlan, runParallel };
+    const found = {
+      parseNameStatus: guard.parseNameStatus,
+      contractTestPlan: shards.contractTestPlan,
+      runParallel: shards.runParallel,
+    };
+    const missing = Object.keys(found).filter(name => typeof found[name] !== 'function');
+    if (missing.length) return { error: new Error(`missing export(s) ${missing.join(', ')}`) };
+    return found;
   } catch (error) {
     return { error };
   }
@@ -144,6 +150,11 @@ function e2eWiring(root, mergeBase, read, paths) {
   if (!chain || !chainBefore) return { closure: null };
   const closure = { files: new Set(), dirs: new Set() };
   for (const script of chain) {
+    // A tracked directory argument is a directory input; anything else roots a closure.
+    if (paths.dirs.has(script)) {
+      closure.dirs.add(`${script}/`);
+      continue;
+    }
     const found = inputClosure(script, read, paths);
     found.files.forEach(file => closure.files.add(file));
     found.dirs.forEach(dir => closure.dirs.add(dir));
@@ -157,7 +168,7 @@ export async function planWork(root, baseRef, load = loadDependencies) {
   const mergeBase = git(root, ['merge-base', resolveBase(root, baseRef), 'HEAD']).trim();
   const { error, parseNameStatus, contractTestPlan, runParallel } = await load();
   if (error) {
-    return { mergeBase, changed: [], tests: [], full: `runner unavailable: ${error.message}` };
+    return { mergeBase, changed: null, tests: [], full: `runner unavailable: ${error.message}` };
   }
   const entries = parseNameStatus(
     git(root, ['diff', '--name-status', '-z', '--find-renames', mergeBase, 'HEAD'])
@@ -236,7 +247,8 @@ export async function main(argv, root = REPO_ROOT, load = loadDependencies) {
   }
   const log = text => process.stdout.write(`${text}\n`);
   const base = work.mergeBase.slice(0, 9);
-  log(`contract-test-affected: base ${base}, ${work.changed.length} changed path(s)`);
+  const count = work.changed ? work.changed.length : 'unknown';
+  log(`contract-test-affected: base ${base}, ${count} changed path(s)`);
   const results = await runWork(root, work, log);
   const env = { ...process.env, MODULARITY_GUARD_BASE_SHA: work.mergeBase };
   results.push(runCommand(root, [process.execPath, 'scripts/security-guard.mjs'], env));
