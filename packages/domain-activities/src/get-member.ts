@@ -1,5 +1,4 @@
 import {
-  agentClients,
   and,
   db,
   desc,
@@ -12,6 +11,7 @@ import { type TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { sql } from 'drizzle-orm';
 
 import { activityActorOf, memberActivityReadScope, type ActivityActor } from './access';
+import { holdsActiveAssignment } from './assignment';
 import type { ActivitySession } from './types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
@@ -65,19 +65,8 @@ async function assertReadAccess(
   if (!member) permissionDenied();
   if (scope === 'tenant') return;
 
-  const [assignment] = await tx
-    .select({ id: agentClients.id })
-    .from(agentClients)
-    .where(
-      and(
-        eq(agentClients.tenantId, actor.tenantId),
-        eq(agentClients.agentId, actor.userId),
-        eq(agentClients.memberId, memberId),
-        eq(agentClients.status, 'active')
-      )
-    )
-    .for('share');
-  if (!assignment) permissionDenied();
+  const assignment = { tenantId: actor.tenantId, agentId: actor.userId, memberId };
+  if (!(await holdsActiveAssignment(tx, assignment))) permissionDenied();
 }
 
 export async function getMemberActivitiesCore(params: {
