@@ -29,10 +29,21 @@ function importTypeEdge(node) {
   return value === null ? null : { specifier: value, kind: 'type', node };
 }
 
+// `module.require('…')`, which webpack also records as a CommonJS dependency (r6).
+const isModuleRequire = callee =>
+  callee?.type === 'MemberExpression' &&
+  !callee.computed &&
+  callee.object.type === 'Identifier' &&
+  callee.object.name === 'module' &&
+  callee.property.type === 'Identifier' &&
+  callee.property.name === 'require';
+
 function requireEdge(node) {
   const value = node.arguments.length === 1 ? literalOf(node.arguments[0]) : null;
-  if (node.callee.type === 'Identifier' && node.callee.name === 'require' && value !== null)
-    return { specifier: value, kind: 'require', node };
+  const { callee } = node;
+  const isRequire =
+    (callee.type === 'Identifier' && callee.name === 'require') || isModuleRequire(callee);
+  if (isRequire && value !== null) return { specifier: value, kind: 'require', node };
   return null;
 }
 
@@ -60,6 +71,21 @@ const EDGE_OF = {
   TSImportEqualsDeclaration: importEqualsEdge,
   TSImportType: importTypeEdge,
 };
+
+// In a JavaScript file TypeScript also resolves JSDoc imports: `@import … from '…'` and
+// `import('…')` types (r6). Each is a type edge, reported at its comment.
+const JS_FILE_RE = /\.(?:js|jsx|mjs|cjs)$/u;
+const JSDOC_IMPORT_RE =
+  /@import\b[^'"]*?(?:from\s*)?(['"])([^'"]+)\1|\bimport\(\s*(['"])([^'"]+)\3\s*\)/gu;
+function jsdocEdges(origin) {
+  if (!origin?.sourceCode || !JS_FILE_RE.test(origin.rel ?? '')) return [];
+  const out = [];
+  for (const comment of origin.sourceCode.getAllComments())
+    if (comment.type === 'Block' && comment.value.startsWith('*'))
+      for (const match of comment.value.matchAll(JSDOC_IMPORT_RE))
+        out.push({ specifier: match[2] ?? match[4], kind: 'type', node: comment });
+  return out;
+}
 
 const isIdentifier = (node, name) => node?.type === 'Identifier' && node.name === name;
 const isImportMeta = node =>
@@ -110,6 +136,13 @@ function dynamicRequest(node, parent) {
   }
   if (node.type === 'MemberExpression') {
     if (isIdentifier(node.object, 'require')) return node;
+    // `module.require` other than called with one literal (`const r = module.require`).
+    if (isModuleRequire(node)) {
+      const called = parent?.type === 'CallExpression' && parent.callee === node;
+      return called && parent.arguments.length === 1 && literalOf(parent.arguments[0]) !== null
+        ? null
+        : node;
+    }
     if (isImportMeta(node.object) && !isImportMetaUrl(node)) return node;
     return null;
   }
@@ -125,7 +158,7 @@ function dynamicRequest(node, parent) {
 // dynamic | require. A module request that is not a literal specifier is refused unless it is a
 // reviewed occurrence in `origin.rel` (its exact text from `origin.sourceCode`), and yields no edge.
 export function edgesOfProgram(program, visitorKeys, origin = null) {
-  const out = [];
+  const out = jsdocEdges(origin);
   const visit = (node, parent) => {
     if (!node || typeof node.type !== 'string') return;
     const edge = Object.hasOwn(EDGE_OF, node.type) ? EDGE_OF[node.type](node) : null;

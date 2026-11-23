@@ -38,6 +38,7 @@ import { ScanError } from './server-mutation/ast.mjs';
 import { ensureCommit, extractRevision, headSha, showAt } from './server-mutation/git.mjs';
 import { annotate, writeReport } from './server-mutation/output.mjs';
 import { changeReport, signalLine } from './screen-contract/changes.mjs';
+import { buildConfigChanges, configRefusal } from './screen-contract/config-changes.mjs';
 import { readBaselines, readTrustedInputs } from './screen-contract/cli-baselines.mjs';
 import { judge, orphanUses } from './screen-contract/cli-judge.mjs';
 import {
@@ -153,12 +154,26 @@ async function replayCandidate(
     tamper: Object.fromEntries(results.map(r => [r.id, r.tamper])),
     shas: { base: report.base, head: report.head },
   });
-  return { ...judgment, synthesizedBase };
+  // PR-B's required run refuses an unreviewed build-configuration change (exit 2).
+  const configChanges = report.configChanges ?? [];
+  return {
+    ...judgment,
+    synthesizedBase,
+    configChanges,
+    wouldRefuse: configChanges.length
+      ? [...judgment.wouldRefuse, 'build-config']
+      : judgment.wouldRefuse,
+  };
 }
 
 async function scan(args, repo, report) {
   report.base = ensureCommit(repo, args.base, 'base');
   report.head = args.head ? ensureCommit(repo, args.head, 'head') : headSha(repo);
+  // A build-configuration change the scanner has not reviewed is refused under enforcement (the
+  // owner's decision of 2026-11-23) and recorded otherwise.
+  report.configChanges = buildConfigChanges(repo, report.base, report.head);
+  if (args.enforcing && report.configChanges.length)
+    throw new ScanError(configRefusal(report.configChanges));
   // CI and local runs both lint an extracted head tree (H2).
   const root = extractRevision(repo, report.head);
   const cleanup = [root];
@@ -209,6 +224,8 @@ async function scan(args, repo, report) {
           versions: toolVersions(),
         }),
         candidateJudgment: judgment,
+        // A pair is complete only when its candidate judgment has no error (§4; r6).
+        complete: judgment.errors.length === 0,
       };
     }
     return results;

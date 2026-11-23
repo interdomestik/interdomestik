@@ -261,3 +261,21 @@ test('r5: a candidate judgment error leaves the replay pair incomplete', t => {
   assert.match(report.errors.join('\n'), /a request with a query or fragment/u);
   assert.equal(report.replay, undefined);
 });
+
+// r6: a candidate judgment that completes with a recorded scanner error (here a base below its own
+// coverage floor, which the head's added page meets) also leaves the pair incomplete: `complete` is
+// true only for an error-free judgment.
+test('r6: a recorded candidate error marks the replay pair incomplete', t => {
+  const pair = adoptedPair(t, baselineOf({ 'CHK-15c': [LEGACY] }, { 'CHK-15c': { file: 3 } }), {
+    [`${W}/app/third/page.tsx`]: 'export default () => null;\n',
+  });
+  assert.equal(run(t, pair.root, ['--base', pair.base, '--head', pair.head]).code, 0);
+  const { report } = run(t, pair.root, ['--replay', '--base', pair.base, '--head', pair.head]);
+  const j = report.replay?.candidateJudgment;
+  assert.ok(j, JSON.stringify(report.errors));
+  assert.match(j.errors.join('\n'), /base coverage below its floor/u);
+  assert.equal(report.replay.complete, false);
+  const clean = adoptedPair(t, baselineOf({ 'CHK-15c': [LEGACY] }), { 'notes.md': 'x\n' });
+  const ok = run(t, clean.root, ['--replay', '--base', clean.base, '--head', clean.head]);
+  assert.equal(ok.report.replay.complete, true);
+});

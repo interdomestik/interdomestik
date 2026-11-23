@@ -6,7 +6,7 @@
 //
 // Webpack's order (`WEBPACK_EXTENSIONS`, read from Next's `webpack-config.js` and pinned by a test
 // against the installed Next): the request itself, then the request with each extension, then a
-// directory's `index` with each extension; a directory with its own `package.json` is an error
+// directory's `index` as is and with each extension; a directory with its own `package.json` is an error
 // (webpack's `mainFields` are not modelled). An `@/` request substitutes the one fixed `@/*` entry,
 // as Next's JsConfigPathsPlugin and TypeScript do.
 //
@@ -42,8 +42,9 @@ export function webpackPick(isFile, base) {
   for (const candidate of [base, ...WEBPACK_EXTENSIONS.map(ext => base + ext)])
     if (isFile(candidate)) return candidate;
   if (isFile(`${base}/package.json`))
-    throw new ScanError(`${base} is a directory with its own package.json (not modelled)`);
-  for (const ext of WEBPACK_EXTENSIONS)
+    refuse(`${base} is a directory with its own package.json, which D-1 does not model`);
+  // The directory's `index` as is, then with each extension, as for a file (r6).
+  for (const ext of ['', ...WEBPACK_EXTENSIONS])
     if (isFile(`${base}/index${ext}`)) return `${base}/index${ext}`;
   return null;
 }
@@ -140,14 +141,14 @@ export const ALIAS_PATTERN = 'apps/web/src/*';
 // unmodelled options, today's exact `@/*` mapping and today's exact `paths` and `baseUrl`.
 export function validateResolutionConfig(config, configRel) {
   if (config?.extends !== undefined)
-    throw new ScanError(`${configRel} uses extends, which the resolver does not model`);
+    refuse(`${configRel} uses extends, which the resolver does not model`);
   const options = config?.compilerOptions ?? {};
   for (const option of UNMODELLED_OPTIONS)
     if (options[option] !== undefined)
-      throw new ScanError(`${configRel} sets ${option}, which the resolver does not model`);
+      refuse(`${configRel} sets ${option}, which the resolver does not model`);
   const resolution = options.moduleResolution;
   if (typeof resolution !== 'string' || resolution.toLowerCase() !== 'bundler')
-    throw new ScanError(`${configRel} moduleResolution is not bundler`);
+    refuse(`${configRel} moduleResolution is not bundler`);
   const fixed = FIXED_TSCONFIGS[configRel];
   if (canonical(options.paths?.['@/*'] ?? null) !== canonical(fixed.alias))
     refuse(`${configRel} has an @/* mapping other than the fixed ${JSON.stringify(fixed.alias)}`);
@@ -170,16 +171,53 @@ const OTHER_NEXT_CONFIGS = Object.freeze(
   ['js', 'cjs', 'ts', 'mts', 'cts'].map(ext => `apps/web/next.config.${ext}`)
 );
 // The packages the fixed config imports, each reviewed for what it does to webpack's `resolve` at
-// one version and unpatched, as the scanned tree's lockfile resolves them for `apps/web`.
+// one version, unpatched and with one lockfile integrity, as the scanned tree's lockfile resolves
+// them for `apps/web`.
 // `@next/bundle-analyzer` changes nothing; `@sentry/nextjs` aliases `perf_hooks`; `next-axiom`
 // changes nothing; `next-intl` aliases `next-intl/config` and `use-intl/format-message`. All are
 // bare package keys, which match no relative or `@/` request (read 2026-11-22).
 const REVIEWED_WRAPPERS = Object.freeze({
-  '@next/bundle-analyzer': '16.3.5',
-  '@sentry/nextjs': '10.75.2',
-  'next-axiom': '1.10.0',
-  'next-intl': '4.14.5',
+  '@next/bundle-analyzer': {
+    version: '16.3.5',
+    integrity:
+      'sha512-EbKlv1DkII5+BGl8qweNtrX+7Ot+QOCsSpUve43W8XsOQz7am0T45pCdm6W3kbBwWtEbIEKNhAknje1gjXyyLw==',
+  },
+  '@sentry/nextjs': {
+    version: '10.75.2',
+    integrity:
+      'sha512-ilzb3E7Kaskx/RQ355kCkxLxrHBtYS67pe6KO+F/O6s53f5t4sVwz4gE2Mz4ScghDXeKM+ccyB5GMq9dlkQ35A==',
+  },
+  'next-axiom': {
+    version: '1.10.0',
+    integrity:
+      'sha512-PpwmfOqoa2xWKcGmYb3d5t3R4+/J8C2D00IhJsI3Qk0xxv9tNvGzS/hKKOPNOuUwqM4b/etqu6iGW7tkKvltgA==',
+  },
+  'next-intl': {
+    version: '4.14.5',
+    integrity:
+      'sha512-9sPJh5ITJbP28HZ5obuFAMC4RwW/mhEvHiGVHXPWL0uRbF2RrjHWz8PcUmLaH2oca79ak2ayQz+uRSALZN9xSw==',
+  },
 });
+
+// The integrity of each package record of the lockfile (pnpm's `packages:`), by `<name>@<version>`.
+export function packageIntegrities(text) {
+  const out = {};
+  let inside = false;
+  let current = null;
+  for (const line of text.split('\n')) {
+    if (/^\S/u.test(line)) {
+      inside = line.trim() === 'packages:';
+      current = null;
+      continue;
+    }
+    if (!inside) continue;
+    const key = /^ {2}'?([^'\s][^']*?)'?:\s*$/u.exec(line);
+    if (key) current = key[1];
+    const integrity = /integrity: ([^,\s}]+)/u.exec(line);
+    if (integrity && current && out[current] === undefined) out[current] = integrity[1];
+  }
+  return out;
+}
 
 // The lockfile entry each direct dependency of `apps/web` resolves to (pnpm's `importers`): its
 // version and its own `patch_hash`, if pnpm patched it (the group right after the version; later
@@ -220,18 +258,23 @@ const patchedPackages = text => {
 
 function assertWrappers(root) {
   const lock = readInside(root, 'pnpm-lock.yaml');
-  if (lock === null)
-    throw new ScanError('pnpm-lock.yaml is missing; the Next wrappers cannot be checked');
+  if (lock === null) refuse('pnpm-lock.yaml is missing, so the Next wrappers cannot be checked');
   const versions = webDependencyVersions(lock);
   const patched = patchedPackages(lock);
+  const integrities = packageIntegrities(lock);
   for (const [pkg, reviewed] of Object.entries(REVIEWED_WRAPPERS)) {
     const found = versions[pkg];
-    if (found?.version !== reviewed)
+    if (found?.version !== reviewed.version)
       refuse(
-        `${NEXT_CONFIG} loads ${pkg} ${found?.version ?? '(absent)'}, not the reviewed ${reviewed}`
+        `${NEXT_CONFIG} loads ${pkg} ${found?.version ?? '(absent)'}, not the reviewed ${reviewed.version}`
       );
     if (found.patch !== null || patched.has(pkg))
-      refuse(`${NEXT_CONFIG} loads ${pkg} ${reviewed} with a pnpm patch, which was not reviewed`);
+      refuse(
+        `${NEXT_CONFIG} loads ${pkg} ${reviewed.version} with a pnpm patch, which was not reviewed`
+      );
+    // r6: the package record itself, not only its version (another tarball at the same version).
+    if (integrities[`${pkg}@${reviewed.version}`] !== reviewed.integrity)
+      refuse(`${NEXT_CONFIG} loads ${pkg} ${reviewed.version} with another lockfile integrity`);
   }
 }
 
@@ -326,8 +369,12 @@ const REVIEWED_QUERY_EDGES = Object.freeze({
   'apps/web/src/features/help-now/sw-test-utils.ts': '../../../public/offline.html?raw',
   'apps/web/src/lib/pwa/pwa-i18n-contract.test.ts': '../../../public/offline.html?raw',
 });
-// The request webpack resolves: the specifier, or the path part of a reviewed query edge.
+// The request webpack resolves: the specifier, or the path part of a reviewed query edge. A relative
+// or `@/` request through a `node_modules` directory (a pnpm workspace link, r6) is refused: the
+// scanned tree has no links, and the build would follow one into tracked source.
 export function requestPath(fromRel, specifier) {
+  if (specifier.split(/[/?#]/u).includes('node_modules'))
+    refuse(`${fromRel} imports ${specifier}, a request through node_modules`);
   const cut = specifier.search(/[?#]/u);
   if (cut === -1) return specifier;
   if (REVIEWED_QUERY_EDGES[fromRel] !== specifier)

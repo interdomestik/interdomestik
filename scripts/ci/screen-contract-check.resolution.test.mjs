@@ -8,7 +8,7 @@ import path from 'node:path';
 import test from 'node:test';
 import ts from 'typescript';
 
-import { lint, tree, webTsconfig } from './fixtures/screen-contract-check/harness.mjs';
+import { ids, lint, tree, webTsconfig } from './fixtures/screen-contract-check/harness.mjs';
 import { has, lacks } from './fixtures/screen-contract-check/rules-fixtures.mjs';
 import { WEBPACK_EXTENSIONS } from './screen-contract/resolution.mjs';
 import { kindOfSpecifier, resolverFor } from './screen-contract/specifiers.mjs';
@@ -146,7 +146,10 @@ test('D-1: a request that reaches a directory with its own package.json is a sca
       })
     )
   );
-  assert.throws(() => resolver.resolveTargets(FROM, '@/lib/pkg'), /package\.json/u);
+  assert.throws(
+    () => resolver.resolveTargets(FROM, '@/lib/pkg'),
+    both(/package\.json/u, SCANNER_PR)
+  );
 });
 
 // r4-S1: Next's paths plugin passes over a substitution that ends in `.d.ts`; with the one fixed
@@ -213,7 +216,7 @@ test('D-1: tsconfig settings the resolver does not model are scanner errors', t 
       'apps/web/tsconfig.json':
         '{ "extends": "./base.json", "compilerOptions": { "moduleResolution": "bundler", "paths": { "@/*": ["./src/*"] } } }\n',
     },
-    /extends/u
+    both(/extends/u, SCANNER_PR)
   );
   for (const option of [
     'verbatimModuleSyntax',
@@ -230,12 +233,12 @@ test('D-1: tsconfig settings the resolver does not model are scanner errors', t 
     rejects(
       t,
       { 'apps/web/tsconfig.json': webTsconfig({ [option]: [] }) },
-      new RegExp(option, 'u')
+      both(new RegExp(option, 'u'), SCANNER_PR)
     );
   rejects(
     t,
     { 'apps/web/tsconfig.json': webTsconfig({ moduleResolution: 'node' }) },
-    /moduleResolution/u
+    both(/moduleResolution/u, SCANNER_PR)
   );
 });
 
@@ -352,7 +355,11 @@ test('D-1: a Next configuration other than the fixed one is refused', t => {
       SCANNER_PR
     );
   }
-  rejects(t, { ...REAL_NEXT, 'pnpm-lock.yaml': null }, /pnpm-lock\.yaml is missing/u);
+  rejects(
+    t,
+    { ...REAL_NEXT, 'pnpm-lock.yaml': null },
+    both(/pnpm-lock\.yaml is missing/u, SCANNER_PR)
+  );
 });
 
 test('D-1: a wrapper at another version, or with a pnpm patch, is refused', t => {
@@ -596,4 +603,92 @@ test('D-1: a module request that is not a literal specifier is refused unless re
     'export async function load(locale: string, namespace: string) { return import(`../messages/${locale}/${namespace}.json`); }';
   assert.ok(await lintWith(`${W}/i18n/messages.ts`, reviewed));
   await assert.rejects(lintWith(`${W}/i18n/other.ts`, reviewed), refused);
+});
+
+// r6: the wrapper's own lockfile record is pinned too: a different tarball at the same version
+// (another integrity) is refused.
+test('D-1: a wrapper with another lockfile integrity is refused', t => {
+  const lock = REAL_NEXT['pnpm-lock.yaml'];
+  const integrity =
+    'sha512-ilzb3E7Kaskx/RQ355kCkxLxrHBtYS67pe6KO+F/O6s53f5t4sVwz4gE2Mz4ScghDXeKM+ccyB5GMq9dlkQ35A==';
+  assert.equal(lock.split(integrity).length, 2);
+  rejects(
+    t,
+    { ...REAL_NEXT, 'pnpm-lock.yaml': lock.replace(integrity, `sha512-${'A'.repeat(86)}==`) },
+    both(/@sentry\/nextjs 10\.75\.2 with another lockfile integrity/u, SCANNER_PR)
+  );
+});
+
+// r6: webpack tries `index` itself before `index.<ext>`, so an extensionless index file is a pick.
+test('D-1: ./widget names an extensionless widget/index, as webpack resolves it', t => {
+  const got = targetsIn(t, { [`${W}/components/widget/index`]: X }, './widget');
+  assert.deepEqual(got.targets, [`${W}/components/widget/index`]);
+  const named = targetsIn(
+    t,
+    { [`${W}/components/widget/index`]: X, [`${W}/components/widget/index.ts`]: X },
+    './widget'
+  );
+  assert.ok(named.targets.includes(`${W}/components/widget/index.ts`), named.targets.join());
+});
+
+// r6: a relative request through node_modules can follow a pnpm workspace link to tracked source,
+// which the scanner's tree does not show: refused.
+test('D-1: a relative or @/ request through node_modules is refused', async t => {
+  const resolver = resolverFor(fs.realpathSync(tree(t, {})));
+  for (const spec of [
+    '../../node_modules/@interdomestik/database/src/index.ts',
+    './node_modules/x',
+    '@/../node_modules/@interdomestik/database',
+  ])
+    assert.throws(
+      () => resolver.resolveTargets(FROM, spec),
+      both(/a request through node_modules/u, SCANNER_PR),
+      spec
+    );
+  await assert.rejects(
+    lint(
+      tree(t, {
+        [`${W}/app/x/page.tsx`]:
+          "import { db } from '../../../node_modules/@interdomestik/database';\nexport default () => db;\n",
+      })
+    ),
+    /a request through node_modules/u
+  );
+});
+
+// r6: `module.require('<literal>')` is a CommonJS request webpack records, and a JSDoc `@import` or
+// `import('…')` type in a JavaScript file is a type import TypeScript records: both are edges.
+test('D-1: module.require and JSDoc type imports are edges (CHK-15b, CHK-15c)', async t => {
+  const page = `${W}/app/x/page.jsx`;
+  const comp = `${W}/components/c.jsx`;
+  const cross = '../../../../packages/ui/src/components/avatar';
+  const files = {
+    [page]: "const { db } = module.require('@interdomestik/database');\nexport default () => db;\n",
+    [comp]: [
+      `/** @import { Avatar } from '${cross}' */`,
+      `/** @param {import("${cross}").Props} p */`,
+      'export const C = p => p;',
+    ].join('\n'),
+  };
+  const result = await lint(tree(t, files));
+  has(result, 'CHK-15c', `CHK-15c|${page}|@interdomestik/database`);
+  assert.equal(ids(result, 'CHK-15b').filter(id => id === `CHK-15b|${comp}|${cross}`).length, 2);
+  // In a TypeScript file a comment is no import (TypeScript reads JSDoc types only in JS files).
+  const ts = await lint(
+    tree(t, {
+      [`${W}/components/c.tsx`]: `/** @import { A } from '${cross}' */\nexport const C = 1;\n`,
+    })
+  );
+  lacks(ts, 'CHK-15b', `CHK-15b|${W}/components/c.tsx|`);
+  // `module.require` other than a call with one literal is refused.
+  const refused = /loads a module by .*, a request D-1 does not model; .*scanner PR first/u;
+  for (const body of [
+    'export const r = module.require;',
+    "const n = './x'; export const m = module.require(n);",
+  ])
+    await assert.rejects(
+      lint(tree(t, { [`${W}/components/f.jsx`]: `${body}\nexport const F = () => null;\n` })),
+      refused,
+      body
+    );
 });
