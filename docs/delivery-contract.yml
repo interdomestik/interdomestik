@@ -598,9 +598,12 @@ checks:
       # The worker's SMTP branch, as one sequence: the validated target, its rejection check, and
       # the only transport call, which passes that target unchanged.
       - "const target = configuredSmtpTarget\\(true\\);\\s*if \\(!target \\|\\| target === 'rejected'\\) return unavailable;\\s*const client = smtpTransport\\(target, signal\\);"
+      # The identifier is counted, not the call syntax: it appears exactly twice, in the import
+      # below and in the pinned call above. A second call in any form, an alias, a value use or a
+      # re-export adds an occurrence.
+      - "import \\{ automatedSmtpTarget, smtpTransport \\} from '\\./sign-in-otp-email';"
     must_not_match:
-      - 'smtpTransport\((?!target, signal\))'
-      - 'smtpTransport\([\s\S]*smtpTransport\('
+      - '\bsmtpTransport\b[\s\S]*\bsmtpTransport\b[\s\S]*\bsmtpTransport\b'
 
   - id: automation.smtp_socket_targets_validated_host
     description: The SMTP socket connects only to the validated target (the loopback catcher in automated mode), never to an environment host.
