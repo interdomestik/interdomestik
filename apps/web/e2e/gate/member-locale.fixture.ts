@@ -14,7 +14,7 @@ const signupResponse = z.object({
 export type ThrowawayMember = Readonly<{
   /** Resolves when the member is signed in on `page` with legal acceptance and an active subscription. */
   ready: Promise<void>;
-  /** Waits for setup to settle, whatever its outcome, then removes everything it created. */
+  /** Waits for setup to settle, whatever its outcome, then attempts each cleanup step. */
   remove: () => Promise<void>;
 }>;
 
@@ -55,18 +55,46 @@ export function startThrowawayMember(page: Page, testInfo: TestInfo): ThrowawayM
   })();
   const remove = async () => {
     await ready.catch(() => undefined);
-    await db.delete(subscriptions).where(eq(subscriptions.id, key));
-    const member = await db.query.user.findFirst({
-      columns: { id: true, tenantId: true },
-      where: eq(user.email, email),
-    });
-    if (!member) return;
-    await fixtureLegalAcceptance('clean', [{ ...member, email }]);
-    await db.delete(authSession).where(eq(authSession.userId, member.id));
-    await db.delete(account).where(eq(account.userId, member.id));
-    await db.delete(user).where(eq(user.id, member.id));
+    const errors: unknown[] = [];
+    try {
+      await db.delete(subscriptions).where(eq(subscriptions.id, key));
+    } catch (error) {
+      errors.push(error);
+    }
+
+    let memberId: string | undefined;
+    try {
+      const member = await db.query.user.findFirst({
+        columns: { id: true, tenantId: true },
+        where: eq(user.email, email),
+      });
+      if (member) {
+        memberId = member.id;
+        await fixtureLegalAcceptance('clean', [{ ...member, email }]);
+      }
+    } catch (error) {
+      errors.push(error);
+    } finally {
+      if (memberId !== undefined) await deleteThrowawayMember(memberId, errors);
+      if (errors.length > 0 && testInfo.errors.length === 0) throw errors[0];
+    }
   };
   return { ready, remove };
+}
+
+async function deleteThrowawayMember(memberId: string, errors: unknown[]) {
+  const deletions = [
+    () => db.delete(authSession).where(eq(authSession.userId, memberId)),
+    () => db.delete(account).where(eq(account.userId, memberId)),
+    () => db.delete(user).where(eq(user.id, memberId)),
+  ];
+  for (const remove of deletions) {
+    try {
+      await remove();
+    } catch (error) {
+      errors.push(error);
+    }
+  }
 }
 
 export async function switchLocale(
