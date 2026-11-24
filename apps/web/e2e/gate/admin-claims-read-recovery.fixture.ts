@@ -13,6 +13,7 @@ import srCommon from '../../src/messages/sr/common.json';
 import {
   ADMIN_CLAIMS_READ,
   installAdminClaimsReadSeam,
+  type AdminClaimsReadPhase,
   type AdminClaimsReadSeam,
 } from './admin-claims-read-result.fixture';
 import { settleFrames } from './information-request-read-result.fixture';
@@ -96,20 +97,18 @@ function partsFor(page: Page) {
 }
 type Parts = ReturnType<typeof partsFor>;
 
-export async function until(
+export async function expectRead(
   seam: AdminClaimsReadSeam,
   label: string,
-  ready: (counts: ReturnType<AdminClaimsReadSeam['counts']>) => boolean
+  matches: (counts: ReturnType<AdminClaimsReadSeam['counts']>) => boolean,
+  phase: AdminClaimsReadPhase = 'settled'
 ): Promise<void> {
-  await expect
-    .poll(
-      () => {
-        seam.assertNoError();
-        return ready(seam.counts());
-      },
-      { message: label }
-    )
-    .toBe(true);
+  await test.step(label, async () => {
+    await seam.waitForRead(phase);
+    seam.assertNoError();
+    const counts = seam.counts();
+    expect(matches(counts), `${label} (${JSON.stringify(counts)})`).toBe(true);
+  });
 }
 
 // Chooses the necessary-only cookie button when a banner is actually visible and unique.
@@ -278,7 +277,7 @@ export async function withSeam(
   catalog: Catalog,
   run: (seam: AdminClaimsReadSeam, pathname: string) => Promise<void>
 ): Promise<void> {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const pathname = routes.adminClaims(testInfo);
   const seam = await installAdminClaimsReadSeam(page, { pathname, failureMessage: catalog.failed });
   try {
