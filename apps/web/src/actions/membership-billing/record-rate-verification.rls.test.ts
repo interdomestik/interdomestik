@@ -164,7 +164,9 @@ describe.runIf(enabled)('rate verification action with the restricted database r
         });
         const begun = await beginRateCheck(start);
         expect(begun).toMatchObject({ success: true, data: { rateId: rate.id } });
-        if (!begun.success) throw new Error('Expected the wrapped check start to commit');
+        if (!begun.success || !begun.data) {
+          throw new Error('Expected the wrapped check start to return data');
+        }
         const checked = await recordRateVerification({
           ...start,
           operationKey: randomUUID(),
@@ -178,7 +180,9 @@ describe.runIf(enabled)('rate verification action with the restricted database r
           data: { rateId: rate.id, verifiedBy: verifier },
         });
         const next = await beginRateCheck({ ...start, operationKey: randomUUID() });
-        if (!next.success) throw new Error('Expected the wrapped recheck to commit');
+        if (!next.success || !next.data) {
+          throw new Error('Expected the wrapped recheck to return data');
+        }
         expect(
           await recordRateCheckInconclusive({
             ...start,
