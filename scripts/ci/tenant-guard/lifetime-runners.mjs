@@ -58,4 +58,13 @@ export const LIFETIME_RUNNERS = deepFreeze([
     callback: 1,
     lends: [],
   },
+  {
+    // WP-10 B1-a: unchanged runner in the file that locks public intake through the mailbox
+    // commit and deletes the two addresses’ sign-in codes in that transaction.
+    file: 'apps/web/src/lib/auth/different-email-recovery-store.ts',
+    unit: 'withUserLock',
+    sha256: '7f21708d55605c20aa63e97fc71b01f2702554822926747c1f4766e79df58fea',
+    callback: 1,
+    lends: [],
+  },
 ]);
