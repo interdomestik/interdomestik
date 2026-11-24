@@ -3,6 +3,11 @@ import { readFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import ts from 'typescript';
+import {
+  hasUnconditionalCoverageSuite,
+  listVitestFiles,
+  vitestProjects,
+} from './coverage-lane.mjs';
 import { protectedLanes } from './protected-lanes.mjs';
 
 export const repoRoot = resolve(import.meta.dirname, '../../..');
@@ -14,20 +19,44 @@ const rlsMarked = /(?:^|[.-])(?:rls|restricted-role)[.-]/u;
 const sourceTree = /^(?:apps\/web|packages\/[^/]+)\/src\//u;
 const authContracts = /^apps\/web\/src\/lib\/auth\/[^/]+\.contract\./u;
 const packageTests = /^packages\/[^/]+\/test\//u;
-const coverageMock = /\bvi\.mock\(\s*['"]@interdomestik\/database['"]/u;
 const conditionalTest = /\.(?:runIf|skipIf|skip|todo)\b|\bskip\s*:/u;
+const databaseKey = /DATABASE_URL|DB_PROOF|DB_INTEGRATION|POSTGRES_INTEGRATION|RLS_INTEGRATION/u;
+
+function accessKey(node) {
+  if (!node) return '';
+  if (ts.isPropertyAccessExpression(node)) return node.name.text;
+  if (ts.isElementAccessExpression(node) && ts.isStringLiteralLike(node.argumentExpression)) {
+    return node.argumentExpression.text;
+  }
+  return '';
+}
+
+function isProcessEnv(node) {
+  return (
+    accessKey(node) === 'env' &&
+    ts.isIdentifier(node.expression) &&
+    node.expression.text === 'process'
+  );
+}
+
+function isDatabaseBinding(element) {
+  const key = element.propertyName ?? element.name;
+  return (ts.isIdentifier(key) || ts.isStringLiteralLike(key)) && databaseKey.test(key.text);
+}
 
 function isLiveOptIn(file, source) {
-  if (!conditionalTest.test(source)) return false;
-  if (!source.includes('process.env')) return false;
+  if (!conditionalTest.test(source) || !source.includes('process')) return false;
   const syntax = ts.createSourceFile(file, source, ts.ScriptTarget.Latest);
-  const databaseKey = /DATABASE_URL|DB_PROOF|DB_INTEGRATION|POSTGRES_INTEGRATION|RLS_INTEGRATION/u;
   function visitsDatabaseEnv(node) {
-    const readsDatabaseEnv =
-      ts.isPropertyAccessExpression(node) &&
-      databaseKey.test(node.name.text) &&
-      node.expression.getText(syntax) === 'process.env';
-    return readsDatabaseEnv || Boolean(ts.forEachChild(node, visitsDatabaseEnv));
+    if (databaseKey.test(accessKey(node)) && isProcessEnv(node.expression)) return true;
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isObjectBindingPattern(node.name) &&
+      isProcessEnv(node.initializer) &&
+      node.name.elements.some(isDatabaseBinding)
+    )
+      return true;
+    return ts.forEachChild(node, visitsDatabaseEnv);
   }
   return visitsDatabaseEnv(syntax);
 }
@@ -94,7 +123,7 @@ export function readExclusions(filename) {
   return entries;
 }
 
-function advisoryLane(file) {
+function advisoryNodeLane(file) {
   if (/^packages\/database\/test\/(?:pg16\/)?[^/]+\.test\.ts$/u.test(file)) {
     const name = basename(file);
     if (file.startsWith('packages/database/test/pg16/') || liveTestSuffix.test(name)) {
@@ -104,16 +133,17 @@ function advisoryLane(file) {
       ? 'advisory/node-pg16'
       : 'advisory/node-unit';
   }
-  if (
-    /^apps\/web\/src\/.+\.test\.tsx?$/u.test(file) ||
-    /^packages\/domain-[^/]+\/src\/.+\.test\.ts$/u.test(file)
-  ) {
-    return 'advisory/vitest-pg16';
-  }
   return undefined;
 }
 
-export function buildInventory(files, existing, exclusions) {
+function isVitestCandidate(file) {
+  return (
+    /^apps\/web\/src\/.+\.test\.tsx?$/u.test(file) ||
+    /^packages\/domain-[^/]+\/src\/.+\.test\.ts$/u.test(file)
+  );
+}
+
+export function buildInventory(files, existing, exclusions, advisoryVitest = new Set()) {
   const lanesByFile = new Map(files.map(file => [file, []]));
   const excluded = new Map(exclusions.map(entry => [entry.file, entry]));
   for (const { name, files: selected } of existing) {
@@ -131,7 +161,7 @@ export function buildInventory(files, existing, exclusions) {
   const inventory = files.map(file => {
     const lanes = lanesByFile.get(file);
     if (excluded.has(file)) return { file, lanes, exclusion: excluded.get(file) };
-    const advisory = advisoryLane(file);
+    const advisory = advisoryVitest.has(file) ? 'advisory/vitest-pg16' : advisoryNodeLane(file);
     if (!lanes.length && advisory) lanes.push(advisory);
     return { file, lanes };
   });
@@ -147,12 +177,23 @@ export function repositoryInventory(root = repoRoot) {
   const files = trackedTests(root);
   const exclusions = readExclusions(join(root, 'scripts/ci/db-lanes/exclusions.json'));
   const excludedFiles = new Set(exclusions.map(entry => entry.file));
-  const coverageCandidates = files.filter(file => {
-    if (advisoryLane(file) !== 'advisory/vitest-pg16' || excludedFiles.has(file)) return false;
+  const candidates = files.filter(file => isVitestCandidate(file) && !excludedFiles.has(file));
+  const coverageCandidates = candidates.filter(file => {
     const source = readFileSync(join(root, file), 'utf8');
-    return coverageMock.test(source) && !conditionalTest.test(source);
+    return !conditionalTest.test(source) && hasUnconditionalCoverageSuite(file, source);
   });
-  return buildInventory(files, protectedLanes(root, coverageCandidates), exclusions);
+  const existing = protectedLanes(root, coverageCandidates);
+  const protectedFiles = new Set(existing.flatMap(lane => lane.files));
+  const advisoryVitest = new Set();
+  for (const [project, pending] of vitestProjects(
+    candidates.filter(file => !protectedFiles.has(file))
+  )) {
+    const listed = listVitestFiles(root, project, pending, ['--environment=node']);
+    for (const file of pending) {
+      if (listed.has(file)) advisoryVitest.add(file);
+    }
+  }
+  return buildInventory(files, existing, exclusions, advisoryVitest);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {

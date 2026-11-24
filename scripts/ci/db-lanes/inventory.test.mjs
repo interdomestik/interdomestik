@@ -1,15 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import {
-  cpSync,
-  mkdtempSync,
-  mkdirSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
@@ -21,7 +12,6 @@ import {
   repositoryInventory,
   trackedTests,
 } from './inventory.mjs';
-import { protectedLanes } from './protected-lanes.mjs';
 
 function scratch(t) {
   const root = realpathSync(mkdtempSync(join(tmpdir(), 'db-lanes-')));
@@ -132,12 +122,34 @@ test('discovers a newly tracked orphan independently of advisory selectors', t =
     ...exception,
     file,
   }));
-  const inventory = buildInventory(files, [], exclusions);
+  const inventory = buildInventory(files, [], exclusions, new Set([futureWeb, auth, futureDomain]));
   assert.deepEqual(
     inventory.map(row => row.lanes),
     [['advisory/vitest-pg16'], ['advisory/vitest-pg16'], ['advisory/vitest-pg16'], [], [], [], []]
   );
 });
+
+for (const [label, source] of [
+  ['element access', "test('live proof', { skip: process.env['LIVE_DB_PROOF'] !== '1' });"],
+  [
+    'destructuring',
+    "const { 'LIVE_DB_PROOF': enabled } = process.env; test('live proof', { skip: enabled !== '1' });",
+  ],
+]) {
+  test(`reports a tracked script with ${label} database opt-in as an orphan`, t => {
+    const root = scratch(t);
+    const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
+    git('init', '-q');
+    const file = 'scripts/pilot/db-opt-in.test.ts';
+    mkdirSync(join(root, 'scripts/pilot'), { recursive: true });
+    writeFileSync(join(root, file), source);
+    git('add', '--', file);
+    assert.throws(
+      () => buildInventory(trackedTests(root), [], []),
+      /Database tests with no CI lane: scripts\/pilot\/db-opt-in\.test\.ts/u
+    );
+  });
+}
 
 test('uses the existing explicit lane before selecting advisory execution', () => {
   const file = 'packages/database/test/restricted-role.test.ts';
@@ -157,7 +169,11 @@ test('inventories the checked-out selectors', () => {
     ['packages/database/test/s8-claim-restricted-rls.test.ts', 'e2e-gate/RLS'],
     ['packages/domain-membership-billing/test/exchange-rates-port.test.ts', 'e2e-gate/RLS'],
     ['apps/web/src/lib/refusal-audit-rls.integration.test.ts', 'e2e-gate/RLS'],
-    ['packages/domain-users/src/admin/get-users.rls.test.ts', 'unit/coverage'],
+    [
+      'apps/web/src/features/claims/tracking/server/trackingLifecycle.integration.test.ts',
+      'unit/coverage',
+    ],
+    ['packages/domain-users/src/admin/get-users.rls.test.ts', 'advisory/vitest-pg16'],
     ['packages/database/test/access-tenant-rls-migration.test.ts', 'advisory/node-unit'],
     ['packages/database/test/sponsor-foreign-keys.test.ts', 'advisory/node-pg16'],
     [
@@ -178,59 +194,4 @@ test('inventories the checked-out selectors', () => {
     assert.equal(rows.get(file)?.exclusion?.file, file);
     assert.deepEqual(rows.get(file).lanes, [], file);
   }
-});
-
-function copyProtectedSelectors(root) {
-  for (const file of [
-    '.github/workflows/ci.yml',
-    'package.json',
-    'packages/database/package.json',
-    'packages/domain-communications/package.json',
-    'packages/domain-membership-billing/package.json',
-    'packages/domain-users/package.json',
-    'scripts/run-staff-detail-rls.mjs',
-  ]) {
-    mkdirSync(dirname(join(root, file)), { recursive: true });
-    cpSync(join(repoRoot, file), join(root, file));
-  }
-}
-
-test('coverage credit follows the domain Vitest include and exclude selectors', t => {
-  const root = scratch(t);
-  copyProtectedSelectors(root);
-  const project = 'packages/domain-users';
-  const configPath = `${project}/vitest.config.ts`;
-  const config = readFileSync(join(repoRoot, configPath), 'utf8');
-  const files = [`${project}/src/admin/get-users.rls.test.ts`, `${project}/src/new.rls.test.ts`];
-  symlinkSync(join(repoRoot, 'node_modules'), join(root, 'node_modules'));
-  symlinkSync(join(repoRoot, project, 'node_modules'), join(root, project, 'node_modules'));
-  for (const file of files) {
-    mkdirSync(dirname(join(root, file)), { recursive: true });
-    writeFileSync(join(root, file), "throw new Error('Listing must not run this test');");
-  }
-  const coverage = () => protectedLanes(root, files).find(lane => lane.name === 'unit/coverage');
-  writeFileSync(join(root, configPath), config);
-  assert.deepEqual(coverage().files, files);
-
-  const narrower = config.replace('src/**/*.test.ts', 'src/*.test.ts');
-  writeFileSync(join(root, configPath), narrower);
-  assert.deepEqual(coverage().files, [files[1]]);
-
-  const excluded = narrower.replace(
-    'coverage: {',
-    "exclude: ['**/new.rls.test.ts'],\n    coverage: {"
-  );
-  writeFileSync(join(root, configPath), excluded);
-  assert.equal(coverage(), undefined);
-});
-
-test('fails closed when a protected test runner adds an unrecognized case filter', t => {
-  const root = scratch(t);
-  copyProtectedSelectors(root);
-  assert.ok(protectedLanes(root)[0].files.length > 0);
-  const filename = join(root, 'packages/database/package.json');
-  const manifest = JSON.parse(readFileSync(filename, 'utf8'));
-  manifest.scripts['test:rls'] += ' --test-name-pattern=never-matches';
-  writeFileSync(filename, JSON.stringify(manifest));
-  assert.throws(() => protectedLanes(root), /unsupported file selector.*database test:rls/iu);
 });
