@@ -482,6 +482,34 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     expect(previous).not.toBeInTheDocument();
   });
 
+  it('shows the updating copy once when a refresh fills the empty page before the return commits', async () => {
+    navigation.query = 'page=3';
+    mockFetch({ ...wireResponse([]), page: 3, totalPages: 1 });
+    const { commit, queryClient } = renderTable();
+    const previous = await screen.findByRole('link', { name: common.common.previous });
+    const region = screen.getByRole('region', { name: claims.claims.title });
+    const finish = deferFetch();
+    previous.focus();
+    fireEvent.click(previous);
+
+    // A background refresh adds a row to page 3 in the same render as the commit to page 1.
+    const pageThreeKey = ['claims', 'member', { page: 3 }];
+    act(() => {
+      queryClient.setQueryData(pageThreeKey, {
+        ...queryClient.getQueryData<Record<string, unknown>>(pageThreeKey),
+        claims: [{ ...wireRow({ id: 'late', title: 'Late row' }) }],
+      });
+      commit('');
+    });
+
+    expect(within(region).getAllByText(claims.claims.memberList.updating)).toHaveLength(1);
+    expect(previous).toHaveFocus();
+    expect(previous).toHaveAttribute('aria-disabled', 'true');
+
+    finish(new Response(JSON.stringify(wireResponse([wireRow()]))));
+    expect(await screen.findByRole('link', { name: 'Flight Delay' })).toBeVisible();
+  });
+
   it('keeps focus on a control or the labelled region when an empty-page return commits late', async () => {
     navigation.query = 'page=3';
     mockFetch({ ...wireResponse([]), page: 3, totalPages: 1 });

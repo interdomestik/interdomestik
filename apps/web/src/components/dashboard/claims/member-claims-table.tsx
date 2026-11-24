@@ -312,7 +312,8 @@ export function MemberClaimsTable({
     removedFocusedControl.current = null;
   });
 
-  const showsUpdating = Boolean(retainedResult?.data.claims.length);
+  // A retained empty-page card already carries the updating copy; show it only once.
+  const showsUpdating = !keepsEmptyPage && Boolean(retainedResult?.data.claims.length);
   const showsLoading =
     !showsError && !keepsEmptyPage && (!data || (isPlaceholderData && !showsUpdating));
   const showsSettledEmpty = !showsError && !isPlaceholderData && data?.claims.length === 0;
