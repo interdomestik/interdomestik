@@ -1,4 +1,5 @@
 import type { openPilotSalesContract } from '@/actions/pilot-sales.contract-test-support';
+import { LEAD_NOTICE_VERSION } from '@/features/agent/leads/lead-notice';
 import { PILOT_SWITCH_CATEGORY } from '@interdomestik/database/pilot-switch';
 import {
   auditLog,
@@ -138,8 +139,10 @@ async function seedSponsor(db: AdminDb, fixture: Fixture) {
       phone: '+38349000000',
       leadKind: 'company',
       companyName: 'Fixture company',
-      consentNoticeVersion: 'pre-consent-legacy',
-      captureChannel: 'legacy',
+      consentNoticeVersion: LEAD_NOTICE_VERSION,
+      consentCapturedAt: now,
+      consentCapturedBy: creatorId,
+      captureChannel: 'agent_assisted',
     });
     await tx.insert(sponsors).values({
       id: sponsorId,
