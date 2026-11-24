@@ -16,7 +16,7 @@ import {
   markClaimAiRunDispatchFailedService,
 } from '@/lib/ai/claim-workflows';
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
-import { notifyClaimSubmitted } from '@/lib/notifications';
+import { kickClaimNotificationDeliveries } from '@/lib/claim-notification-delivery-kick';
 import { revalidatePath } from 'next/cache';
 
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
@@ -91,12 +91,18 @@ export async function submitClaimCore(params: {
               if (!authority) throw new Error('Missing tenant authority');
               return markClaimAiRunDispatchFailedService({ authority, runId, message });
             },
-            notifyClaimSubmitted,
             revalidatePath,
             validateSubmittedClaimFile: initialClaimEvidenceValidatorFor(authority),
           }
         );
         if (result.success && typeof result.claimId === 'string') {
+          if (authority && result.deliveryIds.length > 0) {
+            try {
+              await kickClaimNotificationDeliveries(authority, result.deliveryIds);
+            } catch (error) {
+              console.error('Claim submission notification dispatch failed after commit', error);
+            }
+          }
           return {
             success: true,
             claimId: result.claimId,

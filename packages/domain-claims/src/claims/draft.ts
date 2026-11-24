@@ -22,8 +22,6 @@ import { validateClaimFiles } from './submit-evidence-validation';
 import type { ClaimsDeps, ClaimsSession } from './types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-export { cancelClaimCore } from './draft-cancellation';
-
 type UpdateDraftClaimCode = ClaimValidationError['code'] | 'CONFLICT';
 
 export type UpdateDraftClaimResult =

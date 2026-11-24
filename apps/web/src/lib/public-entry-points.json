@@ -95,6 +95,21 @@
       "source": "R2b D9"
     },
     {
+      "id": "cron-notifications",
+      "kind": "route",
+      "module": "apps/web/src/app/api/cron/notifications/route.ts",
+      "method": "GET",
+      "authentication": "secret-header",
+      "effect": "runNotificationDeliverySchedule",
+      "deniedTest": {
+        "path": "apps/web/src/app/api/cron/notifications/route.test.ts",
+        "title": "returns 401 when unauthorized"
+      },
+      "writes": true,
+      "closedBy": null,
+      "source": "WP-11"
+    },
+    {
       "id": "cron-crm-forecast-snapshots",
       "kind": "route",
       "module": "apps/web/src/app/api/cron/crm/forecast-snapshots/route.ts",

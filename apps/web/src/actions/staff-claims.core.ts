@@ -37,8 +37,7 @@ export type {
  * Assign a claim to a staff member on the staff surface.
  */
 export async function assignClaim(claimId: string, staffId?: string | null): Promise<ActionResult> {
-  const { session, authority, requestHeaders } = await getActionContext();
-  return assignClaimCore({ authority, claimId, session, requestHeaders, staffId });
+  return assignClaimCore({ claimId, staffId });
 }
 
 /**
@@ -53,18 +52,14 @@ export async function updateClaimStatus(
   declineReasonCode?: RecoveryDeclineReasonCode,
   decisionExplanation?: string
 ): Promise<ActionResult> {
-  const { session, authority, requestHeaders } = await getActionContext();
   return updateClaimStatusCore({
     allowanceOverrideReason,
-    authority,
     claimId,
     declineReasonCode,
     decisionExplanation,
-    newStatus,
+    toStatus: newStatus,
     note,
-    isPublicChange,
-    session,
-    requestHeaders,
+    isPublicNote: isPublicChange,
   });
 }
 

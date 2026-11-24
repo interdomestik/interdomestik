@@ -34,7 +34,8 @@ vi.mock('@interdomestik/database/schema', () => ({
   claimDocuments: {},
   claimDocumentAiExtractionConsents: {},
 }));
-vi.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
   and: hoisted.and,
   desc: hoisted.desc,
   eq: hoisted.eq,

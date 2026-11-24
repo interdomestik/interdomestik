@@ -94,7 +94,40 @@
     "updateOn": "Update on: {claim}",
     "yourClaim": "your claim",
     "updateBody": "A new update is available. Open the notification for details.",
+    "staff": {
+      "claimWithoutNumber": "Claim without a number",
+      "content": "{event} · {category}",
+      "categories": {
+        "consumer": "Consumer",
+        "consumer_rights": "Consumer Rights",
+        "housing": "Housing",
+        "insurance": "Insurance",
+        "employment": "Employment",
+        "contracts": "Contracts",
+        "utilities": "Utilities",
+        "auto": "Vehicle",
+        "vehicle": "Vehicle",
+        "travel": "Travel",
+        "retail": "Retail",
+        "real_estate": "Real Estate",
+        "property": "Property",
+        "flight_delay": "Flight Delay",
+        "damaged_goods": "Damaged Goods",
+        "service_issue": "Service Issue",
+        "liability": "Liability",
+        "medical": "Medical",
+        "test": "Test",
+        "other": "Other",
+        "injury": "Personal Injury"
+      }
+    },
     "events": {
+      "staff_claim_submitted": {
+        "title": "New claim submitted"
+      },
+      "staff_member_message": {
+        "title": "New member message"
+      },
       "claimSubmitted": {
         "title": "Claim submitted"
       },

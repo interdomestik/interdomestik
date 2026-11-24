@@ -4,6 +4,7 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { reportServerError } from '@interdomestik/domain-communications/server-error';
 import { nanoid } from 'nanoid';
 
 // An audit row is written inside the tenant that owns it, under the authority the caller already
@@ -101,6 +102,6 @@ export async function logAuditEvent({ headers, ...event }: AuditEvent) {
     const outcome = await writeAuditEvent({ ...event, metadata: combinedMetadata });
     if (!outcome.ok) throw outcome.error;
   } catch (error) {
-    console.error('Failed to write audit log:', error);
+    reportServerError('Failed to write audit log:', error);
   }
 }

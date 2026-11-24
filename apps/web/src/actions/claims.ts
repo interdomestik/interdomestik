@@ -1,3 +1,3 @@
 'use server';
 
-export { cancelClaim, createClaim, updateClaimStatus, updateDraftClaim } from './claims.core';
+export { createClaim, updateDraftClaim } from './claims.core';

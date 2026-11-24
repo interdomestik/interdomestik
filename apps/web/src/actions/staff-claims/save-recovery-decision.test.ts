@@ -4,12 +4,13 @@ import * as nextCache from 'next/cache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { logAuditEvent } from '@/lib/audit';
-import { notifyRecoveryDecision } from '@/lib/notifications';
+import { kickClaimNotificationDeliveries } from '@/lib/claim-notification-delivery-kick';
 import { saveRecoveryDecisionCore } from './save-recovery-decision.core';
 
 const mockRunCommercialActionWithIdempotency = vi.fn();
 
-vi.mock('@interdomestik/domain-claims', () => ({
+vi.mock('@interdomestik/domain-claims', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/domain-claims')>()),
   saveStaffRecoveryDecisionCore: vi.fn(),
 }));
 
@@ -17,8 +18,8 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));
 
-vi.mock('@/lib/notifications', () => ({
-  notifyRecoveryDecision: vi.fn(),
+vi.mock('@/lib/claim-notification-delivery-kick', () => ({
+  kickClaimNotificationDeliveries: vi.fn(),
 }));
 
 vi.mock('@/lib/commercial-action-idempotency', () => ({
@@ -30,7 +31,7 @@ vi.mock('next/cache', () => ({
   revalidatePath: vi.fn(),
 }));
 
-const authority = mintTestTenantAuthority('tenant-1');
+const authority = mintTestTenantAuthority('tenant-1', { userId: 'staff-1', role: 'staff' });
 
 describe('saveRecoveryDecisionCore', () => {
   const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
@@ -54,6 +55,7 @@ describe('saveRecoveryDecisionCore', () => {
 
     vi.spyOn(domainSave, 'saveStaffRecoveryDecisionCore').mockResolvedValueOnce({
       success: true,
+      deliveryIds: ['delivery-1'],
       data: {
         decidedAt: '2026-03-12T00:00:00.000Z',
         declineReasonCode: 'insufficient_evidence',
@@ -107,7 +109,8 @@ describe('saveRecoveryDecisionCore', () => {
       explanation: 'Not enough evidence for staff-led recovery.',
       requestHeaders,
     });
-    expect(domainDeps).toEqual({ logAuditEvent, notifyRecoveryDecision });
+    expect(domainDeps).toEqual({ logAuditEvent });
+    expect(kickClaimNotificationDeliveries).toHaveBeenCalledWith(authority, ['delivery-1']);
     expect(revalidatePathSpy.mock.calls.map(([path]) => path)).toEqual(REVALIDATED_LOCALE_PATHS);
     expect(revalidatePathSpy).toHaveBeenCalledTimes(REVALIDATED_LOCALE_PATHS.length);
   });
@@ -121,6 +124,19 @@ describe('saveRecoveryDecisionCore', () => {
       idempotencyKey: 'decision-unauthorized',
       requestHeaders: new Headers(),
       session: null,
+    });
+
+    expect(result).toEqual({ success: false, error: 'Unauthorized' });
+    expect(mockRunCommercialActionWithIdempotency).not.toHaveBeenCalled();
+  });
+
+  it('refuses a mismatched authority before reading an idempotent result', async () => {
+    const result = await saveRecoveryDecisionCore({
+      authority,
+      claimId: 'claim-1',
+      decisionType: 'accepted',
+      idempotencyKey: 'decision-mismatch',
+      session: { user: { id: 'staff-2', role: 'staff', tenantId: 'tenant-1' } } as never,
     });
 
     expect(result).toEqual({ success: false, error: 'Unauthorized' });

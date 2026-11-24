@@ -1,4 +1,5 @@
 export { resolveEffectiveMembership, effectiveCoverageMembers } from './resolve';
+export { lockPerson as lockPersonCoverageInputs } from '../sponsors/handover-worker';
 export type { CoveredMember, CoverageRow, SubscriptionRow } from './resolve';
 export type {
   CoverageEntry,

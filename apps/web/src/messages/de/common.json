@@ -1,5 +1,18 @@
 {
   "common": {
+    "claimStatusErrors": {
+      "forbidden": "Sie haben keine Berechtigung, diesen Fall zu ändern.",
+      "notFound": "Der Fall wurde nicht gefunden oder der Zugriff wurde verweigert.",
+      "declineReason": "Wählen Sie einen Grund aus, bevor Sie den Fall ablehnen.",
+      "draft": "Reichen Sie einen neuen Fall ein, um vom Entwurf aus fortzufahren.",
+      "conflict": "Der Fall wurde geändert. Laden Sie die Seite neu und versuchen Sie es erneut.",
+      "transition": "Der Fall kann nicht in den gewählten Status wechseln.",
+      "recovery": "Erfüllen Sie die Voraussetzungen für die Forderungsdurchsetzung, bevor Sie den Status ändern.",
+      "evidence": "Prüfen Sie die für diesen Status erforderlichen Nachweise und Vollmachten.",
+      "failed": "Der Fallstatus konnte nicht gespeichert werden.",
+      "assignmentTarget": "Die Person wurde nicht gefunden oder liegt außerhalb Ihres Zuständigkeitsbereichs.",
+      "assignmentFailed": "Die Zuweisung konnte nicht gespeichert werden."
+    },
     "pwa": {
       "offlineHeading": "Soforthilfe — offline",
       "offlinePrivacy": "Nur die öffentliche Checkliste für den Unfallort. Keine Kontodaten, gespeicherten Fotonotizen oder vorgemerkten Änderungen.",
@@ -92,6 +105,8 @@
       }
     },
     "toastRegion": "Benachrichtigungen",
+    "localeSaveError": "Ihre Spracheinstellung konnte nicht gespeichert werden. Versuchen Sie es erneut.",
+    "localeSwitchUnsaved": "In dieser Sitzung konnte Ihre Spracheinstellung nicht gespeichert werden.",
     "membershipStatus": {
       "active": "Aktiv",
       "past_due": "Überfällig",

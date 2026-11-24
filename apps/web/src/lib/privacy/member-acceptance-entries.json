@@ -23,16 +23,6 @@
     "reason": "Shell access verdict only",
     "evidence": "apps/web/src/actions/admin-access.ts:8"
   },
-  "actions/admin-claims.core.ts#updateClaimStatus": {
-    "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/actions/admin-claims/update-status.core.ts:50",
-    "proof": "c0a7159e8b0c"
-  },
-  "actions/admin-claims.ts#updateClaimStatus": {
-    "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/actions/admin-claims/update-status.core.ts:50",
-    "proof": "c0a7159e8b0c"
-  },
   "actions/admin-rbac.core.ts#createBranch": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/actions/admin-rbac.core.ts:76",
@@ -170,16 +160,6 @@
     "evidence": "packages/domain-users/src/admin/update-user-agent.ts:22",
     "proof": "5692fc8d1a11"
   },
-  "actions/agent-claims.core.ts#updateClaimStatus": {
-    "disposition": "not_member_reachable",
-    "evidence": "packages/domain-claims/src/agent-claims/update-status.ts:48",
-    "proof": "9977f59b6f3c"
-  },
-  "actions/agent-claims.ts#updateClaimStatus": {
-    "disposition": "not_member_reachable",
-    "evidence": "packages/domain-claims/src/agent-claims/update-status.ts:48",
-    "proof": "9977f59b6f3c"
-  },
   "actions/agent-crm-follow-up.ts#completeAgentLeadFollowUp": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/actions/agent-crm-follow-up.core.ts:49",
@@ -313,10 +293,6 @@
     "disposition": "checked",
     "via": "memberGuarded"
   },
-  "actions/claims.core.ts#cancelClaim": {
-    "disposition": "checked",
-    "via": "memberGuarded"
-  },
   "actions/claims.core.ts#createClaim": {
     "disposition": "checked",
     "via": "memberGuarded"
@@ -325,23 +301,11 @@
     "disposition": "checked",
     "via": "memberGuarded"
   },
-  "actions/claims.core.ts#updateClaimStatus": {
-    "disposition": "checked",
-    "via": "memberGuarded"
-  },
   "actions/claims.core.ts#updateDraftClaim": {
     "disposition": "checked",
     "via": "memberGuarded"
   },
-  "actions/claims.ts#cancelClaim": {
-    "disposition": "checked",
-    "via": "memberGuarded"
-  },
   "actions/claims.ts#createClaim": {
-    "disposition": "checked",
-    "via": "memberGuarded"
-  },
-  "actions/claims.ts#updateClaimStatus": {
     "disposition": "checked",
     "via": "memberGuarded"
   },
@@ -714,6 +678,16 @@
     "disposition": "checked",
     "via": "actions/messages/context.core.ts#getActionContext"
   },
+  "actions/notification-deliveries.ts#listFailedNotificationDeliveries": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/notification-deliveries.ts:18",
+    "proof": "b407346b8d49"
+  },
+  "actions/notification-deliveries.ts#redriveNotificationDelivery": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/notification-deliveries.ts:31",
+    "proof": "d70cc07ef4d7"
+  },
   "actions/notifications.core.ts#getNotifications": {
     "disposition": "checked",
     "via": "actions/notifications/context.core.ts#getAuthorizedActionContext"
@@ -738,6 +712,11 @@
     "disposition": "deferred_13a2",
     "reason": "before accepting, a member can still reach, by direct link, the documents the existing access rules already allow them (own claims and case grants), plus their own notification flags"
   },
+  "actions/preferred-locale.ts#updatePreferredLocale": {
+    "disposition": "exempt",
+    "reason": "Saves the caller's own display-language preference; reads only the caller's own profile row and returns only the locale",
+    "evidence": "apps/web/src/actions/preferred-locale.ts:10"
+  },
   "actions/privacy/accept-legal-documents.ts#acceptLegalDocuments": {
     "disposition": "exempt",
     "reason": "Records acceptance for the current member",
@@ -760,8 +739,8 @@
   },
   "actions/staff-claims.core.ts#assignClaim": {
     "disposition": "not_member_reachable",
-    "evidence": "packages/domain-claims/src/staff-claims/assign.ts:85",
-    "proof": "0189d09fc318"
+    "evidence": "apps/web/src/actions/staff-claims/assign.core.ts:11",
+    "proof": "8c76366bb465"
   },
   "actions/staff-claims.core.ts#saveClaimEscalationAgreement": {
     "disposition": "not_member_reachable",
@@ -770,8 +749,8 @@
   },
   "actions/staff-claims.core.ts#saveRecoveryDecision": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/actions/staff-claims/save-recovery-decision.core.ts:29",
-    "proof": "096bd6a83705"
+    "evidence": "packages/domain-claims/src/staff-claims/save-recovery-decision.ts:22",
+    "proof": "cba6a6bfb76b"
   },
   "actions/staff-claims.core.ts#saveSuccessFeeCollection": {
     "disposition": "not_member_reachable",
@@ -780,8 +759,8 @@
   },
   "actions/staff-claims.core.ts#updateClaimStatus": {
     "disposition": "not_member_reachable",
-    "evidence": "packages/domain-claims/src/staff-claims/update-status.ts:238",
-    "proof": "c8f2ee6f18c1"
+    "evidence": "apps/web/src/actions/staff-claims/update-status.core.ts:17",
+    "proof": "ef7d3184be61"
   },
   "actions/staff-claims/information-request.ts#acknowledgeClaimInformationRequestEvidence": {
     "disposition": "not_member_reachable",
@@ -1393,6 +1372,11 @@
     "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
     "proof": "8a5f45ea2724"
   },
+  "app/api/cron/notifications/route.ts#GET": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
+    "proof": "98a83ca98ef5"
+  },
   "app/api/cron/nps/route.ts#GET": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
@@ -1597,28 +1581,28 @@
   },
   "features/admin/claims/actions/ops-actions.ts#assignOwner": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/features/admin/claims/actions/ops-actions.ts:71",
-    "proof": "f6aed79f0cfe"
+    "evidence": "apps/web/src/features/admin/claims/actions/ops-assignment-action.ts:57",
+    "proof": "d1a1818d9aab"
   },
   "features/admin/claims/actions/ops-actions.ts#markSlaAcknowledged": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/features/admin/claims/actions/action-helpers.ts:63",
+    "evidence": "apps/web/src/features/admin/claims/actions/action-helpers.ts:55",
     "proof": "5cc99b0ca45e"
   },
   "features/admin/claims/actions/ops-actions.ts#sendMemberReminder": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/features/admin/claims/actions/action-helpers.ts:63",
+    "evidence": "apps/web/src/features/admin/claims/actions/action-helpers.ts:55",
     "proof": "ca49d987864c"
   },
   "features/admin/claims/actions/ops-actions.ts#unassignOwner": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/features/admin/claims/actions/ops-actions.ts:106",
-    "proof": "2fad663905e3"
+    "evidence": "apps/web/src/features/admin/claims/actions/ops-assignment-action.ts:65",
+    "proof": "817b6af27526"
   },
   "features/admin/claims/actions/ops-actions.ts#updateStatus": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/features/admin/claims/actions/action-helpers.ts:63",
-    "proof": "59d77b58e806"
+    "evidence": "apps/web/src/features/admin/claims/actions/ops-status-action.ts:25",
+    "proof": "662702d05f1e"
   },
   "features/admin/lead-duplicates/actions/lead-duplicates.ts#listLeadDuplicatesAction": {
     "disposition": "not_member_reachable",

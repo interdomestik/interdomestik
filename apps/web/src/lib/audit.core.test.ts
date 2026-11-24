@@ -1,4 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { DrizzleQueryError } from 'drizzle-orm/errors';
+import { inspect } from 'node:util';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
@@ -14,6 +16,7 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('nanoid', () => ({ nanoid: () => 'audit-1' }));
 
+import { logAuditEvent as logAuditEventFromAction } from './audit';
 import { logAuditEvent } from './audit.core';
 
 const authority = mintTestTenantAuthority('tenant-1');
@@ -84,17 +87,39 @@ describe('logAuditEvent', () => {
     }
   });
 
-  it('swallows a database failure after logging it', async () => {
-    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+  it('swallows a failed recovery audit insert and redacts every logged argument', async () => {
+    const explanation = 'Private recovery explanation fixture';
+    const driverDetail = 'Private driver detail fixture';
+    const query = 'insert into audit_log (metadata) values ($1)';
+    const loggers = (['error', 'warn', 'info', 'log', 'debug'] as const).map(method =>
+      vi.spyOn(console, method).mockImplementation(() => undefined)
+    );
     try {
-      mocks.values.mockRejectedValueOnce(new Error('db down'));
+      mocks.values.mockImplementationOnce(row => {
+        const cause = Object.assign(new Error(driverDetail), { code: '42P01' });
+        return Promise.reject(new DrizzleQueryError(query, [JSON.stringify(row.metadata)], cause));
+      });
 
       await expect(
-        logAuditEvent({ authority, action: 'claim.updated', entityType: 'claim' })
+        logAuditEventFromAction({
+          authority,
+          action: 'claim.recovery_decision_saved',
+          entityType: 'claim',
+          metadata: { decisionReason: explanation },
+        })
       ).resolves.toBeUndefined();
-      expect(errors).toHaveBeenCalledWith('Failed to write audit log:', expect.any(Error));
+      expect(mocks.values).toHaveBeenCalledTimes(1);
+      const logged = inspect(
+        loggers.flatMap(logger => logger.mock.calls),
+        { depth: null }
+      );
+      expect([explanation, driverDetail, query].some(value => logged.includes(value))).toBe(false);
+      expect(console.error).toHaveBeenCalledWith(
+        'Failed to write audit log:',
+        expect.objectContaining({ cause: expect.objectContaining({ code: '42P01' }) })
+      );
     } finally {
-      errors.mockRestore();
+      loggers.forEach(logger => logger.mockRestore());
     }
   });
 });

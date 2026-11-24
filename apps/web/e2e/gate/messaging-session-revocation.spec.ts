@@ -1,4 +1,5 @@
 import { agentClients, claims, dbAdmin, E2E_USERS, user } from '@interdomestik/database';
+import { ROLES } from '@interdomestik/shared-auth';
 import { expect, test, type Page, type TestInfo } from '@playwright/test';
 import { and, eq } from 'drizzle-orm';
 import type { AgentMessageFixture } from './agent-message-visibility.fixture';
@@ -24,7 +25,8 @@ async function expectAdmitted(
   info: TestInfo,
   fixture: AgentMessageFixture,
   ids: ActionIds,
-  actorId: string
+  actorId: string,
+  routingAudits: readonly unknown[] = []
 ): Promise<void> {
   const messageIds = await resetReceipts(fixture);
   const read = await callMessaging(page, info, ids, 'history', fixture, messageIds);
@@ -51,7 +53,12 @@ async function expectAdmitted(
   const after = await messagingSnapshot(fixture);
   expect(after.messages.find(row => row.id === eligible?.id)?.readAt).toBeInstanceOf(Date);
   expect(after.messages).toHaveLength(before.messages.length + 1);
-  expect(after.audits).toHaveLength(before.audits.length + 1);
+  // One message audit per send, plus the routing audit the caller expects (WP-11).
+  expect(after.audits).toHaveLength(before.audits.length + 1 + routingAudits.length);
+  const added = after.audits.filter(row => !before.audits.some(prior => prior.id === row.id));
+  expect(added.filter(row => row.action === 'claim.message_sent')).toHaveLength(1);
+  const others = added.filter(row => row.action !== 'claim.message_sent');
+  expect(others.map(row => [row.action, row.metadata, row.tenantId])).toEqual(routingAudits);
   expect(after.messages.some(row => messageIds.includes(row.id) && row.readAt !== null)).toBe(true);
 }
 
@@ -154,7 +161,23 @@ test('live claim branch change denies scoped staff while its member keeps admiss
       await assertSession(page, info, fixture.staffId);
       await expectScopeDenied(page, info, fixture, ids);
       await assertSession(memberPage, info, fixture.memberId);
-      await expectAdmitted(memberPage, info, fixture, ids, fixture.memberId);
+      // No scoped staff reads the branchless claim, so a member message falls back to the tenant's
+      // tenant_admin; a tenant without one (the MK seed) records the message as unrouted.
+      const fallback = await dbAdmin
+        .select({ id: user.id })
+        .from(user)
+        .where(and(eq(user.tenantId, fixture.tenantId), eq(user.role, ROLES.tenant_admin)));
+      const unrouted = [
+        ['notification.unrouted', { kind: 'staff_member_message' }, fixture.tenantId],
+      ];
+      await expectAdmitted(
+        memberPage,
+        info,
+        fixture,
+        ids,
+        fixture.memberId,
+        fallback.length > 0 ? [] : unrouted
+      );
     } finally {
       await memberContext.close();
     }

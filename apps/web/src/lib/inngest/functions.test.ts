@@ -43,6 +43,7 @@ import {
   dailyEmailSequences,
   inngestFunctions,
   legalDocumentExtractionRequested,
+  notificationDeliveries,
   policyExtractionRequested,
   seasonalCampaigns,
 } from './functions';
@@ -244,6 +245,7 @@ describe('scheduled email campaign Inngest handlers', () => {
   it('keeps the AI run functions registered and free of ingress capabilities', async () => {
     expect(inngestFunctions).toEqual([
       dailyEmailSequences,
+      notificationDeliveries,
       seasonalCampaigns,
       policyExtractionRequested,
       claimIntakeExtractionRequested,

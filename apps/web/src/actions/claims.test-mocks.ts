@@ -32,9 +32,6 @@ vi.mock('next/cache', async () => (await import('./claims.test-support')).nextCa
 vi.mock('next/headers', async () =>
   (await import('./claims.test-support')).nextHeadersModuleMock()
 );
-vi.mock('@/lib/notifications', async () =>
-  (await import('./claims.test-support')).notificationsModuleMock()
-);
 vi.mock('@/lib/ai/claim-workflows', async () =>
   (await import('./claims.test-support')).aiClaimWorkflowsModuleMock()
 );

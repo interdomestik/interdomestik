@@ -1,7 +1,59 @@
 import { claims } from '@interdomestik/database/schema';
 import { getTableColumns, type SQL, type Table } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
-import { vi, type Mock } from 'vitest';
+import { inspect } from 'node:util';
+import { afterEach, beforeEach, expect, vi, type Mock } from 'vitest';
+
+const opsActionBoundaryMocks = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  revalidatePath: vi.fn(),
+  withTenantContext: vi.fn(),
+}));
+export { opsActionBoundaryMocks };
+
+vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: opsActionBoundaryMocks.getSession } } }));
+vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
+vi.mock('next/cache', () => ({ revalidatePath: opsActionBoundaryMocks.revalidatePath }));
+
+export function useAdminAssignmentTest(
+  mocks: typeof opsActionBoundaryMocks & { directDbAccess: string[] }
+) {
+  let consoleError: ReturnType<typeof vi.spyOn>;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mocks.directDbAccess.length = 0;
+    mocks.getSession.mockResolvedValue(sessionFor('admin'));
+  });
+
+  afterEach(() => {
+    consoleError.mockRestore();
+  });
+
+  return () => consoleError;
+}
+
+export function expectRedactedAssignmentLog(
+  calls: unknown[][],
+  cause: { name: string; code?: string },
+  forbidden: readonly string[]
+) {
+  const message = 'Claim assignment transaction failed';
+  expect(calls).toEqual([[message, expect.any(Error)]]);
+  expect(calls[0][1]).toHaveProperty('message', message);
+  expect(calls[0][1]).toHaveProperty('cause', cause);
+
+  // Error message, stack and cause are non-enumerable, so plain JSON would omit them.
+  const serialized = inspect(calls, {
+    depth: null,
+    showHidden: true,
+    customInspect: false,
+    maxArrayLength: null,
+    maxStringLength: null,
+  });
+  for (const fragment of forbidden) expect(serialized).not.toContain(fragment);
+}
 
 type Row = Record<string, unknown>;
 type TenantAction = (tx: unknown) => Promise<unknown>;
@@ -12,6 +64,8 @@ export const UNASSIGNED_CLAIM: Row = {
   id: 'claim-1',
   tenantId: 'tenant-1',
   staffId: null,
+  assignedAt: null,
+  assignedById: null,
   claimNumber: 'CLM-XK-KS01-2026-000001',
   caseLifecycleState: 'evaluation',
   recoveryLifecycleState: 'not_started',
@@ -114,18 +168,16 @@ export function createFakeTx(options: FakeTxOptions = {}) {
     if (options.targetLockError) return Promise.reject(options.targetLockError);
     return Promise.resolve(target ? [target] : []);
   });
+  const claimLock = vi.fn((_read: TargetLockRead): Promise<Row[]> => {
+    if (options.claimReadError) return Promise.reject(options.claimReadError);
+    return Promise.resolve(claim ? [claim] : []);
+  });
   const tx = {
-    query: {
-      claims: {
-        findFirst: vi.fn((_args: { where: unknown }) =>
-          options.claimReadError ? Promise.reject(options.claimReadError) : Promise.resolve(claim)
-        ),
-      },
-    },
-    select: vi.fn((fields: Record<string, unknown>) => ({
+    select: vi.fn((fields: Record<string, unknown> = {}) => ({
       from: (table: unknown) => ({
         where: (where: unknown) => ({
-          for: (strength: string) => targetLock({ fields, table, where, strength }),
+          for: (strength: string) =>
+            (table === claims ? claimLock : targetLock)({ fields, table, where, strength }),
         }),
       }),
     })),
@@ -157,7 +209,7 @@ export function createFakeTx(options: FakeTxOptions = {}) {
     })),
     insert: vi.fn((_table: unknown) => ({ values: auditValues })),
   };
-  return { tx, updateSet, updateWhere, auditValues, targetLock };
+  return { tx, updateSet, updateWhere, auditValues, claimLock, targetLock };
 }
 
 /** Routes withTenantContext to the fake tx and records whether the callback returned or threw. */

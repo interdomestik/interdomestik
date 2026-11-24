@@ -1,6 +1,6 @@
 import { acceptanceMocks } from './member-acceptance-denial.test-support';
 import { describe, expect, it, vi } from 'vitest';
-import { cancelClaim, createClaim, updateClaimStatus, updateDraftClaim } from '@/actions/claims';
+import { createClaim, updateDraftClaim } from '@/actions/claims';
 import { submitClaim } from '@/actions/claims.core';
 import { createPublicTrackingLink } from '@/actions/claims-tracking';
 import { getAgents, getStaff, getUserChoices, getUsers } from '@/actions/admin-users';
@@ -11,9 +11,7 @@ import { confirmUpload, generateUploadUrl } from '@/features/member/claims/actio
 
 const effects = vi.hoisted(() => ({
   createClaim: vi.fn(),
-  cancelClaim: vi.fn(),
   updateDraft: vi.fn(),
-  status: vi.fn(),
   submit: vi.fn(),
   tracking: vi.fn(),
   country: vi.fn(),
@@ -27,11 +25,7 @@ const effects = vi.hoisted(() => ({
 vi.mock('@/actions/admin-users/get-users', () => ({ getUsersCore: effects.directory }));
 vi.mock('@/actions/agent-settings/get', () => ({ getAgentSettingsCore: effects.agentSettings }));
 vi.mock('@/actions/claims/create', () => ({ createClaimCore: effects.createClaim }));
-vi.mock('@/actions/claims/draft', () => ({
-  cancelClaimCore: effects.cancelClaim,
-  updateDraftClaimCore: effects.updateDraft,
-}));
-vi.mock('@/actions/claims/status', () => ({ updateClaimStatusCore: effects.status }));
+vi.mock('@/actions/claims/draft', () => ({ updateDraftClaimCore: effects.updateDraft }));
 vi.mock('@/actions/claims/submit', () => ({ submitClaimCore: effects.submit }));
 vi.mock('@/actions/uploads/voice-note-storage', () => ({ uploadToStorage: effects.voiceNote }));
 vi.mock('@/features/claims/upload/server/access', () => ({
@@ -68,8 +62,6 @@ describe('direct member actions', () => {
     ['createClaim', () => createClaim(null, new FormData())],
     ['submitClaim', () => submitClaim(draft)],
     ['updateDraftClaim', () => updateDraftClaim(id, draft)],
-    ['cancelClaim', () => cancelClaim(id)],
-    ['updateClaimStatus', () => updateClaimStatus(id, 'submitted')],
     ['createPublicTrackingLink', () => createPublicTrackingLink(id)],
     [
       'getCountryGuidanceAction',
