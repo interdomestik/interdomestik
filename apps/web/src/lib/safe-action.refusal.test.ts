@@ -1,3 +1,6 @@
+import type { auditLog } from '@interdomestik/database';
+import { drizzle } from 'drizzle-orm/postgres-js';
+import type { Query } from 'drizzle-orm';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
 
@@ -22,7 +25,7 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => ({
 }));
 
 import { ROLE_STAFF } from './roles.core';
-import { defineAction, defineFormAction } from './safe-action';
+import { actionFailure, defineAction, defineFormAction } from './safe-action';
 import { extractSubject } from './safe-action.refusal';
 
 const STAFF_ONLY = [ROLE_STAFF] as const;
@@ -95,7 +98,7 @@ describe('extractSubject reads the raw input, never the parsed one', () => {
   });
 });
 
-describe('the refusal record on a failing write', () => {
+describe('the refusal record', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.authorize.mockResolvedValue(authorizedSession(MEMBER_A));
@@ -108,6 +111,55 @@ describe('the refusal record on a failing write', () => {
         Promise.resolve(run({ insert: () => ({ values: mocks.values }) }))
     );
   });
+
+  it.each([false, true])(
+    'encodes refusal metadata with the real Drizzle insert builder (inherited toJSON: %s)',
+    async inheritedToJSON => {
+      const db = drizzle.mock();
+      const toJSON = vi.fn(() => ({ altered: true }));
+      let query: Query | undefined;
+      const tx = {
+        insert: (table: typeof auditLog) => ({
+          values: (row: typeof auditLog.$inferInsert) => {
+            query = db.insert(table).values(row).toSQL();
+          },
+        }),
+      };
+      mocks.withTenantAuthority.mockImplementationOnce(async (_authority, run) => {
+        await Promise.resolve();
+        if (inheritedToJSON) {
+          Object.defineProperty(Object.prototype, 'toJSON', { configurable: true, value: toJSON });
+        }
+        try {
+          return run(tx);
+        } finally {
+          if (inheritedToJSON) Reflect.deleteProperty(Object.prototype, 'toJSON');
+        }
+      });
+      const action = defineAction({
+        name: 'claims.withdraw',
+        basis: { kind: 'self' },
+        input: z.strictObject({ claimId: z.string() }),
+        subject: { type: 'claim', from: 'claimId' },
+        handler: () =>
+          Promise.resolve(actionFailure('FORBIDDEN', undefined, { reason: 'cross_tenant' })),
+      });
+
+      const result = await action({ claimId: 'c-7' });
+
+      if (mocks.capture.mock.calls.length) throw mocks.capture.mock.calls[0][0];
+      expect(result).toMatchObject({ success: false, code: 'FORBIDDEN' });
+      expect(query?.params).toContain(
+        JSON.stringify({
+          code: 'FORBIDDEN',
+          basis: 'self',
+          subject: { type: 'claim', id: 'c-7' },
+          reason: 'cross_tenant',
+        })
+      );
+      expect(toJSON).not.toHaveBeenCalled();
+    }
+  );
 
   it('keeps the refusal, captures the error and logs only operation, code and error name', async () => {
     const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
