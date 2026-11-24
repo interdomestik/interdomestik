@@ -2,8 +2,9 @@ import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { RETIRED_LEGACY_FILES } from '../contract-test-shards.mjs';
 import { listVitestFiles, vitestProjects } from './coverage-lane.mjs';
-import { protectedLanes } from './protected-lanes.mjs';
+import { isContractTest, isReleaseGateTest, protectedLanes } from './protected-lanes.mjs';
 
 export const repoRoot = resolve(import.meta.dirname, '../../..');
 const testFile = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
@@ -85,6 +86,8 @@ export function readExclusions(filename) {
 }
 
 function advisoryNodeLane(file) {
+  if (isContractTest(file) && !RETIRED_LEGACY_FILES.includes(file)) return 'advisory/contracts';
+  if (isReleaseGateTest(file)) return 'advisory/release-gate';
   if (/^packages\/database\/test\/(?:pg16\/)?[^/]+\.test\.ts$/u.test(file)) {
     const name = basename(file);
     if (file.startsWith('packages/database/test/pg16/') || liveTestSuffix.test(name)) {

@@ -5,7 +5,13 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
 import yaml from 'js-yaml';
-import { repoRoot } from './inventory.mjs';
+import {
+  GUARD_TRUST_SHARDS,
+  RETIRED_LEGACY_FILES,
+  RETIRED_LEGACY_TESTS,
+} from '../contract-test-shards.mjs';
+import { inventoryFixture, updateWorkflow } from './inventory-fixture.mjs';
+import { repoRoot, repositoryInventory } from './inventory.mjs';
 
 const workflow = name =>
   yaml.load(readFileSync(join(repoRoot, `.github/workflows/${name}.yml`), 'utf8'));
@@ -90,3 +96,59 @@ test('the advisory summary reports each execution and fails on failed or missing
     assert.match(run.stdout, expected);
   }
 });
+
+const toolingOnly = 'scripts/ci/db-access-closed-data-source.test.mjs';
+const everyMode = 'scripts/ci/contract-always.test.mjs';
+const release = 'scripts/release-gate/env-log-redaction.test.ts';
+
+function contractFixture(t) {
+  const planFiles = [...Object.values(GUARD_TRUST_SHARDS).flat(), ...RETIRED_LEGACY_FILES];
+  return inventoryFixture(t, [
+    ...planFiles.map(file => [
+      file,
+      (RETIRED_LEGACY_TESTS[file] ?? [])
+        .map(name => `test(${JSON.stringify(name)}, () => {});`)
+        .join('\n'),
+    ]),
+    [toolingOnly, 'void process.env;'],
+    [everyMode, 'void process.env;'],
+    [release, 'void process.env;'],
+    ['scripts/ci/contract-tooling-only.json', JSON.stringify({ files: [toolingOnly] })],
+    ['scripts/check-modularity-guard.test.mjs', ''],
+  ]);
+}
+
+const lanesFor = (root, file) => repositoryInventory(root).find(row => row.file === file)?.lanes;
+
+test('contract credit requires selection in both product and full audit modes', t => {
+  const root = contractFixture(t);
+  updateWorkflow(root, ({ jobs }) => {
+    delete jobs.audit.steps.find(step => step.name === 'Run Audits').if;
+  });
+  assert.deepEqual(lanesFor(root, everyMode), ['audit/contracts']);
+  assert.deepEqual(lanesFor(root, toolingOnly), ['advisory/contracts']);
+});
+
+for (const [job, name, file, advisory] of [
+  ['audit', 'Run Audits', everyMode, 'advisory/contracts'],
+  ['unit', 'Release Gate Unit Tests', release, 'advisory/release-gate'],
+]) {
+  test(`routes ${name} to advisory when its workflow step or prerequisite is disabled`, t => {
+    const root = contractFixture(t);
+    updateWorkflow(root, ({ jobs }) => {
+      delete jobs[job].steps.find(step => step.name === name).if;
+    });
+    assert.deepEqual(lanesFor(root, file), [
+      job === 'audit' ? 'audit/contracts' : 'unit/release-gate',
+    ]);
+    updateWorkflow(root, ({ jobs }) => {
+      jobs[job].steps.find(step => step.name === name).if = false;
+    });
+    assert.deepEqual(lanesFor(root, file), [advisory]);
+    updateWorkflow(root, ({ jobs }) => {
+      delete jobs[job].steps.find(step => step.name === name).if;
+      jobs['validation-surface'].if = false;
+    });
+    assert.deepEqual(lanesFor(root, file), [advisory]);
+  });
+}

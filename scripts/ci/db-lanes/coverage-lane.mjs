@@ -1,40 +1,13 @@
 import { spawnSync } from 'node:child_process';
 import { join, matchesGlob, relative } from 'node:path';
 import ts from 'typescript';
+import { hasUnfilteredCoverageConfig } from './coverage-config.mjs';
+import { provenWorkflowStep } from './workflow-selectors.mjs';
 
 const gateCommand = 'pnpm test:coverage && node scripts/ci/coverage-gate.mjs --min-lines 60';
 const cleanupCommand = 'node scripts/ci/clean-coverage-artifacts.mjs';
 const coverageInvocation =
   /^pnpm --filter (@interdomestik\/[\w*-]+) (exec vitest run|test:unit) (.+)$/u;
-
-function unconditional(condition) {
-  return (
-    condition === undefined ||
-    condition === true ||
-    (typeof condition === 'string' &&
-      condition.replace(/^\$\{\{(.*)\}\}$/u, '$1').trim() === 'true')
-  );
-}
-
-function jobRuns(jobs, name, ancestors = new Set()) {
-  if (!Object.hasOwn(jobs, name) || ancestors.has(name)) return false;
-  const job = jobs[name];
-  if (
-    !job ||
-    !unconditional(job.if) ||
-    job.strategy !== undefined ||
-    !Array.isArray(job.steps) ||
-    !job.steps.length
-  )
-    return false;
-  const prerequisites = typeof job.needs === 'string' ? [job.needs] : job.needs;
-  if (prerequisites === undefined) return true;
-  const path = new Set([...ancestors, name]);
-  return (
-    Array.isArray(prerequisites) &&
-    prerequisites.every(needed => typeof needed === 'string' && jobRuns(jobs, needed, path))
-  );
-}
 
 function vitestImports(syntax) {
   const imports = new Map();
@@ -159,10 +132,16 @@ function readInvocations(coverage, scripts) {
     if (!match) return [];
     const [, filter, runner, args] = match;
     const options = args.split(' ');
-    const listOptions = options.filter(option => !option.startsWith('--coverage.'));
+    const listOptions = options.filter(
+      option => !/^--coverage\.reporter=(?:text|json|html|lcov|json-summary)$/u.test(option)
+    );
     if (!listOptions.includes('--coverage')) return [];
     const vitestOptions = listOptions.filter(option => option !== '--coverage');
-    if (vitestOptions.some(option => !/^--(?:pool|testTimeout|maxWorkers)=[\w-]+$/u.test(option)))
+    if (
+      vitestOptions.some(
+        option => !/^--(?:pool=(?:threads|forks)|(?:testTimeout|maxWorkers)=\d+)$/u.test(option)
+      )
+    )
       return [];
     invocations.push({ filter, runner, vitestOptions });
   }
@@ -203,24 +182,15 @@ export function listVitestFiles(root, project, candidates, options) {
 }
 
 export function coverageTargets(root, workflow, scripts, read, files) {
-  const { jobs } = workflow;
-  if (!files.length || workflow.defaults !== undefined || !jobRuns(jobs, 'unit')) return [];
-  const gates = jobs.unit.steps.filter(step => step?.name === 'Coverage Gate');
-  const unit = jobs.unit;
-  if (gates.length !== 1 || unit.defaults !== undefined || unit['continue-on-error']) return [];
-  const [gate] = gates;
-  if (
-    !unconditional(gate.if) ||
-    gate['continue-on-error'] ||
-    gate['working-directory'] !== undefined ||
-    gate.shell !== undefined
-  )
-    return [];
+  if (!files.length) return [];
+  const gate = provenWorkflowStep(workflow, 'unit', 'Coverage Gate');
+  if (!gate) return [];
   const invocations = readInvocations(gate, scripts);
   if (!invocations.length) return [];
   const selected = new Set();
   const proven = files.filter(file => hasUnconditionalCoverageSuite(file, read(file)));
   for (const [project, candidates] of vitestProjects(proven)) {
+    if (!hasUnfilteredCoverageConfig(root, project, read)) continue;
     const manifest = JSON.parse(read(`${project}/package.json`));
     for (const { filter, runner, vitestOptions } of invocations) {
       if (!matchesGlob(manifest.name, filter)) continue;

@@ -3,6 +3,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
+import { runParallel } from '../contract-test-shards.mjs';
 import { checkExecution, nodeExecution, readExecution } from './execution.mjs';
 import { repoRoot, repositoryInventory } from './inventory.mjs';
 
@@ -20,12 +21,23 @@ function record(lane, files, report, started) {
   if (errors.length) process.exitCode = 1;
 }
 
-async function runNode(lane) {
+async function runNode(lane, cwd = database) {
   const files = filesIn(lane);
   const started = Date.now();
-  const loader = createRequire(join(database, 'package.json')).resolve('tsx');
-  process.chdir(database);
+  const loader = createRequire(join(cwd, 'package.json')).resolve('tsx');
+  process.chdir(cwd);
   record(lane, files, await nodeExecution(repoRoot, files, ['--import', loader]), started);
+}
+
+async function runAdvisoryTooling() {
+  const contracts = new Set(filesIn('advisory/contracts'));
+  if (contracts.size) {
+    const select = files => files.filter(file => contracts.has(file));
+    if ((await runParallel({ root: repoRoot, select })) !== 0) process.exitCode = 1;
+  }
+  if (filesIn('advisory/release-gate').length) {
+    await runNode('advisory/release-gate', repoRoot);
+  }
 }
 
 function runVitest() {
@@ -84,6 +96,7 @@ if (process.argv[2] === 'unit') {
     if (key.includes('DATABASE_URL') || /^(?:PG|DB_)/u.test(key)) delete process.env[key];
   }
   await runNode('advisory/node-unit');
+  await runAdvisoryTooling();
 } else if (process.argv[2] === 'pg16') {
   // These fixtures include writers. Use only the disposable CI service.
   if (

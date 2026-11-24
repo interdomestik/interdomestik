@@ -1,8 +1,13 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import yaml from 'js-yaml';
+import { productContractSelector } from '../contract-suite-run.mjs';
 import { contractTestPlan } from '../contract-test-shards.mjs';
 import { coverageTargets } from './coverage-lane.mjs';
+import { provenWorkflowStep } from './workflow-selectors.mjs';
+
+export const isContractTest = file => /^scripts\/ci\/(?!\.)[^/]+\.test\.mjs$/u.test(file);
+export const isReleaseGateTest = file => /^scripts\/release-gate\/[\w.-]+\.test\.ts$/u.test(file);
 
 const requiredFlags = new Set([
   'REQUIRE_DOMAIN_EVENT_RELAY_SQL_PROOF=1',
@@ -124,24 +129,23 @@ export function protectedLanes(root, coverageCandidates = [], databaseFiles = []
   const coverage = coverageTargets(root, workflow, roots, read, coverageCandidates);
   if (coverage.length) lanes.push({ name: 'unit/coverage', files: coverage });
 
-  const contractCandidates = databaseFiles.filter(file =>
-    /^scripts\/ci\/[^/]+\.test\.mjs$/u.test(file)
-  );
-  const auditRuns = workflow.jobs.audit?.steps?.some(step =>
-    step.run?.split('\n').includes('node scripts/ci/contract-suite-run.mjs')
-  );
-  if (contractCandidates.length && auditRuns) {
-    const selected = new Set(Object.values(contractTestPlan(root).shards).flat());
+  const contractCandidates = databaseFiles.filter(isContractTest);
+  const audit = provenWorkflowStep(workflow, 'audit', 'Run Audits');
+  const firstCommand = audit?.run
+    ?.split('\n')
+    .map(line => line.trim())
+    .find(line => line && !line.startsWith('#'));
+  if (contractCandidates.length && firstCommand === 'node scripts/ci/contract-suite-run.mjs') {
+    const { shards } = contractTestPlan(root);
+    const selected = new Set(productContractSelector(root)(Object.values(shards).flat()));
     const files = contractCandidates.filter(file => selected.has(file));
     if (files.length) lanes.push({ name: 'audit/contracts', files });
   }
 
-  const releaseRuns = workflow.jobs.unit?.steps?.some(
-    step => step.run === 'pnpm test:release-gate'
-  );
+  const release = provenWorkflowStep(workflow, 'unit', 'Release Gate Unit Tests');
   const releaseCommand = roots['test:release-gate'];
   if (
-    releaseRuns &&
+    release?.run === 'pnpm test:release-gate' &&
     /^tsx --test(?: scripts\/release-gate\/[\w.-]+\.test\.ts)+$/u.test(releaseCommand)
   ) {
     const selected = new Set(releaseCommand.split(' ').slice(2));

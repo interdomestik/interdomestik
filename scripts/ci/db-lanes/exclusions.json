@@ -121,7 +121,7 @@
   },
   {
     "file": "apps/web/e2e/gate/billing-webhook-retry-cas.spec.ts",
-    "reason": "The gate/billing-webhook-retry-cas browser spec requires a running web application and Playwright project fixtures.",
+    "reason": "The Playwright runner needs writable PostgreSQL with the seeded KS tenant. The spec inserts a retryable webhook receipt and races two concurrent receipt claims.",
     "owner": "Web E2E",
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },
@@ -253,7 +253,7 @@
   },
   {
     "file": "apps/web/e2e/gate/pilot-day1-notify.spec.ts",
-    "reason": "The gate/pilot-day1-notify browser spec requires a running web application and Playwright project fixtures.",
+    "reason": "This direct database mutation requires PILOT_DB_MUTATION_TESTS=1 and seeded KS member, agent, and staff users plus an existing claim for the member.",
     "owner": "Web E2E",
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },
@@ -463,13 +463,13 @@
   },
   {
     "file": "apps/web/e2e/pilot/c2-03-cross-tenant-write-isolation.spec.ts",
-    "reason": "The pilot/c2-03-cross-tenant-write-isolation browser spec requires a running web application and Playwright project fixtures.",
+    "reason": "The Playwright runner needs a seeded database with an admin in the actor tenant and a claim with a document in the target tenant for the direct write-denial calls.",
     "owner": "Web E2E",
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },
   {
     "file": "apps/web/e2e/pilot/c2-04-cross-tenant-staff-member-write-isolation.spec.ts",
-    "reason": "The pilot/c2-04-cross-tenant-staff-member-write-isolation browser spec requires a running web application and Playwright project fixtures.",
+    "reason": "The Playwright runner needs a seeded database with staff and member actors in one tenant and a target claim in another tenant for the direct write-denial calls.",
     "owner": "Web E2E",
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },

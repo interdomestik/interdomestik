@@ -1,94 +1,19 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
-import {
-  cpSync,
-  mkdtempSync,
-  mkdirSync,
-  readFileSync,
-  realpathSync,
-  rmSync,
-  symlinkSync,
-  writeFileSync,
-} from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
-import yaml from 'js-yaml';
+import {
+  configPath,
+  copyProtectedSelectors,
+  inventoryFixture,
+  mockSuite,
+  project,
+  scratch,
+  suite,
+  updateWorkflow,
+} from './inventory-fixture.mjs';
 import { repoRoot, repositoryInventory } from './inventory.mjs';
 import { protectedLanes } from './protected-lanes.mjs';
-
-function scratch(t) {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'db-lanes-')));
-  t.after(() => rmSync(root, { force: true, recursive: true }));
-  return root;
-}
-
-function copyProtectedSelectors(root) {
-  for (const file of [
-    '.github/workflows/ci.yml',
-    'package.json',
-    'packages/database/package.json',
-    'packages/domain-communications/package.json',
-    'packages/domain-membership-billing/package.json',
-    'packages/domain-users/package.json',
-    'scripts/run-staff-detail-rls.mjs',
-  ]) {
-    mkdirSync(dirname(join(root, file)), { recursive: true });
-    cpSync(join(repoRoot, file), join(root, file));
-  }
-  updateWorkflow(root, workflow => {
-    delete workflow.jobs.unit.if;
-    delete workflow.jobs.unit.steps.find(step => step.name === 'Coverage Gate').if;
-  });
-}
-
-const workflowPath = '.github/workflows/ci.yml';
-const project = 'packages/domain-users';
-const configPath = `${project}/vitest.config.ts`;
-const suite = `${project}/src/admin/get-users.rls.test.ts`;
-const mockSuite = [
-  "import { describe, it, vi } from 'vitest';",
-  "vi.mock('@interdomestik/database', () => ({}));",
-  "describe('mocked suite', () => { it('runs', () => {}); });",
-].join('\n');
-
-function updateWorkflow(root, update) {
-  const file = join(root, workflowPath);
-  const workflow = yaml.load(readFileSync(file, 'utf8'));
-  update(workflow);
-  writeFileSync(file, yaml.dump(workflow));
-}
-
-function inventoryFixture(t) {
-  const root = scratch(t);
-  copyProtectedSelectors(root);
-  cpSync(join(repoRoot, configPath), join(root, configPath));
-  symlinkSync(join(repoRoot, 'node_modules'), join(root, 'node_modules'));
-  symlinkSync(join(repoRoot, project, 'node_modules'), join(root, project, 'node_modules'));
-  const file = 'scripts/pilot/local-container.rls.test.ts';
-  const exclusions = [
-    {
-      file,
-      reason: 'Starts its own container.',
-      owner: 'Database',
-      removeWhen: 'The suite can use the job service.',
-    },
-  ];
-  const fixtures = new Map([
-    ...protectedLanes(root).flatMap(lane => lane.files.map(file => [file, ''])),
-    [file, ''],
-    [suite, mockSuite],
-    ['scripts/ci/db-lanes/exclusions.json', JSON.stringify(exclusions)],
-  ]);
-  for (const [file, source] of fixtures) {
-    mkdirSync(dirname(join(root, file)), { recursive: true });
-    writeFileSync(join(root, file), source);
-  }
-  const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
-  git('init', '-q');
-  git('add', '--', ...fixtures.keys());
-  return root;
-}
 
 function suiteLanes(root) {
   return repositoryInventory(root).find(({ file }) => file === suite)?.lanes;
@@ -239,6 +164,22 @@ test('runs the suite in advisory when the coverage command adds a case filter', 
   writeFileSync(file, JSON.stringify(manifest));
   assert.deepEqual(suiteLanes(root), ['advisory/vitest-pg16']);
 });
+
+for (const option of [
+  'testNamePattern: /^smoke/',
+  'testNamePattern: /runs/',
+  'allowOnly: true',
+  'skip: true',
+  'tagsFilter: ["smoke"]',
+]) {
+  test(`runs the suite in advisory when the Vitest project sets ${option}`, t => {
+    const root = inventoryFixture(t);
+    assert.deepEqual(suiteLanes(root), ['unit/coverage']);
+    const file = join(root, configPath);
+    writeFileSync(file, readFileSync(file, 'utf8').replace('test: {', `test: {\n    ${option},`));
+    assert.deepEqual(suiteLanes(root), ['advisory/vitest-pg16']);
+  });
+}
 
 test('fails closed when a protected test runner adds an unrecognized case filter', t => {
   const root = scratch(t);

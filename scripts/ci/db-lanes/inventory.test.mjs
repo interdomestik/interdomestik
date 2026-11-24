@@ -66,6 +66,24 @@ test('requires an individual, complete exemption and catches stale and duplicate
   assert.throws(() => buildInventory([], [], [exception]), /exclusion is not a tracked test/u);
 });
 
+for (const [spec, prerequisites] of [
+  ['gate/billing-webhook-retry-cas', /Playwright.*PostgreSQL.*concurrent receipt claims/u],
+  ['gate/pilot-day1-notify', /PILOT_DB_MUTATION_TESTS=1.*member, agent, and staff.*claim/u],
+  ['pilot/c2-03-cross-tenant-write-isolation', /Playwright.*seeded.*admin.*claim.*document/u],
+  [
+    'pilot/c2-04-cross-tenant-staff-member-write-isolation',
+    /Playwright.*seeded.*staff.*member.*claim/u,
+  ],
+]) {
+  test(`names the database prerequisites for excluding ${spec}`, () => {
+    const exclusions = readExclusions(join(repoRoot, 'scripts/ci/db-lanes/exclusions.json'));
+    const file = `apps/web/e2e/${spec}.spec.ts`;
+    const reason = exclusions.find(entry => entry.file === file)?.reason;
+    assert.match(reason, prerequisites);
+    assert.doesNotMatch(reason, /running web application/u);
+  });
+}
+
 test('discovers a newly tracked orphan independently of advisory selectors', t => {
   const root = scratch(t);
   const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
