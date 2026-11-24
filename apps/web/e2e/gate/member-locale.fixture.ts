@@ -1,17 +1,18 @@
 // prettier-ignore
-import { account, db, E2E_PASSWORD, eq, session as authSession, subscriptions, user } from '@interdomestik/database';
+import { account, db, e2eEmail, E2E_PASSWORD, eq, session as authSession, subscriptions, user } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
 import { expect, type Page, type TestInfo } from '@playwright/test';
 import { z } from 'zod';
 import { getTenantFromTestInfo } from '../fixtures/auth.project';
 import { getUserForTenant } from '../fixtures/auth-users';
+import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 
 const signupResponse = z.object({
   user: z.object({ branchId: z.string().nullable(), id: z.string(), tenantId: z.string() }),
 });
 
 export type ThrowawayMember = Readonly<{
-  /** Settles when the member is signed in on `page` with an active subscription. */
+  /** Resolves when the member is signed in on `page` with legal acceptance and an active subscription. */
   ready: Promise<void>;
   /** Waits for setup to settle, whatever its outcome, then removes everything it created. */
   remove: () => Promise<void>;
@@ -27,7 +28,7 @@ export type ThrowawayMember = Readonly<{
 export function startThrowawayMember(page: Page, testInfo: TestInfo): ThrowawayMember {
   const { tenantId } = getUserForTenant('member', getTenantFromTestInfo(testInfo));
   const key = `wp11-locale-${testInfo.project.name}-${testInfo.workerIndex}-${testInfo.retry}-${randomUUID()}`;
-  const email = `${key}@example.com`;
+  const email = e2eEmail(key);
   const ready = (async () => {
     const origin = new URL(String(testInfo.project.use.baseURL)).origin;
     const signup = await page.request.post(`${origin}/api/auth/sign-up/email`, {
@@ -42,6 +43,7 @@ export function startThrowawayMember(page: Page, testInfo: TestInfo): ThrowawayM
     if (!signup.ok()) throw new Error(`Throwaway member signup failed: ${signup.status()}`);
     const { user: member } = signupResponse.parse(await signup.json());
     expect(member.tenantId).toBe(tenantId);
+    await fixtureLegalAcceptance('seed', [{ id: member.id, tenantId: member.tenantId, email }]);
     await db.insert(subscriptions).values({
       branchId: member.branchId,
       id: key,
@@ -55,10 +57,11 @@ export function startThrowawayMember(page: Page, testInfo: TestInfo): ThrowawayM
     await ready.catch(() => undefined);
     await db.delete(subscriptions).where(eq(subscriptions.id, key));
     const member = await db.query.user.findFirst({
-      columns: { id: true },
+      columns: { id: true, tenantId: true },
       where: eq(user.email, email),
     });
     if (!member) return;
+    await fixtureLegalAcceptance('clean', [{ ...member, email }]);
     await db.delete(authSession).where(eq(authSession.userId, member.id));
     await db.delete(account).where(eq(account.userId, member.id));
     await db.delete(user).where(eq(user.id, member.id));
