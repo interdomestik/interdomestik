@@ -1,153 +1,87 @@
+import { beforeEach, describe, expect, it } from 'vitest';
 import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-const h = vi.hoisted(() => {
-  const dbSelect = vi.fn();
-  const claimsFindFirst = vi.fn();
-  return {
-    dbSelect,
-    claimsFindFirst,
-    and: vi.fn((...args: unknown[]) => `and:${args.map(String).join('|')}`),
-    eq: vi.fn((left: unknown, right: unknown) => `eq:${String(left)}:${String(right)}`),
-    matchesAccessTenant: vi.fn((_table: unknown, tenantId: string) => `access:${tenantId}`),
-    getSession: vi.fn(),
-    headers: vi.fn(async () => new Headers([['host', 'ks.localhost:3000']])),
-    createTenantSignedDownloadUrl: vi.fn(async () => ({ data: { signedUrl: 'signed' } })),
-    mapClaimToOperationalRow: vi.fn(() => ({ id: 'claim-1', docs: [] })),
-    delegateClaimHomeTenantRead: vi.fn(),
-    withTenantContext: vi.fn(async (_ctx: unknown, action: (tx: unknown) => unknown) =>
-      action({ query: { claims: { findFirst: claimsFindFirst } }, select: dbSelect })
-    ),
-  };
-});
-vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: h.getSession } } }));
-vi.mock('next/headers', () => ({ headers: h.headers }));
-vi.mock('@/lib/tenant/tenant-hosts', () => ({
-  resolveTenantFromHost: vi.fn(() => 'tenant_access'),
-}));
-vi.mock('@/lib/db/access-tenant-predicate', () => ({
-  matchesAccessTenant: h.matchesAccessTenant,
-}));
-vi.mock('@/lib/storage/service-role', () => ({
-  createTenantSignedDownloadUrl: h.createTenantSignedDownloadUrl,
-}));
-vi.mock('@interdomestik/shared-auth', () => {
-  const tenant = (session: {
-    user?: { accessTenantId?: string | null; tenantId?: string | null };
-  }) => session.user?.accessTenantId ?? session.user?.tenantId ?? 'tenant_access';
-  return { ensureAccessTenantId: vi.fn(tenant), ensureTenantId: vi.fn(tenant) };
-});
-vi.mock('../mappers/mapClaimToOperationalRow', () => ({
-  mapClaimToOperationalRow: h.mapClaimToOperationalRow,
-}));
-vi.mock('@interdomestik/database', () => {
-  const cols = (p: string, keys: string[]) => Object.fromEntries(keys.map(k => [k, `${p}.${k}`]));
-  const docCols = ['id', 'claimId', 'tenantId', 'name', 'filePath', 'bucket'];
-  const historyCols = ['id', 'claimId', 'tenantId', 'note', 'createdAt'];
-  return {
-    withTenantContext: h.withTenantContext,
-    delegateClaimHomeTenantRead: h.delegateClaimHomeTenantRead,
-    and: h.and,
-    eq: h.eq,
-    desc: vi.fn((field: unknown) => `desc:${String(field)}`),
-    claims: cols('claims', ['id', 'branchId']),
-    claimDocuments: cols('claimDocuments', docCols),
-    branches: cols('branches', ['id', 'tenantId', 'code', 'name']),
-    claimStageHistory: cols('claimStageHistory', historyCols),
-    user: cols('user', ['id', 'name', 'email', 'tenantId']),
-  };
-});
+  createClaim,
+  hoisted,
+  mockSelectChains,
+  readContexts,
+  resetOpsClaimDetailMocks,
+  sqlOf,
+} from './getOpsClaimDetail.test-fixtures';
 import { getOpsClaimDetail } from './getOpsClaimDetail';
-function queryFromRows(rows: unknown[]) {
-  const whereResult = Object.assign(Promise.resolve(rows), {
-    limit: vi.fn().mockResolvedValue(rows),
-    orderBy: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue(rows) }),
-  });
-  return {
-    from: vi.fn().mockReturnThis(),
-    where: vi.fn().mockReturnValue(whereResult),
-  };
-}
+
 describe('getOpsClaimDetail divergent document signing', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    h.delegateClaimHomeTenantRead.mockImplementation(async (authority: TenantAuthority) =>
-      mintTestTenantAuthority('tenant_home', {
-        userId: readTenantAuthority(authority).principal?.userId,
-        role: 'admin',
-      })
-    );
-    h.getSession.mockResolvedValue({
-      user: { id: 'admin-1', accessTenantId: 'tenant_access', role: 'admin' },
+  beforeEach(resetOpsClaimDetailMocks);
+
+  it('batches exact home references after access-tenant authorization and signs for the storage home', async () => {
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'admin-1', accessTenantId: 'tenant_ks', tenantId: 'tenant_home', role: 'admin' },
     });
-    h.claimsFindFirst.mockResolvedValue({
-      id: 'claim-1',
-      tenantId: 'tenant_home',
-      userId: 'member-1',
+    hoisted.claimsFindFirst.mockResolvedValueOnce({
+      ...createClaim(),
       agentId: 'agent-1',
       staffId: 'staff-1',
       branchId: 'branch-1',
-      caseLifecycleState: 'submitted',
-      recoveryLifecycleState: 'not_started',
-      createdAt: new Date('2026-02-22T00:00:00.000Z'),
     });
-  });
-  it('uses home-tenant dependent reads after access-tenant claim authorization', async () => {
-    h.dbSelect
-      .mockImplementationOnce(() =>
-        queryFromRows([
-          {
-            id: 'doc-1',
-            tenantId: 'tenant_home',
-            name: 'proof.pdf',
-            filePath: 'pii/tenants/tenant_home/claims/claim-1/proof.pdf',
-            bucket: 'claim-evidence',
-          },
-        ])
-      )
-      .mockImplementationOnce(() =>
-        queryFromRows([{ name: 'Member', email: 'm@example.test', memberNumber: 'MEM-1' }])
-      )
-      .mockImplementationOnce(() => queryFromRows([{ name: 'Agent Home' }]))
-      .mockImplementationOnce(() =>
-        queryFromRows([{ name: 'Staff Home', email: 'staff-home@example.test' }])
-      )
-      .mockImplementationOnce(() =>
-        queryFromRows([{ id: 'branch-1', code: 'HOME-A', name: 'Home Branch' }])
-      )
-      .mockImplementationOnce(() =>
-        queryFromRows([
-          {
-            note: 'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
-          },
-        ])
-      );
-    const authority = mintTestTenantAuthority('tenant_access', {
-      userId: 'admin-1',
-      role: 'admin',
-    });
-    const result = await getOpsClaimDetail('claim-1', authority);
+    const { docsRows, peopleWhere } = mockSelectChains();
+    docsRows.limit.mockResolvedValueOnce([
+      {
+        id: 'doc-1',
+        tenantId: 'tenant_home',
+        name: 'proof.pdf',
+        filePath: 'pii/tenants/tenant_home/claims/claim-1/proof.pdf',
+        bucket: 'claim-evidence',
+      },
+    ]);
+    peopleWhere.mockResolvedValueOnce([
+      { id: 'member-1', name: 'Member', email: 'm@example.test', memberNumber: 'MEM-1' },
+      { id: 'agent-1', name: 'Agent Home' },
+      { id: 'staff-1', name: 'Staff Home', email: 'staff-home@example.test' },
+    ]);
+    // Insert the branch before the note without adding one SQL round trip per person.
+    hoisted.dbSelect
+      .mockReset()
+      .mockImplementationOnce(() => ({ from: () => ({ where: () => docsRows }) }))
+      .mockImplementationOnce(() => ({ from: () => ({ where: peopleWhere }) }))
+      .mockImplementationOnce(() => ({
+        from: () => ({
+          where: () => ({
+            limit: async () => [{ id: 'branch-1', code: 'HOME-A', name: 'Home Branch' }],
+          }),
+        }),
+      }))
+      .mockImplementationOnce(() => ({
+        from: () => ({
+          where: () => ({
+            orderBy: () => ({
+              limit: async () => [
+                {
+                  note: 'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
+                },
+              ],
+            }),
+          }),
+        }),
+      }));
+
+    const result = await getOpsClaimDetail('claim-1');
+
     expect(result.kind).toBe('ok');
-    expect(h.delegateClaimHomeTenantRead).toHaveBeenCalledWith(authority, 'claim-1');
-    expect(
-      h.withTenantContext.mock.calls.map(
-        ([ctx]) => readTenantAuthority(ctx as TenantAuthority).tenantId
-      )
-    ).toEqual(['tenant_access', 'tenant_home']);
-    const eqCalls = h.eq.mock.calls.map(call => call.join(':'));
-    expect(h.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_access');
-    expect(eqCalls).toEqual(
-      expect.arrayContaining([
-        'user.tenantId:tenant_home',
-        'user.id:staff-1',
-        'branches.tenantId:tenant_home',
-        'claimStageHistory.tenantId:tenant_home',
-      ])
+    expect(hoisted.delegateClaimHomeTenantRead).toHaveBeenCalledWith(
+      hoisted.withTenantContext.mock.calls[0][0],
+      'claim-1'
     );
-    expect(h.mapClaimToOperationalRow).toHaveBeenCalledWith(
+    expect(readContexts()).toEqual([
+      { tenantId: 'tenant_ks', role: 'admin' },
+      { tenantId: 'tenant_home', role: 'admin' },
+    ]);
+    expect(peopleWhere).toHaveBeenCalledTimes(1);
+    expect(sqlOf(peopleWhere.mock.lastCall?.[0]).params).toEqual([
+      'tenant_home',
+      'member-1',
+      'agent-1',
+      'staff-1',
+    ]);
+    expect(hoisted.mapClaimToOperationalRow).toHaveBeenCalledWith(
       expect.objectContaining({
         claimant: expect.objectContaining({ email: 'm@example.test', memberNumber: 'MEM-1' }),
         agent: { name: 'Agent Home' },
@@ -156,7 +90,7 @@ describe('getOpsClaimDetail divergent document signing', () => {
         claim: expect.objectContaining({ diasporaCountry: 'IT' }),
       })
     );
-    expect(h.createTenantSignedDownloadUrl).toHaveBeenCalledWith(
+    expect(hoisted.signDocument).toHaveBeenCalledWith(
       expect.objectContaining({
         path: 'pii/tenants/tenant_home/claims/claim-1/proof.pdf',
         tenantId: 'tenant_home',

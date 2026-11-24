@@ -1,25 +1,45 @@
-import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
-import { signOpsDocuments } from './sign-ops-documents';
+import 'server-only';
+
+import { isAdmin } from '@/lib/roles';
+import { authorizeSessionTenant, type AuthorizedSession } from '@/lib/tenant-authority.server';
 import { isExactIdaFrontDoorHost } from '@/lib/tenant/tenant-front-door';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
-import { and, claimDocuments, claims, eq } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
-import { ClaimStatus } from '@interdomestik/database/constants';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import type { ClaimStatus } from '@interdomestik/database/constants';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { ensureAccessTenantId } from '@interdomestik/shared-auth';
+import {
+  canViewAdminClaims,
+  getVisibleOpsClaim,
+} from '@interdomestik/domain-claims/admin-claims/visible-ops-claim';
+import {
+  listVisibleClaimDocuments,
+  OPS_CLAIM_DOCUMENT_PAGE_SIZE,
+} from '@interdomestik/domain-documents/claim-documents';
+import { searchAssignableStaff } from '@interdomestik/domain-users/admin/search-assignable-staff';
+import { MissingTenantError } from '@interdomestik/shared-auth/errors';
 import { headers } from 'next/headers';
-import { count } from 'drizzle-orm';
-import { matchesAccessTenant as mat } from '@/lib/db/access-tenant-predicate';
-import { mapClaimToOperationalRow, RawClaimRow } from '../mappers/mapClaimToOperationalRow';
-import { canViewAdminClaims, resolveClaimsVisibility } from './claimVisibility';
-import { ClaimOpsDetail } from '../types';
+import { mapClaimToOperationalRow, type RawClaimRow } from '../mappers/mapClaimToOperationalRow';
+import type { ClaimOpsDetail } from '../types';
 import { readOpsClaimHomeTenantDetails } from './getOpsClaimDetailHomeReads';
-export type OpsClaimDetailResult = { kind: 'not_found' } | { kind: 'ok'; data: ClaimOpsDetail };
+import { signOpsDocuments } from './sign-ops-documents';
+
+export type OpsClaimDetailSearch = {
+  documentsAfter?: string;
+  staffAfter?: string;
+  staffSearch?: string;
+};
+
+export type OpsClaimDetailResult =
+  | { kind: 'not_found' }
+  | {
+      kind: 'ok';
+      data: ClaimOpsDetail;
+      authorized: AuthorizedSession;
+      documentsNextCursor: string | null;
+      staffPage: Awaited<ReturnType<typeof searchAssignableStaff>> | null;
+    };
+
 const NEUTRAL_DEPLOYMENT_HOSTS = new Set(['interdomestik-web.vercel.app']);
 
 function normalizeRequestHost(host: string): string {
@@ -73,103 +93,53 @@ function resolveRequestTenant(
 
 export async function getOpsClaimDetail(
   claimId: string,
-  authority: TenantAuthority
+  { documentsAfter, staffAfter, staffSearch }: OpsClaimDetailSearch = {}
 ): Promise<OpsClaimDetailResult> {
-  // 0. Resolve tenant context from trusted host + session and fail closed.
   const requestHeaders = await headers();
-  const authorized = await authorizeSessionTenant(requestHeaders).catch(() => null);
-  if (!authorized) return { kind: 'not_found' };
-  const { session } = authorized;
-  let sessionAccessTenantId: string;
+  let authorized: AuthorizedSession | null;
   try {
-    sessionAccessTenantId = ensureAccessTenantId(session);
-  } catch {
-    return { kind: 'not_found' };
+    authorized = await authorizeSessionTenant(requestHeaders);
+  } catch (error) {
+    if (error instanceof MissingTenantError) return { kind: 'not_found' };
+    throw error;
   }
-  const visibility = await resolveClaimsVisibility(session);
-  if (!visibility || !canViewAdminClaims(visibility)) return { kind: 'not_found' };
-  if (visibility.role === 'branch_manager' && !visibility.branchId) return { kind: 'not_found' };
-  const tenantId = resolveRequestTenant(requestHeaders, sessionAccessTenantId);
-  if (tenantId === null) return { kind: 'not_found' };
-  // The read runs under the caller's authority, which must be this session user's for this tenant.
-  const granted = readTenantAuthority(authority);
-  if (granted.tenantId !== tenantId || granted.principal?.userId !== session.user?.id) {
+  if (!authorized) return { kind: 'not_found' };
+  const { authority, session } = authorized;
+  const { accessTenantId, principal } = readTenantAuthority(authority);
+  if (
+    !principal ||
+    principal.userId !== session.user.id ||
+    principal.role !== (session.user.role ?? null) ||
+    principal.branchId !== (session.user.branchId ?? null) ||
+    !canViewAdminClaims(principal) ||
+    !resolveRequestTenant(requestHeaders, accessTenantId)
+  ) {
     return { kind: 'not_found' };
   }
 
-  const { claim, rawDocs, documentSummary } = await withTenantAuthority(authority, async tx => {
-    const claim = await tx.query.claims.findFirst({
-      where: and(
-        eq(claims.id, claimId),
-        mat(claims, tenantId),
-        visibility.role === 'branch_manager' && visibility.branchId
-          ? eq(claims.branchId, visibility.branchId)
-          : undefined
-      ),
+  const result = await withTenantAuthority(authority, async tx => {
+    const visibleClaim = await getVisibleOpsClaim(tx, { authority, claimId });
+    if (!visibleClaim) return null;
+
+    const documents = await listVisibleClaimDocuments(tx, {
+      visibleClaim,
+      afterId: documentsAfter,
+      limit: OPS_CLAIM_DOCUMENT_PAGE_SIZE,
     });
-
-    if (!claim) {
-      return {
-        claim: null,
-        documentSummary: undefined,
-        userData: null,
-        agentData: null as { name: string } | null,
-        rawDocs: [] as Array<{
-          id: string;
-          tenantId: string;
-          name: string | null;
-          fileSize: number | null;
-          fileType: string | null;
-          createdAt: Date | null;
-          filePath: string | null;
-          bucket: string | null;
-        }>,
-      };
-    }
-
-    if (deniesClaimDocumentContent(session.user.role)) {
-      const [summary] = await tx
-        .select({ count: count() })
-        .from(claimDocuments)
-        .where(and(eq(claimDocuments.claimId, claimId), mat(claimDocuments, tenantId)));
-      return {
-        claim,
-        rawDocs: [],
-        // No authoritative completeness signal is stored on this read surface.
-        documentSummary: { count: summary?.count ?? 0, evidenceComplete: null },
-      };
-    }
-
-    const rawDocs = await tx
-      .select({
-        id: claimDocuments.id,
-        tenantId: claimDocuments.tenantId,
-        name: claimDocuments.name,
-        fileSize: claimDocuments.fileSize,
-        fileType: claimDocuments.fileType,
-        createdAt: claimDocuments.createdAt,
-        filePath: claimDocuments.filePath,
-        bucket: claimDocuments.bucket,
-      })
-      .from(claimDocuments)
-      .where(and(eq(claimDocuments.claimId, claimId), mat(claimDocuments, tenantId)));
-
-    return {
-      claim,
-      rawDocs,
-      documentSummary: undefined,
-    };
+    const staffPage = isAdmin(session.user.role)
+      ? await searchAssignableStaff(tx, { authority, search: staffSearch, afterId: staffAfter })
+      : null;
+    return { claim: visibleClaim.claim, documents, staffPage };
   });
 
-  if (!claim) return { kind: 'not_found' };
+  if (!result) return { kind: 'not_found' };
+  const { claim, documents, staffPage } = result;
   const { agentData, branchData, diasporaOrigin, staffData, userData } =
-    await readOpsClaimHomeTenantDetails({
-      authority,
-      claim,
-      claimId,
-    });
+    await readOpsClaimHomeTenantDetails({ authority, claim });
 
-  const docs = await signOpsDocuments(rawDocs);
+  const docs = documents.kind === 'page' ? await signOpsDocuments(documents.items) : [];
+  const documentSummary =
+    documents.kind === 'summary' ? { count: documents.count, evidenceComplete: null } : undefined;
 
   const rawRow: RawClaimRow = {
     claim: {
@@ -231,5 +201,11 @@ export async function getOpsClaimDetail(
     createdAt: claim.createdAt,
   };
 
-  return { kind: 'ok', data: detail };
+  return {
+    kind: 'ok',
+    data: detail,
+    authorized,
+    documentsNextCursor: documents.kind === 'page' ? documents.nextCursor : null,
+    staffPage,
+  };
 }

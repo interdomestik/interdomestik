@@ -30,7 +30,7 @@ const COPY_TARGET = 'inline-flex size-11 items-center justify-center sm:inline-b
 interface ClaimHeaderProps {
   claim: ClaimOpsDetail;
   nextActions: NextActionsResult;
-  allStaff: { id: string; name: string | null; email: string }[];
+  showAssignee?: boolean;
   locale: string;
 }
 
@@ -43,7 +43,11 @@ function resolveRouteLocale(pathname: string | null, fallbackLocale: string): st
   return fallbackLocale;
 }
 
-export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 'nextActions'>) {
+export function ClaimHeader({
+  claim,
+  showAssignee = false,
+  locale,
+}: Omit<ClaimHeaderProps, 'nextActions'>) {
   const tCategory = useTranslations('claims.category');
   const tBadge = useTranslations('admin.claims_page.next_actions.risk');
   const tSource = useTranslations('admin.claims_page.source');
@@ -66,6 +70,9 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
   const createBackUrl = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('poolAnchor');
+    params.delete('documentsAfter');
+    params.delete('staffAfter');
+    params.delete('staffSearch');
     const queryString = params.toString();
     return queryString ? `/admin/claims?${queryString}` : '/admin/claims';
   };
@@ -208,10 +215,7 @@ export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 
                 <InfoPill
                   icon={UserRound}
                   label={tFilters('handler_label')}
-                  value={(() => {
-                    const staff = allStaff.find(s => s.id === claim.assigneeId);
-                    return staff?.name || staff?.email || tSource('unknown');
-                  })()}
+                  value={(showAssignee && claim.ownerName) || tSource('unknown')}
                   variant="premium"
                   className="bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm"
                   separatorClassName="bg-indigo-200"

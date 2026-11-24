@@ -5,6 +5,7 @@ import {
   desc,
   eq,
   delegateClaimHomeTenantRead,
+  inArray,
   user,
 } from '@interdomestik/database';
 import {
@@ -17,7 +18,7 @@ import { parseDiasporaOriginFromPublicNote } from '@interdomestik/domain-claims'
 
 type ClaimHomeReadInput = Pick<
   typeof claims.$inferSelect,
-  'agentId' | 'branchId' | 'staffId' | 'tenantId' | 'userId'
+  'id' | 'agentId' | 'branchId' | 'staffId' | 'tenantId' | 'userId'
 >;
 
 const NO_HOME_DETAILS = {
@@ -31,41 +32,25 @@ const NO_HOME_DETAILS = {
 export async function readOpsClaimHomeTenantDetails(args: {
   authority: TenantAuthority;
   claim: ClaimHomeReadInput;
-  claimId: string;
 }) {
   // The home rows are read under the caller's own authority, or its delegation to a transferred
   // claim's home tenant; a claim that is neither yields no home details.
-  const homeAuthority = await delegateClaimHomeTenantRead(args.authority, args.claimId);
+  const homeAuthority = await delegateClaimHomeTenantRead(args.authority, args.claim.id);
   if (!homeAuthority || readTenantAuthority(homeAuthority).tenantId !== args.claim.tenantId) {
     return NO_HOME_DETAILS;
   }
 
   return withTenantAuthority(homeAuthority, async tx => {
-    const [userData] = await tx
-      .select()
+    const { agentId, staffId, tenantId, userId } = args.claim;
+    const ids = [...new Set([userId, agentId, staffId].filter((id): id is string => !!id))];
+    const people = await tx
+      .select({ id: user.id, name: user.name, email: user.email, memberNumber: user.memberNumber })
       .from(user)
-      .where(and(eq(user.id, args.claim.userId), eq(user.tenantId, args.claim.tenantId)))
-      .limit(1);
-
-    let agentData: { name: string } | null = null;
-    if (args.claim.agentId) {
-      const [agent] = await tx
-        .select({ name: user.name })
-        .from(user)
-        .where(and(eq(user.id, args.claim.agentId), eq(user.tenantId, args.claim.tenantId)))
-        .limit(1);
-      agentData = agent ? { name: agent.name } : null;
-    }
-
-    let staffData: { name: string | null; email: string | null } | null = null;
-    if (args.claim.staffId) {
-      const [staff] = await tx
-        .select({ name: user.name, email: user.email })
-        .from(user)
-        .where(and(eq(user.id, args.claim.staffId), eq(user.tenantId, args.claim.tenantId)))
-        .limit(1);
-      staffData = staff ?? null;
-    }
+      .where(and(eq(user.tenantId, tenantId), inArray(user.id, ids)));
+    const byId = new Map(people.map(person => [person.id, person]));
+    const userData = byId.get(userId);
+    const agentData = agentId ? byId.get(agentId) : null;
+    const staffData = staffId ? byId.get(staffId) : null;
 
     let branchData: { id: string | null; code: string | null; name: string | null } | null = null;
     if (args.claim.branchId) {
@@ -86,7 +71,7 @@ export async function readOpsClaimHomeTenantDetails(args: {
       .from(claimStageHistory)
       .where(
         and(
-          eq(claimStageHistory.claimId, args.claimId),
+          eq(claimStageHistory.claimId, args.claim.id),
           eq(claimStageHistory.tenantId, args.claim.tenantId)
         )
       )
@@ -94,10 +79,10 @@ export async function readOpsClaimHomeTenantDetails(args: {
       .limit(1);
 
     return {
-      agentData,
+      agentData: agentData ?? null,
       branchData,
       diasporaOrigin: parseDiasporaOriginFromPublicNote(diasporaNote?.note),
-      staffData,
+      staffData: staffData ?? null,
       userData: userData ?? null,
     };
   });

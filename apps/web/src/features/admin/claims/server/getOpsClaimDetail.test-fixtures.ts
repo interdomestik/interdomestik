@@ -3,21 +3,14 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { PgDialect } from 'drizzle-orm/pg-core';
+import { type SQL } from 'drizzle-orm';
 import { vi } from 'vitest';
 const hoisted = vi.hoisted(() => {
   const claimsFindFirst = vi.fn();
   const dbSelect = vi.fn();
-  const eq = vi.fn((left: unknown, right: unknown) => `eq:${String(left)}:${String(right)}`);
-  const and = vi.fn((...args: unknown[]) => `and:${args.map(String).join('|')}`);
   const getSession = vi.fn();
   const headersFn = vi.fn(() => Promise.resolve(new Headers([['host', 'ks.localhost:3000']])));
-  const ensureTenantId = vi.fn(
-    (session: { user?: { accessTenantId?: string | null; tenantId?: string | null } }) => {
-      const tenantId = session?.user?.accessTenantId?.trim() || session?.user?.tenantId;
-      if (!tenantId) throw new Error('Missing tenant');
-      return tenantId;
-    }
-  );
   const withTenantContext = vi.fn(
     async (_ctx: unknown, action: (tx: unknown) => unknown) =>
       await action({
@@ -44,13 +37,10 @@ const hoisted = vi.hoisted(() => {
     claimsFindFirst,
     dbSelect,
     delegateClaimHomeTenantRead: vi.fn(),
-    eq,
-    and,
-    matchesAccessTenant: vi.fn((_table: unknown, tenantId: string) => `access:${tenantId}`),
     getSession,
     signDocument: vi.fn(),
     headersFn,
-    ensureTenantId,
+    searchAssignableStaff: vi.fn(),
     withTenantContext,
     mapClaimToOperationalRow,
   };
@@ -60,14 +50,6 @@ vi.mock('@/lib/auth', () => ({
     api: {
       getSession: hoisted.getSession,
     },
-  },
-}));
-vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionTenant: async () => {
-    const session = await hoisted.getSession();
-    if (!session) return null;
-    const tenantId = hoisted.ensureTenantId(session);
-    return { session, authority: opsAuthority({ ...session.user, tenantId }) };
   },
 }));
 vi.mock('@/lib/storage/service-role', () => ({
@@ -85,76 +67,22 @@ vi.mock('@/lib/tenant/tenant-hosts', () => ({
   }),
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
-  ensureAccessTenantId: hoisted.ensureTenantId,
-  ensureTenantId: hoisted.ensureTenantId,
-}));
-vi.mock('@/lib/db/access-tenant-predicate', () => ({
-  matchesAccessTenant: hoisted.matchesAccessTenant,
+vi.mock('@interdomestik/domain-users/admin/search-assignable-staff', () => ({
+  searchAssignableStaff: hoisted.searchAssignableStaff,
 }));
 vi.mock('../mappers/mapClaimToOperationalRow', () => ({
   mapClaimToOperationalRow: hoisted.mapClaimToOperationalRow,
 }));
 
-vi.mock('@interdomestik/database', () => ({
+vi.mock('@interdomestik/database', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database')>()),
   withTenantContext: hoisted.withTenantContext,
   delegateClaimHomeTenantRead: hoisted.delegateClaimHomeTenantRead,
-  and: hoisted.and,
-  eq: hoisted.eq,
-  claims: {
-    id: 'claims.id',
-    tenantId: 'claims.tenantId',
-    branchId: 'claims.branchId',
-    title: 'claims.title',
-    createdAt: 'claims.createdAt',
-    updatedAt: 'claims.updatedAt',
-    assignedAt: 'claims.assignedAt',
-    userId: 'claims.userId',
-    claimNumber: 'claims.claimNumber',
-    staffId: 'claims.staffId',
-    category: 'claims.category',
-    currency: 'claims.currency',
-    statusUpdatedAt: 'claims.statusUpdatedAt',
-    origin: 'claims.origin',
-    originRefId: 'claims.originRefId',
-    description: 'claims.description',
-    companyName: 'claims.companyName',
-    claimAmount: 'claims.claimAmount',
-    agentId: 'claims.agentId',
-  },
-  claimDocuments: {
-    id: 'claimDocuments.id',
-    claimId: 'claimDocuments.claimId',
-    tenantId: 'claimDocuments.tenantId',
-    name: 'claimDocuments.name',
-    fileSize: 'claimDocuments.fileSize',
-    fileType: 'claimDocuments.fileType',
-    createdAt: 'claimDocuments.createdAt',
-    filePath: 'claimDocuments.filePath',
-    bucket: 'claimDocuments.bucket',
-  },
-  claimStageHistory: {
-    id: 'claimStageHistory.id',
-    claimId: 'claimStageHistory.claimId',
-    tenantId: 'claimStageHistory.tenantId',
-    note: 'claimStageHistory.note',
-    createdAt: 'claimStageHistory.createdAt',
-  },
-  desc: vi.fn((field: unknown) => `desc:${String(field)}`),
-  user: {
-    id: 'user.id',
-    name: 'user.name',
-    email: 'user.email',
-    tenantId: 'user.tenantId',
-  },
-  createAdminClient: () => ({
-    storage: {
-      from: () => ({
-        createSignedUrl: vi.fn(),
-      }),
-    },
-  }),
 }));
+
+export function sqlOf(value: SQL) {
+  return new PgDialect().sqlToQuery(value);
+}
 
 export function createClaim() {
   const now = new Date('2026-02-22T00:00:00.000Z');
@@ -166,6 +94,7 @@ export function createClaim() {
     updatedAt: now,
     assignedAt: null,
     userId: 'member-1',
+    branchId: null,
     claimNumber: 'KS-000001',
     staffId: null,
     category: 'retail',
@@ -189,49 +118,25 @@ export function createClaim() {
 }
 
 export function mockSelectChains() {
-  const userLimit = vi.fn().mockResolvedValue([
-    {
-      name: 'Member One',
-      email: 'member@example.com',
-      memberNumber: 'MEM-1',
-    },
-  ]);
-  const userWhere = vi.fn().mockReturnValue({ limit: userLimit });
-  const userQuery = {
-    from: vi.fn().mockReturnThis(),
-    where: userWhere,
-  };
-
-  const docsWhere = vi.fn().mockResolvedValue([]);
-  const docsQuery = {
-    from: vi.fn().mockReturnThis(),
-    where: docsWhere,
-  };
-
-  const noteLimit = vi.fn().mockResolvedValue([]);
-  const noteOrderBy = vi.fn().mockReturnValue({ limit: noteLimit });
-  const noteWhere = vi.fn().mockReturnValue({ orderBy: noteOrderBy });
-  const noteQuery = {
-    from: vi.fn().mockReturnThis(),
-    where: noteWhere,
-  };
-
-  hoisted.dbSelect
-    .mockImplementationOnce(() => docsQuery)
-    .mockImplementationOnce(() => userQuery)
-    .mockImplementationOnce(() => noteQuery);
-
-  return { docsWhere, noteWhere };
-}
-
-/** The session authority the admin claim page hands to getOpsClaimDetail. */
-export function opsAuthority(
-  user: { id?: string; role?: string; tenantId?: string } = {}
-): TenantAuthority {
-  return mintTestTenantAuthority(user.tenantId ?? 'tenant_ks', {
-    userId: user.id ?? 'admin-1',
-    role: user.role ?? 'admin',
+  const docsWhere = vi.fn().mockImplementation(() => docsRows);
+  const docsRows = Object.assign(Promise.resolve([]), {
+    orderBy: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockResolvedValue([]),
   });
+  const peopleWhere = vi
+    .fn()
+    .mockResolvedValue([
+      { id: 'member-1', name: 'Member One', email: 'member@example.com', memberNumber: 'MEM-1' },
+    ]);
+  const noteWhere = vi.fn().mockReturnValue({
+    orderBy: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
+  });
+
+  for (const where of [docsWhere, peopleWhere, noteWhere]) {
+    hoisted.dbSelect.mockImplementationOnce(() => ({ from: () => ({ where }) }));
+  }
+
+  return { docsWhere, docsRows, peopleWhere, noteWhere };
 }
 
 /** Tenant and principal role of every authority the reads ran under, in order. */
@@ -244,6 +149,7 @@ export function readContexts(): Array<{ tenantId: string; role: string | null | 
 
 export function resetOpsClaimDetailMocks(): void {
   vi.clearAllMocks();
+  hoisted.dbSelect.mockReset();
   hoisted.signDocument.mockResolvedValue({ data: { signedUrl: 'signed-document-url' } });
   hoisted.getSession.mockResolvedValue({
     user: {
@@ -253,6 +159,7 @@ export function resetOpsClaimDetailMocks(): void {
     },
   });
   hoisted.claimsFindFirst.mockResolvedValue(createClaim());
+  hoisted.searchAssignableStaff.mockResolvedValue({ items: [], nextCursor: null });
   // Delegates to the claim's home tenant with the caller's principal, as the kernel producer does.
   hoisted.delegateClaimHomeTenantRead.mockImplementation((authority: TenantAuthority) => {
     const { principal } = readTenantAuthority(authority);

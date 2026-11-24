@@ -37,7 +37,7 @@ const claim = {
 
 describe('ClaimHeader copy targets', () => {
   it('gives every labelled copy button a 44px phone target and the compact desktop size', () => {
-    render(<ClaimHeader claim={claim} allStaff={[]} locale="sq" />);
+    render(<ClaimHeader claim={claim} locale="sq" />);
 
     const names = [
       'admin.claims_page.header.copy_traceable_link',
@@ -55,7 +55,7 @@ describe('ClaimHeader copy targets', () => {
   });
 
   it('lets the breadcrumb wrap so the larger phone targets never overflow', () => {
-    render(<ClaimHeader claim={claim} allStaff={[]} locale="sq" />);
+    render(<ClaimHeader claim={claim} locale="sq" />);
 
     expect(
       screen.getByRole('navigation', { name: 'admin.claims_page.header.breadcrumb' })

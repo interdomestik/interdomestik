@@ -32,6 +32,12 @@ None of its own: this layer writes the tables of `packages/database` through the
 
 ## Tenant boundary
 
+Admin claim detail resolves its verified session and authority once for the
+detail, document metadata and assignable staff reads. Its optional
+`documentsAfter`, `staffAfter` and `staffSearch` query parameters only steer
+pagination and search. Home details are looked up through the guarded caller
+for the exact claim selected by the restricted read.
+
 The tenant comes from the session's authority, resolved per request (`apps/web/src/lib/tenant-authority.server.ts:27-47`) and carried into `withTenantAuthority`. An exported action that _takes_ an authority argument is safe by construction: a client cannot produce a registered token (`A/modules/tenancy.md:170`). The proxy is not a tenant source and never sees `/api` (`apps/web/src/proxy.ts:8-10`), so route handlers get no proxy-set header and no proxy security header (SEC-07).
 
 ## Where a new entry point goes (added after the drill of R3)

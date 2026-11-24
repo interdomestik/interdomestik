@@ -3,7 +3,9 @@
     "claims_page": {
       "title": "Claims Management",
       "description": "View and manage all user claims.",
+      "first_page": "First page",
       "assignment": {
+        "search_staff": "Search staff",
         "label": "Assigned staff",
         "placeholder": "Select staff",
         "unassigned": "Unassigned",
