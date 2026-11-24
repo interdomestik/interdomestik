@@ -177,7 +177,7 @@ function describeCopies({ kind, text, anchor, contains }: CopyQuery) {
  * it, a duplicate cannot be waited out, and the message names where each copy sits.
  * A copy inside React's staging segment (div[hidden][id^="S:"]) is not a render: it is
  * excluded from the count, but it must then disappear, so a staging copy that persists
- * after the page settles still fails, and the count is judged again once it is gone.
+ * after the page settles still fails, and every sample until it is gone is judged too.
  * Every other copy, hidden or visible, counts.
  */
 export async function expectSingle(page: Page, query: CopyQuery, label: string) {
@@ -193,20 +193,29 @@ export async function expectSingle(page: Page, query: CopyQuery, label: string) 
     .toBe(true);
   const rendered = copies.filter(entry => !entry.staging);
   expect(rendered, `${label} must render once; copies: ${JSON.stringify(copies)}`).toHaveLength(1);
-  await expect
-    .poll(
-      async () => {
+  // Every sample until staging clears is judged too: the wait stops at the first sample
+  // that holds a second rendered copy, so it cannot wait out a duplicate.
+  const state = () => {
+    if (copies.filter(entry => !entry.staging).length !== 1) return 'duplicate';
+    return copies.some(entry => entry.staging) ? 'staging' : 'clear';
+  };
+  try {
+    await expect
+      .poll(async () => {
         copies = await page.evaluate(describeCopies, query);
-        return copies.filter(entry => entry.staging).length;
-      },
-      { message: `${label}: React staging copy persisted after settle` }
-    )
-    .toBe(0);
-  // $RS moves the staging content into place, so judge the sample in which it cleared, too.
+        return state();
+      })
+      .not.toBe('staging');
+  } catch (error) {
+    throw new Error(
+      `${label}: React staging copy persisted after settle; copies: ${JSON.stringify(copies)}`,
+      { cause: error }
+    );
+  }
   expect(
-    copies,
-    `${label} must render once after staging cleared; copies: ${JSON.stringify(copies)}`
-  ).toHaveLength(1);
+    state(),
+    `${label} must render once while staging clears; copies: ${JSON.stringify(copies)}`
+  ).toBe('clear');
 }
 
 export async function expectRegisterSectionsOnce(page: Page, listText: string) {
