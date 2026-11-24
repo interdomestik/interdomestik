@@ -1,6 +1,7 @@
 import { z } from 'zod';
 
 import { scaledExchangeRate } from './money';
+import { preservableText } from './sale-input';
 
 const rateFields = {
   base: z.literal('EUR'),
@@ -18,4 +19,12 @@ export const recordExchangeRateInputSchema = z.strictObject({
 export const scheduledExchangeRateInputSchema = z.strictObject({
   ...rateFields,
   tenantId: z.string(),
+});
+
+export const recordRateVerificationInputSchema = z.strictObject({
+  legalEntityId: preservableText,
+  rateId: preservableText,
+  observedRate: rateFields.rate,
+  sourceRef: z.string().regex(/^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,255}$/u),
+  operationKey: z.uuid(),
 });

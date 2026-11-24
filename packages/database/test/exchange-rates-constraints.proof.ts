@@ -53,7 +53,7 @@ export async function proveExchangeRateConstraints(
         admin,
         tenantId,
         tx => tx<{ after_holder: boolean }[]>`
-        select stored_at >= ${mark}::timestamptz as after_holder
+        select stored_at >= ${mark}::text::timestamptz as after_holder
         from public.exchange_rates where id = ${rate.id}`
       );
       assert.equal(stored?.after_holder, true, 'storage time follows the book release marker');
@@ -91,6 +91,8 @@ export async function proveExchangeRateConstraints(
             beforeRole: async tx => {
               // Foreign keys are checked before BEFORE TRUNCATE triggers. Rollback restores them.
               await tx`alter table public.membership_sales drop constraint membership_sales_rate_fk`;
+              await tx`alter table public.exchange_rate_verifications
+                drop constraint exchange_rate_verifications_exact_rate_fk`;
               await tx`alter table public.exchange_rates
               drop constraint exchange_rates_book_fk,
               drop constraint exchange_rates_correction_fk`;
@@ -138,12 +140,20 @@ export async function proveExchangeRateConstraints(
     async () => {
       const sale = await seedRateLinkedSale(fixture, bookId);
       const countRows = () => admin<
-        { books: number; rates: number; sales: number; charges: number; linked_sale: boolean }[]
+        {
+          books: number;
+          rates: number;
+          sales: number;
+          charges: number;
+          verifications: number;
+          linked_sale: boolean;
+        }[]
       >`
       select
         (select count(*)::int from public.exchange_rate_books) as books,
         (select count(*)::int from public.exchange_rates) as rates,
         (select count(*)::int from public.membership_sales) as sales,
+        (select count(*)::int from public.exchange_rate_verifications) as verifications,
         (select count(*)::int from public.membership_ledger_entries
           where sale_id = ${sale.id} and kind = 'charge') as charges,
         exists (select 1 from public.membership_sales
@@ -152,6 +162,7 @@ export async function proveExchangeRateConstraints(
       assert.ok(before.books > 0 && before.rates > 0, 'both rate tables must be populated');
       assert.equal(before.linked_sale, true, 'the sale must reference the fixture rate');
       assert.equal(before.charges, 1, 'the sale must have a posted charge');
+      assert.equal(before.verifications, 1, 'the sale must have an exact-rate verification');
 
       await runSequentially(['exchange_rates', 'exchange_rate_books'] as const, async table => {
         // PostgreSQL fires the named table's BEFORE TRUNCATE trigger before the cascaded ones.

@@ -19,6 +19,8 @@ const CLOSURE = [
   'packages/database/src/seed-packs/agent-pack.ts',
   'packages/database/src/seed-packs/ks-workflow-pack.ts',
   'packages/database/src/disposable-client.ts',
+  'packages/database/src/scripts/rate-verification-limit.ts',
+  'packages/database/src/scripts/set-rate-verification-limit.ts',
 ];
 const tlsSource =
   "import postgres from 'postgres'; export const installSeedTlsClients = () => postgres;";
@@ -49,7 +51,7 @@ function refused(result, file) {
   );
 }
 
-test('seed closure is the exact finite main importer set, with no unscanned pilot claims', () => {
+test('seed TLS closure contains exactly the reviewed seed and release importers', () => {
   assert.deepEqual([...manifest.SEED_TLS_CLOSURE].sort(byCodeUnit), [...CLOSURE].sort(byCodeUnit));
 });
 

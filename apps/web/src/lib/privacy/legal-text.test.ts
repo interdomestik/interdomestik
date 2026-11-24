@@ -17,7 +17,7 @@ const registry = JSON.parse(
   readFileSync(new URL('packages/database/src/legal-document-versions.json', root), 'utf8')
 );
 const migration = readFileSync(
-  new URL('packages/database/drizzle/0104_wp13a_legal_acceptance.sql', root),
+  new URL('packages/database/drizzle/0105_wp13a_legal_acceptance.sql', root),
   'utf8'
 );
 

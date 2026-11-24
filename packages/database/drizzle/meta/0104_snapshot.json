@@ -1,5 +1,5 @@
 {
-  "id": "d4e6f759-cec4-4b45-b8e9-cc2b5e1785bd",
+  "id": "a5d639f2-e21b-4791-bb1e-e3cd7b21c21f",
   "prevId": "ccc8f4ad-6910-498a-a5a2-7d7d15d9e3e0",
   "version": "7",
   "dialect": "postgresql",
@@ -19862,8 +19862,63 @@
       },
       "isRLSEnabled": true
     },
-    "public.legal_acceptances": {
-      "name": "legal_acceptances",
+    "public.exchange_rate_verification_limits": {
+      "name": "exchange_rate_verification_limits",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "max_age_seconds": {
+          "name": "max_age_seconds",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "exchange_rate_verification_limits_tenant_id_tenants_id_fk": {
+          "name": "exchange_rate_verification_limits_tenant_id_tenants_id_fk",
+          "tableFrom": "exchange_rate_verification_limits",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "exchange_rate_verification_limits_tenant_policy": {
+          "name": "exchange_rate_verification_limits_tenant_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"exchange_rate_verification_limits\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"exchange_rate_verification_limits\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {
+        "exchange_rate_verification_limits_max_age_check": {
+          "name": "exchange_rate_verification_limits_max_age_check",
+          "value": "\"exchange_rate_verification_limits\".\"max_age_seconds\" >= 1 and \"exchange_rate_verification_limits\".\"max_age_seconds\" <= 2678400"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.exchange_rate_verifications": {
+      "name": "exchange_rate_verifications",
       "schema": "",
       "columns": {
         "id": {
@@ -19878,72 +19933,156 @@
           "primaryKey": false,
           "notNull": true
         },
-        "subject_user_id": {
-          "name": "subject_user_id",
+        "legal_entity_id": {
+          "name": "legal_entity_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "document_kind": {
-          "name": "document_kind",
+        "book_id": {
+          "name": "book_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "document_version": {
-          "name": "document_version",
+        "rate_id": {
+          "name": "rate_id",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "locale": {
-          "name": "locale",
+        "base": {
+          "name": "base",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "text_sha256": {
-          "name": "text_sha256",
+        "quote": {
+          "name": "quote",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "source_surface": {
-          "name": "source_surface",
+        "rate_effective_on": {
+          "name": "rate_effective_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observed_rate": {
+          "name": "observed_rate",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_ref": {
+          "name": "source_ref",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "accepted_at": {
-          "name": "accepted_at",
+        "verified_by": {
+          "name": "verified_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verified_at": {
+          "name": "verified_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
+          "notNull": true
+        },
+        "operation_key": {
+          "name": "operation_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
         }
       },
-      "indexes": {},
+      "indexes": {
+        "exchange_rate_verifications_latest_idx": {
+          "name": "exchange_rate_verifications_latest_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "book_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "rate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "verified_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {
-        "legal_acceptances_tenant_id_tenants_id_fk": {
-          "name": "legal_acceptances_tenant_id_tenants_id_fk",
-          "tableFrom": "legal_acceptances",
-          "tableTo": "tenants",
+        "exchange_rate_verifications_exact_rate_fk": {
+          "name": "exchange_rate_verifications_exact_rate_fk",
+          "tableFrom": "exchange_rate_verifications",
+          "tableTo": "exchange_rates",
           "columnsFrom": [
-            "tenant_id"
+            "tenant_id",
+            "rate_id",
+            "book_id",
+            "base",
+            "quote",
+            "observed_rate",
+            "rate_effective_on"
           ],
           "columnsTo": [
+            "tenant_id",
+            "id",
+            "book_id",
+            "base",
+            "quote",
+            "rate",
+            "effective_on"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "exchange_rate_verifications_entity_fk": {
+          "name": "exchange_rate_verifications_entity_fk",
+          "tableFrom": "exchange_rate_verifications",
+          "tableTo": "legal_entities",
+          "columnsFrom": [
+            "tenant_id",
+            "legal_entity_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
             "id"
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "legal_acceptances_subject_fk": {
-          "name": "legal_acceptances_subject_fk",
-          "tableFrom": "legal_acceptances",
+        "exchange_rate_verifications_actor_fk": {
+          "name": "exchange_rate_verifications_actor_fk",
+          "tableFrom": "exchange_rate_verifications",
           "tableTo": "user",
           "columnsFrom": [
             "tenant_id",
-            "subject_user_id"
+            "verified_by"
           ],
           "columnsTo": [
             "tenant_id",
@@ -19955,129 +20094,43 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "legal_acceptances_subject_version_uq": {
-          "name": "legal_acceptances_subject_version_uq",
+        "exchange_rate_verifications_operation_uq": {
+          "name": "exchange_rate_verifications_operation_uq",
           "nullsNotDistinct": false,
           "columns": [
             "tenant_id",
-            "subject_user_id",
-            "document_kind",
-            "document_version"
+            "operation_key"
           ]
         }
       },
       "policies": {
-        "legal_acceptances_select": {
-          "name": "legal_acceptances_select",
+        "exchange_rate_verifications_tenant_policy": {
+          "name": "exchange_rate_verifications_tenant_policy",
           "as": "PERMISSIVE",
-          "for": "SELECT",
+          "for": "ALL",
           "to": [
             "public"
           ],
-          "using": "\"legal_acceptances\".\"tenant_id\" = nullif(current_setting('app.current_access_tenant_id', true), '')\n        and nullif(current_setting('app.current_actor_id', true), '') is not null\n        and nullif(current_setting('app.current_actor_role', true), '') is not null\n        and (\"legal_acceptances\".\"subject_user_id\" = current_setting('app.current_actor_id', true)\n          or current_setting('app.current_actor_role', true) = 'tenant_admin')"
-        },
-        "legal_acceptances_insert": {
-          "name": "legal_acceptances_insert",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "public"
-          ],
-          "withCheck": "\"legal_acceptances\".\"tenant_id\" = nullif(current_setting('app.current_access_tenant_id', true), '')\n        and \"legal_acceptances\".\"subject_user_id\" = nullif(current_setting('app.current_actor_id', true), '')\n        and current_setting('app.current_actor_role', true) in ('member', 'user')"
+          "using": "\"exchange_rate_verifications\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"exchange_rate_verifications\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
         }
       },
       "checkConstraints": {
-        "legal_acceptances_source_check": {
-          "name": "legal_acceptances_source_check",
-          "value": "\"legal_acceptances\".\"source_surface\" = 'member_activation'"
-        }
-      },
-      "isRLSEnabled": true
-    },
-    "public.legal_document_versions": {
-      "name": "legal_document_versions",
-      "schema": "",
-      "columns": {
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
+        "exchange_rate_verifications_pair_check": {
+          "name": "exchange_rate_verifications_pair_check",
+          "value": "\"exchange_rate_verifications\".\"base\" = 'EUR' and \"exchange_rate_verifications\".\"quote\" = 'MKD'"
         },
-        "version": {
-          "name": "version",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
+        "exchange_rate_verifications_finite_stamps": {
+          "name": "exchange_rate_verifications_finite_stamps",
+          "value": "isfinite(\"exchange_rate_verifications\".\"rate_effective_on\") and isfinite(\"exchange_rate_verifications\".\"verified_at\")"
         },
-        "locale": {
-          "name": "locale",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
+        "exchange_rate_verifications_observed_rate_check": {
+          "name": "exchange_rate_verifications_observed_rate_check",
+          "value": "\"exchange_rate_verifications\".\"observed_rate\" > 0 and \"exchange_rate_verifications\".\"observed_rate\" <= 9999999999.99999999 and scale(\"exchange_rate_verifications\".\"observed_rate\") <= 8"
         },
-        "text_sha256": {
-          "name": "text_sha256",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "review_status": {
-          "name": "review_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "legal_document_versions_digest_uq": {
-          "name": "legal_document_versions_digest_uq",
-          "nullsNotDistinct": false,
-          "columns": [
-            "kind",
-            "version",
-            "locale",
-            "text_sha256"
-          ]
-        }
-      },
-      "policies": {
-        "legal_document_versions_read": {
-          "name": "legal_document_versions_read",
-          "as": "PERMISSIVE",
-          "for": "SELECT",
-          "to": [
-            "public"
-          ],
-          "using": "true"
-        }
-      },
-      "checkConstraints": {
-        "legal_document_versions_kind_check": {
-          "name": "legal_document_versions_kind_check",
-          "value": "\"legal_document_versions\".\"kind\" in ('terms', 'privacy_notice')"
-        },
-        "legal_document_versions_locale_check": {
-          "name": "legal_document_versions_locale_check",
-          "value": "\"legal_document_versions\".\"locale\" in ('sq', 'en', 'sr', 'mk', 'de')"
-        },
-        "legal_document_versions_digest_check": {
-          "name": "legal_document_versions_digest_check",
-          "value": "\"legal_document_versions\".\"text_sha256\" ~ '^[0-9a-f]{64}$'"
-        },
-        "legal_document_versions_review_status_check": {
-          "name": "legal_document_versions_review_status_check",
-          "value": "\"legal_document_versions\".\"review_status\" in ('legal_review_pending', 'approved')"
+        "exchange_rate_verifications_source_ref_check": {
+          "name": "exchange_rate_verifications_source_ref_check",
+          "value": "\"exchange_rate_verifications\".\"source_ref\" collate \"C\" ~ '^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,255}$'"
         }
       },
       "isRLSEnabled": true
