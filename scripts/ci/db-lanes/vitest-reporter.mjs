@@ -1,5 +1,21 @@
-import { writeFileSync } from 'node:fs';
-import { relative } from 'node:path';
+import { realpathSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+
+// The report path comes from the lane runner's environment. Accept only a .json file directly
+// inside an existing directory under the system temp dir or the repository root (CodeQL
+// js/path-injection): anything else is refused rather than written.
+function reportPath(value, root) {
+  if (typeof value !== 'string' || !isAbsolute(value) || !value.endsWith('.json')) {
+    throw new TypeError('DB_LANES_REPORT must be an absolute .json path');
+  }
+  const dir = realpathSync(dirname(resolve(value)));
+  const allowed = [realpathSync(tmpdir()), realpathSync(root)];
+  if (!allowed.some(base => dir === base || dir.startsWith(`${base}/`))) {
+    throw new TypeError('DB_LANES_REPORT must be inside the temp directory or the repository');
+  }
+  return join(dir, basename(value));
+}
 
 export default class DatabaseLaneReporter {
   onTestRunEnd(modules, unhandledErrors, reason) {
@@ -23,6 +39,11 @@ export default class DatabaseLaneReporter {
       return result;
     });
     const complete = reason === 'passed' && unhandledErrors.length === 0;
-    writeFileSync(process.env.DB_LANES_REPORT, JSON.stringify({ complete, files }));
+    writeFileSync(
+      reportPath(process.env.DB_LANES_REPORT, process.env.DB_LANES_ROOT),
+      JSON.stringify({ complete, files }),
+      // Exclusive create: never follow or replace an existing file or symlink at that name.
+      { flag: 'wx' }
+    );
   }
 }

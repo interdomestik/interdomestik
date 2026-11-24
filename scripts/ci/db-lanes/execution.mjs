@@ -18,7 +18,7 @@ export function readExecution(filename) {
     throw new Error('Execution report has invalid JSON');
   }
   if (typeof report?.complete !== 'boolean' || !Array.isArray(report.files)) {
-    throw new Error('Execution report has an invalid shape');
+    throw new TypeError('Execution report has an invalid shape');
   }
   return report;
 }
