@@ -42,7 +42,7 @@ export type SponsorActionResult =
     }
   | {
       ok: false;
-      error: 'invalid' | 'forbidden' | 'not_found' | 'conflict' | 'dark' | 'unavailable';
+      error: 'invalid' | 'forbidden' | 'not_found' | 'conflict' | 'dark' | 'unavailable' | 'CLOSED';
     };
 const invalid = { ok: false, error: 'invalid' } as const;
 const forbidden = { ok: false, error: 'forbidden' } as const;

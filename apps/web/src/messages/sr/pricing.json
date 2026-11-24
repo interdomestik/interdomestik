@@ -1,5 +1,6 @@
 {
   "pricing": {
+    "CLOSED": "Kupovina članstva trenutno je zatvorena.",
     "title": "Članstvo fokusirano na zahteve",
     "subtitle": "Počnite sa slučajevima vozila, imovine i povreda. Slučajevi samo za smernice ostaju savetodavni, a predmeti van opsega se upućuju dalje.",
     "monthly": "Mesečno",
@@ -220,6 +221,7 @@
       }
     },
     "businessLead": {
+      "CLOSED": "Upiti kompanija trenutno su zatvoreni.",
       "title": "Razgovarajte sa našim poslovnim timom",
       "subtitle": "Poslovna članstva se aktiviraju kroz kratak asistirani prijem kako bismo uskladili pravi opseg zaštite pre aktivacije.",
       "callCta": "Pozovite poslovni prijem",

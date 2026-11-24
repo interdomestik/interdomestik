@@ -28,18 +28,16 @@ export async function redactOtpFailure(error: unknown, mails: OtpMail[], pages: 
 }
 
 export async function cleanupOtpJourney(args: {
-  email: string;
+  emails: string[];
   failure: unknown;
   pages: Page[];
   seen: Set<string>;
 }) {
-  const userRow = () => db.query.user.findFirst({ where: eq(user.email, args.email) });
-  const verificationIdentifierPattern = `%${args.email}`;
-  const owner = await userRow().catch(() => undefined);
+  const userRows = () => db.query.user.findMany({ where: inArray(user.email, args.emails) });
+  const owners = await userRows().catch(() => []);
   await teardown(
     [
-      async () => {
-        if (!owner) return;
+      ...owners.map(owner => async () => {
         const ids = (
           await db.query.freeStartDrafts.findMany({
             columns: { id: true },
@@ -55,16 +53,16 @@ export async function cleanupOtpJourney(args: {
         await db.delete(authSession).where(eq(authSession.userId, owner.id));
         await db.execute(sql`delete from account where "userId" = ${owner.id}`);
         await db.delete(user).where(eq(user.id, owner.id));
-      },
-      () =>
-        db.execute(
-          sql`delete from verification where identifier like ${verificationIdentifierPattern}`
-        ),
+      }),
+      ...args.emails.map(email => () => {
+        const identifierPattern = `%${email}`;
+        return db.execute(sql`delete from verification where identifier like ${identifierPattern}`);
+      }),
       () => deleteMail(args.seen),
       ...args.pages.map(page => () => page.context().close()),
       async () => {
-        expect(await userRow(), 'the task-owned account is removed').toBeUndefined();
-        expect(await db.$count(crmLeads, eq(crmLeads.email, args.email))).toBe(0);
+        expect(await userRows(), 'the task-owned accounts are removed').toEqual([]);
+        expect(await db.$count(crmLeads, inArray(crmLeads.email, args.emails))).toBe(0);
       },
     ],
     args.failure

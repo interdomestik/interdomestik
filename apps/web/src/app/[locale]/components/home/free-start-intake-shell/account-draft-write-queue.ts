@@ -1,5 +1,11 @@
 import { normalizeFreeStartDraftText } from '@/lib/validators/free-start-draft';
-import type { DraftSaveState, IssueId, OutcomeId, SavedDraft } from './types';
+import {
+  draftFailureState,
+  type DraftSaveState,
+  type IssueId,
+  type OutcomeId,
+  type SavedDraft,
+} from './types';
 
 export type DraftWritePayload = Readonly<{
   category: 'vehicle' | 'property';
@@ -50,13 +56,6 @@ export type AccountDraftWriteQueue = {
 // A create answered with this code (or a thrown error) may have committed on the server with
 // the receipt lost, so the original request must be replayed verbatim before identity is known.
 const UNCERTAIN_CREATE_CODE = 'unavailable';
-
-function failureState(code: string): DraftSaveState {
-  if (code === 'invalid') return 'invalid';
-  if (code === 'unavailableAccountContext') return 'accountContext';
-  if (code === 'limitReached') return 'limit';
-  return 'error';
-}
 
 const OPTIONAL_FACTS = [
   'counterparty',
@@ -153,8 +152,13 @@ export function createAccountDraftWriteQueue(
     wasCreate: boolean
   ): void {
     if (wasCreate && (thrown || code === UNCERTAIN_CREATE_CODE)) uncertainCreate = written;
-    if (!wasCreate && !thrown && code === 'conflict') failed = 'conflict';
-    else failed = thrown ? 'error' : failureState(code);
+    if (!wasCreate && !thrown && code === 'conflict') {
+      failed = 'conflict';
+    } else if (thrown) {
+      failed = 'error';
+    } else {
+      failed = draftFailureState(code);
+    }
     emitState(failed);
     if (!thrown) notify(() => options.onRefused?.(code));
   }

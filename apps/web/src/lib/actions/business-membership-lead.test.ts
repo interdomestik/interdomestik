@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   submitBusinessMembershipLeadCore,
   type SubmitBusinessMembershipLeadInput,
-} from './business-membership-lead';
+} from './business-membership-lead-internal';
 
 const mockCaptureException = vi.fn();
 const mockRateLimit = vi.fn();
 const mockRunCommercialActionWithIdempotency = vi.fn();
-const mockResolveTenantIdFromRequest = vi.fn();
+const mockResolvePublicAdmissionTenant = vi.fn();
 const mockResolveBusinessLeadOwner = vi.fn();
 const mockCreateLead = vi.fn();
 const mockAuthorizePublicSiteTenant = vi.fn();
@@ -23,8 +23,8 @@ vi.mock('@/lib/commercial-action-idempotency', () => ({
     mockRunCommercialActionWithIdempotency(...args),
 }));
 
-vi.mock('@/lib/tenant/tenant-request', () => ({
-  resolveTenantIdFromRequest: (...args: unknown[]) => mockResolveTenantIdFromRequest(...args),
+vi.mock('@/lib/tenant/public-admission-tenant', () => ({
+  resolvePublicAdmissionTenant: (...args: unknown[]) => mockResolvePublicAdmissionTenant(...args),
 }));
 
 vi.mock('@/lib/business-leads/resolve-business-lead-owner', () => ({
@@ -35,8 +35,12 @@ vi.mock('@interdomestik/domain-leads', () => ({
   createLead: (...args: unknown[]) => mockCreateLead(...args),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  authorizePublicSiteTenant: (...args: unknown[]) => mockAuthorizePublicSiteTenant(...args),
+vi.mock('@/lib/tenant/public-intake-admission', () => ({
+  authorizeOpenPublicIntake: (...args: unknown[]) => mockAuthorizePublicSiteTenant(...args),
+}));
+
+vi.mock('next-intl/server', () => ({
+  getTranslations: async () => (key: string) => key,
 }));
 
 vi.mock('@sentry/nextjs', () => ({
@@ -60,7 +64,7 @@ describe('submitBusinessMembershipLeadCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRunCommercialActionWithIdempotency.mockImplementation(async ({ execute }) => execute());
-    mockResolveTenantIdFromRequest.mockResolvedValue('tenant_ks');
+    mockResolvePublicAdmissionTenant.mockReturnValue('tenant_ks');
     mockAuthorizePublicSiteTenant.mockResolvedValue(authority);
     mockResolveBusinessLeadOwner.mockResolvedValue({
       agentId: 'agent_system',
@@ -72,12 +76,11 @@ describe('submitBusinessMembershipLeadCore', () => {
 
   it('creates a business lead with system ownership and serialized metadata', async () => {
     const result = await submitBusinessMembershipLeadCore({
-      idempotencyKey: 'biz-1',
       requestHeaders: new Headers({
         referer:
           'https://interdomestik-web.vercel.app/sq/business-membership?utm_source=google&utm_campaign=fleet',
       }),
-      data: validInput,
+      readInput: () => ({ idempotencyKey: 'biz-1', data: validInput }),
     });
 
     expect(result).toEqual({
@@ -86,7 +89,7 @@ describe('submitBusinessMembershipLeadCore', () => {
         leadId: 'lead_123',
       },
     });
-    expect(mockResolveTenantIdFromRequest).toHaveBeenCalled();
+    expect(mockResolvePublicAdmissionTenant).toHaveBeenCalled();
     expect(mockResolveBusinessLeadOwner.mock.calls[0]?.[0]).toBe(authority);
     expect(mockCreateLead).toHaveBeenCalledWith(
       {
@@ -127,12 +130,11 @@ describe('submitBusinessMembershipLeadCore', () => {
 
   it('resolves tenant scope before creating an idempotency reservation', async () => {
     await submitBusinessMembershipLeadCore({
-      idempotencyKey: 'biz-tenant-scope',
       requestHeaders: new Headers(),
-      data: validInput,
+      readInput: () => ({ idempotencyKey: 'biz-tenant-scope', data: validInput }),
     });
 
-    expect(mockResolveTenantIdFromRequest.mock.invocationCallOrder[0]).toBeLessThan(
+    expect(mockResolvePublicAdmissionTenant.mock.invocationCallOrder[0]).toBeLessThan(
       mockRunCommercialActionWithIdempotency.mock.invocationCallOrder[0]
     );
     expect(mockRunCommercialActionWithIdempotency).toHaveBeenCalledWith(
@@ -145,29 +147,30 @@ describe('submitBusinessMembershipLeadCore', () => {
     );
   });
 
-  it('mints the public-site authority for the classified tenant, ignoring an unrelated payload tenantId', async () => {
-    await submitBusinessMembershipLeadCore({
-      requestHeaders: new Headers(),
-      data: { ...validInput, tenantId: 'tenant_mk' } as SubmitBusinessMembershipLeadInput,
-    });
+  it('rejects an injected tenantId without using it for the admission read', async () => {
+    await expect(
+      submitBusinessMembershipLeadCore({
+        requestHeaders: new Headers(),
+        readInput: () => ({ data: { ...validInput, tenantId: 'tenant_mk' } }),
+      })
+    ).resolves.toMatchObject({ success: false, code: 'INVALID_PAYLOAD' });
 
     expect(mockAuthorizePublicSiteTenant).toHaveBeenCalledExactlyOnceWith('tenant_ks');
-    expect(mockCreateLead.mock.calls[0]?.[0].authority).toBe(authority);
+    expect(mockCreateLead).not.toHaveBeenCalled();
   });
 
   it('writes nothing when the classified tenant is not active', async () => {
     mockAuthorizePublicSiteTenant.mockResolvedValueOnce(null);
 
     const result = await submitBusinessMembershipLeadCore({
-      idempotencyKey: 'biz-no-authority',
       requestHeaders: new Headers(),
-      data: validInput,
+      readInput: () => ({ idempotencyKey: 'biz-no-authority', data: validInput }),
     });
 
     expect(result).toEqual({
       success: false,
-      error: 'Business intake is temporarily unavailable. Please contact support directly.',
-      code: 'TENANT_AUTHORITY_REQUIRED',
+      error: 'CLOSED',
+      code: 'CLOSED',
     });
     expect(mockRunCommercialActionWithIdempotency).not.toHaveBeenCalled();
     expect(mockResolveBusinessLeadOwner).not.toHaveBeenCalled();
@@ -179,7 +182,7 @@ describe('submitBusinessMembershipLeadCore', () => {
       requestHeaders: new Headers({
         referer: 'not-a-valid-url',
       }),
-      data: validInput,
+      readInput: () => ({ data: validInput }),
     });
 
     expect(result).toEqual({
@@ -198,7 +201,7 @@ describe('submitBusinessMembershipLeadCore', () => {
   ])('rejects invalid payloads with field issues', async (change, issues) => {
     const result = await submitBusinessMembershipLeadCore({
       requestHeaders: new Headers(),
-      data: { ...validInput, ...change },
+      readInput: () => ({ data: { ...validInput, ...change } }),
     });
 
     expect(result).toEqual({
@@ -215,7 +218,7 @@ describe('submitBusinessMembershipLeadCore', () => {
 
     const result = await submitBusinessMembershipLeadCore({
       requestHeaders: new Headers(),
-      data: validInput,
+      readInput: () => ({ data: validInput }),
     });
 
     expect(result).toEqual({
@@ -231,7 +234,7 @@ describe('submitBusinessMembershipLeadCore', () => {
 
     const result = await submitBusinessMembershipLeadCore({
       requestHeaders: new Headers(),
-      data: validInput,
+      readInput: () => ({ data: validInput }),
     });
 
     expect(result).toEqual({
@@ -248,7 +251,7 @@ describe('submitBusinessMembershipLeadCore', () => {
 
     const result = await submitBusinessMembershipLeadCore({
       requestHeaders: new Headers(),
-      data: validInput,
+      readInput: () => ({ data: validInput }),
     });
 
     expect(result).toEqual({

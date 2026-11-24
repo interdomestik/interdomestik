@@ -14,7 +14,7 @@ import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-li
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { updateClaimStatusCore } from '@interdomestik/domain-claims/staff-claims/update-status';
 import { randomUUID } from 'node:crypto';
-import { expect, test } from '../fixtures/auth.fixture';
+import { CLOSED_SERVICES_PROJECT, expect, test } from '../../e2e-mac/closed-services.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import {
@@ -52,8 +52,11 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     browser,
     staffPage,
   }, testInfo) => {
-    // Only gate-ks-sq may own S3 residue.
-    test.skip(testInfo.project.name !== 'gate-ks-sq', 'Other project');
+    // Only the serial KS runs may own S3 residue.
+    test.skip(
+      !['gate-ks-sq', CLOSED_SERVICES_PROJECT].includes(testInfo.project.name),
+      'Other project'
+    );
     expect(testInfo.config.workers).toBe(1);
     expect(testInfo.parallelIndex).toBe(0);
     test.setTimeout(120_000);

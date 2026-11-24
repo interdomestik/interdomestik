@@ -17,8 +17,11 @@ vi.mock('@/lib/commercial-action-idempotency', () => ({
     mockRunCommercialActionWithIdempotency(...args),
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  authorizePublicSiteTenant: async (tenantId: string) => mintTestTenantAuthority(tenantId),
+vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
+const open = vi.fn();
+
+vi.mock('@/lib/tenant/public-intake-admission', () => ({
+  authorizeOpenPublicIntake: (tenantId: string) => open(tenantId),
 }));
 
 vi.mock('@sentry/nextjs', () => ({
@@ -36,89 +39,23 @@ function tenantScope(tenantId: string) {
   };
 }
 
-// Configuration read by the real tenant resolver; stubbed empty per test and restored after.
-const TENANT_HOST_ENV = [
-  'DEFAULT_PUBLIC_TENANT_ID',
-  'IDA_HOST',
-  'VERCEL_URL',
-  'KS_HOST',
-  'MK_HOST',
-  'AL_HOST',
-  'PILOT_HOST',
-] as const;
-
-// Client tenant/country hints. Outside production the real resolver honours cookie and
-// x-tenant-id hints when a caller passes them, so these cases discriminate.
-const HOSTILE_HINTS = {
-  'x-tenant-id': 'tenant_mk',
-  cookie: 'tenantId=tenant_mk',
-  'x-vercel-ip-country': 'MK',
-  'accept-language': 'mk',
-};
-const KS = 'ks.interdomestik.com';
-const MK = 'mk.interdomestik.com';
-const IDA = 'ida.interdomestik.com';
-const UNKNOWN = 'unknown.example';
-const AL = 'al.interdomestik.com';
-const PILOT = 'pilot.interdomestik.com';
-
-type ScopeCase = { name: string; headers: Record<string, string>; tenantId: string; env: string };
-
-function scopeCase(
-  name: string,
-  headers: Record<string, string>,
-  tenantId: string,
-  env = ''
-): ScopeCase {
-  return { name, headers, tenantId, env };
-}
-
-// Expected values are the technical reservation partition only: tenant_mk stays separate and
-// every other resolved alias (KS, AL, pilot or an unrecognised default) shares tenant_ks.
-// The projection grants no tenant, access, legal, country or booking identity.
-const SCOPE_CASES: readonly ScopeCase[] = [
-  scopeCase('KS canonical host over default', { host: KS }, 'tenant_ks', 'tenant_al'),
-  scopeCase('KS local alias with port', { host: 'ks.localhost:3000' }, 'tenant_ks'),
-  scopeCase('MK canonical host', { host: MK }, 'tenant_mk'),
-  scopeCase('MK nip.io alias', { host: 'mk.127.0.0.1.nip.io' }, 'tenant_mk'),
-  scopeCase('AL canonical host over MK default', { host: AL }, 'tenant_ks', 'tenant_mk'),
-  scopeCase('AL local alias with port', { host: 'al.localhost:3000' }, 'tenant_ks'),
-  scopeCase('pilot canonical host over MK default', { host: PILOT }, 'tenant_ks', 'tenant_mk'),
-  scopeCase('pilot local alias with port', { host: 'pilot.localhost:3000' }, 'tenant_ks'),
-  scopeCase('neutral host, configured default', { host: IDA }, 'tenant_mk', 'tenant_mk'),
-  scopeCase('neutral host, no configured default', { host: IDA }, 'tenant_ks'),
-  scopeCase('neutral host, AL default', { host: IDA }, 'tenant_ks', 'tenant_al'),
-  scopeCase('neutral host, pilot default', { host: IDA }, 'tenant_ks', 'pilot-mk'),
-  scopeCase('missing host, configured default', {}, 'tenant_ks', 'tenant_al'),
-  scopeCase('missing host, MK default', {}, 'tenant_mk', 'tenant_mk'),
-  scopeCase('unknown host, configured default', { host: UNKNOWN }, 'tenant_ks', 'tenant_al'),
-  scopeCase('unknown host, pilot default', { host: UNKNOWN }, 'tenant_ks', 'pilot-mk'),
-  scopeCase('unknown host, unrecognised default', { host: UNKNOWN }, 'tenant_ks', 'tenant_x'),
-  scopeCase('forwarded host over host', { 'x-forwarded-host': MK, host: KS }, 'tenant_mk'),
-  scopeCase('forwarded AL host over MK host', { 'x-forwarded-host': AL, host: MK }, 'tenant_ks'),
-  scopeCase('forwarded pilot over MK host', { 'x-forwarded-host': PILOT, host: MK }, 'tenant_ks'),
-  scopeCase(
-    'empty forwarded host never falls back to host',
-    { 'x-forwarded-host': '', host: MK },
-    'tenant_ks',
-    'tenant_al'
-  ),
-  scopeCase(
-    'empty forwarded host uses the MK default, not the KS host',
-    { 'x-forwarded-host': '', host: KS },
-    'tenant_mk',
-    'tenant_mk'
-  ),
-  scopeCase('hints ignored on unknown host', { ...HOSTILE_HINTS, host: UNKNOWN }, 'tenant_ks'),
-  scopeCase('hints ignored on neutral host', { ...HOSTILE_HINTS, host: IDA }, 'tenant_ks'),
-  scopeCase('hints cannot override host', { ...HOSTILE_HINTS, host: KS }, 'tenant_ks'),
+const KS = 'ks.127.0.0.1.nip.io';
+const MK = 'mk.127.0.0.1.nip.io';
+const IDA = 'ida.127.0.0.1.nip.io';
+const SCOPE_CASES = [
+  { name: 'KS exact host over default and hints', host: KS, tenantId: 'tenant_ks' },
+  { name: 'MK exact host over default and hints', host: MK, tenantId: 'tenant_mk' },
+  { name: 'door configured default', host: IDA, tenantId: 'tenant_mk' },
 ];
 
 describe('actions/free-start submitFreeStartIntakeCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRunCommercialActionWithIdempotency.mockImplementation(async ({ execute }) => execute());
-    for (const name of TENANT_HOST_ENV) vi.stubEnv(name, '');
+    open.mockImplementation(async tenantId => mintTestTenantAuthority(tenantId));
+    vi.stubEnv('DATABASE_URL', 'postgresql://fixture@localhost:5432/test');
+    vi.stubEnv('DATABASE_URL_RLS', 'postgresql://fixture@localhost:5432/test');
+    vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', 'tenant_mk');
   });
 
   afterEach(() => {
@@ -139,7 +76,7 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
 
     const result = await submitFreeStartIntakeCore({
       idempotencyKey: 'free-start-1',
-      requestHeaders: new Headers(),
+      requestHeaders: new Headers({ host: KS }),
       data: validInput,
     });
 
@@ -163,13 +100,16 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
 
   it.each(SCOPE_CASES)(
     'partitions keyed reservations by request host only: $name',
-    async ({ headers, tenantId, env }) => {
-      vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', env);
+    async ({ host, tenantId }) => {
       mockRateLimit.mockResolvedValueOnce({ limited: false });
 
       const result = await submitFreeStartIntakeCore({
         idempotencyKey: 'free-start-scope',
-        requestHeaders: new Headers(headers),
+        requestHeaders: new Headers({
+          host,
+          'x-tenant-id': 'tenant_al',
+          cookie: 'tenantId=tenant_al',
+        }),
         data: validInput,
       });
 
@@ -180,11 +120,67 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
     }
   );
 
+  it.each([
+    { host: KS, 'x-forwarded-host': MK },
+    { host: KS, 'x-forwarded-host': '' },
+    { host: 'unknown.example' },
+    { 'x-forwarded-host': KS },
+  ])('closes before checking a tenant or reserving for %j', async input => {
+    const result = await submitFreeStartIntakeCore({
+      idempotencyKey: 'free-start-closed',
+      requestHeaders: new Headers(
+        Object.entries(input).filter(
+          (pair): pair is [string, string] => typeof pair[1] === 'string'
+        )
+      ),
+      data: validInput,
+    });
+    expect(result).toMatchObject({ success: false, code: 'CLOSED' });
+    expect(open).not.toHaveBeenCalled();
+    expect(mockRateLimit).not.toHaveBeenCalled();
+    expect(mockRunCommercialActionWithIdempotency).not.toHaveBeenCalled();
+  });
+
+  it.each(['tenant_al', 'pilot-mk', ''])(
+    'closes the door for a noncanonical partition %s',
+    async tenant => {
+      vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', tenant);
+      await expect(
+        submitFreeStartIntakeCore({
+          requestHeaders: new Headers({ host: IDA }),
+          data: validInput,
+        })
+      ).resolves.toMatchObject({ success: false, code: 'CLOSED' });
+      expect(open).not.toHaveBeenCalled();
+      expect(mockRunCommercialActionWithIdempotency).not.toHaveBeenCalled();
+    }
+  );
+
+  it('returns CLOSED on a recognized closed tenant before parsing, limiting or reserving', async () => {
+    open.mockResolvedValueOnce(null);
+    const data = {
+      ...validInput,
+      get summary(): string {
+        throw new Error('input parsed');
+      },
+    };
+    await expect(
+      submitFreeStartIntakeCore({
+        idempotencyKey: 'closed',
+        requestHeaders: new Headers({ host: KS }),
+        data,
+      })
+    ).resolves.toMatchObject({ success: false, code: 'CLOSED' });
+    expect(open).toHaveBeenCalledWith('tenant_ks');
+    expect(mockRateLimit).not.toHaveBeenCalled();
+    expect(mockRunCommercialActionWithIdempotency).not.toHaveBeenCalled();
+  });
+
   it('rejects issue types that do not match the selected category', async () => {
     mockRateLimit.mockResolvedValueOnce({ limited: false });
 
     const result = await submitFreeStartIntakeCore({
-      requestHeaders: new Headers(),
+      requestHeaders: new Headers({ host: KS }),
       data: {
         ...validInput,
         category: 'vehicle',
@@ -205,7 +201,7 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
     mockRateLimit.mockResolvedValueOnce({ limited: true });
 
     const result = await submitFreeStartIntakeCore({
-      requestHeaders: new Headers(),
+      requestHeaders: new Headers({ host: KS }),
       data: validInput,
     });
 
@@ -221,7 +217,7 @@ describe('actions/free-start submitFreeStartIntakeCore', () => {
     mockRunCommercialActionWithIdempotency.mockRejectedValueOnce(failure);
 
     const result = await submitFreeStartIntakeCore({
-      requestHeaders: new Headers(),
+      requestHeaders: new Headers({ host: KS }),
       data: validInput,
     });
 

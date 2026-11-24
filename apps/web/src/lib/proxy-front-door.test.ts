@@ -1,4 +1,8 @@
+// @vitest-environment node
+
+import 'next/dist/server/node-environment-baseline';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { adapter } from 'next/dist/server/web/adapter';
 import { NextRequest } from 'next/server';
 import { LOCALES } from '@/i18n/locales';
 
@@ -40,10 +44,49 @@ function restoreE2eEnv(): void {
   }
 }
 
-function makeRequest(pathname: string, cookieHeader?: string, host = 'ida.localhost:3000') {
-  const headers = new Headers({ host });
+function makeRequest(
+  pathname: string,
+  cookieHeader?: string,
+  host = 'ida.localhost:3000',
+  init?: Pick<RequestInit, 'headers' | 'method'>
+) {
+  const headers = new Headers(init?.headers);
+  headers.set('host', host);
   if (cookieHeader) headers.set('cookie', cookieHeader);
-  return new NextRequest(`http://${host}${pathname}`, { headers });
+  return new NextRequest(`http://${host}${pathname}`, { ...init, headers });
+}
+
+const actionHeaders = { 'next-action': 'test-action' };
+const actionPost = { method: 'POST', headers: actionHeaders };
+const matchingKsCookie = 'tenantId=tenant_ks';
+
+function runActionThroughAdapter(
+  host: string,
+  path: string,
+  tenant: string,
+  proxyPath = path,
+  transportHeaders?: Record<string, string>
+) {
+  return adapter({
+    page: '/src/proxy',
+    request: {
+      url: `http://${host}${path}`,
+      method: 'POST',
+      signal: new AbortController().signal,
+      headers: {
+        host,
+        cookie: `tenantId=${tenant}`,
+        accept: 'text/x-component',
+        ...actionHeaders,
+        'next-router-state-tree': encodeURIComponent(JSON.stringify(['', {}])),
+        ...transportHeaders,
+      },
+    },
+    handler: request => {
+      expect(request.nextUrl.pathname).toBe(proxyPath);
+      return proxy(request);
+    },
+  });
 }
 
 function expectProxyContext(
@@ -60,7 +103,7 @@ function expectProxyContext(
     expect(setCookie).toBeNull();
     return;
   }
-  expect(setCookie).toContain(expected.setCookie);
+  expect(setCookie).toEqual(expect.stringContaining(expected.setCookie));
 }
 
 describe('proxy ida front-door context', () => {
@@ -126,4 +169,87 @@ describe('proxy ida front-door context', () => {
     });
     expect(response.headers.get('set-cookie')).not.toContain('tenantId=tenant_mk');
   });
+
+  it.each([
+    ['ks.localhost:3000', '/sq', 'tenant_ks', '/sq'],
+    ['mk.localhost:3000', '/mk', 'tenant_mk', '/mk'],
+    // Named limit: Next.js normalizes /<locale>.rsc into the same /<locale> request (MODULE.md).
+    ['ks.localhost:3000', '/sq.rsc', 'tenant_ks', '/sq'],
+    ['ks.localhost:3000', '/sq.rsc?probe=1', 'tenant_ks', '/sq'],
+  ])(
+    'keeps hardening without reissuing an identical cookie on %s%s',
+    async (host, path, tenant, proxyPath) => {
+      const { response } = await runActionThroughAdapter(host, path, tenant, proxyPath);
+
+      expectProxyContext(response, { tenant, context: 'compatibility_alias', setCookie: null });
+      expect(response.headers.get('x-middleware-set-cookie')).toBeNull();
+      expect(response.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
+      expect(response.headers.get('x-frame-options')).toBe('DENY');
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(response.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
+      expect(response.headers.get('permissions-policy')).toContain('camera=()');
+    }
+  );
+
+  it.each([
+    ['homepage action with a missing cookie', '/sq', undefined, actionPost],
+    ['homepage action with a stale cookie', '/sq', 'tenantId=tenant_mk', actionPost],
+    ['homepage GET with the action header', '/sq', matchingKsCookie, { headers: actionHeaders }],
+    ['homepage POST without the action header', '/sq', matchingKsCookie, { method: 'POST' }],
+    ['action on another localized route', '/sq/pricing', matchingKsCookie, actionPost],
+    ['action on an unsupported locale path', '/hr', matchingKsCookie, actionPost],
+    ['action on the unlocalized root', '/', matchingKsCookie, actionPost],
+    ['action on a locale path with a trailing slash', '/sq/', matchingKsCookie, actionPost],
+  ])('writes the host tenant cookie for a %s', async (_scenario, path, cookie, init) => {
+    const response = await proxy(makeRequest(path, cookie, 'ks.localhost:3000', init));
+
+    expectProxyContext(response, {
+      tenant: 'tenant_ks',
+      context: 'compatibility_alias',
+      setCookie: matchingKsCookie,
+    });
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+  });
+
+  it.each([
+    ['/SQ', '/SQ'],
+    ['/sq.segments/_tree.segment.rsc', '/sq.segments/_tree.segment'],
+    ['/sq.json', '/sq.json'],
+    // Next.js sets x-nextjs-data in the router before the adapter receives the request.
+    ['/_next/data/test-build/sq.json', '/sq', { 'x-nextjs-data': '1' }],
+    ['/_next/data/test-build/sq.rsc', '/_next/data/test-build/sq'],
+    ['/_next/data/test-build/index.json', '/', { 'x-nextjs-data': '1' }],
+    [
+      '/_next/data/test-build/sq.segments/_tree.segment.rsc',
+      '/_next/data/test-build/sq.segments/_tree.segment',
+    ],
+    ['/_next/data/test-build/index.rsc', '/_next/data/test-build/index'],
+    [
+      '/_next/data/test-build/index.segments/_tree.segment.rsc',
+      '/_next/data/test-build/index.segments/_tree.segment',
+    ],
+    ['/sq/.rsc', '/sq/'],
+    ['/sq/pricing.rsc', '/sq/pricing'],
+    ['/index.rsc', '/index'],
+    ['/index.segments/_tree.segment.rsc', '/index.segments/_tree.segment'],
+    ['/index.json', '/index.json'],
+  ])(
+    'writes the host tenant cookie for action POST %s through Next.js',
+    async (path, proxyPath, transportHeaders?: Record<string, string>) => {
+      const { response } = await runActionThroughAdapter(
+        'ks.localhost:3000',
+        path,
+        'tenant_ks',
+        proxyPath,
+        transportHeaders
+      );
+
+      expectProxyContext(response, {
+        tenant: 'tenant_ks',
+        context: 'compatibility_alias',
+        setCookie: matchingKsCookie,
+      });
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    }
+  );
 });

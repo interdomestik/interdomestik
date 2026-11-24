@@ -1,5 +1,6 @@
 {
   "membership": {
+    "CLOSED": "Zahlungen und die Verwaltung von Abonnements sind derzeit nicht verfügbar.",
     "page": {
       "title": "Mitgliedschaft",
       "description": "Verwalten Sie Ihr Abonnement und die Details Ihres Plans."

@@ -8,20 +8,15 @@ function requestCase(
   return { name, headers, defaultTenant };
 }
 
-// Technical reservation partition only: every non-MK request (KS, AL, pilot, neutral or missing
-// host with a non-MK default) is projected onto the provisioned tenant_ks partition, so these
-// requests SHARE one partition. No AL-vs-KS host isolation is claimed and the projection grants
-// no tenant, access, legal, country or booking identity.
+// Each request is admitted to the KS tenant. Foreign rows must remain invisible even
+// when they hold the globally unique idempotency key.
 export const REQUEST_CASES: readonly RequestCase[] = [
-  requestCase('KS host', { host: 'ks.interdomestik.com' }),
-  requestCase('AL host', { host: 'al.interdomestik.com' }),
-  requestCase('pilot host', { host: 'pilot.interdomestik.com' }),
-  requestCase('neutral host with AL default', { host: 'ida.interdomestik.com' }, 'tenant_al'),
-  requestCase(
-    'empty forwarded host with pilot default',
-    { 'x-forwarded-host': '', host: 'mk.interdomestik.com' },
-    'pilot-mk'
-  ),
+  requestCase('KS host', { host: 'ks.127.0.0.1.nip.io' }),
+  requestCase('KS forwarded host with port', {
+    host: 'ks.127.0.0.1.nip.io:3000',
+    'x-forwarded-host': 'KS.127.0.0.1.nip.io:3000',
+  }),
+  requestCase('neutral host with KS default', { host: 'ida.127.0.0.1.nip.io' }, 'tenant_ks'),
 ];
 
 export function viaEachRequest<T extends { name: string }>(

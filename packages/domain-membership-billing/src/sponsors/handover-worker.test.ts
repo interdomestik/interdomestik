@@ -7,10 +7,15 @@ import {
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { PaddleClosedError } from '../paddle-closed';
 import { auditTransaction } from './audit-test-support';
-import { readHandoverState, type HandoverState } from './handover-intent-read';
-import { runHandoverIntent, scanMark } from './handover-worker';
-import type { HandoverPaddleClient, HandoverSubscription } from './paddle-handover-client';
+import { listDueIntents, readHandoverState, type HandoverState } from './handover-intent-read';
+import { runHandoverIntent, runSponsorHandovers, scanMark } from './handover-worker';
+import {
+  createHandoverPaddleClient,
+  type HandoverPaddleClient,
+  type HandoverSubscription,
+} from './paddle-handover-client';
 
 vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   withTenantAuthority: vi.fn(),
@@ -93,6 +98,28 @@ function setup(after: HandoverSubscription) {
   return { db, client, dispatched };
 }
 beforeEach(() => vi.resetAllMocks());
+
+it('counts a due intent as failed when Paddle is closed and writes nothing', async () => {
+  const { db } = setup(subscription);
+  vi.mocked(listDueIntents).mockResolvedValue(['intent']);
+  const errorLog = vi.spyOn(console, 'error').mockImplementation(() => {});
+  const hasCredential = vi.fn();
+  try {
+    await expect(
+      runSponsorHandovers(
+        authority,
+        { client: createHandoverPaddleClient('tenant'), hasCredential },
+        { now }
+      )
+    ).resolves.toEqual({ processed: 0, failed: 1, outcomes: {} });
+    expect(errorLog).toHaveBeenCalledWith(expect.any(String), expect.any(PaddleClosedError));
+    expect(readHandoverState).toHaveBeenCalledTimes(1);
+    expect(db.writes).toEqual([]);
+    expect(hasCredential).not.toHaveBeenCalled();
+  } finally {
+    errorLog.mockRestore();
+  }
+});
 
 describe('handover post-cancel observation', () => {
   it('publishes paid evidence and starts entries in the same run even after a timeout', async () => {

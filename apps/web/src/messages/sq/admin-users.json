@@ -178,6 +178,7 @@
         "confirm_current_tenant": "Konfirmo subjektin aktual",
         "confirmed": "Klasifikimi i subjektit tashmë është konfirmuar.",
         "confirmed_success": "Klasifikimi i subjektit u konfirmua",
+        "EMAIL_NOT_PROVEN": "Mbajtësi i llogarisë duhet të verifikojë adresën e emailit para se të konfirmoni subjektin.",
         "reassign_label": "Zhvendose këtë llogari në një subjekt tjetër",
         "reassign_tenant": "Ricakto subjektin",
         "reassigned_success": "Subjekti u ricaktua",

@@ -35,7 +35,7 @@ export function PricingPlanGrid({
             billedAnnuallyLabel={t('billedAnnually')}
             popularLabel={t('standard.popular')}
             ctaLabel={t('cta')}
-            onClick={event => onPlanCtaClick(plan, event.currentTarget)}
+            onClick={onPlanCtaClick && (event => onPlanCtaClick(plan, event.currentTarget))}
           />
         );
       })}

@@ -1,5 +1,6 @@
 {
   "pricing": {
+    "CLOSED": "Blerja e anëtarësive është përkohësisht e mbyllur.",
     "title": "Anëtarësi e fokusuar te rastet",
     "subtitle": "Filloni me rastet e automjeteve, pronës dhe lëndimeve. Rastet vetëm për udhëzim mbeten këshilluese, ndërsa rastet jashtë fushës referohen.",
     "monthly": "Mujore",
@@ -220,6 +221,7 @@
       }
     },
     "businessLead": {
+      "CLOSED": "Kërkesat nga kompanitë janë përkohësisht të mbyllura.",
       "title": "Flisni me ekipin tonë për biznes",
       "subtitle": "Anëtarësimet për biznes aktivizohen përmes një hyrjeje të shkurtër të asistuar që të përshtatim mbrojtjen para aktivizimit.",
       "callCta": "Telefono ekipin e biznesit",

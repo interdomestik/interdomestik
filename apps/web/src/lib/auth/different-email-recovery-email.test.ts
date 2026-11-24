@@ -15,7 +15,7 @@ describe('IDA-UI03b content-free recovery email', () => {
     }
   );
 
-  it('awaits the shared mail primitive with content-free telemetry', async () => {
+  it('awaits the shared mail primitive with content-free telemetry and the automated catcher opt-in', async () => {
     const send = vi.fn().mockResolvedValue({ success: true, id: 'provider-id' });
     await expect(
       deliverRecoveryCode(
@@ -29,7 +29,7 @@ describe('IDA-UI03b content-free recovery email', () => {
         subject: expect.any(String),
         text: expect.stringContaining('123456'),
       }),
-      { telemetryPolicy: 'content-free' }
+      { automatedCatcher: true, telemetryPolicy: 'content-free' }
     );
   });
 

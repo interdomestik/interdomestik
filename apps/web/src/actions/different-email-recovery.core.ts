@@ -1,4 +1,5 @@
 import { createHmac, randomInt, randomUUID } from 'node:crypto';
+import * as Sentry from '@sentry/nextjs';
 import { z } from 'zod';
 
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
@@ -13,16 +14,17 @@ import {
   reserveReplacementProof,
 } from '@/lib/auth/different-email-recovery-store';
 import { enforceOtpRateLimits, type OtpRateKind } from '@/lib/rate-limit-otp';
-import { resolveDefaultPublicTenantId } from '@/lib/tenant/tenant-hosts';
+import { isPublicIntakeOpenForTenant } from '@/lib/tenant/public-intake-admission';
+import { coerceTenantId, type TenantId } from '@/lib/tenant/tenant-hosts';
 import {
   resolveSessionTenantConcepts,
   type TenantSessionLike,
 } from '@/lib/tenant/tenant-session-context';
 
-type Context = { email: string; tenantId: string; userId: string };
+type Context = { email: string; tenantId: TenantId; userId: string };
 type Stage = 'current' | 'replacement';
-type InputResult =
-  { ok: true; stage: Stage | 'complete' } | { ok: false; code: 'invalid' | 'unavailable' };
+type RecoveryFailure = { ok: false; code: 'CLOSED' | 'invalid' | 'unavailable' };
+export type RecoveryResult = { ok: true; stage: Stage | 'complete' } | RecoveryFailure;
 type RateArgs = {
   email: string;
   headers: Headers;
@@ -35,18 +37,23 @@ const startSchema = z.strictObject({ locale });
 // prettier-ignore
 const currentSchema = z.strictObject({ code: z.string().regex(/^\d{6}$/), email: z.string().trim().toLowerCase().email(), locale });
 const replacementSchema = z.strictObject({ code: z.string().regex(/^\d{6}$/) });
-const failure = (code: 'invalid' | 'unavailable' = 'unavailable') => ({ ok: false, code }) as const;
+const failure = (code: RecoveryFailure['code'] = 'unavailable'): RecoveryFailure => ({
+  ok: false,
+  code,
+});
 
 // prettier-ignore
 async function resolveContext(headers: Headers): Promise<Context | null> {
   if (!evaluateNeutralOtpHost(headers)) return null;
+  const tenantId = coerceTenantId(process.env.DEFAULT_PUBLIC_TENANT_ID);
+  if (!tenantId) return null;
   try {
     const session = await auth.api.getSession({ headers, query: { disableCookieCache: true, disableRefresh: true } });
     const view = session as TenantSessionLike & { user?: { email?: unknown; id?: unknown } };
     const userId = typeof view?.user?.id === 'string' ? view.user.id : null;
     const email = typeof view?.user?.email === 'string' ? view.user.email.trim() : null;
-    const tenantId = resolveDefaultPublicTenantId(), accessTenantId = resolveSessionTenantConcepts(view).accessTenantId;
-    return userId && email && tenantId && accessTenantId === tenantId ? { email, tenantId, userId } : null;
+    const { accessTenantId } = resolveSessionTenantConcepts(view);
+    return userId && email && accessTenantId === tenantId ? { email, tenantId, userId } : null;
   } catch { return null; }
 }
 
@@ -59,6 +66,7 @@ export type RecoveryDependencies = {
   activateReplacement: typeof activateReplacementProof;
   confirmReplacement: typeof confirmReplacementProof;
   discard: typeof discardProof;
+  isPublicIntakeOpen: typeof isPublicIntakeOpenForTenant;
   nonce: () => string;
   now: () => Date;
   otp: () => string;
@@ -74,6 +82,7 @@ export type RecoveryDependencies = {
 const defaults: RecoveryDependencies = {
   activateCurrent: activateCurrentProof, activateReplacement: activateReplacementProof,
   confirmReplacement: confirmReplacementProof, discard: discardProof, nonce: randomUUID,
+  isPublicIntakeOpen: isPublicIntakeOpenForTenant,
   now: () => new Date(), otp: () => randomInt(0, 1_000_000).toString().padStart(6, '0'), rate,
   reserveCurrent: reserveCurrentProof, reserveReplacement: reserveReplacementProof, resolveContext,
   secret: () => process.env.OTP_RATE_LIMIT_HMAC_SECRET ?? null, send: deliverRecoveryCode,
@@ -90,17 +99,28 @@ export function recoveryDigest(secret: string, stage: Stage, email: string, code
     .digest('hex');
 }
 
-// prettier-ignore
 async function authority(headers: Headers, deps: RecoveryDependencies) {
-  const context = await deps.resolveContext(headers), secret = deps.secret();
-  if (!context || !secret || Buffer.byteLength(secret) < 32 || secret === process.env.BETTER_AUTH_SECRET) return null;
-  return { context, secret };
+  const context = await deps.resolveContext(headers);
+  if (!context) return failure();
+  try {
+    if (!(await deps.isPublicIntakeOpen(context.tenantId))) return failure('CLOSED');
+  } catch (error) {
+    Sentry.captureException(error, {
+      tags: { operation: 'pilot.differentEmailRecoveryAdmission' },
+    });
+    return failure('CLOSED');
+  }
+  const secret = deps.secret();
+  if (!secret || Buffer.byteLength(secret) < 32 || secret === process.env.BETTER_AUTH_SECRET) {
+    return failure();
+  }
+  return { ok: true, context, secret } as const;
 }
 
 // prettier-ignore
-export async function startDifferentEmailRecoveryCore(headers: Headers, input: unknown, deps = defaults): Promise<InputResult> {
+export async function startDifferentEmailRecoveryCore(headers: Headers, input: unknown, deps = defaults): Promise<RecoveryResult> {
   const parsed = startSchema.safeParse(input); if (!parsed.success) return failure('invalid');
-  const authz = await authority(headers, deps); if (!authz) return failure();
+  const authz = await authority(headers, deps); if (!authz.ok) return authz;
   if (!(await deps.rate({ email: authz.context.email, headers, kind: 'send', secret: authz.secret, tenantId: authz.context.tenantId }))) return failure();
   const code = deps.otp(), nonce = deps.nonce(), now = deps.now();
   try {
@@ -113,9 +133,9 @@ export async function startDifferentEmailRecoveryCore(headers: Headers, input: u
 }
 
 // prettier-ignore
-export async function submitCurrentEmailProofCore(headers: Headers, input: unknown, deps = defaults): Promise<InputResult> {
+export async function submitCurrentEmailProofCore(headers: Headers, input: unknown, deps = defaults): Promise<RecoveryResult> {
   const parsed = currentSchema.safeParse(input); if (!parsed.success) return failure('invalid');
-  const authz = await authority(headers, deps); if (!authz) return failure();
+  const authz = await authority(headers, deps); if (!authz.ok) return authz;
   const checks = [{ email: authz.context.email, kind: 'verify' as const }, { email: parsed.data.email, kind: 'send' as const }];
   for (const check of checks) if (!(await deps.rate({ ...check, headers, secret: authz.secret, tenantId: authz.context.tenantId }))) return failure();
   const code = deps.otp(), nonce = deps.nonce(), now = deps.now();
@@ -129,13 +149,14 @@ export async function submitCurrentEmailProofCore(headers: Headers, input: unkno
 }
 
 // prettier-ignore
-export async function confirmReplacementEmailCore(headers: Headers, input: unknown, deps = defaults): Promise<InputResult> {
+export async function confirmReplacementEmailCore(headers: Headers, input: unknown, deps = defaults): Promise<RecoveryResult> {
   const parsed = replacementSchema.safeParse(input); if (!parsed.success) return failure('invalid');
-  const authz = await authority(headers, deps); if (!authz) return failure();
+  const authz = await authority(headers, deps); if (!authz.ok) return authz;
   if (!(await deps.rate({ email: authz.context.email, headers, kind: 'verify', secret: authz.secret, tenantId: authz.context.tenantId }))) return failure();
   try {
-    const result = await deps.confirmReplacement(authz.context.userId, email => recoveryDigest(authz.secret, 'replacement', email, parsed.data.code), deps.now());
-    return result.ok ? { ok: true, stage: 'complete' } : failure();
+    const result = await deps.confirmReplacement(authz.context.userId, authz.context.tenantId, email => recoveryDigest(authz.secret, 'replacement', email, parsed.data.code), deps.now());
+    if (!result.ok) return failure(result.code);
+    return { ok: true, stage: 'complete' };
   } catch { return failure(); }
 }
 

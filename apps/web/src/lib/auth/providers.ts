@@ -4,9 +4,10 @@ import { after } from 'next/server';
 import { resetCompletionPlugin } from './reset-completion';
 import { getGitHubSocialProvider } from './social-providers';
 
-type GitHubOAuthEnv = {
+type AuthProviderEnv = {
   GITHUB_CLIENT_ID?: string;
   GITHUB_CLIENT_SECRET?: string;
+  IDENTITY_PUBLIC_SIGN_UP?: string;
 };
 
 function logOtpDelivery(category: 'success' | 'failure'): void {
@@ -33,7 +34,8 @@ function scheduleSignInOtpDelivery(
   });
 }
 
-export function buildAuthProviders(env: GitHubOAuthEnv = process.env as GitHubOAuthEnv) {
+export function buildAuthProviders(env: AuthProviderEnv = process.env as AuthProviderEnv) {
+  const disableSignUp = env.IDENTITY_PUBLIC_SIGN_UP !== 'open';
   const githubProvider = getGitHubSocialProvider({
     GITHUB_CLIENT_ID: env.GITHUB_CLIENT_ID,
     GITHUB_CLIENT_SECRET: env.GITHUB_CLIENT_SECRET,
@@ -42,6 +44,7 @@ export function buildAuthProviders(env: GitHubOAuthEnv = process.env as GitHubOA
   return {
     emailAndPassword: {
       enabled: true,
+      disableSignUp,
       password: {
         hash: async (password: string) => hash(password, 10),
         verify: async ({ hash: hashedPassword, password }: { hash: string; password: string }) =>
@@ -82,7 +85,7 @@ export function buildAuthProviders(env: GitHubOAuthEnv = process.env as GitHubOA
         expiresIn: 300,
         allowedAttempts: 3,
         resendStrategy: 'rotate',
-        disableSignUp: false,
+        disableSignUp,
       }),
       resetCompletionPlugin(),
     ],
