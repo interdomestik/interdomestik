@@ -1,5 +1,7 @@
 // Source-bound operation contracts, filled from the measured inventory (see tenant-guard-contract.mjs).
 // A module, not JSON, so the protected required workflow loads it through its closed .mjs closure.
+import { RATE_VERIFICATION_RELEASE_CONTRACT } from './rate-verification-release-admissions.mjs';
+
 const deepFreeze = value => {
   if (value && typeof value === 'object') {
     for (const child of Object.values(value)) deepFreeze(child);
@@ -285,6 +287,7 @@ function successorOf(file, unit, sha256, note) {
 
 export const CONTRACTS = deepFreeze([
   ...REVIEWED,
+  RATE_VERIFICATION_RELEASE_CONTRACT,
   // ACQ-2c (Plan070 with Codex): the same lock; a committed change also deletes that user's
   // outstanding reset tokens in its transaction.
   successorOf(
