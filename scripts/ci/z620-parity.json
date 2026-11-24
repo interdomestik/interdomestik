@@ -2,7 +2,7 @@
   "version": 1,
   "workflowDigests": {
     ".github/workflows/staging-runtime-attestation-enrol.yml": "164255dc6a63eadfcb4d06e74eb52aa080646e39f479ee02ec33e1ac8beb70c3",
-    ".github/workflows/ci.yml": "01efe059df45c84982ce22aba1fc9972c26c7e05992b2e77112e83ae0f669e50",
+    ".github/workflows/ci.yml": "f8a93551f00b87c69bb83b22ed87eda2193d9fed9b464dda3127cae004faf1df",
     ".github/workflows/security.yml": "4fb57012d21e9728ada15aee103fc8cbb35b048801353366b345498e6a97ff5b",
     ".github/workflows/e2e-pr.yml": "3c55c40773714ee65855e4cef3f5b70d8d17a3d039fae967c553f7e40f48467c",
     ".github/workflows/sonar-main-gate.yml": "1f041528aeba76428e7d47877387fd42e3aab32928507ca51ebeec06dcfe8b60",
