@@ -126,10 +126,8 @@ export async function proveAppendedTableIsolation(client: postgres.Sql, a: Rows,
     assert.deepEqual([...visible], [{ flags: 1, firsts: 1, locales: 1 }]);
   });
 
-  const denied = async (
-    statement: (tx: postgres.TransactionSql) => Promise<unknown>,
-    code: string
-  ) => assert.rejects(restricted(client, a.tenant, statement), { code });
+  const denied = (statement: (tx: postgres.TransactionSql) => Promise<unknown>, code: string) =>
+    assert.rejects(restricted(client, a.tenant, statement), { code });
   // Another tenant's rows: the policy's WITH CHECK refuses them.
   await denied(
     tx => tx`insert into user_locale_preferences (user_id, tenant_id, locale)

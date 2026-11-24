@@ -73,6 +73,53 @@ function promised<T>(run: () => T): Promise<T> {
 function withSender(row: Row, users: Row[]): Row {
   return { ...row, sender: users.find(user => user.id === row.senderId) };
 }
+// One atomic INSERT of one or more rows, checked against the table's unique keys.
+function buildFixtureInsert(
+  name: string,
+  input: Row | readonly Row[],
+  {
+    state: fixtureState,
+    check,
+    getContext,
+    getStaged,
+  }: {
+    state: Pick<typeof state, 'mode' | 'notificationFault' | 'rows'>;
+    check: () => void;
+    getContext: () => { tenantId: string } | undefined;
+    getStaged: () => Record<string, Row[]> | undefined;
+  }
+) {
+  const inputs: readonly Row[] = Array.isArray(input) ? input : [input as Row];
+  let onConflict: { target: string[] | null } | null = null;
+  let targetError: Error | null = null;
+  const promise = Promise.resolve().then(() => {
+    // The statement fails, as in PostgreSQL; the builder call itself never throws.
+    if (targetError) throw targetError;
+    check();
+    if (name === 'notifications' && fixtureState.notificationFault)
+      throw new Error('Synthetic notification failure');
+    const denied = (row: Row) => {
+      const context = getContext();
+      return (
+        (!context && fixtureState.mode === 'restricted') ||
+        (context && row.tenantId !== context.tenantId)
+      );
+    };
+    if (inputs.some(denied)) throw new Error('Fixture write denied');
+    return insertUnique(name, (getStaged() ?? fixtureState.rows)[name], inputs, onConflict);
+  });
+  // The insert is awaitable like a Drizzle builder because it is the write promise itself.
+  const returning = () => promise.then(inserted => inserted.map(row => ({ id: row.id })));
+  const onConflictDoNothing = (config?: { target?: Column | Column[] }) => {
+    const target = config && 'target' in config ? [config.target].flat() : null;
+    // A target column the catalogue lacks is a fixture gap, never "no target".
+    if (target?.some(column => typeof column?.field !== 'string'))
+      targetError = new Error('Unknown fixture column in the ON CONFLICT target');
+    else onConflict = { target: target ? target.map(column => (column as Column).field) : null };
+    return Object.assign(promise, { returning });
+  };
+  return Object.assign(promise, { returning, onConflictDoNothing });
+}
 function client(
   context?: { tenantId: string },
   staged?: Record<string, Row[]>,
@@ -106,37 +153,13 @@ function client(
       ])
     ),
     insert: (table: unknown) => ({
-      // One atomic INSERT of one or more rows, checked against the table's unique keys.
-      values: (input: Row | readonly Row[]) => {
-        const name = nameOf(table);
-        const inputs: readonly Row[] = Array.isArray(input) ? input : [input as Row];
-        let onConflict: { target: string[] | null } | null = null;
-        let targetError: Error | null = null;
-        const promise = Promise.resolve().then(() => {
-          // The statement fails, as in PostgreSQL; the builder call itself never throws.
-          if (targetError) throw targetError;
-          check();
-          if (name === 'notifications' && state.notificationFault)
-            throw new Error('Synthetic notification failure');
-          const denied = (row: Row) =>
-            (!context && state.mode === 'restricted') ||
-            (context && row.tenantId !== context.tenantId);
-          if (inputs.some(denied)) throw new Error('Fixture write denied');
-          return insertUnique(name, (staged ?? state.rows)[name], inputs, onConflict);
-        });
-        // The insert is awaitable like a Drizzle builder because it is the write promise itself.
-        const returning = () => promise.then(inserted => inserted.map(row => ({ id: row.id })));
-        const onConflictDoNothing = (config?: { target?: Column | Column[] }) => {
-          const target = config && 'target' in config ? [config.target].flat() : null;
-          // A target column the catalogue lacks is a fixture gap, never "no target".
-          if (target?.some(column => typeof column?.field !== 'string'))
-            targetError = new Error('Unknown fixture column in the ON CONFLICT target');
-          else
-            onConflict = { target: target ? target.map(column => (column as Column).field) : null };
-          return Object.assign(promise, { returning });
-        };
-        return Object.assign(promise, { returning, onConflictDoNothing });
-      },
+      values: (input: Row | readonly Row[]) =>
+        buildFixtureInsert(nameOf(table), input, {
+          state,
+          check,
+          getContext: () => context,
+          getStaged: () => staged,
+        }),
     }),
     delete: (table: unknown) => ({
       where: (where: Predicate) =>
