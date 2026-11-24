@@ -587,6 +587,7 @@ checks:
     scope: EACH_TARGET
     targets:
       - packages/domain-communications/src/email-transport.ts
+    strip_comments: true
     must_match:
       - "isAutomatedEmail as isAutomated,[\\s\\S]*?from './non-sending-email'"
       # The first statement: automated mode never reaches SMTP_HOST.
@@ -594,6 +595,12 @@ checks:
       # The whole worker transport list, from its initialization to its return: Resend only when not
       # automated.
       - "export function configuredEmailTransports\\(\\): EmailTransport\\[\\] \\{\\s*const transports: EmailTransport\\[\\] = \\[\\];\\s*const target = configuredSmtpTarget\\(true\\);\\s*if \\(target && target !== 'rejected'\\) transports\\.push\\('smtp'\\);\\s*if \\(!isAutomated\\(\\) && process\\.env\\.RESEND_API_KEY\\) transports\\.push\\('resend'\\);\\s*return transports;\\s*\\}"
+      # The worker's SMTP branch, as one sequence: the validated target, its rejection check, and
+      # the only transport call, which passes that target unchanged.
+      - "const target = configuredSmtpTarget\\(true\\);\\s*if \\(!target \\|\\| target === 'rejected'\\) return unavailable;\\s*const client = smtpTransport\\(target, signal\\);"
+    must_not_match:
+      - 'smtpTransport\((?!target, signal\))'
+      - 'smtpTransport\([\s\S]*smtpTransport\('
 
   - id: automation.smtp_socket_targets_validated_host
     description: The SMTP socket connects only to the validated target (the loopback catcher in automated mode), never to an environment host.
