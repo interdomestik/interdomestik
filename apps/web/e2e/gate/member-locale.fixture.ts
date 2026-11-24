@@ -1,5 +1,5 @@
 // prettier-ignore
-import { account, db, dbAdmin, E2E_PASSWORD, eq, session as authSession, subscriptions, user } from '@interdomestik/database';
+import { account, db, E2E_PASSWORD, eq, session as authSession, subscriptions, user } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
 import { expect, type Page, type TestInfo } from '@playwright/test';
 import { z } from 'zod';

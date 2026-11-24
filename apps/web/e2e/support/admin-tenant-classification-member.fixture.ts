@@ -1,4 +1,4 @@
-import { db, dbAdmin, eq, user } from '@interdomestik/database';
+import { db, eq, user } from '@interdomestik/database';
 import type { TestInfo } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 
