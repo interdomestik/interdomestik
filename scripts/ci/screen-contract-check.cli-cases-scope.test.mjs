@@ -88,22 +88,20 @@ test('CLI case 5: hidden input, unmapped wrapper and spread control are out of A
 
 // --- 6. Root and web @/ mappings --------------------------------------------------------------
 
-test('CLI case 6: @/x follows the root tsconfig for a package and the web one for a web file', t => {
-  const checks = okRun(
-    judgeHead(t, {
-      // Root: @/x is packages/database/src/x.ts (layer 4). Web: @/x is apps/web/src/x.ts (layer 1).
-      'tsconfig.json':
-        '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["packages/database/src/*"] } }\n}\n',
-      'packages/database/src/x.ts': 'export const x = 4;\n',
-      [`${W}/x.ts`]: 'export const x = 1;\n',
-      // Layer 3 importing layer 4: allowed. Under the web mapping it would import layer 1.
-      'packages/domain-claims/src/p.ts': "import { x } from '@/x';\nexport const p = x;\n",
-      // Layer 2 importing layer 1: a finding. Under the root mapping it would import layer 4.
-      [`${W}/actions/c.ts`]:
-        "'use server';\nimport { x } from '@/x';\nexport async function c() { return x; }\n",
-    })
+// The scanner models one fixed configuration (the WP-05 flip, D-1 option B): a root `@/*` mapping
+// other than today's, which TypeScript would use for a package while Next's build uses the web
+// one, is refused with exit 2 rather than judged.
+test('CLI case 6: a root @/* mapping other than the fixed one is a scanner error (exit 2)', t => {
+  const result = judgeHead(t, {
+    'tsconfig.json':
+      '{\n  "compilerOptions": { "moduleResolution": "bundler", "baseUrl": ".", "paths": { "@/*": ["packages/database/src/*"] } }\n}\n',
+    'packages/domain-claims/src/p.ts': "import { x } from '@/x';\nexport const p = x;\n",
+  });
+  assert.equal(result.code, 2);
+  assert.match(
+    result.report.errors.join('\n'),
+    /tsconfig\.json has an @\/\* mapping other than the fixed.*scanner PR first/u
   );
-  assert.deepEqual(checks['CHK-15a'].new, [`CHK-15a|${W}/actions/c.ts|@/x`]);
 });
 
 // --- 9. Rediscovery after a catalogue-only commit ---------------------------------------------

@@ -78,11 +78,14 @@ function exemptRender(rel, fileExports, entry, origin, element) {
 
 // The entries an element renders through a component (§2.1 "Renders").
 function renderedEntries(context, rel, fileExports, targetOrigins, element, registry) {
+  // With no registered render target, no component can render an entry: the origin is not looked
+  // up, so an unrelated JSX member cannot fail the scan (the WP-05 flip, r3-B4).
+  const targets = [...registry.values()].filter(e => e.exportName && e.kind !== 'not-consent');
+  if (!targets.length) return [];
   const origin = originOfElement(context, rel, fileExports, element);
   if (!origin || origin.unresolved || origin.external) return [];
   const out = [];
-  for (const entry of registry.values()) {
-    if (!entry.exportName || entry.kind === 'not-consent') continue;
+  for (const entry of targets) {
     if (
       rendersEntry(context, targetOrigins, entry, origin) &&
       !exemptRender(rel, fileExports, entry, origin, element)

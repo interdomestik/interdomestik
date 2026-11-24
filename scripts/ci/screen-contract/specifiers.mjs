@@ -1,60 +1,42 @@
 // Import edges and their resolution for the screen-contract rules (WP-05 design §2, §2.2).
 // Syntax only: nothing here imports or runs the scanned code.
 //
-// Named limits (the repository has none of these today; a new one can resolve another file than
-// TypeScript does):
-// - a relative `./x.js` where both `x.js` and `x.ts` exist: TypeScript takes `x.ts`, this resolver
-//   the literal `x.js`;
-// - `./x.cjs` is not mapped to `x.cts`; `./x.mjs` can resolve to `x.ts` or `x.tsx` where TypeScript
-//   takes `x.mts` (or `x.d.mts`); `./x.jsx` with `x.ts` and `x.tsx` resolves to `x.ts` where
-//   TypeScript takes `x.tsx`;
-// - an `@/*` mapping whose pattern has a `..` segment after the `*` (`src/*/../shared`): it is
-//   normalized before the `*` is substituted;
-// - `.d.json.ts` and other `.d.<ext>.ts` declarations, `types@<version>` conditions,
-//   `typesVersions` and a directory's own `package.json`.
+// A relative or `@/` request names the file TypeScript selects and the file Next's webpack build
+// selects (the WP-05 flip, D-1: resolution.mjs). Named limits: `types@<version>` conditions and
+// `typesVersions` of workspace packages are not modelled.
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
 
-import { ScanError, byCodeUnit } from '../server-mutation/ast.mjs';
+import { byCodeUnit } from '../server-mutation/ast.mjs';
+import { environmentsFor, resolveEnvironment, validateExports } from './exports.mjs';
+import { refuse } from './refusal.mjs';
+import { assertDescriptionFiles, requestPath } from './requests.mjs';
 import {
-  TYPES_EXTENSIONS,
-  TYPES_SOURCES,
-  environmentsFor,
-  resolveEnvironment,
-  validateExports,
-} from './exports.mjs';
+  ALIAS_PATTERN,
+  assertNextResolution,
+  confinedHost,
+  typescriptOptions,
+  validateResolutionConfig,
+  webpackPick,
+} from './resolution.mjs';
 import { roleOf } from './roles.mjs';
 import { kindOfSpecifier } from './specifiers-edges.mjs';
 
 export { edgesOfProgram, kindOfSpecifier } from './specifiers-edges.mjs';
-
-const EXTENSIONS = [
-  '',
-  '.ts',
-  '.tsx',
-  '.mts',
-  '.js',
-  '.jsx',
-  '.mjs',
-  '/index.ts',
-  '/index.tsx',
-  '/index.js',
-  '/index.jsx',
-];
 
 function readJson(file, label, parse = JSON.parse) {
   let text;
   try {
     text = fs.readFileSync(file, 'utf8');
   } catch {
-    throw new ScanError(`${label} is missing`);
+    refuse(`${label} is missing`);
   }
-  if (!text.trim()) throw new ScanError(`${label} is empty`);
+  if (!text.trim()) refuse(`${label} is empty`);
   try {
     return parse(text);
   } catch {
-    throw new ScanError(`${label} is not parseable`);
+    refuse(`${label} is not parseable`);
   }
 }
 
@@ -64,23 +46,12 @@ function parseTsconfig(text) {
   return config;
 }
 
-// A `paths` entry TypeScript accepts: a string with at most one `*`. One without `*` is a fixed
-// file every specifier the key matches maps to (F7).
-const isPathsEntry = entry =>
-  typeof entry === 'string' && entry.indexOf('*') === entry.lastIndexOf('*');
-
-// The `@/` patterns of one tsconfig: every entry of its `paths['@/*']`, in order, relative to
-// `baseUrl` or, without one, to the config's directory, repo-relative (`apps/web/src/*`).
-function aliasPatterns(root, configRel) {
+// One caller tsconfig, which must be the fixed configuration's (resolution.mjs): the compiler
+// options TypeScript resolves its requests with.
+function callerConfig(root, configRel) {
   const config = readJson(path.join(root, configRel), configRel, parseTsconfig);
-  const options = config?.compilerOptions;
-  const mapping = options?.paths?.['@/*'];
-  if (mapping === undefined) throw new ScanError(`${configRel} has no @/* mapping`);
-  if (!Array.isArray(mapping) || mapping.length === 0 || !mapping.every(isPathsEntry))
-    throw new ScanError(`${configRel} has no usable @/* mapping`);
-  const baseUrl = typeof options.baseUrl === 'string' ? options.baseUrl : '.';
-  const base = path.posix.join(path.posix.dirname(configRel), baseUrl);
-  return Object.freeze(mapping.map(entry => path.posix.join(base, entry)));
+  validateResolutionConfig(config, configRel);
+  return Object.freeze({ tsOptions: typescriptOptions(root, configRel, config.compilerOptions) });
 }
 
 // The tsconfig that compiles each caller (H7): the web app's for `apps/web/**`; the root one for
@@ -103,46 +74,10 @@ function workspacePackages(root) {
     const file = path.join(dir, name, 'package.json');
     if (!fs.existsSync(file)) continue;
     const pkg = readJson(file, `packages/${name}/package.json`);
-    if (typeof pkg?.name !== 'string')
-      throw new ScanError(`packages/${name}/package.json has no name`);
+    if (typeof pkg?.name !== 'string') refuse(`packages/${name}/package.json has no name`);
     validateExports(pkg, `packages/${name}/package.json`);
     out.set(pkg.name, { dir: `packages/${name}`, pkg });
   }
-  return out;
-}
-
-// TypeScript's files for one `paths` candidate (moduleResolution Bundler, allowJs; F7), in its
-// order: the candidate itself when the entry names an extension; the candidate with its extension
-// replaced; with extensions added; its directory's `index`. Replacing and adding use the row of
-// TYPES_SOURCES that TypeScript's tryAddingExtensions shares with the extension (`.ts`, `.d.ts` and
-// none try what `.js` tries; `.tsx` what `.jsx`; `.mts`, `.d.mts` what `.mjs`; `.cts`, `.d.cts`
-// what `.cjs`), both passes in one: Bundler resolves typed and JavaScript files in one pass, so the
-// first entry that names a file wins. An unknown extension's `.d<ext>.ts` is not modelled.
-const ROW_OF_EXTENSION = Object.freeze({
-  '': '.js',
-  '.ts': '.js',
-  '.d.ts': '.js',
-  '.tsx': '.jsx',
-  '.mts': '.mjs',
-  '.d.mts': '.mjs',
-  '.cts': '.cjs',
-  '.d.cts': '.cjs',
-});
-const extensionOf = file => TYPES_EXTENSIONS.find(ext => file.endsWith(ext)) ?? null;
-const sourcesOf = ext => TYPES_SOURCES[ROW_OF_EXTENSION[ext] ?? ext].flat();
-
-function aliasCandidates(entry, candidate) {
-  const out = extensionOf(entry) ? [candidate] : [];
-  const ext = extensionOf(candidate);
-  if (ext) {
-    const stem = candidate.slice(0, candidate.length - ext.length);
-    out.push(...sourcesOf(ext).map(source => stem + source));
-  }
-  const added = sourcesOf('');
-  out.push(
-    ...added.map(source => candidate + source),
-    ...added.map(source => `${candidate}/index${source}`)
-  );
   return out;
 }
 
@@ -153,12 +88,14 @@ const resolvers = new Map();
 // One resolver per target tree, cached for the life of the process (one lint run).
 export function resolverFor(root) {
   if (resolvers.has(root)) return resolvers.get(root);
-  const alias = Object.fromEntries(
+  const callers = Object.fromEntries(
     Object.entries(ALIAS_CONFIGS).map(([caller, configRel]) => [
       caller,
-      aliasPatterns(root, configRel),
+      callerConfig(root, configRel),
     ])
   );
+  assertNextResolution(root);
+  assertDescriptionFiles(root);
   const packages = workspacePackages(root);
   const existing = new Map();
   const isFile = rel => {
@@ -168,38 +105,49 @@ export function resolverFor(root) {
     }
     return existing.get(rel);
   };
-  const firstFile = candidates => {
-    for (const candidate of candidates) {
-      const rel = path.posix.normalize(candidate);
-      if (!rel.startsWith('..') && isFile(rel)) return rel;
-    }
-    return null;
-  };
-  const firstExisting = base => {
-    const candidates = [...EXTENSIONS.map(ext => base + ext)];
-    // TypeScript's ESM style: `./x.js` names `./x.ts`.
-    if (/\.(m?js|jsx)$/u.test(base)) {
-      const stem = base.replace(/\.(m?js|jsx)$/u, '');
-      candidates.push(`${stem}.ts`, `${stem}.tsx`, `${stem}.mts`);
-    }
-    return firstFile(candidates);
-  };
+  const host = confinedHost(root, isFile);
+  const caches = Object.fromEntries(
+    Object.entries(callers).map(([caller, config]) => [
+      caller,
+      ts.createModuleResolutionCache(root, name => name, config.tsOptions),
+    ])
+  );
   const workspace = specifier => {
     const match = /^(@interdomestik\/[^/]+)(\/.*)?$/u.exec(specifier);
     if (!match) return null;
     return { name: match[1], subpath: `.${match[2] ?? ''}`, entry: packages.get(match[1]) ?? null };
   };
-  // TypeScript's `paths`: each entry in order, its `*` (if any) replaced, and the first that names
-  // a file wins (B8), in TypeScript's file order (F7).
-  const aliasFile = (patterns, rest) => {
-    for (const pattern of patterns) {
-      const star = pattern.indexOf('*');
-      const candidate =
-        star === -1 ? pattern : `${pattern.slice(0, star)}${rest}${pattern.slice(star + 1)}`;
-      const file = firstFile(aliasCandidates(pattern, candidate));
-      if (file) return file;
+  // TypeScript's pick for a relative or `@/` request (D-1, r3-B2): `ts.resolveModuleName` with the
+  // caller's options on a host confined to the tree; a file outside it is no target.
+  const typescriptTarget = (fromRel, specifier) => {
+    const caller = aliasConfigOf(fromRel);
+    const { resolvedModule } = ts.resolveModuleName(
+      specifier,
+      path.join(root, fromRel),
+      callers[caller].tsOptions,
+      host,
+      caches[caller]
+    );
+    if (!resolvedModule || resolvedModule.isExternalLibraryImport) return null;
+    const rel = toRel(root, resolvedModule.resolvedFileName);
+    return rel.startsWith('..') || !isFile(rel) ? null : rel;
+  };
+  const inTree = rel => (rel.startsWith('..') ? null : rel);
+  // Webpack's pick (resolution.mjs): relative to the caller, or for `@/` the fixed `@/*` pattern
+  // with its `*` replaced. Next installs one paths plugin for the whole build, from the web app's
+  // tsconfig, so every caller, `packages/**` included, uses it (r4-S2b); a substitution that ends in
+  // `.d.ts` is passed over, as the plugin does (r4-S1).
+  const webpackTarget = (fromRel, specifier) => {
+    if (kindOfSpecifier(specifier) === 'relative') {
+      const base = inTree(
+        path.posix.normalize(path.posix.join(path.posix.dirname(fromRel), specifier))
+      );
+      return base && webpackPick(isFile, base);
     }
-    return null;
+    const substituted = ALIAS_PATTERN.replace('*', specifier.slice(2));
+    if (substituted.endsWith('.d.ts')) return null;
+    const candidate = inTree(path.posix.normalize(substituted));
+    return candidate && webpackPick(isFile, candidate);
   };
   // A file check for `exports` targets ('./src/x.ts') of the package in `dir`.
   const existsIn = dir => target => isFile(path.posix.join(dir, target));
@@ -217,22 +165,25 @@ export function resolverFor(root) {
     return [...files];
   };
   // The repo-relative files a specifier names for an edge of `edgeKind` (empty: external, or not
-  // found). A relative or `@/` path names one file; `@/` follows the caller's tsconfig.
+  // found). A relative or `@/` path names TypeScript's pick and webpack's pick, deduplicated (D-1).
   const resolveTargets = (fromRel, specifier, edgeKind = 'import') => {
     const kind = kindOfSpecifier(specifier);
     if (kind === 'workspace') return workspaceFiles(specifier, edgeKind);
-    let file = null;
-    if (kind === 'relative')
-      file = firstExisting(path.posix.join(path.posix.dirname(fromRel), specifier));
-    else if (kind === 'alias') file = aliasFile(alias[aliasConfigOf(fromRel)], specifier.slice(2));
-    return file ? [file] : [];
+    if (kind !== 'relative' && kind !== 'alias') return [];
+    // A query or fragment is refused, except on a reviewed edge, which names its path part.
+    const request = requestPath(fromRel, specifier);
+    if (request !== specifier) return resolveTargets(fromRel, request, edgeKind);
+    // A type-only edge is erased: TypeScript reads it, webpack never loads it (r4-B2).
+    if (edgeKind === 'type') return [typescriptTarget(fromRel, specifier)].filter(Boolean);
+    const picks = [typescriptTarget(fromRel, specifier), webpackTarget(fromRel, specifier)];
+    return [...new Set(picks.filter(Boolean))];
   };
-  // The first of those files, or null.
+  // The first of those files (TypeScript's pick, else webpack's, for a relative or `@/` path), or
+  // null.
   const resolveFile = (fromRel, specifier, edgeKind = 'import') =>
     resolveTargets(fromRel, specifier, edgeKind)[0] ?? null;
   const resolver = {
     root,
-    alias,
     packages,
     workspace,
     resolveTargets,
