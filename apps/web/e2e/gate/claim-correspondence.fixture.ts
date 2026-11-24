@@ -124,38 +124,72 @@ export async function saveFollowUp(row: Locator, date: string) {
   await expect(row.getByRole('status')).toHaveText(copy.feedback.saved);
 }
 
-/**
- * Asserts one copy without waiting a duplicate out, and names where each copy sits.
- * A hidden copy counts: the gate treats any duplicate render as a defect.
- */
-export async function expectSingle(locator: Locator, label: string) {
-  await expect(locator.first()).toBeAttached();
-  const copies = await locator.evaluateAll(nodes =>
-    nodes.map(node => ({
+type CopyQuery = { kind: 'list' | 'caseFields' | 'queueRow'; text: string };
+
+// Runs in the browser: finds and describes every copy in one synchronous DOM pass.
+function describeCopies({ kind, text }: CopyQuery) {
+  const exact = (element: Element | null) => element?.textContent?.trim() === text;
+  const selector = {
+    list: '[data-testid="staff-correspondence-list"]',
+    caseFields: 'section',
+    queueRow: '[data-testid="staff-claims-row"]',
+  }[kind];
+  const matches = Array.from(document.querySelectorAll(selector)).filter(node => {
+    if (kind === 'caseFields') return Array.from(node.querySelectorAll(':scope > h2')).some(exact);
+    if (kind === 'queueRow') {
+      return (
+        exact(node.querySelector('[data-testid="staff-claim-title"]')) ||
+        node.querySelector(`a[href$="/staff/claims/${text}"]`) !== null
+      );
+    }
+    return true;
+  });
+  return matches.map((node, index) => {
+    const ancestors: string[] = [];
+    for (let at = node.parentElement; at && at !== document.body; at = at.parentElement) {
+      const testId = at.getAttribute('data-testid');
+      if (testId) ancestors.push(testId);
+    }
+    return {
+      index,
       inRoleShell: node.closest('[data-testid="role-shell"]') !== null,
-      visible: node.getClientRects().length > 0,
-      container:
-        node.parentElement?.closest('[data-testid]')?.getAttribute('data-testid') ?? 'document',
-    }))
-  );
+      visible: node.checkVisibility({ visibilityProperty: true, opacityProperty: true }),
+      id: node.id || null,
+      labelledBy: node.getAttribute('aria-labelledby'),
+      ancestors,
+    };
+  });
+}
+
+/**
+ * Waits for the first copy, then judges that same DOM sample: a duplicate cannot be
+ * waited out, and the message names where each copy sits, hidden copies included.
+ */
+export async function expectSingle(page: Page, query: CopyQuery, label: string) {
+  let copies: ReturnType<typeof describeCopies> = [];
+  await expect
+    .poll(
+      async () => {
+        copies = await page.evaluate(describeCopies, query);
+        return copies.length;
+      },
+      { message: `${label} never rendered` }
+    )
+    .toBeGreaterThan(0);
   expect(copies, `${label} must render once; copies: ${JSON.stringify(copies)}`).toHaveLength(1);
 }
 
 export async function expectRegisterSectionsOnce(page: Page) {
-  await expectSingle(page.getByTestId('staff-correspondence-list'), 'Correspondence list');
-  // The heading's own text names it, so a copy with a stale aria-labelledby still counts.
-  const caseFieldsHeading = page.getByRole('heading', {
-    level: 2,
-    name: copy.caseFields.title,
-    exact: true,
-    includeHidden: true,
-  });
-  await expectSingle(caseFieldsHeading, 'Case fields section');
+  await expectSingle(page, { kind: 'list', text: '' }, 'Correspondence list');
+  await expectSingle(page, { kind: 'caseFields', text: copy.caseFields.title }, 'Case fields');
 }
 
-// Counts every queue row carrying the claim's title, with or without its view link.
-export const queueRows = (page: Page, claimId: string) =>
-  page.getByTestId('staff-claims-row').filter({ hasText: claimId });
+// Waits, duplicate-tolerant, for the claim's row in the shell, then counts copies page-wide.
+export async function expectQueueRowOnce(page: Page, claimId: string, when: string) {
+  const title = page.getByTestId('role-shell').getByTestId('staff-claim-title');
+  await expect(title.filter({ hasText: claimId }).first()).toBeVisible();
+  await expectSingle(page, { kind: 'queueRow', text: claimId }, `Queue row ${when}`);
+}
 
 export async function openQueue(
   page: Page,
@@ -168,7 +202,7 @@ export async function openQueue(
     baseURL: origin,
     marker: 'staff-page-ready',
   });
-  await expectSingle(queueRows(page, claimId), `Queue row for ${claimId}`);
+  await expectQueueRowOnce(page, claimId, 'on first load');
   const row = page.getByTestId('staff-claims-row').filter({
     has: page
       .getByTestId('staff-claims-view')

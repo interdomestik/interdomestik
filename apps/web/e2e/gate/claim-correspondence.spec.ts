@@ -5,11 +5,11 @@ import {
   copy,
   createCorrespondenceCase,
   expectRegisterSectionsOnce,
+  expectQueueRowOnce,
   expectSingle,
   fillContact,
   instruments,
   openQueue,
-  queueRows,
   recordBasis,
   recordForm,
   recordOutgoing,
@@ -29,8 +29,11 @@ test('assigned staff record legal bases, document disclosure, and an overdue una
   await loginAtDoor(page, origin, locale, 'KS_STAFF', info);
   const detail = `/${locale}/staff/claims/${claimId}`;
   await gotoApp(page, detail, info, { baseURL: origin, marker: 'staff-claim-detail-ready' });
+  // The register streams in after the detail marker; wait for it without strictness, then count.
+  const list = page.getByTestId('staff-correspondence-list');
+  await expect(list.first()).toContainText(copy.list.empty);
   await expectRegisterSectionsOnce(page);
-  await expect(page.getByTestId('staff-correspondence-list')).toContainText(copy.list.empty);
+  await expect(list).toContainText(copy.list.empty);
 
   for (const name of [...instruments.map(instrument => instrument.file), sentDocument]) {
     await uploadCasePdf(page, name);
@@ -65,6 +68,8 @@ test('assigned staff record legal bases, document disclosure, and an overdue una
       .getByLabel(copy.entry.replyTo)
       .selectOption({ label: await replyOption.innerText() });
     await form.getByRole('button', { name: copy.entry.record }).click();
+    await expect(registerRow(page, reply).first()).toBeVisible();
+    await expectRegisterSectionsOnce(page);
     await expect(registerRow(page, reply)).toBeVisible();
     await expect(
       registerRow(page, answered).getByTestId('staff-correspondence-answered')
@@ -73,14 +78,14 @@ test('assigned staff record legal bases, document disclosure, and an overdue una
       registerRow(page, unanswered).getByTestId('staff-correspondence-overdue')
     ).toBeVisible();
     await expect(page.getByTestId('staff-correspondence-overdue')).toHaveCount(1);
-    await expectRegisterSectionsOnce(page);
 
     // The answered contact's deadline no longer counts; the remaining unanswered one does.
     await queue.reload();
-    await expectSingle(queueRows(queue, claimId), `Queue row for ${claimId} after reload`);
+    await expectQueueRowOnce(queue, claimId, 'after reload');
     await expect(overdue).toBeVisible();
     await expect(overdue).toContainText(formatPilotDateTime(secondFollowUp, locale, ''));
     await expect(overdue).not.toContainText(formatPilotDateTime(firstFollowUp, locale, ''));
+    await expectSingle(queue, { kind: 'queueRow', text: claimId }, 'Queue row at the end');
   } finally {
     await queue.close();
   }
