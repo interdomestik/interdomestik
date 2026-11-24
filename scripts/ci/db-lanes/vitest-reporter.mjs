@@ -1,20 +1,22 @@
 import { realpathSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path';
+import { basename, dirname, isAbsolute, join, relative, resolve, sep } from 'node:path';
 
-// The report path comes from the lane runner's environment. Accept only a .json file directly
-// inside an existing directory under the system temp dir or the repository root (CodeQL
+// The report path comes from the lane runner's environment. Accept only a .json file
+// under the system temp dir or the repository root, checked on the resolved path (CodeQL
 // js/path-injection): anything else is refused rather than written.
 function reportPath(value, root) {
   if (typeof value !== 'string' || !isAbsolute(value) || !value.endsWith('.json')) {
     throw new TypeError('DB_LANES_REPORT must be an absolute .json path');
   }
-  const dir = realpathSync(dirname(resolve(value)));
-  const allowed = [realpathSync(tmpdir()), realpathSync(root)];
-  if (!allowed.some(base => dir === base || dir.startsWith(`${base}/`))) {
+  // Canonicalize the parent (no symlinked directory can redirect the write), then check the exact
+  // value that is written.
+  const target = join(realpathSync(dirname(resolve(value))), basename(value));
+  const bases = [realpathSync(tmpdir()), realpathSync(root)];
+  if (!bases.some(base => target.startsWith(base + sep))) {
     throw new TypeError('DB_LANES_REPORT must be inside the temp directory or the repository');
   }
-  return join(dir, basename(value));
+  return target;
 }
 
 export default class DatabaseLaneReporter {
