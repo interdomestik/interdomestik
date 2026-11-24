@@ -101,15 +101,21 @@ describe('browser messaging discovery', () => {
     const original = new Response(validBody, {
       headers: { 'Content-Type': 'text/x-component; charset=utf-8' },
     });
-    const fetchMock = vi.fn().mockResolvedValueOnce(unrelated).mockResolvedValueOnce(original);
+    const historyPending = Promise.resolve(unrelated);
+    const sendPending = Promise.resolve(original);
+    const fetchMock = vi.fn().mockReturnValueOnce(historyPending).mockReturnValueOnce(sendPending);
     vi.stubGlobal('fetch', fetchMock);
     const { result } = observeMessagingSend({ workspace, claimId, content });
 
     // A concurrent action on the same page must leave the send observer armed.
     const history = { ...send, body: JSON.stringify([claimId]) };
-    expect(await fetch(workspace, history)).toBe(unrelated);
+    const historyRequest = fetch(workspace, history);
+    expect(historyRequest).toBe(historyPending);
+    expect(await historyRequest).toBe(unrelated);
     const sendUrl = new URL(workspace).pathname + '?claimId=fixture-claim';
-    const response = await fetch(sendUrl, send);
+    const sendRequest = fetch(sendUrl, send);
+    expect(sendRequest).toBe(sendPending);
+    const response = await sendRequest;
     expect(response).toBe(original);
     const [body, capture] = await Promise.all([response.text(), result]);
 

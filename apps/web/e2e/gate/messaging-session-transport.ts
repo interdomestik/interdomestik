@@ -80,26 +80,29 @@ export function observeMessagingSend({
   const expectedUrl = new URL(workspace);
   const originalFetch = globalThis.fetch;
   const result = new Promise<{ id: string; reply: TransportReply } | null>(resolve => {
-    globalThis.fetch = (input, init) => {
-      const pending = originalFetch.call(globalThis, input, init);
+    function captureSend(
+      input: RequestInfo | URL,
+      init: RequestInit | undefined,
+      pending: Promise<Response>
+    ): void {
       if (init?.method !== 'POST' || typeof init.body !== 'string' || input instanceof Request) {
-        return pending;
+        return;
       }
 
       let id: string | null;
       try {
         const url = new URL(input, workspace);
         if (url.origin !== expectedUrl.origin || url.pathname !== expectedUrl.pathname) {
-          return pending;
+          return;
         }
         id = new Headers(init.headers).get('next-action');
-        if (!id) return pending;
+        if (!id) return;
         const args: unknown = JSON.parse(init.body);
         if (!Array.isArray(args) || args.length < 3 || args[0] !== claimId || args[1] !== content) {
-          return pending;
+          return;
         }
       } catch {
-        return pending;
+        return;
       }
 
       globalThis.fetch = originalFetch;
@@ -117,6 +120,11 @@ export function observeMessagingSend({
           };
         })
         .then(resolve, () => resolve(null));
+    }
+
+    globalThis.fetch = (input, init) => {
+      const pending = originalFetch.call(globalThis, input, init);
+      captureSend(input, init, pending);
       return pending;
     };
   });
