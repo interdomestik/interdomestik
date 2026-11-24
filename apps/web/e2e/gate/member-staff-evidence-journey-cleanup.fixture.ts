@@ -4,14 +4,17 @@ import {
   auditLog,
   claimDocuments,
   claimMessages,
+  claimResponseRequests,
   claimStageHistory,
   claims,
   db,
+  dbAdmin,
   domainEventDeliveries,
   domainEvents,
   eq,
   freeStartDrafts,
   inArray,
+  notificationDeliveries,
   notifications,
 } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
@@ -117,7 +120,7 @@ export async function cleanupJourney(
   try {
     await drainJourneyNotifications(ids);
   } finally {
-    await db.transaction(async tx => {
+    await dbAdmin.transaction(async tx => {
       if (ids.length) {
         const events = await tx.query.domainEvents.findMany({
           where: and(
@@ -146,11 +149,17 @@ export async function cleanupJourney(
             eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
             inArray(
               notifications.actionUrl,
-              ids.map(id => `/member/claims/${id}`)
+              ids.flatMap(id => [`/member/claims/${id}`, `/staff/claims/${id}`])
             )
           )
         );
-        for (const table of [claimStageHistory, claimDocuments, claimMessages] as const) {
+        for (const table of [
+          notificationDeliveries,
+          claimResponseRequests,
+          claimStageHistory,
+          claimDocuments,
+          claimMessages,
+        ] as const) {
           await tx
             .delete(table)
             .where(
@@ -219,7 +228,7 @@ export async function expectJourneyClean(
               eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
               inArray(
                 notifications.actionUrl,
-                ids.map(id => `/member/claims/${id}`)
+                ids.flatMap(id => [`/member/claims/${id}`, `/staff/claims/${id}`])
               )
             ),
           })

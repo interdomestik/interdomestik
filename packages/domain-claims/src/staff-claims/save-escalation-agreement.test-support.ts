@@ -2,7 +2,6 @@ import type { Mock } from 'vitest';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi } from 'vitest';
-import type { ClaimsSession } from '../claims/types';
 
 export type MockClaimRecord = {
   category: string;
@@ -136,26 +135,6 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 vi.mock('@interdomestik/shared-auth', () => ({
   ensureTenantId: mocks.ensureTenantId,
 }));
-function createSession(options: {
-  userId: string;
-  branchId?: string | null;
-  role?: string;
-  tenantId?: string;
-}): ClaimsSession {
-  const user = {
-    id: options.userId,
-    role: options.role ?? 'staff',
-    tenantId: options.tenantId ?? 'tenant-1',
-  };
-
-  if (options.branchId === undefined) {
-    return { user } as unknown as ClaimsSession;
-  }
-
-  return {
-    user: { ...user, branchId: options.branchId },
-  } as unknown as ClaimsSession;
-}
 function mockAgreementSaveSelects(options?: {
   agreements?: Array<Record<string, unknown>>;
   claim?: Partial<MockClaimRecord>;
@@ -175,4 +154,5 @@ function mockAgreementSaveSelects(options?: {
 }
 const authority: TenantAuthority = mintTestTenantAuthority('tenant-1');
 
-export { mocks, createSession, mockAgreementSaveSelects, authority };
+export { mocks, mockAgreementSaveSelects, authority };
+export { createStaffSessionFixture as createSession } from '../claims/recovery-evidence-test-support';

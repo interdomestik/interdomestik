@@ -101,7 +101,7 @@ test('admin Ops commits status and internal notes, preserves cooldown, and keeps
         'verification'
       );
       const transitioned = await fixture.readState();
-      expect(transitioned.audits.map(audit => audit.action)).toEqual(['update_status']);
+      expect(transitioned.audits.map(audit => audit.action)).toEqual(['claim.status_changed']);
       expect(transitioned.historyCount).toBe(1);
       expect(transitioned.messageCount).toBe(0);
       const statusEvents = await db.query.domainEvents.findMany({ where: eventScope });
@@ -119,8 +119,8 @@ test('admin Ops commits status and internal notes, preserves cooldown, and keeps
       const recorded = await fixture.readState();
       expect(recorded.messageCount).toBe(1);
       expect(recorded.audits.map(audit => audit.action).sort()).toEqual([
+        'claim.status_changed',
         'send_reminder',
-        'update_status',
       ]);
       expect(recorded.historyCount).toBe(1);
       const actionResponse = page.waitForResponse(
@@ -155,8 +155,8 @@ test('admin Ops commits status and internal notes, preserves cooldown, and keeps
       expect(acknowledged.messageCount).toBe(2);
       expect(acknowledged.audits.map(audit => audit.action).sort()).toEqual([
         'acknowledge_sla',
+        'claim.status_changed',
         'send_reminder',
-        'update_status',
       ]);
       expect(acknowledged.historyCount).toBe(1);
       expect(await db.query.domainEvents.findMany({ where: eventScope })).toHaveLength(2);

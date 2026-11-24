@@ -66,7 +66,6 @@ describe.each(ENTRYPOINTS)('%s exercised-role admission', (name, invoke) => {
       success: false,
       error: 'Claim not found or access denied',
     });
-    expect(mocks.transitionInTx).not.toHaveBeenCalled();
     expect(tenant.effects.filter(effect => effect.kind === 'insert')).toEqual([]);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });

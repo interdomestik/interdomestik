@@ -1,64 +1,71 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { changeClaimAssignment } from '@interdomestik/domain-claims/staff-claims/assign';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { assignClaim } from '../staff-claims.core';
 
-const hoisted = vi.hoisted(() => ({
-  domainAssignClaim: vi.fn(),
-  revalidatePath: vi.fn(),
+const mocks = vi.hoisted(() => ({
+  authorized: vi.fn(),
+  refusal: vi.fn(),
+  refresh: vi.fn(),
 }));
 
-vi.mock('@interdomestik/domain-claims/staff-claims/assign', () => ({
-  assignClaimCore: hoisted.domainAssignClaim,
+vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.authorized }));
+vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: mocks.refusal }));
+vi.mock('next/headers', () => ({
+  headers: () => Promise.resolve(new Headers({ 'user-agent': 'wp11-test' })),
+}));
+vi.mock('next/cache', () => ({ revalidatePath: mocks.refresh }));
+vi.mock('@interdomestik/domain-claims/staff-claims/assign', async original => ({
+  ...(await original<typeof import('@interdomestik/domain-claims/staff-claims/assign')>()),
+  changeClaimAssignment: vi.fn(),
 }));
 
-vi.mock('next/cache', () => ({
-  revalidatePath: hoisted.revalidatePath,
-}));
-
-import { assignClaimCore } from './assign.core';
-
-const authority = mintTestTenantAuthority('tenant-1');
-
-describe('staff assign.core audit wiring', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    hoisted.domainAssignClaim.mockResolvedValue({ success: true });
+function signIn(role: string) {
+  const authority = mintTestTenantAuthority('tenant-1', { userId: 'actor', role });
+  mocks.authorized.mockResolvedValue({
+    session: { user: { id: 'actor', role, branchId: 'branch' } },
+    authority,
   });
+  return authority;
+}
 
-  it('delegates assignment and audit atomically to the domain mutation', async () => {
-    const requestHeaders = new Headers({ 'user-agent': 'Vitest' });
+beforeEach(() => {
+  vi.resetAllMocks();
+  mocks.refusal.mockResolvedValue({ success: true });
+});
 
-    const result = await assignClaimCore({
-      authority,
-      claimId: 'claim-1',
-      requestHeaders,
-      session: {
-        user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
-        session: { id: 'session-1' },
-      } as never,
-      staffId: 'staff-2',
+describe('staff assignment action', () => {
+  it.each(['admin', 'tenant_admin', 'super_admin', 'member', 'agent', 'branch_manager'])(
+    'refuses %s before invoking the assignment command',
+    async role => {
+      signIn(role);
+      await expect(assignClaim('claim-1')).resolves.toMatchObject({
+        success: false,
+        code: 'FORBIDDEN',
+      });
+      expect(changeClaimAssignment).not.toHaveBeenCalled();
+      expect(mocks.refresh).not.toHaveBeenCalled();
+    }
+  );
+
+  it('passes the request authority and headers and refreshes the staff views', async () => {
+    const authority = signIn('staff');
+    vi.mocked(changeClaimAssignment).mockResolvedValue({
+      ok: true,
+      changed: true,
+      assignment: {
+        id: 'claim-1',
+        staffId: 'actor',
+        assignedById: 'actor',
+        assignedAt: new Date(),
+      },
     });
-
-    expect(result).toEqual({ success: true });
-    expect(hoisted.domainAssignClaim).toHaveBeenCalledWith(
-      expect.objectContaining({
-        claimId: 'claim-1',
-        requestHeaders,
-        staffId: 'staff-2',
-      })
-    );
-    expect(hoisted.revalidatePath).toHaveBeenCalledTimes(10);
-  });
-
-  it('does not revalidate when the atomic domain mutation fails', async () => {
-    const failure = { success: false, error: 'Failed to assign claim' };
-    hoisted.domainAssignClaim.mockResolvedValueOnce(failure);
-    await expect(
-      assignClaimCore({
-        authority,
-        claimId: 'claim-1',
-        session: null,
-      })
-    ).resolves.toEqual(failure);
-    expect(hoisted.revalidatePath).not.toHaveBeenCalled();
+    await expect(assignClaim('claim-1')).resolves.toEqual({ success: true });
+    const [actualAuthority, input, meta] = vi.mocked(changeClaimAssignment).mock.calls[0];
+    expect(actualAuthority).toBe(authority);
+    expect(input).toEqual({ claimId: 'claim-1' });
+    expect(meta?.requestHeaders?.get('user-agent')).toBe('wp11-test');
+    expect(mocks.refresh).toHaveBeenCalledTimes(10);
+    expect(mocks.refresh).toHaveBeenCalledWith('/mk/staff/claims/claim-1');
   });
 });

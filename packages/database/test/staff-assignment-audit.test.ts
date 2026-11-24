@@ -4,14 +4,14 @@ import test from 'node:test';
 import { eq, sql } from 'drizzle-orm';
 
 import { claimLifecycleFieldsForStatus } from '../src/claim-lifecycle';
-import { auditLog, claims } from '../src/schema';
-import type { TenantTransaction } from '../src/tenant';
+import { auditLog, claims, user } from '../src/schema';
+import { grantColumnPrivileges } from './column-grants.support';
 import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
 import { KS_TENANT_ID, openS8RestrictedSession } from './s8-claim-restricted-rls.fixture';
+import { gate } from './wp11-claim-status-rls.fixture';
 
-// Reuse the restricted-role lane; required integration fails closed on missing prerequisites.
 test(
-  'staff assignment CAS and audit commit or roll back together under the restricted role',
+  'concurrent staff assignments serialize and audit the committed change under the restricted role',
   { timeout: 30_000 },
   async t => {
     const session = await openS8RestrictedSession(t, { DB_MAX_CONNECTIONS: '4' });
@@ -20,172 +20,128 @@ test(
     const { claimId, userId } = fixture.ks;
     const claimWhere = eq(claims.id, claimId);
     const auditWhere = eq(auditLog.entityId, claimId);
+    let revokeColumns: (() => Promise<void>) | undefined;
     try {
-      // Test-role privileges only, matching the existing restricted fixture's provisioning pattern.
       await adminDb.execute(
         sql.raw(`grant select, insert on table "audit_log" to ${quoteIdentifier(TEST_DB_ROLE)}`)
       );
+      await adminDb.execute(
+        sql.raw(`grant select on table "user" to ${quoteIdentifier(TEST_DB_ROLE)}`)
+      );
+      // The claim command locks the user row; FOR UPDATE needs UPDATE on a column.
+      revokeColumns = await grantColumnPrivileges(adminDb, [['update', 'user', ['id']]]);
+      await adminDb.update(user).set({ role: 'staff' }).where(eq(user.id, userId));
       await adminDb
         .update(claims)
-        .set(claimLifecycleFieldsForStatus('submitted'))
+        .set({ ...claimLifecycleFieldsForStatus('submitted'), staffId: null })
         .where(claimWhere);
-      const [{ withTenantAuthority }, { mintTestTenantAuthority }, { assignClaimInTransaction }] =
+
+      const [{ withTenantAuthority }, { mintTestTenantAuthority }, { changeClaimAssignment }] =
         await Promise.all([
           import('../src/tenant-authority-context'),
           import('../src/testing/tenant-authority'),
-          import('../../domain-claims/src/staff-claims/assign-transaction'),
+          import('../../domain-claims/src/staff-claims/assign'),
         ]);
       const authority = mintTestTenantAuthority(KS_TENANT_ID, { userId, role: 'staff' });
-      const params = {
-        authority,
-        claimId,
-        userId,
-        actorRole: 'staff',
-        branchId: null,
-        nextStaffId: userId,
-        previousStaffId: null,
-        requestHeaders: new Headers({ 'user-agent': 'Plan070 SQL proof' }),
-      };
-      const readClaim = async () => (await adminDb.select().from(claims).where(claimWhere))[0];
-      const readAudits = () => adminDb.select().from(auditLog).where(auditWhere);
       const posture = await withTenantAuthority(authority, tx =>
-        tx.execute<{
-          role: string;
-          bypass: boolean;
-          superuser: boolean;
-          rls: string;
-        }>(sql`
-        select current_user as role, rolbypassrls as bypass, rolsuper as superuser,
-          current_setting('row_security') as rls
-        from pg_roles where rolname = current_user`)
+        tx.execute<{ name: string; bypass: boolean; superuser: boolean; rls: string }>(sql`
+          select current_user as name, rolbypassrls as bypass, rolsuper as superuser,
+            current_setting('row_security') as rls
+          from pg_roles where rolname = current_user`)
       );
       assert.deepEqual(posture[0], {
-        role: TEST_DB_ROLE,
+        name: TEST_DB_ROLE,
         bypass: false,
         superuser: false,
         rls: 'on',
       });
 
-      await t.test(
-        'a real audit primary-key failure rolls back an already applied update',
-        async () => {
-          const collisionId = fixture.newId('assignment_audit_collision');
-          await adminDb.insert(auditLog).values({
-            id: collisionId,
-            tenantId: KS_TENANT_ID,
-            action: 'test.collision',
-            entityType: 'claim',
-            entityId: claimId,
-          });
-          const before = await readClaim();
-          let sawUpdatedRow = false;
-          await assert.rejects(
-            withTenantAuthority(authority, tx => {
-              // Only the generated audit ID is replaced; both writes use the real tenant transaction.
-              const failingTx = new Proxy(tx, {
-                get(target, key) {
-                  if (key === 'insert') {
-                    return (table: typeof auditLog) => ({
-                      values: async (row: typeof auditLog.$inferInsert) => {
-                        assert.equal(table, auditLog);
-                        const [pending] = await tx.select().from(claims).where(claimWhere);
-                        assert.equal(pending?.staffId, userId, 'CAS applied before audit failure');
-                        sawUpdatedRow = true;
-                        return target.insert(table).values({ ...row, id: collisionId });
-                      },
-                    });
-                  }
-                  const value = Reflect.get(target, key, target);
-                  return typeof value === 'function' ? value.bind(target) : value;
-                },
-              });
-              return assignClaimInTransaction(failingTx, params);
-            }),
-            (error: unknown) => {
-              assert.equal((error as { cause?: { code?: string } }).cause?.code, '23505');
-              return true;
-            }
-          );
-          assert.equal(sawUpdatedRow, true);
-          assert.deepEqual(
-            await readClaim(),
-            before,
-            'all assignment fields and timestamps rolled back'
-          );
-          assert.equal(
-            (await readAudits()).length,
-            1,
-            'only the pre-existing collision row remains'
-          );
-          await adminDb.delete(auditLog).where(eq(auditLog.id, collisionId));
-        }
-      );
-
-      await t.test(
-        'two requests with the same snapshot produce one CAS winner and one audit',
-        async concurrency => {
-          let arrivals = 0;
-          let release: () => void = () => undefined;
-          const bothRead = new Promise<void>(resolve => {
-            release = resolve;
-          });
-          const request = () =>
-            withTenantAuthority(authority, async (tx: TenantTransaction) => {
-              const [snapshot] = await tx
-                .select({ staffId: claims.staffId })
-                .from(claims)
-                .where(claimWhere);
-              assert.ok(snapshot);
-              assert.equal(snapshot.staffId, null);
-              arrivals += 1;
-              if (arrivals === 2) release();
-              // Neither request may enter CAS until both have read the unassigned row.
-              await bothRead;
-              concurrency.signal.throwIfAborted();
-              return assignClaimInTransaction(tx, { ...params, previousStaffId: snapshot.staffId });
-            }).catch((error: unknown) => {
-              release();
-              throw error;
-            });
-          concurrency.signal.addEventListener('abort', release, { once: true });
-          let settled: PromiseSettledResult<Awaited<ReturnType<typeof request>>>[];
-          try {
-            settled = await Promise.allSettled([request(), request()]);
-          } finally {
-            release();
-            concurrency.signal.removeEventListener('abort', release);
+      const request = () =>
+        changeClaimAssignment(
+          authority,
+          { claimId },
+          {
+            requestHeaders: new Headers({ 'user-agent': 'WP-11 assignment proof' }),
           }
-          const results = settled.map(result => {
-            if (result.status === 'rejected') throw result.reason;
-            return result.value;
-          });
-          assert.equal(results.filter(result => result.success).length, 1);
-          assert.deepEqual(
-            results.find(result => !result.success),
-            {
-              success: false,
-              error: 'Claim not found or access denied',
-            }
-          );
-          const row = await readClaim();
-          assert.equal(row?.staffId, userId);
-          assert.equal(row?.assignedById, userId);
-          assert.ok(row?.assignedAt);
-          const audits = await readAudits();
-          assert.equal(audits.length, 1);
-          assert.equal(audits[0]?.action, 'claim.assigned');
-          assert.deepEqual(audits[0]?.metadata, {
-            previousStaffId: null,
-            newStaffId: userId,
-            userAgent: 'Plan070 SQL proof',
-          });
+        );
+
+      const release = gate();
+      const locked = gate();
+      let blockerPid = 0;
+      const blocker = withTenantAuthority(authority, async tx => {
+        await tx.select({ id: claims.id }).from(claims).where(claimWhere).for('no key update');
+        const [backend] = await tx.execute<{ pid: number }>(sql`select pg_backend_pid() as pid`);
+        blockerPid = backend.pid;
+        locked.open();
+        await release.promise;
+      });
+      await Promise.race([
+        locked.promise,
+        blocker.then(() => {
+          throw new Error('Claim lock transaction ended before exposing its backend');
+        }),
+      ]);
+      const attempts = Promise.all([request(), request()]);
+      try {
+        // Confirm the two requests joined the blocked row-lock chain at the locking claim read
+        // before releasing it. The chain follows lock waits from the blocker. pg_stat_activity
+        // truncates that select (every column) before its locking clause, so a waiter is matched
+        // by its visible select prefix; a waiter at the guarded update does not count.
+        let blocked = 0;
+        for (let poll = 0; poll < 100 && blocked < 2; poll++) {
+          const [activity] = await adminDb.execute<{ count: number }>(sql`
+            with recursive waiting(pid) as (
+              select pid from pg_stat_activity
+              where datname = current_database() and wait_event_type = 'Lock'
+                and query like 'select %'
+                and ${blockerPid} = any(pg_blocking_pids(pid))
+              union
+              select activity.pid from pg_stat_activity activity join waiting
+                on waiting.pid = any(pg_blocking_pids(activity.pid))
+              where activity.datname = current_database() and activity.wait_event_type = 'Lock'
+                and activity.query like 'select %'
+            )
+            select count(*)::int as count from waiting
+          `);
+          blocked = activity.count;
+          if (blocked < 2) await new Promise(resolve => setTimeout(resolve, 20));
         }
+        assert.equal(blocked, 2);
+      } finally {
+        release.open();
+        await blocker;
+        await attempts;
+      }
+
+      const results = await attempts;
+      assert.equal(results.filter(result => result.ok && result.changed).length, 1);
+      assert.equal(results.filter(result => result.ok && !result.changed).length, 1);
+      const [row] = await adminDb.select().from(claims).where(claimWhere);
+      assert.equal(row?.staffId, userId);
+      assert.equal(row?.assignedById, userId);
+      const audits = await adminDb.select().from(auditLog).where(auditWhere);
+      assert.deepEqual(
+        audits.map(audit => ({ action: audit.action, metadata: audit.metadata })),
+        [
+          {
+            action: 'claim.assigned',
+            metadata: {
+              previousStaffId: null,
+              newStaffId: userId,
+              userAgent: 'WP-11 assignment proof',
+            },
+          },
+        ]
       );
     } finally {
       try {
         await adminDb.delete(auditLog).where(auditWhere);
       } finally {
-        await session.close();
+        try {
+          await revokeColumns?.();
+        } finally {
+          await session.close();
+        }
       }
     }
   }

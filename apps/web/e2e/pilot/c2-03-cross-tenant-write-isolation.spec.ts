@@ -10,8 +10,9 @@ import {
 } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { updateClaimStatusCore as updateAdminClaimStatusCore } from '@interdomestik/domain-claims/admin-claims/update-status';
-import { sendMessageDbCore } from '@interdomestik/domain-communications/messages/send';
+import { changeClaimStatus } from '@interdomestik/domain-claims/claims/change-status';
+import type { ClaimStatus } from '@interdomestik/database/constants';
+import { sendMessageDbCore } from '@interdomestik/domain-claims/claims/send-message';
 import { expect, test } from '../fixtures/auth.fixture';
 import { isAlActorHost, resolveActorHost } from './_host';
 
@@ -35,10 +36,8 @@ type AdminSession = {
   };
 };
 
-type AdminClaimStatus = Parameters<typeof updateAdminClaimStatusCore>[0]['newStatus'];
-
-function pickAlternateStatus(currentStatus: string | null): AdminClaimStatus {
-  const candidates: AdminClaimStatus[] = [
+function pickAlternateStatus(currentStatus: string | null): ClaimStatus {
+  const candidates: ClaimStatus[] = [
     'verification',
     'evaluation',
     'negotiation',
@@ -125,14 +124,12 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async ({}
   const attemptedStatus = pickAlternateStatus(originalStatus);
 
   await expect(
-    updateAdminClaimStatusCore({
-      authority: mintTestTenantAuthority(mkAdmin.tenantId),
-      claimId: target.claimId,
-      newStatus: attemptedStatus,
-      session: actorSession as AdminSession,
-      requestHeaders: new Headers({ 'x-forwarded-host': actorHost }),
-    })
-  ).rejects.toThrow('Claim not found');
+    changeClaimStatus(
+      mintTestTenantAuthority(mkAdmin.tenantId, { userId: mkAdmin.id, role: mkAdmin.role }),
+      { claimId: target.claimId, toStatus: attemptedStatus },
+      { hostId: mkAdmin.tenantId, requestHeaders: new Headers({ 'x-forwarded-host': actorHost }) }
+    )
+  ).resolves.toEqual({ ok: false, code: 'not_found' });
 
   const persistedClaim = await db.query.claims.findFirst({
     where: and(eq(claims.id, target.claimId), eq(claims.tenantId, TARGET_TENANT_ID)),
@@ -149,7 +146,10 @@ test('C2-03: cross-tenant write attempts are denied without mutation', async ({}
   const messageProbe = `C2-03 cross-tenant message probe ${Date.now()}`;
   const messageResult = await sendMessageDbCore({
     session: actorSession,
-    authority: mintTestTenantAuthority(actorSession.user.tenantId),
+    authority: mintTestTenantAuthority(actorSession.user.tenantId, {
+      userId: actorSession.user.id,
+      role: actorSession.user.role,
+    }),
     requestHeaders: new Headers({ 'x-forwarded-host': actorHost }),
     claimId: target.claimId,
     content: messageProbe,

@@ -1,5 +1,5 @@
 import type { Locator, Page, TestInfo } from '@playwright/test';
-import { expect, test } from '../fixtures/auth.fixture';
+import { expect } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import en from '../../src/messages/en/claims.json';
@@ -7,6 +7,11 @@ import mk from '../../src/messages/mk/claims.json';
 import sq from '../../src/messages/sq/claims.json';
 import sr from '../../src/messages/sr/claims.json';
 import { withInformationRequestFixture } from './information-request.fixture';
+import {
+  READ_RECOVERY_TIMEOUT_MS,
+  test,
+  type ExpectRead,
+} from './information-request-read-assertion.fixture';
 import {
   installInformationRequestReadSeam,
   settleFrames,
@@ -63,22 +68,6 @@ const SCENARIOS: Record<ReadResultAudience, Scenario> = {
   },
 };
 
-async function until(
-  seam: InformationRequestReadSeam,
-  label: string,
-  ready: (counts: ReadSeamCounts) => boolean
-): Promise<void> {
-  await expect
-    .poll(
-      () => {
-        seam.assertNoError();
-        return ready(seam.counts());
-      },
-      { message: label }
-    )
-    .toBe(true);
-}
-
 async function fillDrafts(page: Page, audience: ReadResultAudience): Promise<Draft[]> {
   const messaging = SCENARIOS[audience].messaging(page);
   await expect(messaging).toHaveCount(1);
@@ -129,7 +118,8 @@ async function openFailedDetail(
   testInfo: TestInfo,
   audience: ReadResultAudience,
   detailPath: string,
-  seam: InformationRequestReadSeam
+  seam: InformationRequestReadSeam,
+  expectRead: ExpectRead
 ): Promise<void> {
   const scenario = SCENARIOS[audience];
   const marker = audience === 'member' ? 'member-claims-table-region' : 'staff-page-ready';
@@ -140,7 +130,8 @@ async function openFailedDetail(
   await page.evaluate(key => Reflect.set(window, key, true), NAV_MARK);
   seam.arm({ kind: 'failure', initialFailure: true });
   await link.click();
-  await until(seam, 'native navigation read was failed', c => c.initialNavigation === 1);
+  const navigationFailed = (c: ReadSeamCounts) => c.initialNavigation === 1;
+  await expectRead(seam, 'native navigation read was failed', navigationFailed, 'navigation');
   await expect(page).toHaveURL(url => url.pathname === detailPath);
   await expect(scenario.ready(page)).toHaveCount(1);
   expect(await page.evaluate(key => Reflect.get(window, key) === true, NAV_MARK)).toBe(true);
@@ -153,7 +144,7 @@ async function openFailedDetail(
     await expect(messaging.getByRole('status')).toHaveText('');
     await expect(messaging.getByRole('alert')).toHaveCount(0);
     const done = (c: ReadSeamCounts) => c.backgroundInitial >= 1 && c.initialOutstanding === 0;
-    await until(seam, 'member background read was failed', done);
+    await expectRead(seam, 'member background read was failed', done, 'background');
   }
   await seam.finishInitial();
   expect(seam.counts()).toMatchObject({ initialNavigation: 1, initialOutstanding: 0, errors: 0 });
@@ -219,10 +210,10 @@ async function expectRecoveryContained(ctx: Context, testInfo: TestInfo): Promis
 async function runScenario(
   page: Page,
   testInfo: TestInfo,
-  audience: ReadResultAudience
+  audience: ReadResultAudience,
+  expectRead: ExpectRead
 ): Promise<void> {
-  test.setTimeout(120_000);
-  // KS-owned fixture and SQ labels: other projects skip, while both audiences execute on KS.
+  test.setTimeout(READ_RECOVERY_TIMEOUT_MS);
   test.skip(testInfo.project.name !== PROJECT, 'The Albanian KS fixture owns this packet');
   expect(routes.getLocale(testInfo)).toBe('sq');
   await withInformationRequestFixture(async ({ claimId }) => {
@@ -230,7 +221,7 @@ async function runScenario(
     const seam = await installInformationRequestReadSeam(page, { audience, claimId, pathname });
     const draftPosts = watchPostBodies(page, DRAFT_PREFIX);
     try {
-      await openFailedDetail(page, testInfo, audience, pathname, seam);
+      await openFailedDetail(page, testInfo, audience, pathname, seam, expectRead);
       const recovery = visible(page, 'information-request-read-recovery');
       const region = visible(page, 'information-request-read-region');
       const parts = {
@@ -256,21 +247,22 @@ async function runScenario(
       await expectRecovery(ctx, 'failed');
       await expectRecoveryContained(ctx, testInfo);
       const before = seam.counts();
+      const isHeld = (c: ReadSeamCounts) => c.awaitingRelease;
       await startRead(ctx, { kind: 'failure', hold: true });
-      await until(seam, 'held failed read reached the server', c => c.awaitingRelease);
+      await expectRead(seam, 'held failed read reached the server', isHeld, 'held');
       await expectRecovery(ctx, 'pending');
       await page.keyboard.press('Enter');
       await settleFrames(page);
       expect(seam.counts().eligible).toBe(before.eligible + 1);
       await expectRecovery(ctx, 'pending');
       seam.release();
-      await until(seam, 'held failure was delivered', c => c.deliberateFailed === 1);
+      await expectRead(seam, 'held failure was delivered', c => c.deliberateFailed === 1);
       await expectRecovery(ctx, 'failed');
       await startRead(ctx, { kind: 'passthrough', hold: true, verifyEmpty: true });
-      await until(seam, 'held successful read reached the server', c => c.awaitingRelease);
+      await expectRead(seam, 'held successful read reached the server', isHeld, 'held');
       await expectRecovery(ctx, 'pending');
       seam.release();
-      await until(seam, 'successful read was delivered', c => c.deliberatePassed === 1);
+      await expectRead(seam, 'successful read was delivered', c => c.deliberatePassed === 1);
       await expect(recovery).toHaveCount(0);
       await expect(region).toBeFocused();
       await expect(region).toHaveText(sq.claims.informationRequests.empty);
@@ -291,10 +283,16 @@ async function runScenario(
 }
 
 test.describe('S7 information request read recovery', () => {
-  test('member retries a failed read and keeps drafts', async ({ authenticatedPage }, testInfo) => {
-    await runScenario(authenticatedPage, testInfo, 'member');
+  test('member retries a failed read and keeps drafts', async ({
+    authenticatedPage,
+    expectRead,
+  }, testInfo) => {
+    await runScenario(authenticatedPage, testInfo, 'member', expectRead);
   });
-  test('staff retries a failed read and keeps drafts', async ({ staffPage }, testInfo) => {
-    await runScenario(staffPage, testInfo, 'staff');
+  test('staff retries a failed read and keeps drafts', async ({
+    staffPage,
+    expectRead,
+  }, testInfo) => {
+    await runScenario(staffPage, testInfo, 'staff', expectRead);
   });
 });

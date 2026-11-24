@@ -4,6 +4,12 @@ import { NextIntlClientProvider } from 'next-intl';
 import { useState } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { installOpsBrowserGlobals } from './ops-browser.test-fixture';
+import de from '@/messages/de/admin-claims.json';
+import recoveryDe from '@/messages/de/agent-claims.json';
+import recoveryEn from '@/messages/en/agent-claims.json';
+import recoveryMk from '@/messages/mk/agent-claims.json';
+import recoverySq from '@/messages/sq/agent-claims.json';
+import recoverySr from '@/messages/sr/agent-claims.json';
 import en from '@/messages/en/admin-claims.json';
 import sq from '@/messages/sq/admin-claims.json';
 import mk from '@/messages/mk/admin-claims.json';
@@ -24,7 +30,14 @@ vi.mock('../../actions/ops-actions', () => ({ updateStatus: mocks.updateStatus }
 vi.mock('sonner', () => ({ toast: { error: mocks.toastError, success: mocks.toastSuccess } }));
 
 const SERVER_TEXT = 'Server says: Saved. Reload the page if the latest state is not shown.';
-const CATALOGS = { en, sq, mk, sr };
+const CATALOGS = { en, sq, mk, sr, de };
+const RECOVERY_CATALOGS = {
+  en: recoveryEn,
+  sq: recoverySq,
+  mk: recoveryMk,
+  sr: recoverySr,
+  de: recoveryDe,
+};
 
 function renderModal(locale: keyof typeof CATALOGS = 'en') {
   const props = {
@@ -39,7 +52,14 @@ function renderModal(locale: keyof typeof CATALOGS = 'en') {
         locale={locale}
         messages={{
           ...CATALOGS[locale],
-          claims: { status: { verification: 'Verification', negotiation: 'Negotiation' } },
+          ...RECOVERY_CATALOGS[locale],
+          claims: {
+            status: {
+              verification: 'Verification',
+              negotiation: 'Negotiation',
+              rejected: 'Rejected',
+            },
+          },
           common: { errors: { generic: 'Something went wrong' } },
         }}
         onError={props.onTranslationError}
@@ -51,7 +71,7 @@ function renderModal(locale: keyof typeof CATALOGS = 'en') {
             props.onOpenChange(open);
             setIsOpen(open);
           }}
-          allowedTransitions={['verification', 'negotiation']}
+          allowedTransitions={['verification', 'negotiation', 'rejected']}
           locale={locale}
           onCommittedRefreshPending={props.onCommittedRefreshPending}
         />
@@ -157,6 +177,7 @@ describe('OpsStatusUpdateModal real-catalog cancellation', () => {
     ['sq', 'Anulo'],
     ['mk', 'Откажи'],
     ['sr', 'Otkaži'],
+    ['de', 'Abbrechen'],
   ] as const)(
     'closes the %s dialog without a mutation or translation error',
     async (locale, label) => {
@@ -175,4 +196,34 @@ describe('OpsStatusUpdateModal real-catalog cancellation', () => {
       expect(mocks.toastError).not.toHaveBeenCalled();
     }
   );
+});
+
+describe('OpsStatusUpdateModal decline fields', () => {
+  it('requires a decline code and submits it with the optional explanation', async () => {
+    mocks.updateStatus.mockResolvedValue({ success: true });
+    const props = renderModal();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    await user.click(screen.getByRole('combobox'));
+    await user.click(await screen.findByRole('option', { name: 'Rejected' }));
+
+    const confirm = screen.getByRole('button', { name: 'Confirm Update' });
+    expect(confirm).toBeDisabled();
+    await user.click(screen.getByRole('combobox', { name: 'Decline category' }));
+    await user.click(
+      await screen.findByRole('option', { name: 'Insufficient evidence for staff-led recovery' })
+    );
+    await user.type(
+      screen.getByRole('textbox', { name: 'Decision explanation' }),
+      'Review complete'
+    );
+    await user.click(confirm);
+
+    await waitFor(() =>
+      expect(mocks.updateStatus).toHaveBeenCalledWith('claim-123', 'rejected', 'en', {
+        declineReasonCode: 'insufficient_evidence',
+        decisionExplanation: 'Review complete',
+      })
+    );
+    expect(props.onTranslationError).not.toHaveBeenCalled();
+  });
 });

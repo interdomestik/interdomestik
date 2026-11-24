@@ -94,7 +94,40 @@
     "updateOn": "Ажурирање за: {claim}",
     "yourClaim": "вашиот предмет",
     "updateBody": "Достапно е ново ажурирање. Отворете го известувањето за детали.",
+    "staff": {
+      "claimWithoutNumber": "Барање без број",
+      "content": "{event} · {category}",
+      "categories": {
+        "consumer": "Потрошувач",
+        "consumer_rights": "Потрошувачки права",
+        "housing": "Домување",
+        "insurance": "Осигурување",
+        "employment": "Вработување",
+        "contracts": "Договори",
+        "utilities": "Комуналии",
+        "auto": "Возило",
+        "vehicle": "Возило",
+        "travel": "Патување",
+        "retail": "Малопродажба",
+        "real_estate": "Недвижнини",
+        "property": "Имот",
+        "flight_delay": "Доцнење на лет",
+        "damaged_goods": "Оштетена стока",
+        "service_issue": "Проблем со услуга",
+        "liability": "Одговорност",
+        "medical": "Медицински",
+        "test": "Тест",
+        "other": "Друго",
+        "injury": "Лична повреда"
+      }
+    },
     "events": {
+      "staff_claim_submitted": {
+        "title": "Поднесено е ново барање"
+      },
+      "staff_member_message": {
+        "title": "Нова порака од член"
+      },
       "claimSubmitted": {
         "title": "Барањето е поднесено"
       },

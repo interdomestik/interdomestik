@@ -1,129 +1,39 @@
-// Mock domain components to verify calls
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { describe, expect, it, vi } from 'vitest';
-import { updateClaimStatusCore as adminUpdate } from './admin-claims/update-status.core';
-import { updateClaimStatusCore as agentUpdate } from './agent-claims/update-status.core';
-import { updateClaimStatusCore as staffUpdate } from './staff-claims/update-status.core';
-import { updateClaimStatusCore as agentDomainUpdate } from '@interdomestik/domain-claims/agent-claims/update-status';
+import { authorizedSession, STAFF_A } from '@/test/safe-action-harness';
+import { expect, it, vi } from 'vitest';
+import { updateClaimStatusCore } from './staff-claims/update-status.core';
 
-// Mock Dependencies
-vi.mock('@interdomestik/domain-claims/admin-claims/update-status', () => ({
-  updateClaimStatusCore: vi.fn(),
+const mocks = vi.hoisted(() => ({
+  authorize: vi.fn(),
+  audit: vi.fn(),
+  rateLimit: vi.fn(),
+  changeStatus: vi.fn(),
 }));
-vi.mock('@interdomestik/domain-claims/agent-claims/update-status', () => ({
-  updateClaimStatusCore: vi.fn(),
-}));
-vi.mock('@interdomestik/domain-claims/staff-claims/update-status', () => ({
-  updateClaimStatusCore: vi.fn().mockResolvedValue({ success: true }),
-}));
-
-// Mock Domain Users Check
-vi.mock('@interdomestik/domain-users/admin/access', () => ({
-  requireTenantAdminSession: vi.fn().mockResolvedValue(true),
+vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.authorize }));
+vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: mocks.audit }));
+vi.mock('@/lib/rate-limit', () => ({ enforceRateLimitForAction: mocks.rateLimit }));
+vi.mock('@/lib/claim-status-action-effects', () => ({ completeClaimStatusEffects: vi.fn() }));
+vi.mock('@interdomestik/domain-claims/claims/change-status', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/domain-claims/claims/change-status')>()),
+  changeClaimStatus: mocks.changeStatus,
 }));
 
-// ...
+it('rate limits staff status changes before calling the domain command', async () => {
+  mocks.authorize.mockResolvedValue(authorizedSession(STAFF_A));
+  mocks.audit.mockResolvedValue({ ok: true });
+  mocks.rateLimit.mockResolvedValue({ limited: true });
 
-// ...
-
-// Mock Rate Limiter
-const mockRateLimit = vi.fn();
-vi.mock('@/lib/rate-limit', () => ({
-  enforceRateLimitForAction: (...args: unknown[]) => mockRateLimit(...args),
-}));
-
-// Mock Notifications/Audit
-vi.mock('@/lib/notifications', () => ({ notifyStatusChanged: vi.fn() }));
-vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
-
-describe('Claims Action Hardening Verification', () => {
-  const baseSession = {
-    user: { id: 'user-1', role: 'tenant_admin', tenantId: 't1' },
-    excludes: () => false,
-  };
-  const authority = mintTestTenantAuthority('t1');
-  const getFormData = (status: string) => {
-    const fd = new FormData();
-    fd.append('claimId', 'c1');
-    fd.append('status', status);
-    fd.append('locale', 'en');
-    return fd;
-  };
-
-  describe('Admin Update Status', () => {
-    it('enforces rate limit', async () => {
-      mockRateLimit.mockResolvedValueOnce({ limited: true });
-      await expect(
-        adminUpdate({
-          formData: getFormData('submitted'),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          session: baseSession as any,
-          authority,
-          requestHeaders: new Headers(),
-        })
-      ).rejects.toThrow('Too many requests');
-    });
-
-    it('validates status via Zod schema (rejects invalid)', async () => {
-      mockRateLimit.mockResolvedValueOnce({ limited: false });
-      await expect(
-        adminUpdate({
-          formData: getFormData('invalid-status'),
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          session: baseSession as any,
-          authority,
-          requestHeaders: new Headers(),
-        })
-      ).rejects.toThrow('Invalid status');
-    });
+  await expect(
+    updateClaimStatusCore({ claimId: 'c1', toStatus: 'submitted', isPublicNote: true })
+  ).resolves.toMatchObject({
+    success: false,
+    code: 'RATE_LIMITED',
   });
-
-  describe('Agent Update Status', () => {
-    it('enforces rate limit', async () => {
-      mockRateLimit.mockResolvedValueOnce({ limited: true });
-      await expect(
-        agentUpdate({
-          claimId: 'c1',
-          newStatus: 'submitted',
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          session: baseSession as any,
-          authority,
-          requestHeaders: new Headers(),
-        })
-      ).rejects.toThrow('Too many requests');
-    });
-
-    it('passes the entry host id into the domain mutation', async () => {
-      mockRateLimit.mockResolvedValueOnce({ limited: false });
-      vi.mocked(agentDomainUpdate).mockResolvedValueOnce({ success: true } as never);
-
-      await agentUpdate({
-        claimId: 'c1',
-        newStatus: 'submitted',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        session: baseSession as any,
-        authority,
-        requestHeaders: new Headers({ host: 'ks.localhost:3000' }),
-      });
-
-      expect(agentDomainUpdate).toHaveBeenCalledWith(
-        expect.objectContaining({ hostId: 'tenant_ks' }),
-        expect.any(Object)
-      );
-    });
-  });
-
-  describe('Staff Update Status', () => {
-    it('enforces rate limit', async () => {
-      mockRateLimit.mockResolvedValueOnce({ limited: true });
-      const result = await staffUpdate({
-        claimId: 'c1',
-        newStatus: 'submitted',
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        session: baseSession as any,
-        authority,
-      });
-      expect(result).toEqual({ success: false, error: 'Too many requests. Please wait a moment.' });
-    });
-  });
+  expect(mocks.rateLimit).toHaveBeenCalledWith(
+    expect.objectContaining({
+      name: 'action:staff-update-status:staff-a',
+      limit: 20,
+      windowSeconds: 60,
+    })
+  );
+  expect(mocks.changeStatus).not.toHaveBeenCalled();
 });

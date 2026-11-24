@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { toast } from 'sonner';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { updatePreferredLocale } from '@/actions/preferred-locale';
 import { authClient } from '@/lib/auth-client';
 import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
 import { SidebarUserMenu } from './sidebar-user-menu';
@@ -8,6 +10,14 @@ import { SidebarUserMenu } from './sidebar-user-menu';
 const mockSignOutAndRedirectToLogin = vi.mocked(signOutAndRedirectToLogin);
 const replaceMock = vi.fn();
 let pathnameMock = '/member/diaspora';
+
+vi.mock('@/actions/preferred-locale', () => ({
+  updatePreferredLocale: vi.fn().mockResolvedValue({ success: true }),
+}));
+
+vi.mock('sonner', () => ({
+  toast: { error: vi.fn() },
+}));
 
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: React.ReactNode; href: string }) => (
@@ -104,38 +114,73 @@ describe('SidebarUserMenu', () => {
   beforeEach(() => {
     pathnameMock = '/member/diaspora';
     replaceMock.mockClear();
+    vi.mocked(toast.error).mockClear();
     window.history.replaceState({}, '', '/?origin=DE&destination=IT&transit=AT&transit=CH');
   });
 
-  it('preserves ordered repeated query values when switching locale', () => {
+  it('preserves ordered repeated query values when switching locale', async () => {
     render(
       <SidebarUserMenu retainedLocaleQueryKeys={['country', 'origin', 'destination', 'transit']} />
     );
 
     fireEvent.click(screen.getByRole('button', { name: /English/i }));
 
-    expect(replaceMock).toHaveBeenCalledWith(
-      '/member/diaspora?origin=DE&destination=IT&transit=AT&transit=CH',
-      { locale: 'en' }
+    await waitFor(() =>
+      expect(replaceMock).toHaveBeenCalledWith(
+        '/member/diaspora?origin=DE&destination=IT&transit=AT&transit=CH',
+        { locale: 'en' }
+      )
     );
+    expect(updatePreferredLocale).toHaveBeenCalledWith({ locale: 'en' });
   });
 
-  it('keeps the pathname-only locale switch when no query is present', () => {
+  it('keeps the pathname-only locale switch when no query is present', async () => {
     window.history.replaceState({}, '', '/');
     render(<SidebarUserMenu retainedLocaleQueryKeys={['origin', 'destination', 'transit']} />);
 
     fireEvent.click(screen.getByRole('button', { name: /English/i }));
 
-    expect(replaceMock).toHaveBeenCalledWith('/member/diaspora', { locale: 'en' });
+    await waitFor(() =>
+      expect(replaceMock).toHaveBeenCalledWith('/member/diaspora', { locale: 'en' })
+    );
   });
 
-  it('does not forward query state from other role routes', () => {
+  it('stays on the current page and shows an error when the locale save request rejects', async () => {
+    vi.mocked(updatePreferredLocale).mockRejectedValueOnce(new Error('Network unavailable'));
+    render(<SidebarUserMenu />);
+
+    fireEvent.click(screen.getByRole('button', { name: /English/i }));
+
+    await waitFor(() => expect(toast.error).toHaveBeenCalledWith('localeSaveError'));
+    expect(replaceMock).not.toHaveBeenCalled();
+  });
+
+  it('switches a cross-home admin to the selected language and reports the unsaved preference', async () => {
+    pathnameMock = '/admin/users';
+    vi.mocked(updatePreferredLocale).mockResolvedValueOnce({
+      success: false,
+      error: 'Request failed',
+      code: 'profile_scope_unavailable',
+    });
+    render(
+      <SidebarUserMenu
+        user={{ name: 'Test Admin', email: 'admin@example.test', role: 'admin', image: null }}
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /English/i }));
+
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/admin/users', { locale: 'en' }));
+    expect(toast.error).toHaveBeenCalledWith('localeSwitchUnsaved');
+  });
+
+  it('does not forward query state from other role routes', async () => {
     pathnameMock = '/admin/users';
     render(<SidebarUserMenu />);
 
     fireEvent.click(screen.getByRole('button', { name: /English/i }));
 
-    expect(replaceMock).toHaveBeenCalledWith('/admin/users', { locale: 'en' });
+    await waitFor(() => expect(replaceMock).toHaveBeenCalledWith('/admin/users', { locale: 'en' }));
   });
 
   it('signs out with a localized hard redirect for agent users', async () => {

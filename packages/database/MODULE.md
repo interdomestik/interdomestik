@@ -71,6 +71,24 @@ GRANT SELECT, INSERT ON public.exchange_rate_verifications TO interdomestik_runt
 GRANT SELECT ON public.exchange_rate_verification_limits TO interdomestik_runtime_rls;
 ```
 
+WP-11 adds five tables, each declared in its own module appended at the tail of `src/schema/index.ts`:
+
+- `notification_deliveries` and `claim_response_requests`;
+- `user_locale_preferences`: the recipient locale, one row per user;
+- `support_handoff_first_responses`: the first public response time, one row per handoff;
+- `notification_preview_restrictions`: the sticky preview flag, one row per inbox notification that WP-11 created.
+
+No WP-11 column is added to an existing table. The owning domain is `domain-communications` for deliveries, locale preferences and preview restrictions, and `domain-claims` for response requests and first responses.
+
+Their foreign keys and the composite unique indexes they target, on `claim`, `claim_messages`, `notifications` and `support_handoffs`, are SQL-managed:
+
+- They are declared only in migration `0105`, not in Drizzle.
+- Each is registered in `scripts/ci/sql-managed-objects.json`.
+- Each deletes with its parent (`ON DELETE CASCADE`), so seed and test cleanups need no extra step.
+- The exception is `claim_response_requests.answered_by`, which is set to null when its user is deleted.
+
+The five tables force RLS. The runtime role has no `DELETE` on any of them. It has no `UPDATE` on first responses or preview restrictions, so a restriction never changes once written.
+
 ## Tests to run
 
 `test/pilot-switch.test.ts` covers the reader and command with a fake transaction. `test/pilot-switch-rls.test.ts` is in the `test:rls` lane and proves tenant isolation, revision conflicts and atomic audits under the restricted role.

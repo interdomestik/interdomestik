@@ -161,9 +161,10 @@ checks:
     targets:
       - apps/web/src/actions/staff-claims/assign.ts
       - apps/web/src/actions/staff-claims/assign.core.ts
+      # WP-11: the assignment transaction lives in the domain `assign.ts` (the shared assignment
+      # command); the admin entry point is `ops-assignment-action.ts`.
       - packages/domain-claims/src/staff-claims/assign.ts
-      - packages/domain-claims/src/staff-claims/assign-transaction.ts
-      - apps/web/src/features/admin/claims/actions/ops-assignment.ts
+      - apps/web/src/features/admin/claims/actions/ops-assignment-action.ts
       - apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx
     optional_targets:
       # The admin assignment actions were removed by #1961; this keeps them covered if they return.
@@ -171,9 +172,40 @@ checks:
     must_not_match:
       - 'updateStatus'
       - 'status:'
+      # WP-11's shared status command and its staff entry point.
+      - 'changeClaimStatus'
+      - 'updateClaimStatus'
       # The lifecycle columns replaced `status`: an assignment write never sets them (reading them
       # in a compare-and-set guard is allowed).
       - '\.set\(\{(?:(?!\}\))[\s\S])*(?:LifecycleState|mapClaimStatusToLifecycleStates)'
+
+  - id: lifecycle.no_hidden_transitions_admin_assign_handler
+    description: The admin claim card's assignment handler must not secretly update status.
+    type: regex
+    scope: EACH_TARGET
+    # Comments are stripped first, so a commented-out copy cannot satisfy the pin.
+    strip_comments: true
+    targets:
+      - apps/web/src/features/admin/claims/components/ops/NextActionsCard.tsx
+    must_match:
+      # The card also owns explicit status changes, so its assignment handler is pinned whole
+      # (whitespace aside): any change, including a call to a status action or callback, fails
+      # until this contract is reviewed.
+      - 'const\s+handleAssign\s+=\s+\(staffId:\s+string,\s+intent:\s+AssignmentIntent\)\s+=>\s+\{\s+if\s+\(isPending\s+\|\|\s+!canAssignHere\)\s+return;\s+const\s+claimId\s+=\s+claim\.id;\s+startTransition\(async\s+\(\)\s+=>\s+\{\s+onAction\?\.\(intent\);\s+try\s+\{\s+const\s+result\s+=\s+await\s+assignOwner\(claimId,\s+staffId,\s+locale\);\s+if\s+\(result\.success\)\s+\{\s+if\s+\(!assignmentReload\.isCurrent\(claimId\)\)\s+\{\s+showAssignmentSaved\(\);\s+return;\s+\}\s+if\s+\(rememberAssignmentFlash\(claimId\)\)\s+\{\s+globalThis\.location\.reload\(\);\s+\}\s+else\s+\{\s+showAssignmentSaved\(\);\s+await\s+assignmentReload\.reloadAfterToast\(claimId\);\s+\}\s+return;\s+\}\s+const\s+errorKey\s+=\s+assignmentErrorToastKey\(result\.error\);\s+toast\.error\(errorKey\s+\?\s+tAssignment\(errorKey\)\s+:\s+t\(''toast\.failed''\)\);\s+\}\s+catch\s+\{\s+toast\.error\(t\(''toast\.unexpected_error''\)\);\s+\}\s+\}\);\s+\};'
+
+  - id: lifecycle.no_hidden_transitions_admin_assign_action
+    description: The exported admin ownership actions only delegate to the checked assignment actions.
+    type: regex
+    scope: EACH_TARGET
+    strip_comments: true
+    targets:
+      - apps/web/src/features/admin/claims/actions/ops-actions.ts
+    must_match:
+      # The module also exports the status action, so both ownership wrappers are pinned whole: each
+      # body is the delegation to `assignOwnerAction` / `unassignOwnerAction` in
+      # `ops-assignment-action.ts` (held by `lifecycle.no_hidden_transitions_assignment`).
+      - 'export\s+async\s+function\s+assignOwner\(\s+claimId:\s+string,\s+staffId:\s+string,\s+locale:\s+string\s+\):\s+Promise<OpsActionResponse>\s+\{\s+return\s+assignOwnerAction\(claimId,\s+staffId,\s+locale\);\s+\}'
+      - 'export\s+async\s+function\s+unassignOwner\(claimId:\s+string,\s+locale:\s+string\):\s+Promise<OpsActionResponse>\s+\{\s+return\s+unassignOwnerAction\(claimId,\s+locale\);\s+\}'
 
   - id: lifecycle.allowed_transitions_single_source
     description: UI status controls must derive options from ALLOWED_TRANSITIONS.
@@ -543,9 +575,48 @@ checks:
       # A failed send through the test-only catcher never falls back to Resend.
       - '\n        const resend = fallbackResend\(provider, \(\) => getResendClient\(telemetry\)\);\n        if \(!resend\) throw smtpError;'
       - "isAutomatedEmail as isAutomated,[\\s\\S]*?from './non-sending-email'"
-      # The first statement of the client choice: in automated mode it returns the mock (null), a
-      # refusal, or the loopback catcher, and never reaches SMTP_HOST or Resend.
-      - "function getEmailClient\\([^)]*\\) \\{\\s*(?://[^\\n]*\\s*)*if \\(isAutomated\\(\\)\\) \\{\\s*const target = options\\.automatedCatcher \\? automatedSmtpTarget\\(\\) : null;\\s*if \\(target === null \\|\\| target === 'rejected'\\) return target;\\s*return \\{ type: 'smtp' as const, client: smtpTransport\\(target\\), testOnly: true \\};\\s*\\}"
+      # The client choice starts from the SMTP target, which in automated mode is only the loopback
+      # catcher or nothing (`automation.smtp_target_automated_first`). A refusal returns at once, a
+      # catcher is marked test-only, and with no target automated mode returns the mock (null)
+      # before Resend is ever considered.
+      - "function getEmailClient\\([^)]*\\) \\{\\s*const target = configuredSmtpTarget\\(options\\.automatedCatcher \\?\\? false\\);\\s*if \\(target === 'rejected'\\) return target;\\s*if \\(target\\) \\{\\s*return \\{\\s*type: 'smtp' as const,\\s*client: smtpTransport\\(target\\),\\s*\\.\\.\\.\\(isAutomated\\(\\) && \\{ testOnly: true \\}\\),\\s*\\};\\s*\\}\\s*if \\(isAutomated\\(\\)\\) return null;"
+
+  - id: automation.smtp_target_automated_first
+    description: In automated/Playwright mode the SMTP target is only the loopback catcher or none, and the delivery worker never offers Resend.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/domain-communications/src/email-transport.ts
+    strip_comments: true
+    must_match:
+      - "isAutomatedEmail as isAutomated,[\\s\\S]*?from './non-sending-email'"
+      # The first statement: automated mode never reaches SMTP_HOST.
+      - "export function configuredSmtpTarget\\(automatedCatcher: boolean\\) \\{\\s*if \\(isAutomated\\(\\)\\) return automatedCatcher \\? automatedSmtpTarget\\(\\) : null;"
+      # The whole worker transport list, from its initialization to its return: Resend only when not
+      # automated.
+      - "export function configuredEmailTransports\\(\\): EmailTransport\\[\\] \\{\\s*const transports: EmailTransport\\[\\] = \\[\\];\\s*const target = configuredSmtpTarget\\(true\\);\\s*if \\(target && target !== 'rejected'\\) transports\\.push\\('smtp'\\);\\s*if \\(!isAutomated\\(\\) && process\\.env\\.RESEND_API_KEY\\) transports\\.push\\('resend'\\);\\s*return transports;\\s*\\}"
+      # The worker's SMTP branch, as one sequence: the validated target, its rejection check, and
+      # the only transport call, which passes that target unchanged.
+      - "const target = configuredSmtpTarget\\(true\\);\\s*if \\(!target \\|\\| target === 'rejected'\\) return unavailable;\\s*const client = smtpTransport\\(target, signal\\);"
+      # The identifier is counted, not the call syntax: it appears exactly twice, in the import
+      # below and in the pinned call above. A second call in any form, an alias, a value use or a
+      # re-export adds an occurrence.
+      - "import \\{ automatedSmtpTarget, smtpTransport \\} from '\\./sign-in-otp-email';"
+    must_not_match:
+      - '\bsmtpTransport\b[\s\S]*\bsmtpTransport\b[\s\S]*\bsmtpTransport\b'
+
+  - id: automation.smtp_socket_targets_validated_host
+    description: The SMTP socket connects only to the validated target (the loopback catcher in automated mode), never to an environment host.
+    type: regex
+    scope: EACH_TARGET
+    strip_comments: true
+    targets:
+      - packages/domain-communications/src/sign-in-otp-email.ts
+    must_match:
+      - 'createConnection\(\{ host: options\.host, port: options\.port, signal \}\)'
+    must_not_match:
+      - 'process\.env\.SMTP_(?:HOST|PORT)'
+      - 'createConnection\([\s\S]*createConnection\('
 
   - id: automation.catcher_fallback_is_refused
     description: The Resend fallback refuses a provider marked test-only (the loopback catcher).
