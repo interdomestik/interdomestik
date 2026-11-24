@@ -1,21 +1,17 @@
 // Model workspace resolver inputs and bind admitted builders to reviewed artifacts.
-import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import ts from 'typescript';
-import { byCodeUnit, sha256 } from './rules-digest.mjs';
-import { NEXT_CONFIG_TRANSITION } from './trusted.mjs';
-
-const GIT = '/usr/bin/git';
+import { byCodeUnit } from './rules-digest.mjs';
 
 // Module resolution inputs are candidate data, not guard authority. Every tsconfig/jsconfig in the
 // workspace is parsed as data (never executed) and its `baseUrl` and `paths` become resolution
 // alternatives, so an alias cannot hide a privileged module as an external package. Resolver
-// options the guard does not model are refused, and the JavaScript bundler configuration, which
-// can only be executed, is bound to exact reviewed bytes.
+// options the guard does not model are refused. The JavaScript bundler configuration, which can
+// only be executed, is bound with its local import closure by the reviewed resolver state
+// (bundler-closure.mjs, rules-resolver-state.mjs).
 
 const CONFIG = /^[jt]sconfig(?:\..+)?\.json$/u;
-const BUNDLER_CONFIG = /^next\.config\.[cm]?[jt]s$/u;
 const GENERATED = /(^|\/)(node_modules|dist|build|coverage|test-results|\.next|\.turbo)(\/|$)/u;
 const UNMODELED_OPTIONS = [
   'rootDirs',
@@ -255,46 +251,4 @@ export function workspaceGlobViolations(repoRoot) {
           `workspace globs ${JSON.stringify(globs)} are not ${JSON.stringify(WORKSPACE_GLOBS)}`
         ),
       ];
-}
-
-function trustedBlob(repoRoot, commit, file) {
-  try {
-    return execFileSync(GIT, ['cat-file', 'blob', `${commit}:${file}`], {
-      cwd: repoRoot,
-      stdio: ['ignore', 'pipe', 'ignore'],
-      maxBuffer: 16 * 1024 * 1024,
-    });
-  } catch {
-    return null;
-  }
-}
-
-function isAdmittedConfigTransition(file, trusted, current) {
-  return (
-    file === NEXT_CONFIG_TRANSITION.file &&
-    trusted !== null &&
-    sha256(trusted) === NEXT_CONFIG_TRANSITION.predecessor &&
-    sha256(current) === NEXT_CONFIG_TRANSITION.successor
-  );
-}
-
-/** Executable bundler configs must match the trusted bytes or the pinned WP-10 postimage. */
-export function bundlerConfigViolations(repoRoot, commit) {
-  const violations = [];
-  for (const dir of workspaceDirs(repoRoot)) {
-    for (const name of fs.readdirSync(path.join(repoRoot, dir))) {
-      if (!BUNDLER_CONFIG.test(name)) continue;
-      const file = `${dir}/${name}`;
-      const current = fs.readFileSync(path.join(repoRoot, file));
-      const trusted = trustedBlob(repoRoot, commit, file);
-      if (trusted?.equals(current) || isAdmittedConfigTransition(file, trusted, current)) continue;
-      violations.push(
-        violation(
-          file,
-          'bundler configuration differs from the trusted tree; review and move the pin'
-        )
-      );
-    }
-  }
-  return violations;
 }

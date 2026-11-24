@@ -8,11 +8,3 @@ export const TRUSTED = Object.freeze({
   commit: 'a9e79c23f6c3d7a326774cee07b71054ee911793',
   tree: '529031084338b3488c6e51413ede5cca79b77b82',
 });
-
-// WP-10 R-37 item 4: the production build phase verifies that the public pilot environment
-// manifest matches the resolved environment before the runtime performs its own start checks.
-export const NEXT_CONFIG_TRANSITION = Object.freeze({
-  file: 'apps/web/next.config.mjs',
-  predecessor: 'a26096d3b440844ebd8f7a33f65f4953c24f6d2a56b2480d654290e0add10b39',
-  successor: 'c340cf96158e00cb74d8959619832e1b28c8067acd1c71e779d2b0d2ff677749',
-});

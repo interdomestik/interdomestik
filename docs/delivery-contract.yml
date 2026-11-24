@@ -124,17 +124,26 @@ checks:
     targets:
       - packages/domain-claims/src/claims/create.ts
     must_match:
-      - "db\\.transaction\\([\\s\\S]*?tx\\.insert\\(claims\\)[\\s\\S]*?generateClaimNumber\\(tx"
+      # Insert and numbering inside one callback: no callback close (`});` at that indent) and no
+      # second authority callback between them, and the numbering call is live code, not a comment.
+      - "\\n    await withTenantAuthority\\(authority, async tx => \\{\\n(?:(?!\\n    \\}\\)|await withTenantAuthority\\()[\\s\\S])*?\\n      await tx\\.insert\\(claims\\)\\.values\\((?:(?!\\n    \\}\\)|await withTenantAuthority\\()[\\s\\S])*?\\n      await generateClaimNumber\\(\\s*tx,"
+    must_not_match:
+      # A block comment that holds the insert or the numbering call (a line comment already breaks
+      # the statement-indented match above).
+      - '/\*(?:(?!\*/)[\s\S])*?(?:generateClaimNumber\(|tx\.insert\(claims\))'
 
   - id: claim_traceability.resolver_tenant_scoped
-    description: Resolver must scope lookup by tenantId AND enforce auth.
+    description: Resolver must scope lookup by the session's tenant authority AND enforce auth.
     type: regex
     scope: EACH_TARGET
     targets:
       - "apps/web/src/app/\\[locale\\]/admin/claims/number/\\[claimNumber\\]/page.tsx"
     must_match:
-      - "where:[\\s\\S]*tenantId[\\s\\S]*claimNumber|withTenant\\(tenantId[\\s\\S]*?claimNumber"
-      - 'getSession|requirePermission|ALLOWED_ROLES'
+      - "\\n  const authorized = await authorizeSessionTenant\\(await headers\\(\\)\\);\\s*if \\(!authorized\\) \\{\\s*redirect\\([^)]*\\);\\s*\\}\\s*const \\{ session, authority \\} = authorized;"
+      - "\\n  if \\(!visibility \\|\\| !canViewAdminClaims\\(visibility\\)\\) \\{\\s*notFound\\(\\);\\s*\\}"
+      - "\\n    inTenantContext: lookup => findClaimIdInTenantContext\\(authority, lookup\\),"
+    must_not_match:
+      - '/\*(?:(?!\*/)[\s\S])*?(?:authorizeSessionTenant|canViewAdminClaims|findClaimIdInTenantContext|notFound|redirect)\('
 
   - id: claim_traceability.format_helper_exists
     description: Canonical formatter must exist and produce CLM-{TENANT}-{YYYY}-{NNNNNN}.
@@ -150,11 +159,21 @@ checks:
     description: Assignment actions must not secretly update status.
     type: regex
     targets:
-      - apps/web/src/actions/admin-claims/**/assign.ts
+      - apps/web/src/actions/staff-claims/assign.ts
+      - apps/web/src/actions/staff-claims/assign.core.ts
+      - packages/domain-claims/src/staff-claims/assign.ts
+      - packages/domain-claims/src/staff-claims/assign-transaction.ts
+      - apps/web/src/features/admin/claims/actions/ops-assignment.ts
       - apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx
+    optional_targets:
+      # The admin assignment actions were removed by #1961; this keeps them covered if they return.
+      - apps/web/src/actions/admin-claims/**/assign.ts
     must_not_match:
       - 'updateStatus'
       - 'status:'
+      # The lifecycle columns replaced `status`: an assignment write never sets them (reading them
+      # in a compare-and-set guard is allowed).
+      - '\.set\(\{(?:(?!\}\))[\s\S])*(?:LifecycleState|mapClaimStatusToLifecycleStates)'
 
   - id: lifecycle.allowed_transitions_single_source
     description: UI status controls must derive options from ALLOWED_TRANSITIONS.
@@ -508,10 +527,34 @@ checks:
     type: regex
     scope: EACH_TARGET
     targets:
+      - packages/domain-communications/src/non-sending-email.ts
+    must_match:
+      - "export const isAutomatedEmail = \\(\\): boolean =>\\s*\\['INTERDOMESTIK_AUTOMATED', 'PLAYWRIGHT'\\]\\.some\\(key => process\\.env\\[key\\] === '1'\\);"
+      # The catcher is loopback only; anything else is refused.
+      - '\n  const valid =\s*\[''127\.0\.0\.1'', ''localhost'', ''::1''\]\.includes\(host\) &&[^;]*;\n  if \(!valid\) return ''rejected'' as const;'
+
+  - id: automation.email_client_skips_resend_when_automated
+    description: The email client returns before SMTP or Resend while automated/Playwright mode is on.
+    type: regex
+    scope: EACH_TARGET
+    targets:
       - packages/domain-communications/src/email.ts
     must_match:
-      - 'INTERDOMESTIK_AUTOMATED'
-      - 'PLAYWRIGHT'
+      # A failed send through the test-only catcher never falls back to Resend.
+      - '\n        const resend = fallbackResend\(provider, \(\) => getResendClient\(telemetry\)\);\n        if \(!resend\) throw smtpError;'
+      - "isAutomatedEmail as isAutomated,[\\s\\S]*?from './non-sending-email'"
+      # The first statement of the client choice: in automated mode it returns the mock (null), a
+      # refusal, or the loopback catcher, and never reaches SMTP_HOST or Resend.
+      - "function getEmailClient\\([^)]*\\) \\{\\s*(?://[^\\n]*\\s*)*if \\(isAutomated\\(\\)\\) \\{\\s*const target = options\\.automatedCatcher \\? automatedSmtpTarget\\(\\) : null;\\s*if \\(target === null \\|\\| target === 'rejected'\\) return target;\\s*return \\{ type: 'smtp' as const, client: smtpTransport\\(target\\), testOnly: true \\};\\s*\\}"
+
+  - id: automation.catcher_fallback_is_refused
+    description: The Resend fallback refuses a provider marked test-only (the loopback catcher).
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/domain-communications/src/sign-in-otp-email.ts
+    must_match:
+      - '\nexport function fallbackResend\(provider: object, get: \(\) => Resend \| null\) \{\n  return ''testOnly'' in provider \? null : get\(\);\n\}'
 
   # M0 Seeding (NEW)
   - id: seeding.canonical_runner_exists
@@ -527,7 +570,17 @@ checks:
       - packages/database/src/seed.ts
     must_match:
       - 'process\.argv'
-      - 'process\.exit'
+      - '\n  \} catch \(error\) \{\n    console\.error\(`\\n❌ Seed Failed \[\$\{mode\}\]:`, error\);\n    await exitSeed\(1\);\n  \}\n\}'
+      - '\nif \(process\.argv\[1\] === __filename\) \{\n  main\(\)\.catch\(error => exitSeed\(1, error\)\);\n\}'
+
+  - id: seeding.exit_seed_exits
+    description: The seed runner's exit helper ends the process with the code it is given.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/database/src/seed-target-guard.ts
+    must_match:
+      - "export async function exitSeed\\(code: number[^)]*\\): Promise<never> \\{(?:(?!\\n\\})[\\s\\S])*\\n  process\\.exit\\(code\\);\\n\\}"
 
   - id: seeding.no_argv_exit_in_packs_helpers
     description: Seed packs/helpers must not use argv/exit.
@@ -569,26 +622,38 @@ checks:
       - packages/database/src/seed-full/**/*.ts
       - packages/database/src/seed-workload/**/*.ts
       - packages/database/src/seed-packs/**/*.ts
+    # Comments are removed before matching: comment text can neither hide nor fake a read.
+    strip_comments: true
     must_not_match:
-      - 'process\.env'
+      # The one read allowed is the whole environment handed to the seed target guard, as the bare
+      # call `assertSeedTargetAllowed(process.env)`. Any other `process` (member, index, binding) fails.
+      - '\bprocess\b(?!\.env\s*\))'
+      - '(?<!(?<![\w$.\s])\s*assertSeedTargetAllowed\(\s*)\bprocess\.env\s*\)'
+      # The guard name may appear only as that call or as an entry of an import list from the guard
+      # module: never a member, a local definition, a default or aliased import, or a binding.
+      - '\bassertSeedTargetAllowed\b(?!\(\s*process\.env\s*\)|\s*[,}])'
+      - '\.\s*assertSeedTargetAllowed\b'
+      - '\bas\s+assertSeedTargetAllowed\b|\bassertSeedTargetAllowed\s+as\b'
+      - '\{[^{}]*\bassertSeedTargetAllowed\b[^{}]*\}(?!\s*from\s*[''"]\.\./seed-target-guard[''"])'
 
   - id: seeding.no_seed_imports_outside_database
     description: No apps/packages may import database seed modules or packs (alias or relative path).
     type: regex
     scope: ANY_TARGET
     targets:
-      - apps/**/*.ts
-      - apps/**/*.tsx
-      - apps/**/*.js
-      - apps/**/*.mjs
-      - packages/**/*.ts
-      - packages/**/*.tsx
-      - packages/**/*.js
-      - packages/**/*.mjs
+      - apps/**/*.{ts,tsx,js,mjs}
+      # Every package file except the owning package; `*` keeps files directly under packages/.
+      - packages/{*,!(database)/**/*}.{ts,tsx,js,mjs}
     must_not_match:
       - "from ['\"][^'\"]*@interdomestik/database(?:/src)?/(seed(?:-|/|\\.)|seed-packs)[^'\"]*['\"]"
       - "from ['\"][^'\"]*packages/database/src/(seed(?:-|/|\\.)|seed-packs)[^'\"]*['\"]"
       - "require\\(['\"][^'\"]*(/seed(?:-|/|\\.)|/seed-packs)[^'\"]*['\"]\\)"
+    exclude:
+      - file: apps/web/src/features/admin/verification/server/mutations/resubmit-attempt.test.ts
+        reason: >-
+          A vitest unit test that reads the seed-golden cash-state row builder as expected data
+          (since #2025); it opens no runtime or E2E seeding path. Follow-up: give the test its own
+          fixture or move the row builder out of seed-golden, then drop this entry.
 
   - id: seeding.no_legacy_seed_scripts
     description: Legacy ad-hoc seed scripts must not exist outside the canonical database runner.

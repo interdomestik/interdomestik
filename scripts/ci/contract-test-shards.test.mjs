@@ -25,6 +25,9 @@ const GUARD_TRUST_FILES = [
   'scripts/ci/db-access-git.test.mjs',
   'scripts/ci/tenant-guard-s2-workflow.isolation.test.mjs',
   'scripts/ci/tenant-guard-s2-workflow.test.mjs',
+  'scripts/ci/tenant-guard.bundler-closure.test.mjs',
+  'scripts/ci/tenant-guard.resolver-transitions.test.mjs',
+  'scripts/ci/tenant-guard.resolver-trial.test.mjs',
 ];
 const RETIRED_FILES = [
   'scripts/ci/db-access-protected-bootstrap.test.mjs',
@@ -98,7 +101,8 @@ test('guard-trust shards are pinned by exact name and are the only exclusions fr
     authority: [GUARD_TRUST_FILES[0]],
     candidate: [GUARD_TRUST_FILES[1]],
     'merge-guard-git': GUARD_TRUST_FILES.slice(2, 5),
-    's2-workflow': GUARD_TRUST_FILES.slice(5),
+    's2-workflow': GUARD_TRUST_FILES.slice(5, 7),
+    'resolver-state': GUARD_TRUST_FILES.slice(7),
   });
   const { all, shards } = contractTestPlan(root);
   assert.deepEqual(
@@ -191,7 +195,14 @@ test('parallel run passes only when every shard passes, without fail-fast', asyn
   const output = [];
   const write = text => output.push(text);
   assert.equal(await runParallel({ root: fixtureRoot(t, minimalSuite()), write }), 0);
-  for (const shard of ['core', 'authority', 'candidate', 'merge-guard-git', 's2-workflow']) {
+  for (const shard of [
+    'core',
+    'authority',
+    'candidate',
+    'merge-guard-git',
+    's2-workflow',
+    'resolver-state',
+  ]) {
     assert.match(output.join(''), new RegExp(`contract shard ${shard}: pass`, 'u'));
   }
   output.length = 0;
@@ -199,9 +210,31 @@ test('parallel run passes only when every shard passes, without fail-fast', asyn
   assert.equal(await runParallel({ root: fixtureRoot(t, broken), write }), 1);
   const text = output.join('');
   assert.match(text, /contract shard candidate: FAIL \(code=1/u);
-  for (const shard of ['core', 'authority', 'merge-guard-git']) {
+  for (const shard of ['core', 'authority', 'merge-guard-git', 'resolver-state']) {
     assert.match(text, new RegExp(`contract shard ${shard}: pass`, 'u'));
   }
+});
+
+test('the guard-trust lane runs the resolver-state shard', async t => {
+  const dir = fixtureRoot(t, minimalSuite());
+  assert.equal(await main(['guard-trust'], dir, { capture: true }), 0);
+  const broken = minimalSuite({ 'scripts/ci/tenant-guard.resolver-trial.test.mjs': failing });
+  assert.equal(await main(['guard-trust'], fixtureRoot(t, broken), { capture: true }), 1);
+});
+
+test('a selected parallel run starts only shards with selected files', async t => {
+  const output = [];
+  const write = text => output.push(text);
+  const broken = fixtureRoot(t, minimalSuite({ [GUARD_TRUST_FILES[1]]: failing }));
+  const coreOnly = files => files.filter(file => file === 'scripts/ci/core-a.test.mjs');
+  assert.equal(await runParallel({ root: broken, write, select: coreOnly }), 0);
+  assert.match(output.join(''), /contract shard core: pass; 1 file\(s\)/u);
+  assert.doesNotMatch(output.join(''), /contract shard (authority|candidate|merge-guard-git)/u);
+  output.length = 0;
+  const guardOnly = files => files.filter(file => file === GUARD_TRUST_FILES[1]);
+  assert.equal(await runParallel({ root: broken, write, select: guardOnly }), 1);
+  assert.match(output.join(''), /contract shard candidate: FAIL/u);
+  assert.doesNotMatch(output.join(''), /contract shard core/u);
 });
 
 test('required audit context runs every contract shard inside Run Audits', () => {

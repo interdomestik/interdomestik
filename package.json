@@ -141,6 +141,7 @@
     "test:ci:contracts:core": "node scripts/ci/contract-test-shards.mjs core",
     "test:ci:contracts:guard-trust": "node scripts/ci/contract-test-shards.mjs guard-trust",
     "test:ci:contracts:parallel": "node scripts/ci/contract-test-shards.mjs parallel",
+    "test:ci:contracts:affected": "node scripts/ci/contract-test-affected.mjs",
     "sonar:start": "docker compose --profile sonar up -d sonarqube db",
     "sonar:stop": "docker compose --profile sonar stop sonarqube db",
     "sonar:down": "docker compose --profile sonar down --remove-orphans",
