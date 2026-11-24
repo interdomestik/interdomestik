@@ -22,6 +22,7 @@ function runFixtureTool(mode: 'seed' | 'clean', identities: unknown) {
       cwd: new URL('../', import.meta.url),
       encoding: 'utf8',
       env: {
+        NODE_ENV: 'test',
         DATABASE_URL: 'postgresql://fixture@remote.example.test/fixture',
         SEED_TARGET_CONFIRM: 'plan070:remote.example.test',
       },
