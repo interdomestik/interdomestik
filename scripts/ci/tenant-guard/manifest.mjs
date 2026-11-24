@@ -80,6 +80,8 @@ export const SEED_TLS_CLOSURE = new Set([
   `${DB}/seed-packs/ks-workflow-pack.ts`,
   // R-13: the guarded client for scripts that write to a disposable database (WP-04).
   `${DB}/disposable-client.ts`,
+  `${DB}/scripts/rate-verification-limit.ts`,
+  `${DB}/scripts/set-rate-verification-limit.ts`,
 ]);
 
 export const DRIVER_MODULES = new Set([

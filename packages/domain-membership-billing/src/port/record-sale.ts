@@ -187,6 +187,7 @@ function validateSaleOffer(
   const amountMkdMinor = toMkdMinor(version.listPriceMinor, rate.rate);
   if (amountMkdMinor <= 0n) return { ok: false, code: 'rate_unavailable' } as const;
   if (amountMkdMinor !== input.amountMkdMinor) return { ok: false, code: 'invalid' } as const;
+  if (!offer.rateVerified) return { ok: false, code: 'stale_rate' } as const;
   return { ok: true, version, rate, termsVersion, governingLaw, amountMkdMinor } as const;
 }
 

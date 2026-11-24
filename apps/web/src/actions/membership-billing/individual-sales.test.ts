@@ -64,7 +64,7 @@ describe.each([
     invoke: mocks.quote,
     input: quoteInput,
     payload: 'offer',
-    failures: ['stale_offer', 'rate_unavailable'],
+    failures: ['stale_offer', 'rate_unavailable', 'stale_rate'],
   },
   {
     name: 'recordSale',

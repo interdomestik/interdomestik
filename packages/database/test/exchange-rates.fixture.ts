@@ -26,8 +26,8 @@ import { provisionRestrictedRole } from './s8-claim-restricted-rls.fixture';
 
 export { signal, waitForLockWaiters, withLockedBook } from './exchange-rates-lock.fixture';
 export { restricted, runtimeRole } from './exchange-rates-restricted.fixture';
+export { withPaymentPortReleaseClient } from './exchange-rates-release-client.fixture';
 export { TEST_DB_ROLE as paymentPortTestGuardRole } from './rls-test-connection';
-
 export const tables = ['exchange_rate_books', 'exchange_rates'] as const;
 const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
 export const rateInput = (effectiveOn: string) => ({
@@ -173,7 +173,7 @@ export async function withPaymentPortDatabase(
         `grant update, delete, truncate on exchange_rate_books, exchange_rates to ${quoteIdentifier(TEST_DB_ROLE)}`
       );
       await admin.unsafe(
-        `grant truncate on public.membership_sales, public.membership_ledger_entries to ${quoteIdentifier(TEST_DB_ROLE)}`
+        `grant truncate on public.membership_sales, public.membership_ledger_entries, public.exchange_rate_verifications to ${quoteIdentifier(TEST_DB_ROLE)}`
       );
       const [acl] = await admin`select
         has_table_privilege(${runtimeRole}, 'exchange_rate_books', 'INSERT') as can_insert_book,

@@ -45,6 +45,21 @@ Declare it in a schema file with its tenant column, its policy and `.enableRLS()
 
 Migration `0102` declares the membership billing port's plan versions, sale kinds and channels, sale claims, sales and ledger entries. The billing module owns the commands and invariants. `test/exchange-rates.fixture.ts` shares the journal-built scratch database fixture with the billing restricted-role lane.
 
+Migration `0104` declares the membership billing port's `exchange_rate_verifications` and `exchange_rate_verification_limits` in `src/schema/exchange-rate-verifications.ts`. The journal snapshot tracks both tables. The SQL-managed registry tracks their FORCE RLS, the two invoker trigger functions and the three new triggers. Both tables enable and force access-tenant RLS. Runtime can select and insert verifications and can only select limits. The verification insert trigger takes the book lock before the entity lock and stamps evidence at `READ COMMITTED`. The verification mutation trigger reuses the rate append-only function.
+
+The individual sale age trigger runs after `membership_sales_individual_insert` and `membership_sales_void_state`, before charge posting. It uses the database-stamped `sold_at` and returns the existing named stale-rate violation to 0103. The guarded release operation serializes limit writes with sales through the book lock and appends the audit receipt in the same transaction. `src/scripts/set-rate-verification-limit.ts` is the sole production caller of the internal writer. Billing tests import `test/exchange-rates-release.fixture.ts` by relative path. The `test/exchange-rates.fixture.ts` fixture takes its release client from `test/exchange-rates-release-client.fixture.ts`. PG16 restricted-role proofs run in the database and billing `test:rls` lanes, with the split-tenant action receipt covered by the web PG16 Vitest invocation.
+
+After an uncertain commit, the release pipeline first runs the same CLI with `--check-receipt` and the original operation arguments. The lookup uses a read-only `READ COMMITTED` transaction under the same tenant binding as the write. Both paths refuse a session login or effective role that is a superuser, has `BYPASSRLS`, owns either `audit_log` or `exchange_rate_verification_limits`, or is a member of either table's owner role. The lookup returns a matching receipt with the prior and applied limits, a conflicting receipt, or `absent` with the current limit. Before relying on `absent`, the operator must establish that the original release transaction has ended by confirming its connection is closed or that the transaction no longer appears in `pg_stat_activity`. The operator must then re-run the lookup. If it still reports `absent`, the operator must re-decide with the current limit in view. Blindly retrying a set could reopen sales after a later removal.
+
+If production creates `interdomestik_runtime_rls` after migration `0104`, the external release bootstrap must apply these migration ACLs for both tables.
+
+```sql
+REVOKE ALL ON public.exchange_rate_verifications, public.exchange_rate_verification_limits
+  FROM interdomestik_runtime_rls;
+GRANT SELECT, INSERT ON public.exchange_rate_verifications TO interdomestik_runtime_rls;
+GRANT SELECT ON public.exchange_rate_verification_limits TO interdomestik_runtime_rls;
+```
+
 WP-11 adds five tables, each declared in its own module appended at the tail of `src/schema/index.ts`:
 
 - `notification_deliveries` and `claim_response_requests`;
@@ -56,7 +71,7 @@ No WP-11 column is added to an existing table. The owning domain is `domain-comm
 
 Their foreign keys and the composite unique indexes they target, on `claim`, `claim_messages`, `notifications` and `support_handoffs`, are SQL-managed:
 
-- They are declared only in migration `0104`, not in Drizzle.
+- They are declared only in migration `0105`, not in Drizzle.
 - Each is registered in `scripts/ci/sql-managed-objects.json`.
 - Each deletes with its parent (`ON DELETE CASCADE`), so seed and test cleanups need no extra step.
 - The exception is `claim_response_requests.answered_by`, which is set to null when its user is deleted.

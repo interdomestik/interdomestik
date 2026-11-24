@@ -1,5 +1,5 @@
 {
-  "id": "b2099f83-f04d-4813-b1f2-c9b89c3b53a3",
+  "id": "a5d639f2-e21b-4791-bb1e-e3cd7b21c21f",
   "prevId": "ccc8f4ad-6910-498a-a5a2-7d7d15d9e3e0",
   "version": "7",
   "dialect": "postgresql",
@@ -19862,495 +19862,67 @@
       },
       "isRLSEnabled": true
     },
-    "public.notification_deliveries": {
-      "name": "notification_deliveries",
+    "public.exchange_rate_verification_limits": {
+      "name": "exchange_rate_verification_limits",
       "schema": "",
       "columns": {
-        "id": {
-          "name": "id",
+        "tenant_id": {
+          "name": "tenant_id",
           "type": "text",
           "primaryKey": true,
           "notNull": true
         },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "idempotency_key": {
-          "name": "idempotency_key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "channel": {
-          "name": "channel",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "recipient_user_id": {
-          "name": "recipient_user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "claim_id": {
-          "name": "claim_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "subject_message_id": {
-          "name": "subject_message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "push_subscription_id": {
-          "name": "push_subscription_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "facts": {
-          "name": "facts",
-          "type": "jsonb",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "state": {
-          "name": "state",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'queued'"
-        },
-        "lease_until": {
-          "name": "lease_until",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "attempts": {
-          "name": "attempts",
+        "max_age_seconds": {
+          "name": "max_age_seconds",
           "type": "integer",
           "primaryKey": false,
-          "notNull": true,
-          "default": 0
-        },
-        "next_attempt_at": {
-          "name": "next_attempt_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "terminal_at": {
-          "name": "terminal_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_error_code": {
-          "name": "last_error_code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "last_error_detail": {
-          "name": "last_error_detail",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "skip_reason": {
-          "name": "skip_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "locale": {
-          "name": "locale",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "avoid_transport": {
-          "name": "avoid_transport",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "transport": {
-          "name": "transport",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "sent_at": {
-          "name": "sent_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        }
-      },
-      "indexes": {
-        "notification_deliveries_tenant_id_uq": {
-          "name": "notification_deliveries_tenant_id_uq",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "notification_deliveries_key_uq": {
-          "name": "notification_deliveries_key_uq",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "idempotency_key",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "notification_deliveries_due_idx": {
-          "name": "notification_deliveries_due_idx",
-          "columns": [
-            {
-              "expression": "state",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "next_attempt_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "notification_deliveries_created_idx": {
-          "name": "notification_deliveries_created_idx",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "state",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "created_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {
-        "notification_deliveries_tenant_policy": {
-          "name": "notification_deliveries_tenant_policy",
-          "as": "PERMISSIVE",
-          "for": "ALL",
-          "to": [
-            "public"
-          ],
-          "using": "\"notification_deliveries\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
-          "withCheck": "\"notification_deliveries\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
-        }
-      },
-      "checkConstraints": {
-        "notification_deliveries_kind_check": {
-          "name": "notification_deliveries_kind_check",
-          "value": "\"notification_deliveries\".\"kind\" in ('claim_submitted', 'claim_status_changed', 'claim_recovery_decision', 'claim_message_to_member', 'staff_claim_submitted', 'staff_member_message')"
-        },
-        "notification_deliveries_channel_check": {
-          "name": "notification_deliveries_channel_check",
-          "value": "\"notification_deliveries\".\"channel\" in ('email', 'push')"
-        },
-        "notification_deliveries_subscription_check": {
-          "name": "notification_deliveries_subscription_check",
-          "value": "(\"notification_deliveries\".\"channel\" = 'push') = (\"notification_deliveries\".\"push_subscription_id\" is not null)"
-        },
-        "notification_deliveries_facts_check": {
-          "name": "notification_deliveries_facts_check",
-          "value": "jsonb_typeof(\"notification_deliveries\".\"facts\") = 'object'"
-        },
-        "notification_deliveries_state_check": {
-          "name": "notification_deliveries_state_check",
-          "value": "\"notification_deliveries\".\"state\" in ('queued', 'claimed', 'sent', 'skipped', 'failed')"
-        },
-        "notification_deliveries_lease_check": {
-          "name": "notification_deliveries_lease_check",
-          "value": "(\"notification_deliveries\".\"state\" = 'claimed') = (\"notification_deliveries\".\"lease_until\" is not null)"
-        },
-        "notification_deliveries_attempts_check": {
-          "name": "notification_deliveries_attempts_check",
-          "value": "\"notification_deliveries\".\"attempts\" between 0 and 8"
-        },
-        "notification_deliveries_terminal_check": {
-          "name": "notification_deliveries_terminal_check",
-          "value": "(\"notification_deliveries\".\"state\" in ('sent', 'skipped', 'failed')) = (\"notification_deliveries\".\"terminal_at\" is not null)"
-        },
-        "notification_deliveries_error_code_check": {
-          "name": "notification_deliveries_error_code_check",
-          "value": "\"notification_deliveries\".\"last_error_code\" ~ '^[a-z][a-z0-9_]{0,63}$'"
-        },
-        "notification_deliveries_error_detail_check": {
-          "name": "notification_deliveries_error_detail_check",
-          "value": "char_length(\"notification_deliveries\".\"last_error_detail\") <= 300"
-        },
-        "notification_deliveries_skip_check": {
-          "name": "notification_deliveries_skip_check",
-          "value": "\"notification_deliveries\".\"skip_reason\" in ('recipient_missing', 'recipient_out_of_scope', 'email_unverified', 'email_suppressed', 'push_disabled', 'subscription_gone', 'claim_gone', 'stale')"
-        },
-        "notification_deliveries_locale_check": {
-          "name": "notification_deliveries_locale_check",
-          "value": "\"notification_deliveries\".\"locale\" in ('sq', 'en', 'sr', 'mk', 'de')"
-        },
-        "notification_deliveries_transport_check": {
-          "name": "notification_deliveries_transport_check",
-          "value": "\"notification_deliveries\".\"transport\" in ('smtp', 'resend', 'webpush')"
-        },
-        "notification_deliveries_avoid_check": {
-          "name": "notification_deliveries_avoid_check",
-          "value": "\"notification_deliveries\".\"avoid_transport\" in ('smtp', 'resend')"
-        }
-      },
-      "isRLSEnabled": true
-    },
-    "public.claim_response_requests": {
-      "name": "claim_response_requests",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
           "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "claim_id": {
-          "name": "claim_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kind": {
-          "name": "kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "source_message_id": {
-          "name": "source_message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "requested_at": {
-          "name": "requested_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "answered_at": {
-          "name": "answered_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "answered_by": {
-          "name": "answered_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "answer_kind": {
-          "name": "answer_kind",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "answer_message_id": {
-          "name": "answer_message_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
         }
       },
       "indexes": {},
-      "foreignKeys": {},
+      "foreignKeys": {
+        "exchange_rate_verification_limits_tenant_id_tenants_id_fk": {
+          "name": "exchange_rate_verification_limits_tenant_id_tenants_id_fk",
+          "tableFrom": "exchange_rate_verification_limits",
+          "tableTo": "tenants",
+          "columnsFrom": [
+            "tenant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
-        "claim_response_requests_tenant_policy": {
-          "name": "claim_response_requests_tenant_policy",
+        "exchange_rate_verification_limits_tenant_policy": {
+          "name": "exchange_rate_verification_limits_tenant_policy",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
             "public"
           ],
-          "using": "\"claim_response_requests\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
-          "withCheck": "\"claim_response_requests\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+          "using": "\"exchange_rate_verification_limits\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"exchange_rate_verification_limits\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
         }
       },
       "checkConstraints": {
-        "claim_response_requests_kind_check": {
-          "name": "claim_response_requests_kind_check",
-          "value": "\"claim_response_requests\".\"kind\" in ('claim_submitted', 'member_message')"
-        },
-        "claim_response_requests_source_check": {
-          "name": "claim_response_requests_source_check",
-          "value": "(\"claim_response_requests\".\"kind\" = 'member_message') = (\"claim_response_requests\".\"source_message_id\" is not null)"
+        "exchange_rate_verification_limits_max_age_check": {
+          "name": "exchange_rate_verification_limits_max_age_check",
+          "value": "\"exchange_rate_verification_limits\".\"max_age_seconds\" >= 1 and \"exchange_rate_verification_limits\".\"max_age_seconds\" <= 2678400"
         }
       },
       "isRLSEnabled": true
     },
-    "public.user_locale_preferences": {
-      "name": "user_locale_preferences",
+    "public.exchange_rate_verifications": {
+      "name": "exchange_rate_verifications",
       "schema": "",
       "columns": {
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "locale": {
-          "name": "locale",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "user_locale_preferences_user_uq": {
-          "name": "user_locale_preferences_user_uq",
-          "columns": [
-            {
-              "expression": "tenant_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "user_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {
-        "user_locale_preferences_tenant_policy": {
-          "name": "user_locale_preferences_tenant_policy",
-          "as": "PERMISSIVE",
-          "for": "ALL",
-          "to": [
-            "public"
-          ],
-          "using": "\"user_locale_preferences\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
-          "withCheck": "\"user_locale_preferences\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
-        }
-      },
-      "checkConstraints": {
-        "user_locale_preferences_locale_check": {
-          "name": "user_locale_preferences_locale_check",
-          "value": "\"user_locale_preferences\".\"locale\" in ('sq', 'en', 'sr', 'mk', 'de')"
-        }
-      },
-      "isRLSEnabled": true
-    },
-    "public.support_handoff_first_responses": {
-      "name": "support_handoff_first_responses",
-      "schema": "",
-      "columns": {
-        "handoff_id": {
-          "name": "handoff_id",
+        "id": {
+          "name": "id",
           "type": "text",
           "primaryKey": true,
           "notNull": true
@@ -20361,16 +19933,76 @@
           "primaryKey": false,
           "notNull": true
         },
-        "first_public_response_at": {
-          "name": "first_public_response_at",
+        "legal_entity_id": {
+          "name": "legal_entity_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "book_id": {
+          "name": "book_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rate_id": {
+          "name": "rate_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "base": {
+          "name": "base",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "quote": {
+          "name": "quote",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rate_effective_on": {
+          "name": "rate_effective_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "observed_rate": {
+          "name": "observed_rate",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_ref": {
+          "name": "source_ref",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verified_by": {
+          "name": "verified_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "verified_at": {
+          "name": "verified_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
+        },
+        "operation_key": {
+          "name": "operation_key",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
         }
       },
       "indexes": {
-        "support_handoff_first_responses_handoff_uq": {
-          "name": "support_handoff_first_responses_handoff_uq",
+        "exchange_rate_verifications_latest_idx": {
+          "name": "exchange_rate_verifications_latest_idx",
           "columns": [
             {
               "expression": "tenant_id",
@@ -20379,98 +20011,128 @@
               "nulls": "last"
             },
             {
-              "expression": "handoff_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {
-        "support_handoff_first_responses_tenant_policy": {
-          "name": "support_handoff_first_responses_tenant_policy",
-          "as": "PERMISSIVE",
-          "for": "ALL",
-          "to": [
-            "public"
-          ],
-          "using": "\"support_handoff_first_responses\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
-          "withCheck": "\"support_handoff_first_responses\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
-        }
-      },
-      "checkConstraints": {},
-      "isRLSEnabled": true
-    },
-    "public.notification_preview_restrictions": {
-      "name": "notification_preview_restrictions",
-      "schema": "",
-      "columns": {
-        "notification_id": {
-          "name": "notification_id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "tenant_id": {
-          "name": "tenant_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "restricted": {
-          "name": "restricted",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {
-        "notification_preview_restrictions_notification_uq": {
-          "name": "notification_preview_restrictions_notification_uq",
-          "columns": [
-            {
-              "expression": "tenant_id",
+              "expression": "book_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "notification_id",
+              "expression": "rate_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "verified_at",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             }
           ],
-          "isUnique": true,
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
         }
       },
-      "foreignKeys": {},
+      "foreignKeys": {
+        "exchange_rate_verifications_exact_rate_fk": {
+          "name": "exchange_rate_verifications_exact_rate_fk",
+          "tableFrom": "exchange_rate_verifications",
+          "tableTo": "exchange_rates",
+          "columnsFrom": [
+            "tenant_id",
+            "rate_id",
+            "book_id",
+            "base",
+            "quote",
+            "observed_rate",
+            "rate_effective_on"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id",
+            "book_id",
+            "base",
+            "quote",
+            "rate",
+            "effective_on"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "exchange_rate_verifications_entity_fk": {
+          "name": "exchange_rate_verifications_entity_fk",
+          "tableFrom": "exchange_rate_verifications",
+          "tableTo": "legal_entities",
+          "columnsFrom": [
+            "tenant_id",
+            "legal_entity_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "exchange_rate_verifications_actor_fk": {
+          "name": "exchange_rate_verifications_actor_fk",
+          "tableFrom": "exchange_rate_verifications",
+          "tableTo": "user",
+          "columnsFrom": [
+            "tenant_id",
+            "verified_by"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
+      "uniqueConstraints": {
+        "exchange_rate_verifications_operation_uq": {
+          "name": "exchange_rate_verifications_operation_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "operation_key"
+          ]
+        }
+      },
       "policies": {
-        "notification_preview_restrictions_tenant_policy": {
-          "name": "notification_preview_restrictions_tenant_policy",
+        "exchange_rate_verifications_tenant_policy": {
+          "name": "exchange_rate_verifications_tenant_policy",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
             "public"
           ],
-          "using": "\"notification_preview_restrictions\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
-          "withCheck": "\"notification_preview_restrictions\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+          "using": "\"exchange_rate_verifications\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"exchange_rate_verifications\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
         }
       },
-      "checkConstraints": {},
+      "checkConstraints": {
+        "exchange_rate_verifications_pair_check": {
+          "name": "exchange_rate_verifications_pair_check",
+          "value": "\"exchange_rate_verifications\".\"base\" = 'EUR' and \"exchange_rate_verifications\".\"quote\" = 'MKD'"
+        },
+        "exchange_rate_verifications_finite_stamps": {
+          "name": "exchange_rate_verifications_finite_stamps",
+          "value": "isfinite(\"exchange_rate_verifications\".\"rate_effective_on\") and isfinite(\"exchange_rate_verifications\".\"verified_at\")"
+        },
+        "exchange_rate_verifications_observed_rate_check": {
+          "name": "exchange_rate_verifications_observed_rate_check",
+          "value": "\"exchange_rate_verifications\".\"observed_rate\" > 0 and \"exchange_rate_verifications\".\"observed_rate\" <= 9999999999.99999999 and scale(\"exchange_rate_verifications\".\"observed_rate\") <= 8"
+        },
+        "exchange_rate_verifications_source_ref_check": {
+          "name": "exchange_rate_verifications_source_ref_check",
+          "value": "\"exchange_rate_verifications\".\"source_ref\" collate \"C\" ~ '^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,255}$'"
+        }
+      },
       "isRLSEnabled": true
     }
   },
