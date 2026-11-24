@@ -30,7 +30,10 @@ vi.mock('@interdomestik/database/schema', () => ({
   claimTrackingTokens: trackingSchemaMock.claimTrackingTokens,
 }));
 
-vi.mock('drizzle-orm', () => createTrackingDrizzleMock());
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
+  ...createTrackingDrizzleMock(),
+}));
 
 vi.mock('@sentry/nextjs', () => ({
   withServerActionInstrumentation: hoisted.withServerActionInstrumentation,

@@ -1,8 +1,11 @@
 import { renderToStaticMarkup } from 'react-dom/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-const state = vi.hoisted(() => ({ session: vi.fn() }));
+const state = vi.hoisted(() => ({ session: vi.fn(), loadSwitches: vi.fn() }));
 vi.mock('@/lib/auth.server', () => ({ getCachedSession: state.session }));
+vi.mock('@/actions/admin-settings/pilot-switches.core', () => ({
+  loadPilotSwitches: state.loadSwitches,
+}));
 vi.mock('./_core.entry', () => ({ default: () => <div>Platform controls</div> }));
 vi.mock('next/navigation', () => ({
   notFound: () => {
@@ -27,6 +30,7 @@ describe('platform settings page', () => {
     async role => {
       state.session.mockResolvedValue({ user: { id: 'u1', role } });
       await expect(openPage()).rejects.toThrow('NOT_FOUND');
+      expect(state.loadSwitches).not.toHaveBeenCalled();
     }
   );
 
@@ -37,6 +41,8 @@ describe('platform settings page', () => {
 
   it('renders controls for super_admin', async () => {
     state.session.mockResolvedValue({ user: { id: 'u1', role: 'super_admin' } });
+    state.loadSwitches.mockResolvedValue(null);
     expect(renderToStaticMarkup(await Page())).toContain('Platform controls');
+    expect(state.loadSwitches).toHaveBeenCalledExactlyOnceWith('u1');
   });
 });

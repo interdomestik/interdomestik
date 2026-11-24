@@ -2,31 +2,9 @@ import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimInfoPane } from './claim-info-pane';
 
-// Mock AgentStatusSelect
-vi.mock('@/components/agent/agent-status-select', () => ({
-  AgentStatusSelect: ({
-    claimId,
-    currentStatus,
-    disabled,
-  }: {
-    claimId: string;
-    currentStatus: string;
-    disabled?: boolean;
-  }) => (
-    <div
-      data-testid="status-select"
-      data-claim-id={claimId}
-      data-status={currentStatus}
-      data-disabled={disabled}
-    >
-      Status: {currentStatus}
-    </div>
-  ),
-}));
-
 // Mock next-intl
 vi.mock('next-intl', () => ({
-  useTranslations: () => (key: string) => {
+  useTranslations: () => {
     const translations: Record<string, string> = {
       'details.title': 'Claim Details',
       'details.company': 'Company',
@@ -38,8 +16,10 @@ vi.mock('next-intl', () => ({
       'details.sla_phase.incomplete': 'Waiting for member information',
       'details.sla_phase.not_applicable': 'Not active',
       'details.description': 'Description',
+      verification: 'Verification',
+      submitted: 'Submitted',
     };
-    return translations[key] || key;
+    return (key: string) => translations[key] || key;
   },
 }));
 
@@ -64,7 +44,7 @@ const mockClaim = {
   id: 'claim-123',
   title: 'Car Accident Claim',
   description: 'I was rear-ended at a traffic light on Main Street.',
-  status: 'verification',
+  status: 'verification' as const,
   companyName: 'State Farm',
   claimAmount: '5000',
   currency: 'EUR',
@@ -96,35 +76,21 @@ describe('ClaimInfoPane', () => {
     expect(screen.getByText('john@example.com')).toBeInTheDocument();
   });
 
-  it('displays company name', () => {
+  it.each([
+    ['company name', 'Company', 'State Farm'],
+    ['claim amount', 'Amount', '5000 EUR'],
+    ['status section', 'Status', 'Verification'],
+    ['description', 'Description', 'I was rear-ended at a traffic light on Main Street.'],
+  ])('displays %s', (_field, label, value) => {
     render(<ClaimInfoPane claim={mockClaim} />);
-    expect(screen.getByText('Company')).toBeInTheDocument();
-    expect(screen.getByText('State Farm')).toBeInTheDocument();
+    expect(screen.getByText(label)).toBeInTheDocument();
+    expect(screen.getByText(value)).toBeInTheDocument();
   });
 
-  it('displays claim amount', () => {
-    render(<ClaimInfoPane claim={mockClaim} />);
-    expect(screen.getByText('Amount')).toBeInTheDocument();
-    expect(screen.getByText('5000 EUR')).toBeInTheDocument();
-  });
-
-  it('displays status section', () => {
-    render(<ClaimInfoPane claim={mockClaim} />);
-    expect(screen.getByText('Status')).toBeInTheDocument();
-    expect(screen.getByTestId('status-select')).toBeInTheDocument();
-  });
-
-  it('displays description', () => {
-    render(<ClaimInfoPane claim={mockClaim} />);
-    expect(screen.getByText('Description')).toBeInTheDocument();
-    expect(
-      screen.getByText('I was rear-ended at a traffic light on Main Street.')
-    ).toBeInTheDocument();
-  });
-
-  it('disables status select when readOnly', () => {
-    render(<ClaimInfoPane claim={mockClaim} readOnly />);
-    expect(screen.getByTestId('status-select')).toHaveAttribute('data-disabled', 'true');
+  it('renders the localized status as read-only text', () => {
+    render(<ClaimInfoPane claim={{ ...mockClaim, status: null }} />);
+    expect(screen.getByText('Submitted')).toBeInTheDocument();
+    expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('shows user initials in avatar fallback', () => {

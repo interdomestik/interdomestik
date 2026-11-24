@@ -1,7 +1,7 @@
 'use client';
 
-import { AgentStatusSelect } from '@/components/agent/agent-status-select';
 import type { ClaimSlaPhase } from '@/features/claims/policy';
+import type { ClaimStatus } from '@interdomestik/database/constants';
 import {
   Avatar,
   AvatarFallback,
@@ -21,7 +21,8 @@ interface ClaimInfoPaneProps {
     id: string;
     title: string;
     description: string | null;
-    status: string | null;
+    /** A canonical claim status, normalized by the server page; null renders as submitted. */
+    status: ClaimStatus | null;
     companyName: string | null;
     claimAmount: string | null;
     currency: string | null;
@@ -32,12 +33,12 @@ interface ClaimInfoPaneProps {
       image: string | null;
     } | null;
   };
-  readOnly?: boolean;
   slaPhase?: ClaimSlaPhase;
 }
 
-export function ClaimInfoPane({ claim, readOnly, slaPhase }: Readonly<ClaimInfoPaneProps>) {
+export function ClaimInfoPane({ claim, slaPhase }: Readonly<ClaimInfoPaneProps>) {
   const t = useTranslations('agent-claims.claims');
+  const tStatus = useTranslations('claims.status');
 
   return (
     <Card>
@@ -95,11 +96,7 @@ export function ClaimInfoPane({ claim, readOnly, slaPhase }: Readonly<ClaimInfoP
         {/* Status */}
         <div>
           <p className="text-sm font-medium mb-2">{t('details.status_label')}</p>
-          <AgentStatusSelect
-            claimId={claim.id}
-            currentStatus={claim.status || 'submitted'}
-            disabled={readOnly}
-          />
+          <p className="text-sm text-muted-foreground">{tStatus(claim.status ?? 'submitted')}</p>
         </div>
 
         {slaPhase && slaPhase !== 'not_applicable' ? (

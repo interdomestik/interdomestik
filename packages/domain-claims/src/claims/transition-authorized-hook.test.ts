@@ -5,6 +5,7 @@ import {
   type TransitionClaimStatusParams,
   writeAuthorizedTransitionStatus,
 } from './transition';
+import { buildTransitionClaimWhere } from './transition-read-context';
 import { authorizedRecoveryEvidence, makeTransitionTx } from './transition-test-support';
 
 type Params = TransitionClaimStatusParams;
@@ -30,7 +31,11 @@ describe('authorized pre-write phase', () => {
     const authorized = await authorizeClaimTransitionInTransaction(tx, makeParams());
     if (!authorized.success) throw new Error('expected an authorized transition');
     calls.operations.push('prewrite:authorized');
-    await writeAuthorizedTransitionStatus(tx, authorized.transition);
+    await writeAuthorizedTransitionStatus(
+      tx,
+      authorized.transition,
+      buildTransitionClaimWhere(makeParams())
+    );
 
     expect(calls.operations.slice(0, 5)).toEqual([
       'select:current',
@@ -51,7 +56,11 @@ describe('authorized pre-write phase', () => {
 
     const result = await authorizeClaimTransitionInTransaction(tx, makeParams());
 
-    expect(result).toEqual({ success: false, error: 'transition_rejected' });
+    expect(result).toEqual({
+      success: false,
+      error: 'transition_rejected',
+      reason: 'signed_agreement_authorization_required',
+    });
     expect(calls.updateValues).toBeUndefined();
     expect(calls.historyValues).toBeUndefined();
     expect(calls.eventValues).toBeUndefined();
@@ -70,9 +79,9 @@ describe('authorized pre-write phase', () => {
       current: { ...authorized.transition.current, status: 'verification' as const },
     };
 
-    await expect(writeAuthorizedTransitionStatus(tx, forged)).rejects.toThrow(
-      'mismatched authorization proof'
-    );
+    await expect(
+      writeAuthorizedTransitionStatus(tx, forged, buildTransitionClaimWhere(makeParams()))
+    ).rejects.toThrow('mismatched authorization proof');
     expect(calls.updateValues).toBeUndefined();
   });
 });

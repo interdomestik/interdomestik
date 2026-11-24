@@ -104,7 +104,10 @@ vi.mock('@interdomestik/database', () => {
 
 vi.mock('@interdomestik/database/schema', () => trackingSchemaMock);
 
-vi.mock('drizzle-orm', () => createTrackingDrizzleMock());
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
+  ...createTrackingDrizzleMock(),
+}));
 
 vi.mock('../utils', () => ({
   buildClaimVisibilityWhere: vi.fn(({ tenantId }: { tenantId: string }) => ({

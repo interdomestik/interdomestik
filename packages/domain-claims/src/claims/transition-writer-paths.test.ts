@@ -12,52 +12,49 @@ function source(relativePath: string): string {
 describe('T-002b central transition writer paths', () => {
   it.each([
     [
-      'package status command',
-      'packages/domain-claims/src/claims/status.ts',
-      'transitionClaimStatus',
-    ],
-    [
-      'legacy package status command',
-      'packages/domain-claims/src/update-claim-status.ts',
-      'transitionClaimStatusInTransaction',
-    ],
-    [
-      'admin adapter',
-      'packages/domain-claims/src/admin-claims/update-status.ts',
-      'transitionClaimStatus',
-    ],
-    [
       'admin transaction adapter',
       'packages/domain-claims/src/admin-claims/status-transition.ts',
       'transitionClaimStatusInTransaction',
     ],
     [
-      'agent adapter',
-      'packages/domain-claims/src/agent-claims/update-status.ts',
-      'transitionClaimStatus',
+      'admin ops action',
+      'apps/web/src/features/admin/claims/actions/ops-status-action.ts',
+      'changeClaimStatus(',
     ],
     [
-      'staff adapter',
-      'packages/domain-claims/src/staff-claims/update-status.ts',
-      'finalizeClaimStatusChange',
+      'staff status action',
+      'apps/web/src/actions/staff-claims/update-status.core.ts',
+      'changeClaimStatus(',
     ],
     [
-      'staff transition phases',
-      'packages/domain-claims/src/staff-claims/finalize-status-change.ts',
+      'shared status persistence',
+      'packages/domain-claims/src/claims/change-status-write.ts',
       'writeAuthorizedTransitionStatus',
-    ],
-    [
-      'member cancellation command',
-      'packages/domain-claims/src/claims/draft-cancellation.ts',
-      'transitionClaimStatus',
-    ],
-    [
-      'web action adapter',
-      'apps/web/src/actions/claims/status.core.ts',
-      'updateClaimStatusCoreDomain',
     ],
   ] as const)('%s delegates to the central transition runtime', (_label, path, marker) => {
     expect(source(path)).toContain(marker);
+  });
+
+  it('exports the shared command and closes the former writer paths', () => {
+    const { exports } = JSON.parse(source('packages/domain-claims/package.json'));
+    expect(exports['./claims/change-status']).toBe('./src/claims/change-status.ts');
+    expect(exports['./claims/transition-guard']).toBe('./src/claims/transition-guard.ts');
+    expect(exports['./claims/draft']).toBe('./src/claims/draft.ts');
+    for (const subpath of [
+      './admin-claims/status-transition',
+      './admin-claims/update-status',
+      './agent-claims/update-status',
+      './claims/status',
+      './claims/transition',
+      './staff-claims/update-status',
+    ]) {
+      expect(exports[subpath]).toBeUndefined();
+    }
+
+    expect(source('packages/domain-claims/src/index.ts')).not.toMatch(
+      /update(?:Admin|Agent|Staff)?ClaimStatusCore|transitionClaimStatus\w*|transitionAdminClaimStatus\w*|writeAuthorizedTransitionStatus|assignStaffClaimCore/
+    );
+    expect(source('packages/domain-claims/src/claims/draft.ts')).not.toContain('cancelClaimCore');
   });
 
   it('keeps member submission on member-intake submitted, not airline submission', () => {

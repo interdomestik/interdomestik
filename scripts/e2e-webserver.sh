@@ -3,10 +3,8 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 bash "${SCRIPT_DIR}/node-guard.sh"
-
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 WEB_DIR="${ROOT_DIR}/apps/web"
-
 cd "${WEB_DIR}"
 
 PORT="${PORT:-3000}"
@@ -19,6 +17,9 @@ export BETTER_AUTH_TRUSTED_ORIGINS="${BETTER_AUTH_TRUSTED_ORIGINS:-http://127.0.
 export NODE_OPTIONS="${NODE_OPTIONS:---dns-result-order=ipv4first}"
 export INTERDOMESTIK_AUTOMATED="${INTERDOMESTIK_AUTOMATED:-1}"
 export PLAYWRIGHT="${PLAYWRIGHT:-1}"
+export INTERDOMESTIK_LOCAL_E2E="${INTERDOMESTIK_LOCAL_E2E:-1}"
+export IDENTITY_PUBLIC_SIGN_UP="${IDENTITY_PUBLIC_SIGN_UP:-open}"
+export DEFAULT_PUBLIC_TENANT_ID="${DEFAULT_PUBLIC_TENANT_ID:-tenant_ks}"
 
 # Preserve explicit shell-provided values before sourcing env files.
 INHERITED_DATABASE_URL="${DATABASE_URL:-}"
@@ -73,7 +74,6 @@ load_env_file() {
 
 # Standalone `node .next/standalone/.../server.js` does not auto-load .env files.
 # Ensure local dev env is available for the runtime server process.
-
 load_env_file "${ROOT_DIR}/.env"
 load_env_file "${ROOT_DIR}/.env.local"
 load_env_file "${WEB_DIR}/.env"

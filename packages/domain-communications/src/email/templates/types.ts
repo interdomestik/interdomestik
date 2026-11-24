@@ -11,4 +11,5 @@ export type TemplateOptions = {
   ctaLabel: string;
   ctaUrl: string;
   footer?: string;
+  locale?: string;
 };

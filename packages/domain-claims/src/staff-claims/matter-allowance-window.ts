@@ -12,6 +12,15 @@ function normalizeDate(value: NormalizableDate) {
   return Number.isNaN(date.getTime()) ? null : date;
 }
 
+export function hasCurrentMatterAllowanceWindow(
+  period: { currentPeriodStart: NormalizableDate; currentPeriodEnd: NormalizableDate },
+  effectiveAt: Date
+): boolean {
+  const start = normalizeDate(period.currentPeriodStart);
+  const end = normalizeDate(period.currentPeriodEnd);
+  return Boolean(start && end && start <= effectiveAt && effectiveAt < end);
+}
+
 export function buildMatterAllowanceWindow(params: {
   currentPeriodEnd: NormalizableDate;
   currentPeriodStart: NormalizableDate;

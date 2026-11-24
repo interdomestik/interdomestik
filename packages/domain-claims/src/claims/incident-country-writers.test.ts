@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockClaimWriterEffects } from './submit-test-support';
 const h = vi.hoisted(() => {
   const draftClaim = {
     caseLifecycleState: 'draft',
@@ -64,12 +65,13 @@ vi.mock('drizzle-orm', () => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ left, right })),
 }));
 vi.mock('nanoid', () => ({ nanoid: vi.fn(() => 'claim-1') }));
-vi.mock('./ai-workflows', () => ({ queueClaimDocumentAiWorkflows: vi.fn().mockResolvedValue([]) }));
-import { createClaimCore } from './create';
-import { updateDraftClaimCore } from './draft';
 import { buildClaimStartPublicNote, resolveClaimIncidentCountryUpdate } from './incident-country';
-import { submitClaimCore } from './submit';
 import type { CreateClaimValues } from '../validators/claims';
+
+mockClaimWriterEffects();
+const { createClaimCore } = await import('./create');
+const { updateDraftClaimCore } = await import('./draft');
+const { submitClaimCore } = await import('./submit');
 
 const authority = mintTestTenantAuthority('tenant-1');
 const session = {

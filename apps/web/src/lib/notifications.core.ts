@@ -8,19 +8,13 @@ import {
   clearSupportHandoffPublicResponseNotifications as clearSupportHandoffPublicResponseNotificationsDomain,
   notifyClaimAssigned as notifyClaimAssignedDomain,
   notifyClaimPackGenerated as notifyClaimPackGeneratedDomain,
-  notifyClaimSubmitted as notifyClaimSubmittedDomain,
   notifyMembershipRenewal as notifyMembershipRenewalDomain,
-  notifyRecoveryDecision as notifyRecoveryDecisionDomain,
   notifySlaWarning as notifySlaWarningDomain,
-  notifyStatusChanged as notifyStatusChangedDomain,
-  notifySupportHandoffPublicResponse as notifySupportHandoffPublicResponseDomain,
   notifyTriageComplete as notifyTriageCompleteDomain,
   sendNotification as sendNotificationDomain,
 } from '@interdomestik/domain-communications/notifications';
 import type { NotificationEvent } from '@interdomestik/domain-communications/notifications';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-
-import { sendPushToUser } from '@/lib/push';
 
 export type { NotificationEvent } from '@interdomestik/domain-communications/notifications';
 
@@ -39,15 +33,6 @@ export function sendNotification(
   return sendNotificationDomain(userId, event, payload, options);
 }
 
-export function notifyClaimSubmitted(
-  userId: string,
-  userEmail: string,
-  claim: { id: string; title: string; category: string },
-  options: TenantNotificationOptions
-) {
-  return notifyClaimSubmittedDomain(userId, userEmail, claim, options);
-}
-
 export function notifyClaimAssigned(
   agentId: string,
   agentEmail: string,
@@ -56,20 +41,6 @@ export function notifyClaimAssigned(
   options: TenantNotificationOptions
 ) {
   return notifyClaimAssignedDomain(agentId, agentEmail, claim, agentName, options);
-}
-
-export function notifyStatusChanged(
-  userId: string,
-  userEmail: string,
-  claim: { id: string; title: string },
-  oldStatus: string,
-  newStatus: string,
-  options: TenantNotificationOptions
-) {
-  return notifyStatusChangedDomain(userId, userEmail, claim, oldStatus, newStatus, {
-    sendPushToUser,
-    authority: options.authority,
-  });
 }
 
 export function notifyClaimPackGenerated(
@@ -81,35 +52,12 @@ export function notifyClaimPackGenerated(
   return notifyClaimPackGeneratedDomain(userId, claimCategory, confidenceLevel, options);
 }
 
-export function notifySupportHandoffPublicResponse(
-  memberId: string,
-  handoff: { id: string; publicResponseVersion: number },
-  options: {
-    actionUrl?: string;
-    content?: string;
-    authority: TenantAuthority;
-    title?: string;
-  }
-) {
-  return notifySupportHandoffPublicResponseDomain(memberId, handoff, options);
-}
-
 export function clearSupportHandoffPublicResponseNotifications(
   memberId: string,
   handoff: { id: string },
   options: { authority: TenantAuthority }
 ) {
   return clearSupportHandoffPublicResponseNotificationsDomain(memberId, handoff, options);
-}
-
-export function notifyRecoveryDecision(
-  userId: string,
-  userEmail: string,
-  claim: { id: string; title: string },
-  decisionType: 'accepted' | 'declined',
-  options: TenantNotificationOptions
-) {
-  return notifyRecoveryDecisionDomain(userId, userEmail, claim, decisionType, options);
 }
 
 export function notifyTriageComplete(

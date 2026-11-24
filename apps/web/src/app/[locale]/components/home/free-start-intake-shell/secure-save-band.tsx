@@ -71,9 +71,12 @@ export function SecureSaveBand({
 
   if (!neutralFrontDoor) return null;
   // prettier-ignore
-  const alert = ['conflict', 'limit', 'invalid', 'unsupported', 'accountContext', 'error'].includes(lifecycle.state);
+  const alert = ['conflict', 'limit', 'invalid', 'unsupported', 'accountContext', 'closed', 'error'].includes(lifecycle.state);
   const pending = ['saving', 'loading'].includes(lifecycle.state);
-  const status = resolveStatus(lifecycle, locale, copy, reviewCopy);
+  const status =
+    lifecycle.state === 'closed'
+      ? t('draft.CLOSED')
+      : resolveStatus(lifecycle, locale, copy, reviewCopy);
   // An acknowledged clean draft owns the primary action, so saving and managing step back.
   const continuationReady = Boolean(allowContinuation) && isSavedDraftContinuationReady(lifecycle);
   const guestPrompt = guestSaveShown && !lifecycle.verified;

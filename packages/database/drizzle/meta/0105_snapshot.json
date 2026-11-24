@@ -1,5 +1,5 @@
 {
-  "id": "33a3efde-420e-4006-9aab-78595f32c88a",
+  "id": "cd26c61a-3589-403b-8510-cba2e2ba447b",
   "prevId": "a5d639f2-e21b-4791-bb1e-e3cd7b21c21f",
   "version": "7",
   "dialect": "postgresql",
@@ -20133,6 +20133,617 @@
           "value": "\"exchange_rate_verifications\".\"source_ref\" collate \"C\" ~ '^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,255}$'"
         }
       },
+      "isRLSEnabled": true
+    },
+    "public.notification_deliveries": {
+      "name": "notification_deliveries",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "idempotency_key": {
+          "name": "idempotency_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "channel": {
+          "name": "channel",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "recipient_user_id": {
+          "name": "recipient_user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject_message_id": {
+          "name": "subject_message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "push_subscription_id": {
+          "name": "push_subscription_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "facts": {
+          "name": "facts",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "state": {
+          "name": "state",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'queued'"
+        },
+        "lease_until": {
+          "name": "lease_until",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "attempts": {
+          "name": "attempts",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "next_attempt_at": {
+          "name": "next_attempt_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "terminal_at": {
+          "name": "terminal_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_error_code": {
+          "name": "last_error_code",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "last_error_detail": {
+          "name": "last_error_detail",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "skip_reason": {
+          "name": "skip_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "locale": {
+          "name": "locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "avoid_transport": {
+          "name": "avoid_transport",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "transport": {
+          "name": "transport",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "sent_at": {
+          "name": "sent_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {
+        "notification_deliveries_tenant_id_uq": {
+          "name": "notification_deliveries_tenant_id_uq",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notification_deliveries_key_uq": {
+          "name": "notification_deliveries_key_uq",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "idempotency_key",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notification_deliveries_due_idx": {
+          "name": "notification_deliveries_due_idx",
+          "columns": [
+            {
+              "expression": "state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "next_attempt_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "notification_deliveries_created_idx": {
+          "name": "notification_deliveries_created_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "state",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "notification_deliveries_tenant_policy": {
+          "name": "notification_deliveries_tenant_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"notification_deliveries\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"notification_deliveries\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {
+        "notification_deliveries_kind_check": {
+          "name": "notification_deliveries_kind_check",
+          "value": "\"notification_deliveries\".\"kind\" in ('claim_submitted', 'claim_status_changed', 'claim_recovery_decision', 'claim_message_to_member', 'staff_claim_submitted', 'staff_member_message')"
+        },
+        "notification_deliveries_channel_check": {
+          "name": "notification_deliveries_channel_check",
+          "value": "\"notification_deliveries\".\"channel\" in ('email', 'push')"
+        },
+        "notification_deliveries_subscription_check": {
+          "name": "notification_deliveries_subscription_check",
+          "value": "(\"notification_deliveries\".\"channel\" = 'push') = (\"notification_deliveries\".\"push_subscription_id\" is not null)"
+        },
+        "notification_deliveries_facts_check": {
+          "name": "notification_deliveries_facts_check",
+          "value": "jsonb_typeof(\"notification_deliveries\".\"facts\") = 'object'"
+        },
+        "notification_deliveries_state_check": {
+          "name": "notification_deliveries_state_check",
+          "value": "\"notification_deliveries\".\"state\" in ('queued', 'claimed', 'sent', 'skipped', 'failed')"
+        },
+        "notification_deliveries_lease_check": {
+          "name": "notification_deliveries_lease_check",
+          "value": "(\"notification_deliveries\".\"state\" = 'claimed') = (\"notification_deliveries\".\"lease_until\" is not null)"
+        },
+        "notification_deliveries_attempts_check": {
+          "name": "notification_deliveries_attempts_check",
+          "value": "\"notification_deliveries\".\"attempts\" between 0 and 8"
+        },
+        "notification_deliveries_terminal_check": {
+          "name": "notification_deliveries_terminal_check",
+          "value": "(\"notification_deliveries\".\"state\" in ('sent', 'skipped', 'failed')) = (\"notification_deliveries\".\"terminal_at\" is not null)"
+        },
+        "notification_deliveries_error_code_check": {
+          "name": "notification_deliveries_error_code_check",
+          "value": "\"notification_deliveries\".\"last_error_code\" ~ '^[a-z][a-z0-9_]{0,63}$'"
+        },
+        "notification_deliveries_error_detail_check": {
+          "name": "notification_deliveries_error_detail_check",
+          "value": "char_length(\"notification_deliveries\".\"last_error_detail\") <= 300"
+        },
+        "notification_deliveries_skip_check": {
+          "name": "notification_deliveries_skip_check",
+          "value": "\"notification_deliveries\".\"skip_reason\" in ('recipient_missing', 'recipient_out_of_scope', 'email_unverified', 'email_suppressed', 'push_disabled', 'subscription_gone', 'claim_gone', 'stale')"
+        },
+        "notification_deliveries_locale_check": {
+          "name": "notification_deliveries_locale_check",
+          "value": "\"notification_deliveries\".\"locale\" in ('sq', 'en', 'sr', 'mk', 'de')"
+        },
+        "notification_deliveries_transport_check": {
+          "name": "notification_deliveries_transport_check",
+          "value": "\"notification_deliveries\".\"transport\" in ('smtp', 'resend', 'webpush')"
+        },
+        "notification_deliveries_avoid_check": {
+          "name": "notification_deliveries_avoid_check",
+          "value": "\"notification_deliveries\".\"avoid_transport\" in ('smtp', 'resend')"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.claim_response_requests": {
+      "name": "claim_response_requests",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source_message_id": {
+          "name": "source_message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requested_at": {
+          "name": "requested_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "answered_at": {
+          "name": "answered_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "answered_by": {
+          "name": "answered_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "answer_kind": {
+          "name": "answer_kind",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "answer_message_id": {
+          "name": "answer_message_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "claim_response_requests_tenant_policy": {
+          "name": "claim_response_requests_tenant_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"claim_response_requests\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"claim_response_requests\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {
+        "claim_response_requests_kind_check": {
+          "name": "claim_response_requests_kind_check",
+          "value": "\"claim_response_requests\".\"kind\" in ('claim_submitted', 'member_message')"
+        },
+        "claim_response_requests_source_check": {
+          "name": "claim_response_requests_source_check",
+          "value": "(\"claim_response_requests\".\"kind\" = 'member_message') = (\"claim_response_requests\".\"source_message_id\" is not null)"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.user_locale_preferences": {
+      "name": "user_locale_preferences",
+      "schema": "",
+      "columns": {
+        "user_id": {
+          "name": "user_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "locale": {
+          "name": "locale",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "user_locale_preferences_user_uq": {
+          "name": "user_locale_preferences_user_uq",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "user_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "user_locale_preferences_tenant_policy": {
+          "name": "user_locale_preferences_tenant_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"user_locale_preferences\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"user_locale_preferences\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {
+        "user_locale_preferences_locale_check": {
+          "name": "user_locale_preferences_locale_check",
+          "value": "\"user_locale_preferences\".\"locale\" in ('sq', 'en', 'sr', 'mk', 'de')"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.support_handoff_first_responses": {
+      "name": "support_handoff_first_responses",
+      "schema": "",
+      "columns": {
+        "handoff_id": {
+          "name": "handoff_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "first_public_response_at": {
+          "name": "first_public_response_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "support_handoff_first_responses_handoff_uq": {
+          "name": "support_handoff_first_responses_handoff_uq",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "handoff_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "support_handoff_first_responses_tenant_policy": {
+          "name": "support_handoff_first_responses_tenant_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"support_handoff_first_responses\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"support_handoff_first_responses\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.notification_preview_restrictions": {
+      "name": "notification_preview_restrictions",
+      "schema": "",
+      "columns": {
+        "notification_id": {
+          "name": "notification_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "restricted": {
+          "name": "restricted",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "notification_preview_restrictions_notification_uq": {
+          "name": "notification_preview_restrictions_notification_uq",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "notification_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "notification_preview_restrictions_tenant_policy": {
+          "name": "notification_preview_restrictions_tenant_policy",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"notification_preview_restrictions\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"notification_preview_restrictions\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {},
       "isRLSEnabled": true
     }
   },

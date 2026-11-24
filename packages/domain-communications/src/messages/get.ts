@@ -1,4 +1,4 @@
-import { claimMessages, user } from '@interdomestik/database';
+import { claimMessages } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -17,7 +17,8 @@ import {
 } from './access';
 import { normalizeSelectedMessages } from './normalize';
 import { canAcknowledgeClaim } from './acknowledgement';
-import type { MessageWithSender, SelectedMessageRow } from './types';
+import { selectMessagesWithSender } from './select';
+import type { MessageWithSender } from './types';
 
 /**
  * Get messages for a claim.
@@ -108,26 +109,9 @@ export async function getMessagesForClaimCore(params: {
         ? and(eq(claimMessages.claimId, claimId), visibilityCondition)
         : eq(claimMessages.claimId, claimId);
 
-      const selected = (await tx
-        .select({
-          id: claimMessages.id,
-          claimId: claimMessages.claimId,
-          senderId: claimMessages.senderId,
-          content: claimMessages.content,
-          isInternal: claimMessages.isInternal,
-          readAt: claimMessages.readAt,
-          createdAt: claimMessages.createdAt,
-          sender: {
-            id: user.id,
-            name: user.name,
-            image: user.image,
-            role: user.role,
-          },
-        })
-        .from(claimMessages)
-        .leftJoin(user, eq(claimMessages.senderId, user.id))
-        .where(withTenant(tenantId, claimMessages.tenantId, messageCondition))
-        .orderBy(claimMessages.createdAt)) as unknown as SelectedMessageRow[];
+      const selected = await selectMessagesWithSender(tx, tenantId, messageCondition).orderBy(
+        claimMessages.createdAt
+      );
 
       return { success: true, messages: normalizeSelectedMessages(selected), canAcknowledge };
     });

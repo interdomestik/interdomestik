@@ -31,6 +31,7 @@ describe('evaluateEmailSignUpTenantGuard', () => {
 
   it('allows signup when country host and payload tenant match', () => {
     const result = evaluateEmailSignUpTenantGuard({
+      admissionTenant: 'tenant_ks',
       url,
       headers: new Headers({ host: 'ks.localhost:3000' }),
       body: onboarding('tenant_ks'),
@@ -41,6 +42,7 @@ describe('evaluateEmailSignUpTenantGuard', () => {
 
   it('denies signup when country host and payload tenant mismatch', () => {
     const result = evaluateEmailSignUpTenantGuard({
+      admissionTenant: 'tenant_ks',
       url,
       headers: new Headers({ host: 'ks.localhost:3000' }),
       body: onboarding('tenant_mk'),
@@ -55,10 +57,11 @@ describe('evaluateEmailSignUpTenantGuard', () => {
     });
   });
 
-  it('allows explicit tenant signup on the IDA front door', () => {
+  it('allows the admission tenant on the IDA front door', () => {
     setProductionBuildEnv();
 
     const result = evaluateEmailSignUpTenantGuard({
+      admissionTenant: 'tenant_mk',
       url,
       headers: new Headers({ host: 'ida.localhost:3000' }),
       body: onboarding('tenant_mk', 'deferred'),
@@ -67,10 +70,27 @@ describe('evaluateEmailSignUpTenantGuard', () => {
     expect(result).toEqual({ decision: 'allow' });
   });
 
+  it('denies a well-formed deferred selector for a different admission tenant', () => {
+    expect(
+      evaluateEmailSignUpTenantGuard({
+        admissionTenant: 'tenant_ks',
+        url,
+        headers: new Headers({ host: 'ida.localhost:3000' }),
+        body: onboarding('tenant_mk', 'deferred'),
+      })
+    ).toMatchObject({
+      decision: 'deny',
+      code: 'WRONG_TENANT_CONTEXT',
+      reason: 'tenant_mismatch',
+      resolvedTenantId: 'tenant_ks',
+    });
+  });
+
   it('denies front-door signup when forwarded host conflicts', () => {
     setProductionBuildEnv();
 
     const result = evaluateEmailSignUpTenantGuard({
+      admissionTenant: 'tenant_ks',
       url,
       headers: new Headers({
         host: 'ida.localhost:3000',
@@ -90,11 +110,13 @@ describe('evaluateEmailSignUpTenantGuard', () => {
 
   it('denies missing or malformed tenant payloads', () => {
     const missing = evaluateEmailSignUpTenantGuard({
+      admissionTenant: 'tenant_ks',
       url,
       headers: new Headers({ host: 'ks.localhost:3000' }),
       body: {},
     });
     const malformed = evaluateEmailSignUpTenantGuard({
+      admissionTenant: 'tenant_ks',
       url,
       headers: new Headers({ host: 'ks.localhost:3000' }),
       body: onboarding('not-a-tenant'),
@@ -107,6 +129,7 @@ describe('evaluateEmailSignUpTenantGuard', () => {
   it('enforces host-owned mode and accepts the deferred social selector shape', () => {
     expect(
       evaluateEmailSignUpTenantGuard({
+        admissionTenant: 'tenant_ks',
         url,
         headers: new Headers({ host: 'ks.localhost:3000' }),
         body: onboarding('tenant_ks', 'deferred'),
@@ -114,6 +137,7 @@ describe('evaluateEmailSignUpTenantGuard', () => {
     ).toBe('deny');
     expect(
       evaluateEmailSignUpTenantGuard({
+        admissionTenant: 'tenant_ks',
         url,
         headers: new Headers({ host: 'ida.localhost:3000' }),
         body: onboarding('tenant_ks', 'resolved'),
@@ -121,6 +145,7 @@ describe('evaluateEmailSignUpTenantGuard', () => {
     ).toBe('deny');
     expect(
       evaluateEmailSignUpTenantGuard({
+        admissionTenant: 'tenant_ks',
         url,
         headers: new Headers({ host: 'ida.localhost:3000' }),
         body: { additionalData: onboarding('tenant_ks', 'deferred') },
