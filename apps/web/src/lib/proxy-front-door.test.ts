@@ -40,11 +40,21 @@ function restoreE2eEnv(): void {
   }
 }
 
-function makeRequest(pathname: string, cookieHeader?: string, host = 'ida.localhost:3000') {
-  const headers = new Headers({ host });
+function makeRequest(
+  pathname: string,
+  cookieHeader?: string,
+  host = 'ida.localhost:3000',
+  init?: Pick<RequestInit, 'headers' | 'method'>
+) {
+  const headers = new Headers(init?.headers);
+  headers.set('host', host);
   if (cookieHeader) headers.set('cookie', cookieHeader);
-  return new NextRequest(`http://${host}${pathname}`, { headers });
+  return new NextRequest(`http://${host}${pathname}`, { ...init, headers });
 }
+
+const actionHeaders = { 'next-action': 'test-action' };
+const actionPost = { method: 'POST', headers: actionHeaders };
+const matchingKsCookie = 'tenantId=tenant_ks';
 
 function expectProxyContext(
   response: Response,
@@ -125,5 +135,43 @@ describe('proxy ida front-door context', () => {
       setCookie: 'tenantId=tenant_ks',
     });
     expect(response.headers.get('set-cookie')).not.toContain('tenantId=tenant_mk');
+  });
+
+  it.each([
+    ['ks.localhost:3000', '/sq', 'tenant_ks'],
+    ['mk.localhost:3000', '/mk', 'tenant_mk'],
+  ])(
+    'keeps hardening without reissuing an identical cookie on %s%s',
+    async (host, path, tenant) => {
+      const response = await proxy(makeRequest(path, `tenantId=${tenant}`, host, actionPost));
+
+      expectProxyContext(response, { tenant, context: 'compatibility_alias', setCookie: null });
+      expect(response.headers.get('x-middleware-set-cookie')).toBeNull();
+      expect(response.headers.get('content-security-policy')).toContain("frame-ancestors 'none'");
+      expect(response.headers.get('x-frame-options')).toBe('DENY');
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+      expect(response.headers.get('referrer-policy')).toBe('strict-origin-when-cross-origin');
+      expect(response.headers.get('permissions-policy')).toContain('camera=()');
+    }
+  );
+
+  it.each([
+    ['homepage action with a missing cookie', '/sq', undefined, actionPost],
+    ['homepage action with a stale cookie', '/sq', 'tenantId=tenant_mk', actionPost],
+    ['homepage GET with the action header', '/sq', matchingKsCookie, { headers: actionHeaders }],
+    ['homepage POST without the action header', '/sq', matchingKsCookie, { method: 'POST' }],
+    ['action on another localized route', '/sq/pricing', matchingKsCookie, actionPost],
+    ['action on an unsupported locale path', '/hr', matchingKsCookie, actionPost],
+    ['action on the unlocalized root', '/', matchingKsCookie, actionPost],
+    ['action on a locale path with a trailing slash', '/sq/', matchingKsCookie, actionPost],
+  ])('writes the host tenant cookie for a %s', async (_scenario, path, cookie, init) => {
+    const response = await proxy(makeRequest(path, cookie, 'ks.localhost:3000', init));
+
+    expectProxyContext(response, {
+      tenant: 'tenant_ks',
+      context: 'compatibility_alias',
+      setCookie: matchingKsCookie,
+    });
+    expect(response.headers.get('x-content-type-options')).toBe('nosniff');
   });
 });

@@ -134,7 +134,8 @@ test.describe('premium Free Start result', () => {
 
       const unknown = new URL(neutralUrl);
       unknown.hostname = 'unknown.127.0.0.1.nip.io';
-      await gotoOrigin(page, unknown, info, 'free-start-intake-shell');
+      await gotoOrigin(page, unknown, info, 'landing-page-ready');
+      await expect(page.getByTestId('free-start-intake-shell')).toHaveCount(0);
       await expect(page.getByTestId('free-start-secure-save-band')).toHaveCount(0);
     } finally {
       await neutral.close();
