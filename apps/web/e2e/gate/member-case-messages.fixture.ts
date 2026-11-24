@@ -3,6 +3,7 @@ import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lif
 import type { TestInfo } from '@playwright/test';
 import { eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
 
 export async function withMemberMessageFixture<T>(
@@ -19,6 +20,11 @@ export async function withMemberMessageFixture<T>(
   const seed = await resolveSeededClaimContext(info);
   const prefix = `member-comms-${randomUUID()}`;
   const otherMemberId = `${prefix}-other-member`;
+  const otherMember = {
+    id: otherMemberId,
+    tenantId: seed.tenantId,
+    email: `${otherMemberId}@example.test`,
+  };
   const claimIds = ['owned', 'other-member', 'other-tenant'].map(name => `${prefix}-${name}`);
   const foreignTenant = seed.tenantId === 'tenant_ks' ? 'tenant_mk' : 'tenant_ks';
   const staff = await db.query.user.findFirst({ where: eq(user.id, seed.staffId) });
@@ -27,15 +33,14 @@ export async function withMemberMessageFixture<T>(
   );
   try {
     await db.insert(user).values({
-      id: otherMemberId,
-      tenantId: seed.tenantId,
+      ...otherMember,
       name: 'Synthetic other member',
-      email: `${otherMemberId}@example.com`,
       role: 'member',
       emailVerified: true,
       createdAt: new Date(),
       updatedAt: new Date(),
     });
+    await fixtureLegalAcceptance('seed', [otherMember]);
     await db.insert(claims).values(
       claimIds.map((id, index) => ({
         id,
@@ -64,6 +69,7 @@ export async function withMemberMessageFixture<T>(
   } finally {
     await db.delete(claimMessages).where(inArray(claimMessages.claimId, claimIds));
     await db.delete(claims).where(inArray(claims.id, claimIds));
+    await fixtureLegalAcceptance('clean', [otherMember]);
     await db.delete(user).where(eq(user.id, otherMemberId));
   }
 }

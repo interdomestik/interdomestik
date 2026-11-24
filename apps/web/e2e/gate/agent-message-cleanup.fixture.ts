@@ -12,6 +12,7 @@ import {
 } from '@interdomestik/database';
 import { and, eq, inArray } from 'drizzle-orm';
 
+import { fixtureLegalAcceptance, type FixtureMember } from '../fixtures/legal-acceptance.fixture';
 import { cleanupProfileChildren, type ProfileChildFixture } from './agent-profile-children.fixture';
 import { inSequence } from './in-sequence';
 
@@ -21,11 +22,21 @@ export async function cleanupAgentMessageFixture(args: {
   allClaimIds: string[];
   assignmentIds: string[];
   children: ProfileChildFixture;
+  fixtureMembers: readonly FixtureMember[];
   memberIds: string[];
   noteIds: string[];
   tenantId: string;
 }) {
-  const { agent, allClaimIds, assignmentIds, children, memberIds, noteIds, tenantId } = args;
+  const {
+    agent,
+    allClaimIds,
+    assignmentIds,
+    children,
+    fixtureMembers,
+    memberIds,
+    noteIds,
+    tenantId,
+  } = args;
   const cleanupSteps: Array<() => PromiseLike<unknown>> = [
     () =>
       dbAdmin
@@ -47,6 +58,7 @@ export async function cleanupAgentMessageFixture(args: {
       dbAdmin
         .delete(account)
         .where(inArray(account.userId, [memberIds[0], children.staffAuthorId])),
+    () => fixtureLegalAcceptance('clean', fixtureMembers),
     () => cleanupProfileChildren(children),
     // Notes reference their authors without cascade, so remove them before users.
     () => dbAdmin.delete(memberNotes).where(inArray(memberNotes.id, noteIds)),

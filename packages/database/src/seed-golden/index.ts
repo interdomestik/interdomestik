@@ -110,6 +110,13 @@ export async function seedGolden(config: SeedConfig) {
 
 // Pure module - CLI execution removed. Use seed.ts runner only.
 
+type AcceptanceSeedIdentity = {
+  id: string;
+  tenantId: string;
+  email: string;
+  legacyEmail?: string;
+};
+
 function legalAcceptanceSeedIdentities() {
   const fullMembers = (['mk', 'ks'] as const).flatMap(country => {
     const goldenMemberCount = country === 'mk' ? 2 : 3;
@@ -128,7 +135,9 @@ function legalAcceptanceSeedIdentities() {
   }));
 }
 
-export async function cleanSeededLegalAcceptance() {
+export async function cleanSeededLegalAcceptance(
+  identities: AcceptanceSeedIdentity[] = legalAcceptanceSeedIdentities()
+) {
   return withDisposableClient(
     process.env.DATABASE_URL ?? '',
     { applicationName: 'wp13_seed_acceptance_cleanup' },
@@ -138,7 +147,7 @@ export async function cleanSeededLegalAcceptance() {
         select exists (
           select 1 from public.legal_acceptances a
           join public."user" u on u.id = a.subject_user_id and u.tenant_id = a.tenant_id
-          join jsonb_to_recordset(${tx.json(legalAcceptanceSeedIdentities())}::jsonb)
+          join jsonb_to_recordset(${tx.json(identities)}::jsonb)
             as fixture(id text, "tenantId" text, email text, "legacyEmail" text)
             on u.id = fixture.id and u.tenant_id = fixture."tenantId"
             and u.email in (fixture.email, fixture."legacyEmail")
@@ -146,6 +155,8 @@ export async function cleanSeededLegalAcceptance() {
       `;
         if (!lookup.needed) return;
 
+        // Cleanup can run in parallel Playwright workers. Serialize the shared role DDL.
+        await tx`select pg_advisory_xact_lock(hashtext('interdomestik_seed_cleanup'))`;
         // Use the guarded disposable connection's owner rights for RLS, with the trigger's
         // independent role opt-in confined to this transaction.
         await tx`
@@ -161,7 +172,7 @@ export async function cleanSeededLegalAcceptance() {
         if (!membership.member) await tx`grant interdomestik_seed_cleanup to current_user`;
         await tx`
         delete from public.legal_acceptances a
-        using public."user" u, jsonb_to_recordset(${tx.json(legalAcceptanceSeedIdentities())}::jsonb)
+        using public."user" u, jsonb_to_recordset(${tx.json(identities)}::jsonb)
           as fixture(id text, "tenantId" text, email text, "legacyEmail" text)
         where u.id = a.subject_user_id and u.tenant_id = a.tenant_id
           and u.id = fixture.id and u.tenant_id = fixture."tenantId"
@@ -172,7 +183,9 @@ export async function cleanSeededLegalAcceptance() {
   );
 }
 
-export async function seedLegalAcceptance() {
+export async function seedLegalAcceptance(
+  identities: AcceptanceSeedIdentity[] = legalAcceptanceSeedIdentities()
+) {
   return withDisposableClient(
     process.env.DATABASE_URL ?? '',
     { applicationName: 'wp13_seed_acceptance' },
@@ -188,7 +201,7 @@ export async function seedLegalAcceptance() {
           as version(kind text, version text, locale text, "textSha256" text)
         where u.role in ('member', 'user') and u.id <> ${UNACCEPTED_MEMBER_ID}
           and exists (
-            select 1 from jsonb_to_recordset(${client.json(legalAcceptanceSeedIdentities())}::jsonb)
+            select 1 from jsonb_to_recordset(${client.json(identities)}::jsonb)
               as fixture(id text, "tenantId" text, email text, "legacyEmail" text)
             where u.id = fixture.id and u.tenant_id = fixture."tenantId"
               and u.email in (fixture.email, fixture."legacyEmail")

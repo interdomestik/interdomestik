@@ -1,7 +1,9 @@
 import { db, E2E_PASSWORD, E2E_USERS, eq, user } from '@interdomestik/database';
 import type { Page, TestInfo } from '@playwright/test';
-import { randomUUID } from 'node:crypto';
-
+import {
+  preparePendingTenantClassificationMember,
+  resetPendingTenantClassificationMember,
+} from '../fixtures/admin-tenant-classification.fixture';
 import { expect } from '../fixtures/auth.fixture';
 import { gotoApp } from '../utils/navigation';
 import { routes } from '../routes';
@@ -16,43 +18,6 @@ function baseOrigin(testInfo: TestInfo): string {
   const fallbackBaseURL = `${LOCAL_TEST_PROTOCOL}//${LOCAL_TEST_HOST}/${LOCAL_TEST_LOCALE}`;
   const baseURL = testInfo.project.use.baseURL ?? fallbackBaseURL;
   return new URL(baseURL.toString()).origin;
-}
-
-export async function preparePendingTenantClassificationMember(params: {
-  memberPrefix: string;
-  namePrefix: string;
-  emailPrefix: string;
-  role: 'member' | 'user';
-  tenantId: string;
-  testInfo: TestInfo;
-}) {
-  const { memberPrefix, namePrefix, emailPrefix, role, tenantId, testInfo } = params;
-  const suffix = `${testInfo.project.name}-${Date.now()}-${randomUUID().slice(0, 8)}`;
-  const memberId = `${memberPrefix}-${suffix}`;
-
-  await db.insert(user).values({
-    id: memberId,
-    tenantId,
-    tenantClassificationPending: true,
-    name: `${namePrefix} ${testInfo.project.name}`,
-    email: `${emailPrefix}.${suffix}@interdomestik.test`,
-    emailVerified: true,
-    role,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-    agentId: null,
-    branchId: null,
-    createdBy: 'self',
-    assistedByAgentId: null,
-    memberNumber: null,
-    memberNumberIssuedAt: null,
-  });
-
-  return memberId;
-}
-
-export async function resetPendingTenantClassificationMember(memberId: string) {
-  await db.delete(user).where(eq(user.id, memberId));
 }
 
 export async function loginAsSuperAdmin(page: Page, testInfo: TestInfo): Promise<void> {
@@ -241,7 +206,7 @@ export function registerTenantClassificationSuite(
         return;
       }
 
-      const memberId = await preparePendingTenantClassificationMember({
+      const member = await preparePendingTenantClassificationMember({
         memberPrefix,
         namePrefix,
         emailPrefix,
@@ -254,11 +219,11 @@ export function registerTenantClassificationSuite(
         await confirmCurrentTenantClassification({
           page,
           testInfo,
-          memberId,
+          memberId: member.id,
           expectedTenantId: 'tenant_ks',
         });
       } finally {
-        await resetPendingTenantClassificationMember(memberId);
+        await resetPendingTenantClassificationMember(member);
       }
     });
 
@@ -275,7 +240,7 @@ export function registerTenantClassificationSuite(
         return;
       }
 
-      const memberId = await preparePendingTenantClassificationMember({
+      const member = await preparePendingTenantClassificationMember({
         memberPrefix,
         namePrefix,
         emailPrefix,
@@ -288,12 +253,12 @@ export function registerTenantClassificationSuite(
         await expectTenantReassignmentUnavailable({
           page,
           testInfo,
-          memberId,
+          memberId: member.id,
           currentTenantId: 'tenant_ks',
           dismissCookieBanner: dismissCookieBannerOnReassign,
         });
       } finally {
-        await resetPendingTenantClassificationMember(memberId);
+        await resetPendingTenantClassificationMember(member);
       }
     });
   });

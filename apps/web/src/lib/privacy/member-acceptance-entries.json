@@ -669,6 +669,11 @@
     "evidence": "apps/web/src/actions/membership-billing/record-exchange-rate.ts:10",
     "proof": "dcbaec178c68"
   },
+  "actions/membership-billing/record-rate-verification.ts#recordRateVerification": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/membership-billing/record-rate-verification.ts:10",
+    "proof": "323154138cfd"
+  },
   "actions/messages.core.ts#getMessagesForClaim": {
     "disposition": "checked",
     "via": "actions/messages/context.core.ts#getActionContext"
