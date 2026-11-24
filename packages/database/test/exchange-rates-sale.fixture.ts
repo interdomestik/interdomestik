@@ -1,10 +1,12 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 
+import { setRateVerificationLimit } from '../src/scripts/rate-verification-limit';
+import { withPaymentPortReleaseClient } from './exchange-rates-release-client.fixture';
 import type { ExchangeRateFixture } from './exchange-rates.fixture';
 
 // Seed a valid individual sale in the journal-built scratch database with its triggers active.
-export function seedRateLinkedSale(
+export async function seedRateLinkedSale(
   { admin, tenantId, actor }: ExchangeRateFixture,
   bookId: string
 ) {
@@ -17,6 +19,16 @@ export function seedRateLinkedSale(
   const saleId = randomUUID();
   const termsVersion = 'test-v1';
   const priceMinor = 1000;
+
+  await withPaymentPortReleaseClient(admin, client =>
+    setRateVerificationLimit(client, {
+      tenantId,
+      maxAgeSeconds: 3600,
+      operationId: randomUUID(),
+      approvalReference: 'wp07-truncate-proof',
+      releaseIdentity: 'test-release',
+    })
+  );
 
   return admin.begin('isolation level read committed', async tx => {
     await tx`insert into public.legal_entities
@@ -42,6 +54,13 @@ export function seedRateLinkedSale(
         and effective_on <= (clock_timestamp() at time zone 'Europe/Skopje')::date
       order by effective_on desc, revision desc limit 1`;
     assert.ok(rate, 'the book must have an effective rate before recording a sale');
+
+    await tx`insert into public.exchange_rate_verifications
+      (id, tenant_id, legal_entity_id, book_id, rate_id, base, quote, rate_effective_on,
+        observed_rate, source_ref, verified_by, operation_key)
+      select ${randomUUID()}, tenant_id, ${entityId}, book_id, id, base, quote, effective_on,
+        rate, 'nbrm:truncate-proof', ${actor.id}, ${randomUUID()}
+      from public.exchange_rates where tenant_id = ${tenantId} and id = ${rate.id}`;
 
     const [{ request_hash }] = await tx<{ request_hash: string }[]>`
       insert into public.membership_sale_claims (tenant_id, operation_key, request_hash, claimed_at)

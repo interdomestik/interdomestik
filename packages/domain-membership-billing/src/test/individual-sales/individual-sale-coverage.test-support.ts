@@ -128,6 +128,8 @@ export function registerCoverageCases(fixture: () => Promise<SaleFixture>) {
       await seedIndividualSubscription(f, 'active');
 
       expect(await sale(f, input, f.owner)).toEqual(refused('already_covered'));
+      await f.setLimit(null);
+      expect(await sale(f, input, f.owner)).toEqual(refused('already_covered'));
       expect(await f.counts(input.operationKey)).toEqual(absent);
     });
 

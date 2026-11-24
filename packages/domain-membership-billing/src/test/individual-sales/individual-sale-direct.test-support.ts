@@ -28,7 +28,11 @@ export function canonicalHash(input: SaleInput, channel: string = input.channel)
   return hash.digest('hex');
 }
 
-export async function directSaleRow(f: SaleFixture, input: SaleInput) {
+export async function directSaleRow(
+  f: SaleFixture,
+  input: SaleInput,
+  { deriveDueOn = false } = {}
+) {
   const [version] =
     await f.admin`select * from membership_plan_versions where id = ${input.planVersionId}`;
   const [entity] =
@@ -69,7 +73,7 @@ export async function directSaleRow(f: SaleFixture, input: SaleInput) {
     sold_by: f.owner.id,
     sold_at: now.toISOString(),
     sold_on: skopjeDate(now),
-    due_on: skopjeDate(now),
+    ...(deriveDueOn ? {} : { due_on: skopjeDate(now) }),
     channel: input.channel as string,
     buyer_kind: lead ? 'lead' : 'member',
     lead_id: lead?.id ?? null,

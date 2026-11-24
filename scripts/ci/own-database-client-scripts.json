@@ -12,6 +12,11 @@
       "reason": "Resolves the explicit, confirmed --target of the pilot branch audit against DATABASE_URL for scripts/pilot/branch-check.ts (read-only); it opens no client, runs no command and holds no write."
     },
     {
+      "path": "packages/database/src/scripts/set-rate-verification-limit.ts",
+      "kind": "guarded",
+      "reason": "Opens the provisioning client through withDisposableClient and records the limit and its audit receipt in one transaction."
+    },
+    {
       "path": "packages/database/test/pg16/journal-migrator.ts",
       "kind": "client-adapter",
       "reason": "Applies a journal folder with the application's migrator to a guarded client it is given; it imports Drizzle's adapter and migrator only, calls the adapter only on that client, and cannot open a connection."
