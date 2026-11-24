@@ -5,10 +5,10 @@ type PaddleResourceArgs = {
   id: string;
 };
 
-export async function getPaddleResource(_args: ToolRepoArgs & PaddleResourceArgs) {
-  return {
+export function getPaddleResource(_args: ToolRepoArgs & PaddleResourceArgs) {
+  return Promise.resolve({
     content: [{ type: 'text', text: 'Paddle is closed.' }],
     isError: true,
     structuredContent: { status: 'error', tool: 'get_paddle_resource', code: 'PADDLE_CLOSED' },
-  };
+  });
 }

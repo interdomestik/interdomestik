@@ -60,8 +60,14 @@ async function startBuiltServer(env: NodeJS.ProcessEnv, refusedName?: string) {
 }
 
 test('the built CI server starts on disposable targets and exits before readiness on refusal', async ({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'gate-ks-sq', 'Startup is independent of tenant and locale.');
-  test.skip(!testInfo.config.webServer, 'The startup contract uses the CI web server environment.');
+  test.skip(
+    testInfo.project.name !== 'gate-ks-sq',
+    'The PR E2E Gate runs this tenant-independent startup check once, in gate-ks-sq.'
+  );
+  test.skip(
+    !testInfo.config.webServer,
+    'The PR E2E Gate provides the web server environment and disposable database for this check.'
+  );
   test.setTimeout(75_000);
 
   const adminUrl = process.env.DATABASE_URL;
@@ -95,8 +101,14 @@ test('the built CI server starts on disposable targets and exits before readines
 });
 
 test('the built CI server refuses a baked public test value in production', async ({}, testInfo) => {
-  test.skip(testInfo.project.name !== 'gate-ks-sq', 'Startup is independent of tenant and locale.');
-  test.skip(!testInfo.config.webServer, 'The startup contract uses the CI standalone artifact.');
+  test.skip(
+    testInfo.project.name !== 'gate-ks-sq',
+    'The PR E2E Gate runs this tenant-independent startup check once, in gate-ks-sq.'
+  );
+  test.skip(
+    !testInfo.config.webServer,
+    'The PR E2E Gate provides the standalone build with the baked public test value.'
+  );
 
   expect(
     await startBuiltServer(

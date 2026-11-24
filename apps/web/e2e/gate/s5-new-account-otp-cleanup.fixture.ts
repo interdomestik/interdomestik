@@ -54,10 +54,10 @@ export async function cleanupOtpJourney(args: {
         await db.execute(sql`delete from account where "userId" = ${owner.id}`);
         await db.delete(user).where(eq(user.id, owner.id));
       }),
-      ...args.emails.map(
-        email => () =>
-          db.execute(sql`delete from verification where identifier like ${`%${email}`}`)
-      ),
+      ...args.emails.map(email => () => {
+        const identifierPattern = `%${email}`;
+        return db.execute(sql`delete from verification where identifier like ${identifierPattern}`);
+      }),
       () => deleteMail(args.seen),
       ...args.pages.map(page => () => page.context().close()),
       async () => {

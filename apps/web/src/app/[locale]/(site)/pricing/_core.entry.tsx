@@ -46,6 +46,28 @@ export async function generateMetadata({ params }: PricingPageProps): Promise<Me
     description: t('description'),
   };
 }
+
+type AdmissionTenantId = ReturnType<typeof resolvePublicAdmissionTenant>;
+
+function resolvePricingBillingTenant(env: NodeJS.ProcessEnv, admissionTenantId: AdmissionTenantId) {
+  const configuredEntity = resolveBillingEntityFromPathSegment(env.PADDLE_DEFAULT_BILLING_ENTITY);
+  // The disposable CI billing fixture has no configured provider entity.
+  const billingEntity =
+    configuredEntity ??
+    (releaseClass(env) === 'local-e2e' && isBillingTestActivationEnabled(env)
+      ? resolveBillingEntityForTenantId(admissionTenantId)
+      : null);
+  const billingTenantId = billingEntity ? resolveBillingTenantIdForEntity(billingEntity) : null;
+  return { billingEntity, billingTenantId };
+}
+
+function checkoutConfigHasWrongTenant(
+  checkoutConfig: PublicBillingCheckoutConfig | null,
+  admissionTenantId: AdmissionTenantId
+) {
+  return checkoutConfig && checkoutConfig.tenantId !== admissionTenantId;
+}
+
 export default async function PricingPage({ params, searchParams }: PricingPageProps) {
   const { locale } = await params;
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
@@ -62,16 +84,10 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
   let checkoutOpen = false;
   let checkoutConfig: PublicBillingCheckoutConfig | null = null;
   if (!PADDLE_CLOSED) {
-    const configuredEntity = resolveBillingEntityFromPathSegment(
-      process.env.PADDLE_DEFAULT_BILLING_ENTITY
+    const { billingEntity, billingTenantId } = resolvePricingBillingTenant(
+      process.env,
+      admissionTenantId
     );
-    // The disposable CI billing fixture has no configured provider entity.
-    const billingEntity =
-      configuredEntity ??
-      (releaseClass() === 'local-e2e' && isBillingTestActivationEnabled()
-        ? resolveBillingEntityForTenantId(admissionTenantId)
-        : null);
-    const billingTenantId = billingEntity ? resolveBillingTenantIdForEntity(billingEntity) : null;
     const checkoutEntity = billingTestMode
       ? billingEntity
       : (resolveBillingEntityFromPathSegment(process.env.NEXT_PUBLIC_PADDLE_BILLING_ENTITY) ??
@@ -83,25 +99,69 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
       resolveBillingTenantIdForEntity(checkoutEntity) === admissionTenantId &&
       (await isPublicCheckoutOpen(authority))
     );
-    if (checkoutOpen && !billingTestMode) {
-      try {
-        checkoutConfig = getPublicBillingCheckoutConfig();
-      } catch (error) {
-        if (
-          process.env.VERCEL_ENV !== 'production' &&
-          process.env.NEXT_PUBLIC_PADDLE_ENV !== 'production'
-        ) {
-          console.warn('Public Paddle checkout config unavailable for pricing page:', error);
-        } else {
-          throw error;
-        }
+  }
+  if (checkoutOpen && !billingTestMode) {
+    try {
+      checkoutConfig = getPublicBillingCheckoutConfig();
+    } catch (error) {
+      if (
+        process.env.VERCEL_ENV !== 'production' &&
+        process.env.NEXT_PUBLIC_PADDLE_ENV !== 'production'
+      ) {
+        console.warn('Public Paddle checkout config unavailable for pricing page:', error);
+      } else {
+        throw error;
       }
     }
-    if (checkoutConfig && checkoutConfig.tenantId !== admissionTenantId) {
-      checkoutOpen = false;
-      checkoutConfig = null;
-    }
   }
+  if (checkoutConfigHasWrongTenant(checkoutConfig, admissionTenantId)) {
+    checkoutOpen = false;
+    checkoutConfig = null;
+  }
+
+  return renderPricingPage({
+    admissionTenantId,
+    authority,
+    billingTestMode,
+    checkoutConfig,
+    checkoutOpen,
+    commercialTerms,
+    coverageMatrix,
+    hero,
+    isRegisterEntry,
+    locale,
+    resolvedSearchParams,
+    t,
+  });
+}
+
+function renderPricingPage({
+  admissionTenantId,
+  authority,
+  billingTestMode,
+  checkoutConfig,
+  checkoutOpen,
+  commercialTerms,
+  coverageMatrix,
+  hero,
+  isRegisterEntry,
+  locale,
+  resolvedSearchParams,
+  t,
+}: Readonly<{
+  admissionTenantId: AdmissionTenantId;
+  authority: Awaited<ReturnType<typeof authorizeOpenPublicIntake>>;
+  billingTestMode: boolean;
+  checkoutConfig: PublicBillingCheckoutConfig | null;
+  checkoutOpen: boolean;
+  commercialTerms: Awaited<ReturnType<typeof getTranslations<'commercialTerms'>>>;
+  coverageMatrix: Awaited<ReturnType<typeof getTranslations<'coverageMatrix'>>>;
+  hero: Awaited<ReturnType<typeof getTranslations<'hero'>>>;
+  isRegisterEntry: boolean;
+  locale: string;
+  resolvedSearchParams: Awaited<PricingPageProps['searchParams']>;
+  t: Awaited<ReturnType<typeof getTranslations<'pricing'>>>;
+}>) {
   return (
     <div
       className="container py-20 px-4 md:px-6"
@@ -187,5 +247,6 @@ export default async function PricingPage({ params, searchParams }: PricingPageP
     </div>
   );
 }
+
 export { generateViewport } from '@/app/_segment-exports';
 export const generateStaticParams = generateLocaleStaticParams;

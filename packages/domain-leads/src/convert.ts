@@ -139,8 +139,7 @@ export async function convertLeadToMember(
           ),
         });
         if (
-          !attempt ||
-          attempt.leadId !== leadId ||
+          attempt?.leadId !== leadId ||
           attempt.method !== 'cash' ||
           attempt.status !== 'succeeded' ||
           !attempt.verifiedBy

@@ -23,7 +23,7 @@ const wiring = vi.hoisted(() => ({
   handler: vi.fn(),
   getSession: vi.fn(),
   revokeSession: vi.fn(),
-  sendSignInOtpEmail: vi.fn(async () => ({ success: true })),
+  sendSignInOtpEmail: vi.fn(() => Promise.resolve({ success: true })),
   sendPasswordResetEmail: vi.fn<(email: string, link: string) => Promise<void>>(),
   after: [] as Array<() => Promise<unknown> | void>,
 }));
@@ -33,8 +33,8 @@ vi.mock('@/lib/auth', () => ({
     api: { getSession: wiring.getSession, revokeSession: wiring.revokeSession },
   },
 }));
-vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: async () => null }));
-vi.mock('@/lib/rate-limit-otp', () => ({ enforceOtpRateLimits: async () => null }));
+vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: () => Promise.resolve(null) }));
+vi.mock('@/lib/rate-limit-otp', () => ({ enforceOtpRateLimits: () => Promise.resolve(null) }));
 vi.mock('@/lib/audit.core', () => ({ extractRequestMetadata: () => ({}) }));
 vi.mock('next/server', () => ({
   after: (callback: () => Promise<unknown> | void) => {

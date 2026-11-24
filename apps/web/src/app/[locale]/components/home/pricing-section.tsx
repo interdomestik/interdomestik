@@ -21,7 +21,7 @@ type Plan = {
   icon: React.ElementType;
 };
 
-export function PricingSection({ publicIntakeOpen }: { publicIntakeOpen: boolean }) {
+export function PricingSection({ publicIntakeOpen }: Readonly<{ publicIntakeOpen: boolean }>) {
   const t = useTranslations('pricing');
   const commercialTerms = useTranslations('commercialTerms');
   const locale = useLocale();

@@ -21,7 +21,7 @@ export type PilotSwitchControlProps = {
 
 type Message = 'saved' | 'failed' | 'conflict';
 
-export function PilotSwitchControl({ pilotSwitches }: PilotSwitchControlProps) {
+export function PilotSwitchControl({ pilotSwitches }: Readonly<PilotSwitchControlProps>) {
   const t = useTranslations('admin.settings_page.pilot');
   const id = useId();
   const [switches, setSwitches] = useState(pilotSwitches);
@@ -131,7 +131,7 @@ export function PilotSwitchControl({ pilotSwitches }: PilotSwitchControlProps) {
         ) : (
           <p role="alert">{t('unavailable')}</p>
         )}
-        {isPending && <p role="status">{t('pending')}</p>}
+        {isPending && <output className="block text-sm leading-normal">{t('pending')}</output>}
         {message && <p role={message === 'saved' ? 'status' : 'alert'}>{t(message)}</p>}
         {(!current || message === 'conflict') && (
           <Button type="button" variant="outline" onClick={() => window.location.reload()}>

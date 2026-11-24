@@ -130,7 +130,8 @@ export function userCount(email: string) {
 }
 
 export function challenges(email: string) {
-  return sqlClient`select id from "verification" where identifier like ${`%${email}`}`;
+  const identifierPattern = `%${email}`;
+  return sqlClient`select id from "verification" where identifier like ${identifierPattern}`;
 }
 
 export function defer() {

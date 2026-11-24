@@ -64,7 +64,7 @@ export async function setPasswordFromActivationInvite({
     // The member opens the exact emailed link: Better Auth checks the token and returns them to
     // the reset page on this deployment, never to a host the lane does not serve.
     const link = await waitForActivationLink(email, seen);
-    const servedOrigins = [link.origin, tenantOrigin];
+    const servedOrigins = new Set([link.origin, tenantOrigin]);
     expect(link.pathname).toMatch(/^\/api\/auth\/reset-password\/[^/]+$/u);
     const resetPath = new URL(routePath(testInfo, '/reset-password')).pathname;
     const page = await context.newPage();
@@ -72,7 +72,7 @@ export async function setPasswordFromActivationInvite({
     await expect(page).toHaveURL(url => {
       const landed = new URL(url);
       const onResetPage = landed.pathname === resetPath && landed.searchParams.has('token');
-      return servedOrigins.includes(landed.origin) && onResetPage;
+      return servedOrigins.has(landed.origin) && onResetPage;
     });
     // A fresh browser meets the cookie notice first; the member declines optional cookies.
     const consentBanner = page.getByTestId('cookie-consent-banner');

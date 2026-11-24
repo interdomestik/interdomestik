@@ -14,7 +14,10 @@ vi.mock('@interdomestik/database', async () =>
 );
 
 vi.mock('@/lib/tenant/public-intake-admission', () => ({
-  authorizeOpenPublicIntake: async (tenantId: string) => mintTestTenantAuthority(tenantId),
+  authorizeOpenPublicIntake: (tenantId: string) =>
+    new Promise<ReturnType<typeof mintTestTenantAuthority>>(resolve => {
+      resolve(mintTestTenantAuthority(tenantId));
+    }),
 }));
 
 vi.mock('@/lib/rate-limit', () => ({

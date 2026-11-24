@@ -1,7 +1,9 @@
 import { randomUUID } from 'node:crypto';
 import { vi } from 'vitest';
 
-vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
+vi.mock('next-intl/server', () => ({
+  getTranslations: () => Promise.resolve((key: string) => key),
+}));
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn() }));
 
 const publicIntake = vi.hoisted(() => ({

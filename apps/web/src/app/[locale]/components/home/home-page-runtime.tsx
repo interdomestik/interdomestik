@@ -40,6 +40,17 @@ function startsNewIntakeInstance(
   return previous.tenantId !== null && previous.tenantId !== next.tenantId;
 }
 
+function getLandingSession(userId: string | null, role: string | null) {
+  return userId === null ? null : { userId, role: role ?? undefined };
+}
+
+function getSecondaryHref(isAnonymous: boolean, publicIntakeOpen: boolean, continueHref: string) {
+  if (isAnonymous) {
+    return publicIntakeOpen ? PUBLIC_FREE_START_ANCHOR_HREF : undefined;
+  }
+  return continueHref;
+}
+
 type HomePageRuntimeProps = Readonly<{
   defaultPublicTenantId: string;
   locale: string;
@@ -132,13 +143,7 @@ export function HomePageRuntime({
   useEffect(() => {
     setHostTenantId(resolveTenantFromHost(globalThis.location.host));
   }, []);
-  const landingSession =
-    sessionUserId === null
-      ? null
-      : {
-          userId: sessionUserId,
-          role: sessionUserRole ?? undefined,
-        };
+  const landingSession = getLandingSession(sessionUserId, sessionUserRole);
 
   useEffect(() => {
     if (uiV2Enabled) {
@@ -147,10 +152,7 @@ export function HomePageRuntime({
 
     const decision = getLocaleLandingCore({
       locale,
-      session:
-        sessionUserId === null
-          ? null
-          : { userId: sessionUserId, role: sessionUserRole ?? undefined },
+      session: getLandingSession(sessionUserId, sessionUserRole),
     });
 
     if (decision.kind === 'redirect' && redirectedToRef.current !== decision.destination) {
@@ -171,12 +173,7 @@ export function HomePageRuntime({
   });
   const publicHelpNowHref = '/help-now';
   const primaryHref = landingSession === null ? publicHelpNowHref : '/member';
-  const secondaryHref =
-    landingSession === null
-      ? publicIntakeOpen
-        ? PUBLIC_FREE_START_ANCHOR_HREF
-        : undefined
-      : continueHref;
+  const secondaryHref = getSecondaryHref(landingSession === null, publicIntakeOpen, continueHref);
   const intake = publicIntakeOpen ? (
     <FreeStartIntakeShell
       key={`intake-${intakeInstance}`}

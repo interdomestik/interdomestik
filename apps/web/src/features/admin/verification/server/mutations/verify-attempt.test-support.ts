@@ -19,7 +19,7 @@ const hoisted = vi.hoisted(() => ({
 
 vi.mock('@/lib/notifications', () => ({ notifyPaymentVerificationUpdate: hoisted.notify }));
 vi.mock('@/lib/member-activation-invite', () => ({
-  sendMemberActivationInvite: async () => ({ sent: false, reason: 'email_suppressed' }),
+  sendMemberActivationInvite: () => Promise.resolve({ sent: false, reason: 'email_suppressed' }),
 }));
 vi.mock('@interdomestik/database/pilot-switch', async importOriginal => ({
   ...(await importOriginal<typeof import('@interdomestik/database/pilot-switch')>()),

@@ -34,7 +34,10 @@ function requireMailbox() {
   if (process.env.E2E_OTP_PROOF_REQUIRED === '1') {
     expect(mailboxConfigured(), 'the required lane provides the mail catcher').toBe(true);
   }
-  test.skip(!mailboxConfigured(), 'Needs the loopback mail catcher.');
+  test.skip(
+    !mailboxConfigured(),
+    'The PR E2E Gate supplies the loopback mail catcher for OTP proof.'
+  );
 }
 
 async function mountRecovery(

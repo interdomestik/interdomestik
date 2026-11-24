@@ -16,9 +16,11 @@ const request = vi.hoisted(() => ({
 }));
 vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: request.authenticate }));
 vi.mock('@/lib/member-activation-invite', () => ({
-  sendMemberActivationInvite: async () => ({ sent: false, reason: 'email_suppressed' }),
+  sendMemberActivationInvite: () => Promise.resolve({ sent: false, reason: 'email_suppressed' }),
 }));
-vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
+vi.mock('next-intl/server', () => ({
+  getTranslations: () => Promise.resolve((key: string) => key),
+}));
 vi.mock('@interdomestik/database/pilot-switch', async original => {
   const actual = await original<typeof import('@interdomestik/database/pilot-switch')>();
   const check: typeof assertNewSalesOpen = async (tx, tenant) => {

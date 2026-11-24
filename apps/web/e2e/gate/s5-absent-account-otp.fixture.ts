@@ -28,8 +28,9 @@ export async function proveAbsentOtpRefusal(args: {
       expect(sent.mail.subject, 'subject is the static neutral text').toBe(SUBJECT);
       expect(sent.mail.to).toBe(absentEmail);
       expect(await userRow(), 'no account exists before verification').toBeUndefined();
+      const identifierPattern = `%${absentEmail}`;
       const stored = await db.execute<{ value: string }>(
-        sql`select value from verification where identifier like ${`%${absentEmail}`}`
+        sql`select value from verification where identifier like ${identifierPattern}`
       );
       expect(stored, 'one pending code').toHaveLength(1);
       expect(stored[0]!.value.includes(sent.mail.code), 'the code is not stored in clear').toBe(

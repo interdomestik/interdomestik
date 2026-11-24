@@ -17,7 +17,7 @@ import { useTranslations } from 'next-intl';
 import { toast } from 'sonner';
 import { PilotSwitchControl, type PilotSwitchControlProps } from './pilot-switch-control';
 
-export default function AdminSettingsPage({ pilotSwitches }: PilotSwitchControlProps) {
+export default function AdminSettingsPage({ pilotSwitches }: Readonly<PilotSwitchControlProps>) {
   const t = useTranslations('admin.settings_page');
 
   const handleSave = () => {

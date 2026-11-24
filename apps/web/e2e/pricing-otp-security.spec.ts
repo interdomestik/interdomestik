@@ -255,7 +255,7 @@ test.describe('Closed pricing and the door OTP boundary', () => {
           expect(Boolean(response.headers()['set-cookie'])).toBe(false);
         }
       }
-      expect((await context.cookies()).length).toBe(0);
+      expect(await context.cookies()).toHaveLength(0);
     } finally {
       await context.close();
     }

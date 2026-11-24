@@ -6,10 +6,12 @@ const hoisted = vi.hoisted(() => {
 
   return {
     entityDisclosure,
-    headersMock: vi.fn(async () => new Headers([['host', 'ks.127.0.0.1.nip.io:3000']])),
+    headersMock: vi.fn(() => Promise.resolve(new Headers([['host', 'ks.127.0.0.1.nip.io:3000']]))),
     authorize: vi.fn(),
     newSales: vi.fn(),
-    getSessionMock: vi.fn(async () => ({ user: { id: 'user-1', email: 'member@example.com' } })),
+    getSessionMock: vi.fn(() =>
+      Promise.resolve({ user: { id: 'user-1', email: 'member@example.com' } })
+    ),
     getPublicBillingCheckoutConfigMock: vi.fn(() => ({
       entity: 'ks',
       tenantId: 'tenant_ks',
@@ -50,8 +52,8 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>
-    getNamespacedTranslation(options)
+  getTranslations: vi.fn((options?: { namespace?: string } | string) =>
+    Promise.resolve(getNamespacedTranslation(options))
   ),
 }));
 
