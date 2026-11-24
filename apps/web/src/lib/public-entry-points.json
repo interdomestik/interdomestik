@@ -39,45 +39,42 @@
       "kind": "route",
       "module": "apps/web/src/app/api/cron/dunning/route.ts",
       "method": "GET",
-      "authentication": "secret-header",
-      "effect": "runDunningCronCore",
+      "authentication": "closed-410",
       "deniedTest": {
         "path": "apps/web/src/app/api/cron/dunning/route.test.ts",
-        "title": "returns 401 when unauthorized"
+        "title": "returns 410 without running the dunning job"
       },
-      "writes": true,
+      "writes": false,
       "closedBy": null,
-      "source": "R2b D9"
+      "source": "R2b D9, WP-14 PR 1"
     },
     {
       "id": "cron-engagement",
       "kind": "route",
       "module": "apps/web/src/app/api/cron/engagement/route.ts",
       "method": "GET",
-      "authentication": "secret-header",
-      "effect": "runEngagementCronCore",
+      "authentication": "closed-410",
       "deniedTest": {
         "path": "apps/web/src/app/api/cron/engagement/route.test.ts",
-        "title": "returns 401 when unauthorized"
+        "title": "returns 410 without running the engagement job"
       },
-      "writes": true,
+      "writes": false,
       "closedBy": null,
-      "source": "R2b D9"
+      "source": "R2b D9, WP-14 PR 1"
     },
     {
       "id": "cron-nps",
       "kind": "route",
       "module": "apps/web/src/app/api/cron/nps/route.ts",
       "method": "GET",
-      "authentication": "secret-header",
-      "effect": "runNpsCronCore",
+      "authentication": "closed-410",
       "deniedTest": {
         "path": "apps/web/src/app/api/cron/nps/route.test.ts",
-        "title": "returns 401 when unauthorized"
+        "title": "returns 410 without running the nps job"
       },
-      "writes": true,
+      "writes": false,
       "closedBy": null,
-      "source": "R2b D9"
+      "source": "R2b D9, WP-14 PR 1"
     },
     {
       "id": "cron-sponsors",
@@ -223,11 +220,11 @@
       "effect": "serve",
       "deniedTest": {
         "path": "apps/web/src/app/api/inngest/route.test.ts",
-        "title": "refuses an unsigned request before running any function"
+        "title": "refuses unsigned GET without side effects"
       },
-      "writes": true,
+      "writes": false,
       "closedBy": null,
-      "source": "not in R2b (library-authenticated machine route)"
+      "source": "WP-14 PR 1 (cloud SDK machine route)"
     },
     {
       "id": "inngest-post",
@@ -238,11 +235,11 @@
       "effect": "serve",
       "deniedTest": {
         "path": "apps/web/src/app/api/inngest/route.test.ts",
-        "title": "refuses an unsigned request before running any function"
+        "title": "refuses unsigned POST without side effects"
       },
       "writes": true,
       "closedBy": null,
-      "source": "not in R2b (library-authenticated machine route)"
+      "source": "WP-14 PR 1 (cloud SDK machine route)"
     },
     {
       "id": "inngest-put",
@@ -253,11 +250,11 @@
       "effect": "serve",
       "deniedTest": {
         "path": "apps/web/src/app/api/inngest/route.test.ts",
-        "title": "refuses an unsigned request before running any function"
+        "title": "refuses unsigned PUT without side effects"
       },
       "writes": true,
       "closedBy": null,
-      "source": "not in R2b (library-authenticated machine route)"
+      "source": "WP-14 PR 1 (cloud SDK machine route)"
     },
     {
       "id": "auth-handler-get",

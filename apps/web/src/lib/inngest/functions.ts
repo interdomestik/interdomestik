@@ -120,11 +120,9 @@ export const legalDocumentExtractionRequested = inngest.createFunction(
 );
 
 /**
- * All Inngest functions to register with the handler
+ * The public handler registers extraction only. The mail timers stay dormant.
  */
 export const inngestFunctions = [
-  dailyEmailSequences,
-  seasonalCampaigns,
   policyExtractionRequested,
   claimIntakeExtractionRequested,
   legalDocumentExtractionRequested,

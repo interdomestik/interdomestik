@@ -7,7 +7,11 @@ const mocks = vi.hoisted(() => {
     PersistedClaimAiRetryableError,
     mintIngressCapability: vi.fn(() => Object.freeze({ minted: true })),
     createFunction: vi.fn(
-      (config: unknown, trigger: unknown, handler: (...args: unknown[]) => unknown) => ({
+      (
+        config: { id: string },
+        trigger: { cron?: string },
+        handler: (...args: unknown[]) => unknown
+      ) => ({
         config,
         handler,
         trigger,
@@ -37,6 +41,7 @@ vi.mock('@/app/api/policies/analyze/_services', () => ({
 }));
 
 import { NonRetriableError } from 'inngest';
+import scheduledJobs from '../cron/scheduled-jobs.json';
 
 import {
   claimIntakeExtractionRequested,
@@ -46,6 +51,10 @@ import {
   policyExtractionRequested,
   seasonalCampaigns,
 } from './functions';
+
+const declaredTimerIds = mocks.createFunction.mock.calls
+  .filter(([, trigger]) => trigger.cron !== undefined)
+  .map(([config]) => config.id);
 
 type AiRunHandler = (args: {
   event: { data: Record<string, unknown> | undefined };
@@ -241,14 +250,16 @@ describe('scheduled email campaign Inngest handlers', () => {
     );
   });
 
-  it('keeps the AI run functions registered and free of ingress capabilities', async () => {
+  it('registers only extraction and leaves every declared mail timer dormant', async () => {
     expect(inngestFunctions).toEqual([
-      dailyEmailSequences,
-      seasonalCampaigns,
       policyExtractionRequested,
       claimIntakeExtractionRequested,
       legalDocumentExtractionRequested,
     ]);
+    expect(inngestFunctions).not.toContain(dailyEmailSequences);
+    expect(inngestFunctions).not.toContain(seasonalCampaigns);
+    expect(declaredTimerIds).toEqual(scheduledJobs.inngestTimers.map(({ id }) => id));
+    expect(scheduledJobs.inngestTimers.every(({ state }) => state === 'dormant')).toBe(true);
     await handlers[0].handler({
       event: { data: { runId: 'run-1', tenantId: 'tenant_mk' } },
       step,
