@@ -8,7 +8,7 @@ export const test = base.extend<{ closedServices: void }>({
   closedServices: [
     async ({}, use, info) => {
       if (info.project.name === CLOSED_SERVICES_PROJECT) {
-        const { assertClosedServices } = await import('./closed-services.setup');
+        const { assertClosedServices } = await import('./closed-services.setup.fixture');
         await assertClosedServices();
       }
       await use();

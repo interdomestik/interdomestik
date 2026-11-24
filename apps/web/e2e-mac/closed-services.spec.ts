@@ -1,14 +1,4 @@
-import {
-  E2E_USERS,
-  and,
-  db,
-  eq,
-  leadPaymentAttempts,
-  memberLeads,
-  npsSurveyResponses,
-  npsSurveyTokens,
-  user,
-} from '@interdomestik/database';
+import { E2E_USERS, db, sql } from '@interdomestik/database';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { convertLeadToMember } from '@interdomestik/domain-leads/convert';
 import { expect } from '@playwright/test';
@@ -29,17 +19,17 @@ test.use({ screenshot: 'off', trace: 'off', video: 'off' });
 const tenantId = E2E_USERS.KS_MEMBER.tenantId;
 
 test('a member can submit an NPS response', { tag: '@closed-services' }, async ({ request }) => {
-  const member = await db.query.user.findFirst({
-    where: and(eq(user.tenantId, tenantId), eq(user.email, E2E_USERS.KS_MEMBER.email)),
-    columns: { id: true },
-  });
+  const [member] = await db.execute<{ id: string }>(sql`
+    select id from "user" where tenant_id = ${tenantId} and email = ${E2E_USERS.KS_MEMBER.email}
+  `);
   if (!member) throw new Error('Seeded KS member is missing');
 
   const id = randomUUID();
   const token = randomUUID();
-  await db
-    .insert(npsSurveyTokens)
-    .values({ id, token, tenantId, userId: member.id, dedupeKey: id });
+  await db.execute(sql`
+    insert into nps_survey_tokens (id, token, tenant_id, user_id, dedupe_key)
+    values (${id}, ${token}, ${tenantId}, ${member.id}, ${id})
+  `);
   try {
     const url = '/api/public/nps';
     const submitted = await request.post(url, { data: { token, score: 9 } });
@@ -49,15 +39,15 @@ test('a member can submit an NPS response', { tag: '@closed-services' }, async (
     const replay = await request.post(url, { data: { token, score: 1 } });
     expect(replay.status()).toBe(200);
     expect(await replay.json()).toEqual({ success: true, alreadySubmitted: true });
-    const responses = await db.query.npsSurveyResponses.findMany({
-      where: and(eq(npsSurveyResponses.tenantId, tenantId), eq(npsSurveyResponses.tokenId, id)),
-      columns: { score: true, userId: true },
-    });
-    expect(responses).toEqual([{ score: 9, userId: member.id }]);
+    const responses = await db.execute(sql`
+      select score, user_id as "userId" from nps_survey_responses
+      where tenant_id = ${tenantId} and token_id = ${id}
+    `);
+    expect([...responses]).toEqual([{ score: 9, userId: member.id }]);
   } finally {
-    await db
-      .delete(npsSurveyTokens)
-      .where(and(eq(npsSurveyTokens.tenantId, tenantId), eq(npsSurveyTokens.id, id)));
+    await db.execute(
+      sql`delete from nps_survey_tokens where tenant_id = ${tenantId} and id = ${id}`
+    );
   }
 });
 
@@ -67,10 +57,9 @@ test(
   async ({ adminPage, browser }, testInfo) => {
     expect(mailboxConfigured(), 'the Mac lane provides the loopback mail catcher').toBe(true);
     test.setTimeout(180_000);
-    const verifier = await db.query.user.findFirst({
-      where: and(eq(user.tenantId, tenantId), eq(user.email, E2E_USERS.KS_ADMIN.email)),
-      columns: { id: true },
-    });
+    const [verifier] = await db.execute<{ id: string }>(sql`
+      select id from "user" where tenant_id = ${tenantId} and email = ${E2E_USERS.KS_ADMIN.email}
+    `);
     if (!verifier) throw new Error('Seeded KS cash verifier is missing');
 
     const lead = await insertOwnedMemberLead('ks', 'closed-services', 'Activation');
@@ -80,20 +69,17 @@ test(
     try {
       // The admission happened before the stop. The run exercises its fulfillment under closure.
       await db.transaction(async tx => {
-        await tx.insert(leadPaymentAttempts).values({
-          id: attemptId,
-          tenantId,
-          leadId: lead.id,
-          method: 'cash',
-          status: 'succeeded',
-          amount: 15000,
-          verifiedBy: verifier.id,
-          verifiedAt: new Date(),
-        });
-        await tx
-          .update(memberLeads)
-          .set({ status: 'paid' })
-          .where(and(eq(memberLeads.tenantId, tenantId), eq(memberLeads.id, lead.id)));
+        const now = new Date().toISOString();
+        await tx.execute(sql`
+          insert into lead_payment_attempts (id, tenant_id, lead_id, method, status, amount,
+            verified_by, verified_at, updated_at)
+          values (${attemptId}, ${tenantId}, ${lead.id}, 'cash', 'succeeded', 15000,
+            ${verifier.id}, ${now}::timestamp, ${now}::timestamp)
+        `);
+        await tx.execute(sql`
+          update member_leads set status = 'paid', updated_at = ${new Date().toISOString()}::timestamp
+          where tenant_id = ${tenantId} and id = ${lead.id}
+        `);
       });
       const converted = await convertLeadToMember(mintTestTenantAuthority(tenantId), {
         leadId: lead.id,

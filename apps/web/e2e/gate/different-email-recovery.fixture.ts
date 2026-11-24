@@ -1,16 +1,4 @@
-import {
-  account,
-  and,
-  auditLog,
-  dbAdmin,
-  e2eEmail,
-  E2E_PASSWORD,
-  eq,
-  inArray,
-  session,
-  user,
-  verification,
-} from '@interdomestik/database';
+import { dbAdmin, e2eEmail, E2E_PASSWORD, sql } from '@interdomestik/database';
 import { readDisposableTargetClass } from '@interdomestik/database/seed-target-classification';
 import { expect, type Page, type TestInfo } from '@playwright/test';
 import { hash } from 'bcryptjs';
@@ -33,57 +21,47 @@ export async function withRecoveryAccount(
   }
   const id = randomUUID();
   const email = e2eEmail(`recovery-${id}`);
-  const now = new Date();
+  const now = new Date().toISOString();
   await dbAdmin.transaction(async tx => {
-    await tx.insert(user).values({
-      id,
-      email,
-      tenantId,
-      name: 'Recovery browser fixture',
-      role,
-      emailVerified: true,
-      tenantClassificationPending: false,
-      createdAt: now,
-      updatedAt: now,
-    });
-    await tx.insert(account).values({
-      id: randomUUID(),
-      accountId: email,
-      providerId: 'credential',
-      userId: id,
-      password: await hash(E2E_PASSWORD, 10),
-      createdAt: now,
-      updatedAt: now,
-    });
+    await tx.execute(sql`
+      insert into "user" (id, email, tenant_id, name, role, "emailVerified",
+        tenant_classification_pending, "createdAt", "updatedAt")
+      values (${id}, ${email}, ${tenantId}, 'Recovery browser fixture', ${role}, true, false,
+        ${now}::timestamp, ${now}::timestamp)
+    `);
+    await tx.execute(sql`
+      insert into account (id, "accountId", "providerId", "userId", password, "createdAt", "updatedAt")
+      values (${randomUUID()}, ${email}, 'credential', ${id}, ${await hash(E2E_PASSWORD, 10)},
+        ${now}::timestamp, ${now}::timestamp)
+    `);
   });
 
   try {
     await run({ id, email });
   } finally {
     await dbAdmin.transaction(async tx => {
-      await tx
-        .delete(verification)
-        .where(
-          inArray(verification.identifier, [
-            `ida-ui03b:${id}:current`,
-            `ida-ui03b:${id}:replacement`,
-          ])
-        );
-      await tx
-        .delete(auditLog)
-        .where(and(eq(auditLog.actorId, id), eq(auditLog.tenantId, tenantId)));
-      await tx.delete(session).where(eq(session.userId, id));
-      await tx.delete(account).where(eq(account.userId, id));
-      await tx.delete(user).where(eq(user.id, id));
+      await tx.execute(sql`
+        delete from verification
+        where identifier in (${`ida-ui03b:${id}:current`}, ${`ida-ui03b:${id}:replacement`})
+      `);
+      await tx.execute(sql`
+        delete from audit_log where actor_id = ${id} and tenant_id = ${tenantId}
+      `);
+      await tx.execute(sql`delete from session where "userId" = ${id}`);
+      await tx.execute(sql`delete from account where "userId" = ${id}`);
+      await tx.execute(sql`delete from "user" where id = ${id}`);
     });
   }
 }
 
-export function persistedOwner(id: string) {
-  return dbAdmin.query.user.findFirst({
-    columns: { id: true, email: true, emailVerified: true, tenantId: true },
-    where: eq(user.id, id),
-  });
+export async function persistedOwner(id: string) {
+  const [owner] = await dbAdmin.execute<{
+    id: string;
+    email: string;
+    emailVerified: boolean;
+    tenantId: string;
+  }>(sql`select id, email, "emailVerified", tenant_id as "tenantId" from "user" where id = ${id}`);
+  return owner;
 }
 
 export async function login(page: Page, origin: string, identity: { id: string; email: string }) {

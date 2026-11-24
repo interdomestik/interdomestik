@@ -1,12 +1,4 @@
-import {
-  account,
-  db,
-  eq,
-  session as authSession,
-  sql,
-  user,
-  verification,
-} from '@interdomestik/database';
+import { db, sql } from '@interdomestik/database';
 import type { Browser, Page, TestInfo } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import sqAuth from '../../src/messages/sq/auth.json';
@@ -120,22 +112,22 @@ export async function setPasswordFromActivationInvite({
 
 export async function expectActivatedMember(memberId: string, email: string, tenantId: string) {
   // The password belongs to the converted account: same user, tenant and role, one mailbox.
-  const member = await db.query.user.findFirst({ where: eq(user.id, memberId) });
+  const [member] = await db.execute(sql`
+    select email, role, tenant_id as "tenantId" from "user" where id = ${memberId}
+  `);
   expect(member).toMatchObject({ email: email, role: 'member', tenantId });
-  const credentials = await db
-    .select({ providerId: account.providerId })
-    .from(account)
-    .where(eq(account.userId, memberId));
-  expect(credentials).toEqual([{ providerId: 'credential' }]);
-  const mailbox = await db
-    .select({ id: user.id })
-    .from(user)
-    .where(sql`lower(${user.email}) = ${email.toLowerCase()}`);
-  expect(mailbox).toEqual([{ id: memberId }]);
+  const credentials = await db.execute(sql`
+    select "providerId" from account where "userId" = ${memberId}
+  `);
+  expect([...credentials]).toEqual([{ providerId: 'credential' }]);
+  const mailbox = await db.execute(sql`
+    select id from "user" where lower(email) = ${email.toLowerCase()}
+  `);
+  expect([...mailbox]).toEqual([{ id: memberId }]);
 }
 
 export async function removeActivationCredentials(memberId: string) {
-  await db.delete(authSession).where(eq(authSession.userId, memberId));
-  await db.delete(account).where(eq(account.userId, memberId));
-  await db.delete(verification).where(eq(verification.value, memberId));
+  await db.execute(sql`delete from session where "userId" = ${memberId}`);
+  await db.execute(sql`delete from account where "userId" = ${memberId}`);
+  await db.execute(sql`delete from verification where value = ${memberId}`);
 }

@@ -1,4 +1,4 @@
-import { crmLeads, db, eq, sql, user, verification } from '@interdomestik/database';
+import { db, sql } from '@interdomestik/database';
 import { expect, test, type Browser, type Locator, type Page } from '@playwright/test';
 import { enter, localCopy, type OtpMail } from './s5-otp-mailbox.fixture';
 
@@ -11,9 +11,16 @@ export async function proveAbsentOtpRefusal(args: {
   requestCode: () => Promise<{ mail: OtpMail; panel: Locator }>;
 }) {
   const { browser, start, absentEmail, tenant, clientHeaders, requestCode } = args;
-  const userRow = () => db.query.user.findFirst({ where: eq(user.email, absentEmail) });
-  const pendingCodeCount = () =>
-    db.$count(verification, eq(verification.identifier, `sign-in-otp-${absentEmail}`));
+  const userRow = async () => {
+    const [row] = await db.execute(sql`select id from "user" where email = ${absentEmail}`);
+    return row;
+  };
+  const pendingCodeCount = async () => {
+    const [row] = await db.execute<{ count: number }>(sql`
+      select count(*)::int as count from verification where identifier = ${`sign-in-otp-${absentEmail}`}
+    `);
+    return row!.count;
+  };
   const SUBJECT = 'Your email confirmation code';
   const { mail: absentMail, panel: absentPanel } =
     await test.step('a real code is delivered and stored hashed', async () => {
@@ -79,7 +86,10 @@ export async function proveAbsentOtpRefusal(args: {
       (await start.context().cookies()).some(cookie => cookie.name.includes('session_token'))
     ).toBe(false);
     expect(await localCopy(start)).toBe(true);
-    expect(await db.$count(crmLeads, eq(crmLeads.email, absentEmail))).toBe(0);
+    const [leadCount] = await db.execute<{ count: number }>(sql`
+      select count(*)::int as count from crm_leads where email = ${absentEmail}
+    `);
+    expect(leadCount?.count).toBe(0);
   });
   return absentPanel;
 }
