@@ -70,8 +70,12 @@ export async function loginAtDoor(
     page.getByTestId('login-submit').click(),
   ]);
   expect(signIn.status()).toBe(200);
-  // Let the form's post-login redirect settle so it cannot interrupt the caller's next navigation.
+  // Wait for the login form to hand off to the authenticated portal.
   await page.waitForURL(url => !/\/login\/?$/.test(url.pathname), { waitUntil: 'load' });
+  if (expected.role === 'branch_manager') {
+    // The overview streams a redirect to the assigned branch after the initial navigation.
+    await expect(page.getByTestId('branch-dashboard-title')).toBeVisible();
+  }
   await expect
     .poll(async () => {
       const response = await page.request.get(`${origin}/api/auth/get-session`);
