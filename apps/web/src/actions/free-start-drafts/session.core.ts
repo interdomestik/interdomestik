@@ -2,7 +2,7 @@ import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boun
 import { auth } from '@/lib/auth';
 import type { AuthorizedSession } from '@/lib/tenant-authority.server';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
-import { resolveMemberAcceptanceForRequest } from '@/lib/privacy/require-member-acceptance';
+import { resolveRequestAdmission } from '@/lib/privacy/require-member-acceptance';
 import { resolveDefaultPublicTenantId, type TenantId } from '@/lib/tenant/tenant-hosts';
 import {
   resolveSessionTenantConcepts,
@@ -45,12 +45,14 @@ export type FreeStartDraftSessionDependencies = {
   isAllowedHost: (headers: Headers) => boolean;
   resolveDefaultTenantId: () => string | null;
   resolveSessionAccessTenantId: (session: unknown) => string | null;
-  admitMember: typeof resolveMemberAcceptanceForRequest;
+  admitMember: typeof resolveRequestAdmission;
 };
 
 const defaultDependencies: FreeStartDraftSessionDependencies = {
   getSession: args => auth.api.getSession(args),
-  admitMember: resolveMemberAcceptanceForRequest,
+  // Inside the draft actions' withRequestAdmission scope this is the request's one admission;
+  // elsewhere (saved-draft lookups) it resolves these explicit headers as before.
+  admitMember: resolveRequestAdmission,
   isAllowedHost: evaluateNeutralOtpHost,
   resolveDefaultTenantId: resolveDefaultPublicTenantId,
   resolveSessionAccessTenantId: session =>

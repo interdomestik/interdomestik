@@ -57,6 +57,13 @@ vi.mock('@interdomestik/database/free-start-drafts', async importOriginal => ({
 vi.mock('@/actions/messages/get', () => ({ getMessagesForClaimCore: effects.messages }));
 vi.mock('@/actions/messages/send', () => ({ sendMessageCore: effects.send }));
 vi.mock('@/actions/notifications/get', () => ({ getNotificationsCore: effects.notifications }));
+// The acceptance gate must hold when Paddle reopens; WP-10 tests cover the closed path.
+vi.mock('@interdomestik/domain-membership-billing/paddle-closed', async importOriginal => ({
+  ...(await importOriginal<
+    typeof import('@interdomestik/domain-membership-billing/paddle-closed')
+  >()),
+  PADDLE_CLOSED: false,
+}));
 vi.mock('@/actions/subscription/get-payment-update-url', () => ({
   getPaymentUpdateUrlCore: effects.payment,
 }));

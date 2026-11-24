@@ -91,6 +91,7 @@ function exactLocaleCatalogOwners(owner, namesByLocale) {
 }
 const LOCALE_CATALOG_OWNERS = new Map([
   ...WP13_LOCALE_OWNERS,
+  ['admin-settings.json', 'wp10-pilot-switch-i18n-contract'],
   ['admin-users.json', 's7-admin-user-read-recovery-i18n-contract'],
   ['admin-claims.json', 's7-admin-claims-read-consistency-i18n-contract'],
   ['freeStart.json', 's5-local-draft-disclosure-i18n-contract'],
@@ -125,7 +126,6 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['de/admin-common.json', 'de-locale-catalog-contract'],
   ['de/admin-crm.json', 'de-locale-catalog-contract'],
   ['de/admin-dashboard.json', 'de-locale-catalog-contract'],
-  ['de/admin-settings.json', 'de-locale-catalog-contract'],
   ['de/admin.json', 'de-locale-catalog-contract'],
   ['de/agent-crm.json', 'locale-quality-pass-i18n-contract'],
   ['de/auth.json', PARITY_OWNER],

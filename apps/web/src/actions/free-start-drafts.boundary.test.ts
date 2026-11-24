@@ -14,6 +14,10 @@ import {
   type FreeStartDraftSessionDependencies,
 } from './free-start-drafts/session.core';
 
+vi.mock('./free-start-drafts/claim-entitlement.core', () => ({
+  hasAdmittedClaimEntitlement: vi.fn().mockResolvedValue(false),
+}));
+
 const headers = new Headers({ host: 'ida.interdomestik.com' });
 // prettier-ignore
 const context = { accessTenantId: 'tenant_ks' as const, actorRole: 'member', ownerUserId: 'session-owner', tenantId: 'tenant_ks' as const };
@@ -50,6 +54,8 @@ function lifecycleDeps(
     createDraft: vi.fn().mockResolvedValue({ ok: false, code: 'limitReached' }),
     deleteDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),
     listDrafts: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
+    readIntakeOpen: vi.fn().mockResolvedValue(true),
+    readPublicIntakeOpen: vi.fn().mockResolvedValue(false),
     resolveSession: vi.fn().mockResolvedValue({ ok: true, context, emailVerified: true }),
     resumeDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),
     updateDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),

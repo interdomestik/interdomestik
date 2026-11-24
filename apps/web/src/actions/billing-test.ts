@@ -3,15 +3,18 @@
 import { isBillingTestActivationEnabled } from '@/lib/runtime-environment';
 import { resolveMemberAcceptanceForRequest } from '@/lib/privacy/require-member-acceptance';
 import { subscriptions } from '@interdomestik/database';
+import { assertNewSalesOpen, SalesClosedError } from '@interdomestik/database/pilot-switch';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import {
   createActiveAnnualMembershipFulfillment,
   resolveCanonicalMembershipPlanState,
 } from '@interdomestik/domain-membership-billing/annual-membership';
-import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
+import * as Sentry from '@sentry/nextjs';
+import { getTranslations } from 'next-intl/server';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
-import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 
 /**
  * DEVELOPMENT/E2E ONLY: Mock subscription activation.
@@ -41,11 +44,17 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
     canonicalPlanState.planKey
   );
 
-  // Create or update mock subscription
-  // db-access-guard: tenant-scoped -- reason: tenantId resolved into local variable before this DB call
-  await withTenantAuthority(
-    authority,
-    async tx =>
+  try {
+    await withTenantAuthority(authority, async tx => {
+      try {
+        await assertNewSalesOpen(tx, tenantId);
+      } catch (error) {
+        if (error instanceof SalesClosedError) {
+          throw error;
+        }
+        Sentry.captureException(error, { tags: { operation: 'pilot.billingTestAdmission' } });
+        throw new SalesClosedError();
+      }
       await tx
         .insert(subscriptions)
         .values({
@@ -59,9 +68,16 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
           set: {
             ...activeAnnualMembershipState,
           },
-        })
-  );
+        });
+    });
+  } catch (error) {
+    if (!(error instanceof SalesClosedError)) {
+      throw error;
+    }
+    const t = await getTranslations('pricing');
+    return { success: false, code: 'CLOSED', error: t('CLOSED') } as const;
+  }
 
   revalidatePath('/[locale]/(app)/member/membership', 'layout');
-  return { success: true };
+  return { success: true } as const;
 }

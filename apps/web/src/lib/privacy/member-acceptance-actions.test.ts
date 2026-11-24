@@ -1,11 +1,10 @@
-import { acceptanceMocks, memberAuthority } from './member-acceptance-denial.test-support';
+import { acceptanceMocks } from './member-acceptance-denial.test-support';
 import { describe, expect, it, vi } from 'vitest';
 import { cancelClaim, createClaim, updateClaimStatus, updateDraftClaim } from '@/actions/claims';
 import { submitClaim } from '@/actions/claims.core';
 import { createPublicTrackingLink } from '@/actions/claims-tracking';
 import { getAgents, getStaff, getUserChoices, getUsers } from '@/actions/admin-users';
 import { getAgentSettings } from '@/actions/agent-settings';
-import { resubmitCashAttemptAction } from '@/features/admin/verification/actions/verification';
 import { getCountryGuidanceAction } from '@/actions/country-guidance';
 import { uploadVoiceNote } from '@/actions/uploads/upload';
 import { confirmUpload, generateUploadUrl } from '@/features/member/claims/actions';
@@ -23,15 +22,10 @@ const effects = vi.hoisted(() => ({
   requestAccess: vi.fn(),
   directory: vi.fn(),
   agentSettings: vi.fn(),
-  cashResubmit: vi.fn(),
 }));
 
 vi.mock('@/actions/admin-users/get-users', () => ({ getUsersCore: effects.directory }));
 vi.mock('@/actions/agent-settings/get', () => ({ getAgentSettingsCore: effects.agentSettings }));
-vi.mock('@/features/admin/verification/server/verification.core', async original => ({
-  ...(await original<typeof import('@/features/admin/verification/server/verification.core')>()),
-  resubmitCashAttemptCore: effects.cashResubmit,
-}));
 vi.mock('@/actions/claims/create', () => ({ createClaimCore: effects.createClaim }));
 vi.mock('@/actions/claims/draft', () => ({
   cancelClaimCore: effects.cancelClaim,
@@ -65,25 +59,12 @@ const draft = { ...claim, files: [] };
 const id = '00000000-0000-4000-8000-000000000001';
 
 describe('direct member actions', () => {
-  // WP-13a owns only acceptance gating on this entry. The agent role basis, tenant predicate
-  // and compare-and-set come from WP-10 item 22; whichever merges second adjusts this test.
-  it('passes the admitted authority to cash resubmission without another lookup', async () => {
-    acceptanceMocks.readAcceptance.mockResolvedValueOnce({ accepted: true });
-    effects.cashResubmit.mockResolvedValueOnce({ success: true });
-
-    await expect(resubmitCashAttemptAction({ attemptId: id })).resolves.toEqual({ success: true });
-    expect(acceptanceMocks.authorize).toHaveBeenCalledOnce();
-    expect(effects.cashResubmit).toHaveBeenCalledOnce();
-    expect(effects.cashResubmit.mock.calls[0]?.[0].authority).toBe(memberAuthority);
-  });
-
   it.each([
     ['getUsers', () => getUsers({})],
     ['getUserChoices', () => getUserChoices({})],
     ['getAgents', () => getAgents()],
     ['getStaff', () => getStaff()],
     ['getAgentSettings', () => getAgentSettings(id)],
-    ['resubmitCashAttemptAction', () => resubmitCashAttemptAction({})],
     ['createClaim', () => createClaim(null, new FormData())],
     ['submitClaim', () => submitClaim(draft)],
     ['updateDraftClaim', () => updateDraftClaim(id, draft)],

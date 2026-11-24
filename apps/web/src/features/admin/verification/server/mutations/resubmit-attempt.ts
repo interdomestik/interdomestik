@@ -1,7 +1,9 @@
 import type { ProtectedActionContext } from '@/lib/safe-action';
+import { actionFailure } from '../../../../../lib/safe-action.failure';
 
 import { auditLog, leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema';
-import { and, eq, inArray } from 'drizzle-orm';
+import { assertLeadSalesOpen } from '@interdomestik/domain-leads/sales-admission';
+import { and, eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { resubmitCashSchema } from '../schemas';
@@ -16,19 +18,30 @@ export async function resubmitCashAttemptCore(
   const { attemptId, note } = input;
 
   return await withTenantAuthority(authority, async tx => {
+    const version = sql<string>`${leadPaymentAttempts.updatedAt}::text`;
     // A. Fetch
     const [result] = await tx
       .select({
         attempt: leadPaymentAttempts,
+        versionToken: version,
         lead: memberLeads,
       })
       .from(leadPaymentAttempts)
-      .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
-      .where(and(eq(leadPaymentAttempts.id, attemptId), eq(leadPaymentAttempts.tenantId, tenantId)))
+      .innerJoin(
+        memberLeads,
+        and(eq(leadPaymentAttempts.leadId, memberLeads.id), eq(memberLeads.tenantId, tenantId))
+      )
+      .where(
+        and(
+          eq(leadPaymentAttempts.id, attemptId),
+          eq(leadPaymentAttempts.tenantId, tenantId),
+          eq(leadPaymentAttempts.method, 'cash')
+        )
+      )
       .limit(1);
 
     if (!result) throw new Error('Payment attempt not found.');
-    const { attempt, lead } = result;
+    const { attempt, versionToken, lead } = result;
 
     // B. Security: Only assigned agent
     if (lead.agentId !== session.user.id) {
@@ -39,6 +52,7 @@ export async function resubmitCashAttemptCore(
     if (attempt.status !== 'needs_info' && attempt.status !== 'rejected') {
       throw new Error(`Cannot resubmit verification with status: ${attempt.status}`);
     }
+    await assertLeadSalesOpen(tx, tenantId);
 
     // D. Compare-and-set: only the winner may write the resubmission audit.
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
@@ -47,7 +61,7 @@ export async function resubmitCashAttemptCore(
       .set({
         status: 'pending',
         isResubmission: true, // SET FLAG
-        updatedAt: new Date(),
+        updatedAt: sql`greatest(clock_timestamp(), ${leadPaymentAttempts.updatedAt} + interval '1 microsecond')`,
         // verificationNote: Do not clear admin note? Or clear it?
         // Usually we keep admin note so history shows "Why it was rejected".
         // But status is now pending.
@@ -57,12 +71,13 @@ export async function resubmitCashAttemptCore(
         and(
           eq(leadPaymentAttempts.id, attemptId),
           eq(leadPaymentAttempts.tenantId, tenantId),
-          inArray(leadPaymentAttempts.status, ['needs_info', 'rejected'])
+          eq(leadPaymentAttempts.status, attempt.status),
+          eq(version, versionToken)
         )
       )
       .returning({ id: leadPaymentAttempts.id });
     if (resubmitted.length === 0) {
-      throw new Error('This payment attempt was just decided by someone else. Reload and retry.');
+      throw actionFailure('CONFLICT');
     }
 
     // E. Audit

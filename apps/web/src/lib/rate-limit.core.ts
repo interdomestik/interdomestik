@@ -5,6 +5,7 @@ import {
   emitRateLimitBackendTelemetry,
   type RateLimitKeyMode,
 } from './rate-limit-upstash';
+import { isAutomatedRuntime, releaseClass } from './runtime-environment';
 
 export type RateLimitOptions = {
   /** A stable name for the protected action, e.g. "api/uploads" */
@@ -51,12 +52,7 @@ let warnedMissingUpstashEnv = false;
 let warnedUnavailableBackendFailOpen = false;
 
 function isAutomatedTestRun(): boolean {
-  return (
-    process.env.NODE_ENV === 'test' ||
-    process.env.CI === 'true' ||
-    process.env.PLAYWRIGHT === '1' ||
-    process.env.INTERDOMESTIK_AUTOMATED === '1'
-  );
+  return isAutomatedRuntime() && releaseClass() !== 'production';
 }
 
 function shouldFailClosed(productionSensitive?: boolean): boolean {

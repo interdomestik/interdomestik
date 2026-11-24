@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test, { beforeEach } from 'node:test';
+import { readDisposableTargetClass } from '../src/seed-target-classification';
 import {
   assertDisposableTarget,
   assertSeedTargetAllowed,
@@ -22,6 +23,20 @@ const direct = (ref: string) => `postgresql://fixture:credential-CANARY@db.${ref
 const pooled = (ref: string) =>
   `postgresql://postgres.${ref}:credential-CANARY@aws-0-eu-central-1.pooler.supabase.com:6543/db`;
 const refusal = /^Error: Seed target refused: non-disposable$/;
+
+test('runtime classification is pure and still requires two explicit disposable URLs', () => {
+  const env = {
+    NODE_ENV: 'production',
+    DATABASE_URL: 'postgres://fixture@127.0.0.1/db',
+    DATABASE_URL_RLS: 'postgres://runtime@127.0.0.1/db',
+  };
+  assert.equal(readDisposableTargetClass(env), 'local');
+  assert.throws(() => assertDisposableTarget(env), /refused: production$/);
+  assert.equal(readDisposableTargetClass({ ...env, DATABASE_URL_RLS: undefined }), null);
+  assert.equal(readDisposableTargetClass({ ...env, DATABASE_URL_RLS: direct(staging) }), null);
+  assert.equal(readDisposableTargetClass({ ...env, VERCEL_ENV: 'production' }), null);
+  assert.equal(readDisposableTargetClass({ ...env, PGHOST: 'outside.invalid' }), null);
+});
 
 test('accepts loopback without confirmation', () => {
   for (const host of ['localhost', '127.0.0.1', '127.0.0.1:55438', 'LOCALHOST:5432']) {

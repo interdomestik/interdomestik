@@ -178,6 +178,7 @@
         "confirm_current_tenant": "Confirm current tenant",
         "confirmed": "Tenant classification already confirmed.",
         "confirmed_success": "Tenant classification confirmed",
+        "EMAIL_NOT_PROVEN": "The account holder must verify their email before you can confirm the tenant.",
         "reassign_label": "Move this account to another tenant",
         "reassign_tenant": "Reassign tenant",
         "reassigned_success": "Tenant reassigned",

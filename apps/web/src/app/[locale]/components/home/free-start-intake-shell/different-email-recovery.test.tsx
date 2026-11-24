@@ -8,6 +8,7 @@ const refresh = vi.hoisted(() => vi.fn());
 const copy = {
   body: 'Verify both mailboxes before changing the sign-in email.',
   close: 'Cancel',
+  closedNotice: 'Changing your sign-in email is currently closed.',
   codeLabel: 'Verification code',
   complete: 'Email changed. Your saved drafts stay with the same account.',
   confirm: 'Confirm replacement email',
@@ -32,9 +33,10 @@ vi.mock('@/actions/different-email-recovery', () => ({
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh }) }));
 vi.mock('next-intl', () => ({
   useLocale: () => 'en',
-  useTranslations: () => ({
-    raw: () => JSON.stringify({ manage: { differentEmailRecovery: copy } }),
-  }),
+  useTranslations: () =>
+    Object.assign(() => copy.closedNotice, {
+      raw: () => JSON.stringify({ manage: { differentEmailRecovery: copy } }),
+    }),
 }));
 
 describe('IDA-UI03b different-email recovery', () => {
@@ -89,5 +91,20 @@ describe('IDA-UI03b different-email recovery', () => {
     fireEvent.click(screen.getByRole('button', { name: copy.start }));
     await screen.findByRole('heading', { name: copy.currentHeading });
     expect(screen.getByLabelText(copy.emailLabel)).toHaveValue('');
+  });
+
+  it('replaces an in-progress proof form with the closed notice and keeps focus in recovery', async () => {
+    actions.start.mockResolvedValue({ ok: true, stage: 'current' });
+    actions.submit.mockResolvedValue({ ok: false, code: 'CLOSED' });
+    render(<DifferentEmailRecovery />);
+    fireEvent.click(screen.getByRole('button', { name: copy.open }));
+    fireEvent.click(screen.getByRole('button', { name: copy.start }));
+    await screen.findByRole('heading', { name: copy.currentHeading });
+    fireEvent.submit(screen.getByRole('button', { name: copy.submitCurrent }).closest('form')!);
+
+    expect(await screen.findByRole('status')).toHaveTextContent(copy.closedNotice);
+    expect(screen.getByRole('heading', { name: copy.heading })).toHaveFocus();
+    expect(screen.queryByLabelText(copy.codeLabel)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: copy.submitCurrent })).not.toBeInTheDocument();
   });
 });

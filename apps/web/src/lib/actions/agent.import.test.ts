@@ -7,6 +7,9 @@ import {
   loadImportMembersAction,
 } from './agent.test-support';
 import { getAgentSession } from './agent/context';
+import { revalidatePath } from 'next/cache';
+
+vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 
 describe('agent actions', () => {
   beforeEach(() => {
@@ -113,6 +116,43 @@ describe('agent actions', () => {
       expect(importMembersCore).toHaveBeenCalledWith(
         expect.objectContaining({ authority: expect.anything() })
       );
+    });
+
+    it.each([0, 1])('returns CLOSED after %i committed rows', async imported => {
+      const importMembers = await loadImportMembersAction();
+      const { importMembersCore } = await import('./agent/import-members.core');
+      const { readTenantAuthority } = await import('@interdomestik/database/tenant-authority');
+      vi.mocked(getAgentSession).mockResolvedValue(IMPORT_AGENT_SESSION as never);
+      const { email, fullName, phone, planId } = buildImportRow();
+      const row = { email, fullName, phone, planId };
+      const stoppedRow = { ...row, email: 'closed@example.test', fullName: 'Closed Row' };
+      const rows = imported ? [row, stoppedRow] : [stoppedRow];
+      const results = [
+        ...(imported ? [{ email, fullName, index: 0, ok: true }] : []),
+        {
+          index: imported,
+          email: 'closed@example.test',
+          fullName: 'Closed Row',
+          ok: false,
+          code: 'CLOSED' as const,
+        },
+      ];
+      const summary = { total: imported + 1, imported, failed: 1 };
+      vi.mocked(importMembersCore).mockResolvedValueOnce({ code: 'CLOSED', results, summary });
+      const payload = createRowsFormData(rows.map(row => ({ ...row, tenantId: 'tenant-foreign' })));
+
+      await expect(importMembers(null, payload)).resolves.toEqual({
+        code: 'CLOSED',
+        error: 'CLOSED',
+        results,
+        summary,
+      });
+
+      const parameters = vi.mocked(importMembersCore).mock.calls[0]?.[0];
+      expect(parameters?.rows).toEqual(rows);
+      expect(parameters && readTenantAuthority(parameters.authority).tenantId).toBe('tenant_mk');
+      expect(revalidatePath).toHaveBeenCalledTimes(imported);
+      if (imported) expect(revalidatePath).toHaveBeenCalledWith('/en/agent/clients');
     });
 
     it('rejects oversized batches before the import core is called', async () => {

@@ -12,6 +12,7 @@
     "./payment-port": "./src/payment-port.ts",
     "./payment-port/compose": "./src/payment-port-compose.ts",
     "./paddle": "./src/paddle.ts",
+    "./paddle-closed": "./src/paddle-closed.ts",
     "./paddle-server": "./src/paddle-server.ts",
     "./subscription": "./src/subscription.ts",
     "./sponsor-coverage": "./src/sponsor-coverage/index.ts",

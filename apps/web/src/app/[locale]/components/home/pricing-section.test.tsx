@@ -27,7 +27,7 @@ vi.mock('@interdomestik/ui', () => ({
 
 describe('PricingSection', () => {
   it('wires each plan CTA to pricing with plan continuity query', () => {
-    render(<PricingSection />);
+    render(<PricingSection publicIntakeOpen />);
 
     const ctas = screen.getAllByText('pricing.cta');
     const hrefs = ctas.map(cta => cta.closest('a')?.getAttribute('href'));

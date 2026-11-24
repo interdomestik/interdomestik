@@ -4,7 +4,23 @@ import { getPaddle } from '@interdomestik/domain-membership-billing/paddle-serve
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { cancelSubscription } from './subscription.core';
+import { cancelSubscription, getPaymentUpdateUrl } from './subscription.core';
+
+const closure = vi.hoisted(() => ({ keepParkedPath: false }));
+vi.mock('@interdomestik/domain-membership-billing/paddle-closed', async importOriginal => {
+  const actual =
+    await importOriginal<typeof import('@interdomestik/domain-membership-billing/paddle-closed')>();
+  return {
+    ...actual,
+    get PADDLE_CLOSED() {
+      return closure.keepParkedPath ? false : actual.PADDLE_CLOSED;
+    },
+  };
+});
+
+vi.mock('next-intl/server', () => ({
+  getTranslations: vi.fn(async () => (key: string) => `membership.${key}`),
+}));
 
 vi.mock('@interdomestik/database', () => {
   const db = {
@@ -87,7 +103,31 @@ vi.mock('next/headers', () => ({
   headers: vi.fn().mockResolvedValue({}),
 }));
 
-describe('cancelSubscription', () => {
+describe('member Paddle actions while closed', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it.each([
+    { action: 'cancellation', invoke: () => cancelSubscription('sub1', 'new-key') },
+    { action: 'payment update', invoke: () => getPaymentUpdateUrl('sub1') },
+  ])('refuses $action before session, provider, writes, and revalidation', async ({ invoke }) => {
+    expect(await invoke()).toMatchObject({
+      success: false,
+      code: 'CLOSED',
+      error: 'membership.CLOSED',
+    });
+
+    expect(auth.api.getSession).not.toHaveBeenCalled();
+    expect(getPaddle).not.toHaveBeenCalled();
+    expect(db.query.subscriptions.findFirst).not.toHaveBeenCalled();
+    expect(db.update).not.toHaveBeenCalled();
+    const { logAuditEvent } = await import('@/lib/audit');
+    expect(logAuditEvent).not.toHaveBeenCalled();
+    const { revalidatePath } = await import('next/cache');
+    expect(revalidatePath).not.toHaveBeenCalled();
+  });
+});
+
+describe('parked cancelSubscription behaviour', () => {
   const fixedNow = new Date('2026-03-15T00:00:00.000Z');
   const mockPaddle = {
     subscriptions: {
@@ -96,6 +136,7 @@ describe('cancelSubscription', () => {
   };
 
   beforeEach(() => {
+    closure.keepParkedPath = true;
     vi.useFakeTimers();
     vi.setSystemTime(new Date('2026-03-15T00:00:00.000Z'));
     vi.clearAllMocks();
@@ -119,6 +160,7 @@ describe('cancelSubscription', () => {
   });
 
   afterEach(() => {
+    closure.keepParkedPath = false;
     vi.useRealTimers();
   });
 

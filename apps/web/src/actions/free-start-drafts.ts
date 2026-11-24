@@ -2,6 +2,8 @@
 
 import { headers } from 'next/headers';
 
+import { withRequestAdmission } from '@/lib/privacy/require-member-acceptance';
+
 import {
   createFreeStartDraftCore,
   deleteFreeStartDraftCore,
@@ -12,25 +14,39 @@ import {
 } from './free-start-drafts/lifecycle.core';
 
 export async function getFreeStartDraftAccount() {
-  return getFreeStartDraftAccountCore(await headers());
+  const requestHeaders = await headers();
+  return withRequestAdmission(requestHeaders, () => getFreeStartDraftAccountCore(requestHeaders));
 }
 
 export async function createFreeStartDraft(input: unknown) {
-  return createFreeStartDraftCore(await headers(), input);
+  const requestHeaders = await headers();
+  return withRequestAdmission(requestHeaders, () =>
+    createFreeStartDraftCore(requestHeaders, input)
+  );
 }
 
 export async function listFreeStartDrafts(input: unknown = {}) {
-  return listFreeStartDraftsCore(await headers(), input);
+  const requestHeaders = await headers();
+  return withRequestAdmission(requestHeaders, () => listFreeStartDraftsCore(requestHeaders, input));
 }
 
 export async function resumeFreeStartDraft(input: unknown) {
-  return resumeFreeStartDraftCore(await headers(), input);
+  const requestHeaders = await headers();
+  return withRequestAdmission(requestHeaders, () =>
+    resumeFreeStartDraftCore(requestHeaders, input)
+  );
 }
 
 export async function updateFreeStartDraft(input: unknown) {
-  return updateFreeStartDraftCore(await headers(), input);
+  const requestHeaders = await headers();
+  return withRequestAdmission(requestHeaders, () =>
+    updateFreeStartDraftCore(requestHeaders, input)
+  );
 }
 
 export async function deleteFreeStartDraft(input: unknown) {
-  return deleteFreeStartDraftCore(await headers(), input);
+  const requestHeaders = await headers();
+  return withRequestAdmission(requestHeaders, () =>
+    deleteFreeStartDraftCore(requestHeaders, input)
+  );
 }

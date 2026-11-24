@@ -7,6 +7,7 @@ interface SeedModeTasks {
   seedFull: Seeder;
   seedGolden: Seeder;
   seedKsWorkflowPack: Seeder;
+  seedOpenPilotSwitches: () => Promise<void>;
   seedWorkload: Seeder;
 }
 
@@ -28,6 +29,7 @@ export async function runSeedMode(
       await tasks.seedGolden(config);
       await tasks.seedKsWorkflowPack(config);
       await tasks.seedAgentPack(config);
+      await tasks.seedOpenPilotSwitches();
       break;
 
     case 'golden':

@@ -89,16 +89,17 @@ describe('NewClaimPage dormant draft intake', () => {
   });
 
   it.each([
-    ['front-door.localhost:3000', 'front-door.localhost:3000'],
-    ['https://front-door.localhost:3000', 'front-door.localhost:3000'],
-    ['https://front-door.localhost:3000/path', null],
+    ['ida.localhost:3000', 'ida.localhost:3000'],
+    ['https://ida.localhost:3000', 'ida.localhost:3000'],
+    ['https://ida.localhost:3000/path', null],
+    ['https://front-door.localhost:3000', null],
   ])('normalizes only an accepted configured IDA host: %s', (configured, expected) => {
     vi.stubEnv('IDA_HOST', configured);
     expect(resolveNeutralOtpHost()).toBe(expected);
   });
 
   it('preserves route context and renders the dormant intake for an active member', async () => {
-    vi.stubEnv('IDA_HOST', 'https://front-door.localhost:3000');
+    vi.stubEnv('IDA_HOST', 'https://ida.localhost:3000');
     const handoffContext = {
       source: 'diaspora-green-card',
       country: 'IT',
@@ -112,7 +113,7 @@ describe('NewClaimPage dormant draft intake', () => {
     expect(h.member).toHaveBeenCalledWith('member-1', expect.anything());
     expect(readTenantAuthority(h.member.mock.calls[0]?.[1]).tenantId).toBe('tenant_ks');
     // prettier-ignore
-    expect(h.intake).toHaveBeenCalledWith({ draftAccount: { emailVerified: false, expectedContext: { ownerUserId: 'member-1', tenantId: 'tenant_ks' } }, freeStartMessages: { freeStart: { marker: 'page-scoped' } }, handoffContext, initialCategory: 'travel', locale: 'en', managerOnly: false, neutralOtpHost: 'front-door.localhost:3000', tenantId: 'tenant_ks' });
+    expect(h.intake).toHaveBeenCalledWith({ draftAccount: { emailVerified: false, expectedContext: { ownerUserId: 'member-1', tenantId: 'tenant_ks' } }, freeStartMessages: { freeStart: { marker: 'page-scoped' } }, handoffContext, initialCategory: 'travel', locale: 'en', managerOnly: false, neutralOtpHost: 'ida.localhost:3000', tenantId: 'tenant_ks' });
     expect(screen.getByTestId('new-claim-page-ready')).toBeInTheDocument();
     expect(screen.getByTestId('claim-draft-intake-props')).toBeInTheDocument();
     expect(screen.getByTestId('claim-draft-submit-disabled')).toBeDisabled();

@@ -73,28 +73,30 @@ export function PlanCard({
         ))}
       </ul>
 
-      <Button
-        size="xl"
-        data-testid={`plan-cta-${plan.id}`}
-        className={`w-full h-16 min-h-[44px] touch-manipulation text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95 ${
-          plan.popular
-            ? 'bg-primary hover:bg-primary/90 shadow-primary/30 border-0'
-            : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200'
-        }`}
-        variant={plan.popular ? 'default' : 'outline'}
-        disabled={disabled}
-        asChild={renderBusinessMembershipLink}
-        onClick={!disabled && !renderBusinessMembershipLink ? onClick : undefined}
-      >
-        {renderBusinessMembershipLink ? (
-          <Link href="/business-membership">{ctaLabel}</Link>
-        ) : (
-          <>
-            {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
-            {ctaLabel}
-          </>
-        )}
-      </Button>
+      {onClick && (
+        <Button
+          size="xl"
+          data-testid={`plan-cta-${plan.id}`}
+          className={`w-full h-16 min-h-[44px] touch-manipulation text-lg font-black transition-all rounded-2xl shadow-lg active:scale-95 ${
+            plan.popular
+              ? 'bg-primary hover:bg-primary/90 shadow-primary/30 border-0'
+              : 'bg-white hover:bg-slate-50 text-slate-900 border-2 border-slate-200'
+          }`}
+          variant={plan.popular ? 'default' : 'outline'}
+          disabled={disabled}
+          asChild={renderBusinessMembershipLink}
+          onClick={!disabled && !renderBusinessMembershipLink ? onClick : undefined}
+        >
+          {renderBusinessMembershipLink ? (
+            <Link href="/business-membership">{ctaLabel}</Link>
+          ) : (
+            <>
+              {loading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : null}
+              {ctaLabel}
+            </>
+          )}
+        </Button>
+      )}
     </div>
   );
 }

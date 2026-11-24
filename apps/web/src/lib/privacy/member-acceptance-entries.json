@@ -113,6 +113,11 @@
     "evidence": "apps/web/src/actions/admin-settings/update.core.ts:31",
     "proof": "04b6a6d745c9"
   },
+  "actions/admin-settings/set-pilot-switch.ts#setPilotSwitch": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/admin-settings/set-pilot-switch.ts:10",
+    "proof": "dcad08a1eb0b"
+  },
   "actions/admin-users.core.ts#getAgents": {
     "disposition": "checked",
     "via": "memberGuarded"
@@ -132,7 +137,7 @@
   "actions/admin-users.core.ts#resolveTenantClassification": {
     "disposition": "not_member_reachable",
     "evidence": "packages/domain-users/src/admin/resolve-tenant-classification.ts:42",
-    "proof": "d56f6563ed17"
+    "proof": "a63b9e328f52"
   },
   "actions/admin-users.core.ts#updateUserAgent": {
     "disposition": "not_member_reachable",
@@ -158,7 +163,7 @@
   "actions/admin-users.ts#resolveTenantClassification": {
     "disposition": "not_member_reachable",
     "evidence": "packages/domain-users/src/admin/resolve-tenant-classification.ts:42",
-    "proof": "2742576ec357"
+    "proof": "94411caf9144"
   },
   "actions/admin-users.ts#updateUserAgent": {
     "disposition": "not_member_reachable",
@@ -276,7 +281,7 @@
   "actions/billing-test.ts#mockActivateSubscription": {
     "disposition": "exempt",
     "reason": "env_guard_test_only",
-    "evidence": "apps/web/src/actions/billing-test.ts:21",
+    "evidence": "apps/web/src/actions/billing-test.ts:24",
     "via": "lib/privacy/require-member-acceptance.ts#resolveMemberAcceptanceForRequest"
   },
   "actions/branch-dashboard.core.ts#getBranchAgents": {
@@ -302,12 +307,7 @@
   "actions/claim-pack.core.ts#generateClaimPackAction": {
     "disposition": "exempt",
     "reason": "Public help-now guidance generated from caller-supplied facts",
-    "evidence": "apps/web/src/actions/claim-pack.core.ts:101"
-  },
-  "actions/claim-pack.core.ts#generateClaimPackCore": {
-    "disposition": "exempt",
-    "reason": "Public help-now guidance generated from caller-supplied facts",
-    "evidence": "apps/web/src/actions/claim-pack.core.ts:101"
+    "evidence": "apps/web/src/actions/claim-pack.core.ts:8"
   },
   "actions/claims-tracking.ts#createPublicTrackingLink": {
     "disposition": "checked",
@@ -547,13 +547,13 @@
   },
   "actions/leads/payment.ts#startPaymentAction": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/actions/leads/payment.ts:12",
-    "proof": "70177d18e8ec"
+    "evidence": "apps/web/src/actions/leads/payment.ts:13",
+    "proof": "47609ca7f3fa"
   },
   "actions/leads/update.ts#updateLeadStatusAction": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/actions/leads/update.ts:31",
-    "proof": "9c78d1f6720e"
+    "evidence": "apps/web/src/actions/leads/update.ts:32",
+    "proof": "52366a28a933"
   },
   "actions/member-notes.ts#createMemberNote": {
     "disposition": "not_member_reachable",
@@ -1148,11 +1148,11 @@
   "app/api/auth/[...all]/route.ts#GET": {
     "disposition": "exempt",
     "reason": "Better Auth transport; operation dispositions are listed individually",
-    "evidence": "apps/web/src/app/api/auth/[...all]/route.ts:58"
+    "evidence": "apps/web/src/app/api/auth/[...all]/route.ts:65"
   },
   "app/api/auth/[...all]/route.ts#GET /account-info": {
     "disposition": "exempt",
-    "reason": "Auth-owned lookup of the caller\u2019s linked identity account",
+    "reason": "Auth-owned lookup of the caller’s linked identity account",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#GET /callback/:id": {
@@ -1177,12 +1177,12 @@
   },
   "app/api/auth/[...all]/route.ts#GET /list-accounts": {
     "disposition": "exempt",
-    "reason": "Lists the caller\u2019s linked identity accounts",
+    "reason": "Lists the caller’s linked identity accounts",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#GET /list-sessions": {
     "disposition": "exempt",
-    "reason": "Lists the caller\u2019s own sessions",
+    "reason": "Lists the caller’s own sessions",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#GET /ok": {
@@ -1203,7 +1203,7 @@
   "app/api/auth/[...all]/route.ts#POST": {
     "disposition": "exempt",
     "reason": "Better Auth transport; operation dispositions are listed individually",
-    "evidence": "apps/web/src/app/api/auth/[...all]/route.ts:70"
+    "evidence": "apps/web/src/app/api/auth/[...all]/route.ts:76"
   },
   "app/api/auth/[...all]/route.ts#POST /callback/:id": {
     "disposition": "exempt",
@@ -1228,42 +1228,42 @@
   "app/api/auth/[...all]/route.ts#POST /email-otp/change-email": {
     "disposition": "exempt",
     "reason": "Auth-owned mailbox change requires mailbox proof",
-    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+    "evidence": "apps/web/src/lib/auth/providers.ts:75"
   },
   "app/api/auth/[...all]/route.ts#POST /email-otp/check-verification-otp": {
     "disposition": "exempt",
     "reason": "Mailbox proof verification for account self-management",
-    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+    "evidence": "apps/web/src/lib/auth/providers.ts:75"
   },
   "app/api/auth/[...all]/route.ts#POST /email-otp/request-email-change": {
     "disposition": "exempt",
     "reason": "Auth-owned mailbox change; delivery callback admits sign-in only",
-    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+    "evidence": "apps/web/src/lib/auth/providers.ts:75"
   },
   "app/api/auth/[...all]/route.ts#POST /email-otp/request-password-reset": {
     "disposition": "exempt",
     "reason": "Auth-owned mailbox recovery; delivery callback admits sign-in only",
-    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+    "evidence": "apps/web/src/lib/auth/providers.ts:75"
   },
   "app/api/auth/[...all]/route.ts#POST /email-otp/reset-password": {
     "disposition": "exempt",
     "reason": "Auth-owned password recovery with a purpose-bound mailbox OTP",
-    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+    "evidence": "apps/web/src/lib/auth/providers.ts:75"
   },
   "app/api/auth/[...all]/route.ts#POST /email-otp/send-verification-otp": {
     "disposition": "exempt",
     "reason": "Mailbox proof for sign-in through the configured email OTP callback",
-    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+    "evidence": "apps/web/src/lib/auth/providers.ts:75"
   },
   "app/api/auth/[...all]/route.ts#POST /email-otp/verify-email": {
     "disposition": "exempt",
     "reason": "Mailbox proof for account self-management",
-    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+    "evidence": "apps/web/src/lib/auth/providers.ts:75"
   },
   "app/api/auth/[...all]/route.ts#POST /forget-password/email-otp": {
     "disposition": "exempt",
     "reason": "Auth-owned mailbox recovery alias; delivery callback admits sign-in only",
-    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+    "evidence": "apps/web/src/lib/auth/providers.ts:75"
   },
   "app/api/auth/[...all]/route.ts#POST /get-access-token": {
     "disposition": "exempt",
@@ -1297,17 +1297,17 @@
   },
   "app/api/auth/[...all]/route.ts#POST /revoke-other-sessions": {
     "disposition": "exempt",
-    "reason": "Revokes other sessions for the caller\u2019s account",
+    "reason": "Revokes other sessions for the caller’s account",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#POST /revoke-session": {
     "disposition": "exempt",
-    "reason": "Revokes a session for the caller\u2019s account",
+    "reason": "Revokes a session for the caller’s account",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#POST /revoke-sessions": {
     "disposition": "exempt",
-    "reason": "Revokes sessions for the caller\u2019s account",
+    "reason": "Revokes sessions for the caller’s account",
     "evidence": "apps/web/src/lib/auth/index.ts:8"
   },
   "app/api/auth/[...all]/route.ts#POST /send-verification-email": {
@@ -1323,7 +1323,7 @@
   "app/api/auth/[...all]/route.ts#POST /sign-in/email-otp": {
     "disposition": "exempt",
     "reason": "Login with a verified mailbox OTP and the auth authority hook",
-    "evidence": "apps/web/src/lib/auth/providers.ts:72"
+    "evidence": "apps/web/src/lib/auth/providers.ts:75"
   },
   "app/api/auth/[...all]/route.ts#POST /sign-in/social": {
     "disposition": "exempt",
@@ -1641,25 +1641,24 @@
     "proof": "a7f5a411901b"
   },
   "features/admin/verification/actions/verification.ts#resubmitCashAttemptAction": {
-    "disposition": "defect_reported",
-    "via": "memberGuarded",
-    "reason": "The cash resubmission core checks the stored agent assignment without requiring the current agent role (separate owner R-37 item).",
-    "evidence": "apps/web/src/features/admin/verification/server/mutations/resubmit-attempt.ts:35"
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/features/admin/verification/actions/verification.ts:42",
+    "proof": "722cd0ee3643"
   },
   "features/admin/verification/actions/verification.ts#verifyCashAttemptAction": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/features/admin/verification/server/queries/read-access.ts:31",
-    "proof": "8c4b1365df98"
+    "proof": "789c9d68ae21"
   },
   "features/agent/leads/actions.ts#convertLeadToClient": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/features/agent/leads/actions.ts:40",
-    "proof": "f328714679e9"
+    "evidence": "apps/web/src/features/agent/leads/actions.ts:42",
+    "proof": "30877dfb1f79"
   },
   "features/agent/leads/actions.ts#updateLeadStatus": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/features/agent/leads/actions.ts:40",
-    "proof": "939fe6634e94"
+    "evidence": "apps/web/src/features/agent/leads/actions.ts:42",
+    "proof": "00fd1883be84"
   },
   "features/agent/pos/actions.ts#registerMemberPOS": {
     "disposition": "not_member_reachable",
@@ -1693,51 +1692,46 @@
   "features/sponsor-tasks/actions.ts#acknowledgeChargeAction": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/features/sponsor-tasks/access.core.ts:32",
-    "proof": "ab6c989ed94e"
+    "proof": "266eee96a2b3"
   },
   "features/sponsor-tasks/actions.ts#closeHandoverAction": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/features/sponsor-tasks/access.core.ts:32",
-    "proof": "1aacb9405fcf"
+    "proof": "17bbbca782cf"
   },
   "features/sponsor-tasks/actions.ts#recordEvidenceAction": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/features/sponsor-tasks/access.core.ts:32",
-    "proof": "db981ad701d3"
+    "proof": "19e9e12b3eb8"
   },
   "features/sponsors/actions.ts#sponsorAction": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/features/sponsors/actions.core.ts:65",
-    "proof": "f1d9dd8b0da8"
+    "proof": "7275fcdb50b4"
   },
   "lib/actions/agent.core.ts#createLead": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/lib/actions/agent.core.ts:38",
-    "proof": "25a9411d3022"
+    "evidence": "apps/web/src/lib/actions/agent/context.core.ts:11",
+    "proof": "7a91ce662ffb"
   },
   "lib/actions/agent.core.ts#importMembers": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/lib/actions/agent.core.ts:175",
-    "proof": "e6e002249bc0"
+    "evidence": "apps/web/src/lib/actions/agent/context.core.ts:11",
+    "proof": "a9ae24587d20"
   },
   "lib/actions/agent.core.ts#logActivity": {
     "disposition": "defect_fixed_elsewhere",
-    "evidence": "apps/web/src/lib/actions/agent.core.ts:38",
-    "proof": "d777b066925c"
+    "evidence": "apps/web/src/lib/actions/agent/context.core.ts:11",
+    "proof": "dbf3cc37c73d"
   },
   "lib/actions/agent.core.ts#updateLeadStatus": {
     "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/lib/actions/agent.core.ts:38",
-    "proof": "7d5460b90f0b"
+    "evidence": "apps/web/src/lib/actions/agent/context.core.ts:11",
+    "proof": "1e5f715603d4"
   },
   "lib/actions/business-membership-lead.ts#submitBusinessMembershipLead": {
     "disposition": "exempt",
     "reason": "Public intake of caller-supplied facts, no existing member records returned",
-    "evidence": "apps/web/src/lib/actions/business-membership-lead.ts:104"
-  },
-  "lib/actions/business-membership-lead.ts#submitBusinessMembershipLeadCore": {
-    "disposition": "exempt",
-    "reason": "Public intake of caller-supplied facts, no existing member records returned",
-    "evidence": "apps/web/src/lib/actions/business-membership-lead.ts:104"
+    "evidence": "apps/web/src/lib/actions/business-membership-lead.ts:13"
   }
 }

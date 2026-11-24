@@ -14,24 +14,16 @@ type FreshSession = {
   } | null;
 } | null;
 
-type NeutralOtpAuth = {
-  api: {
-    getSession: (args: {
-      headers: Headers;
-      query: { disableCookieCache: true; disableRefresh: true };
-    }) => Promise<FreshSession>;
-    revokeSession: (args: { body: { token: string }; headers: Headers }) => Promise<unknown>;
-  };
-};
+type RevokeSession = (args: { body: { token: string }; headers: Headers }) => Promise<unknown>;
 
 async function revokeNewSession(args: {
-  auth: NeutralOtpAuth;
+  revokeSession: RevokeSession;
   token: string;
   headers: Headers;
   log?: (category: string) => void;
 }): Promise<void> {
   try {
-    await args.auth.api.revokeSession({ body: { token: args.token }, headers: args.headers });
+    await args.revokeSession({ body: { token: args.token }, headers: args.headers });
   } catch {
     try {
       args.log?.('otp_session_revoke_failed');
@@ -41,14 +33,35 @@ async function revokeNewSession(args: {
   }
 }
 
+// A session for another account than the one the door admitted is an invalid code, not an account stop.
+function stopDecision(accountMismatch: boolean): 'invalidOtp' | 'accountStop' {
+  if (accountMismatch) {
+    return 'invalidOtp';
+  }
+  return 'accountStop';
+}
+
 export async function protectNeutralOtpSession(args: {
-  auth: NeutralOtpAuth;
+  getSession: (args: {
+    headers: Headers;
+    query: { disableCookieCache: true; disableRefresh: true };
+  }) => Promise<FreshSession>;
+  revokeSession: RevokeSession;
+  admittedAccountId: string;
   verifyData: VerifyData;
   responseHeaders: Headers;
   resolveDefaultTenantId: () => string;
   log?: (category: string) => void;
-}): Promise<{ decision: 'continue' | 'accountStop'; headers: Headers }> {
-  const { auth, verifyData, responseHeaders, resolveDefaultTenantId, log } = args;
+}): Promise<{ decision: 'continue' | 'accountStop' | 'invalidOtp'; headers: Headers }> {
+  const {
+    getSession,
+    revokeSession,
+    admittedAccountId,
+    verifyData,
+    responseHeaders,
+    resolveDefaultTenantId,
+    log,
+  } = args;
   const token = typeof verifyData?.token === 'string' ? verifyData.token : null;
   const userId = typeof verifyData?.user?.id === 'string' ? verifyData.user.id : null;
   const cookie = cookieHeaderFromSetCookie(responseHeaders);
@@ -57,14 +70,18 @@ export async function protectNeutralOtpSession(args: {
   }
 
   const headers = new Headers({ cookie });
-  if (verifyData?.user?.tenantId !== resolveDefaultTenantId()) {
-    await revokeNewSession({ auth, token, headers, log });
-    return { decision: 'accountStop', headers: accountStop(responseHeaders).headers };
+  const responseAccountMismatch = userId !== admittedAccountId;
+  if (responseAccountMismatch || verifyData?.user?.tenantId !== resolveDefaultTenantId()) {
+    await revokeNewSession({ revokeSession, token, headers, log });
+    return {
+      decision: stopDecision(responseAccountMismatch),
+      headers: accountStop(responseHeaders).headers,
+    };
   }
 
   let fresh: FreshSession;
   try {
-    fresh = await auth.api.getSession({
+    fresh = await getSession({
       headers,
       query: { disableCookieCache: true, disableRefresh: true },
     });
@@ -76,12 +93,18 @@ export async function protectNeutralOtpSession(args: {
     }
     fresh = null;
   }
+  const sessionUserId = fresh?.session?.userId;
   const authoritative =
-    fresh?.session?.userId === userId &&
+    sessionUserId === userId &&
     fresh?.user?.id === userId &&
     fresh?.user?.tenantId === resolveDefaultTenantId() &&
     fresh?.user?.tenantClassificationPending === true;
   if (authoritative) return { decision: 'continue', headers: new Headers(responseHeaders) };
-  await revokeNewSession({ auth, token, headers, log });
-  return { decision: 'accountStop', headers: accountStop(responseHeaders).headers };
+  const sessionAccountMismatch =
+    typeof sessionUserId === 'string' && sessionUserId !== admittedAccountId;
+  await revokeNewSession({ revokeSession, token, headers, log });
+  return {
+    decision: stopDecision(sessionAccountMismatch),
+    headers: accountStop(responseHeaders).headers,
+  };
 }

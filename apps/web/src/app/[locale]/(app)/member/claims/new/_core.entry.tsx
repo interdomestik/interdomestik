@@ -52,10 +52,9 @@ export function resolveNeutralOtpHost(): string | null {
   if (!configured) return null;
   try {
     const url = new URL(configured.includes('://') ? configured : `http://${configured}`);
+    if (url.username || url.password || url.pathname !== '/' || url.search || url.hash) return null;
     const authority = url.host.toLowerCase();
-    return evaluateNeutralOtpHost(new Headers({ host: authority }), { IDA_HOST: configured })
-      ? authority
-      : null;
+    return evaluateNeutralOtpHost(new Headers({ host: authority })) ? authority : null;
   } catch {
     return null;
   }

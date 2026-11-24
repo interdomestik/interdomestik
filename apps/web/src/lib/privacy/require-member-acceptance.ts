@@ -88,11 +88,29 @@ export async function resolveMemberAcceptanceForRequest(
   return Object.freeze({ ok: true, authorized: Object.freeze(authorized) });
 }
 
-const requestAdmission = new AsyncLocalStorage<Promise<RequestAdmission>>();
+// The request's one admission, resolved by whoever reads it first in this scope.
+const requestAdmission = new AsyncLocalStorage<() => Promise<RequestAdmission>>();
 const pageAdmission = cache(() => resolveMemberAcceptanceForRequest());
 
 export function requireAdmittedMember(): Promise<RequestAdmission> {
-  return requestAdmission.getStore() ?? pageAdmission();
+  const scoped = requestAdmission.getStore();
+  return scoped ? scoped() : pageAdmission();
+}
+
+/**
+ * Runs `work` with one admission for these request headers. Nothing is resolved until the first
+ * read; every later read in the scope gets that same admission, never a second resolution.
+ */
+export function withRequestAdmission<T>(requestHeaders: Headers, work: () => Promise<T>) {
+  let pending: Promise<RequestAdmission> | undefined;
+  const admission = () => (pending ??= resolveMemberAcceptanceForRequest(requestHeaders));
+  return requestAdmission.run(admission, work);
+}
+
+/** The scoped admission when one is in scope, else these explicit request headers' admission. */
+export function resolveRequestAdmission(requestHeaders: Headers): Promise<RequestAdmission> {
+  const scoped = requestAdmission.getStore();
+  return scoped ? scoped() : resolveMemberAcceptanceForRequest(requestHeaders);
 }
 
 export async function checkMemberAcceptanceTexts(
@@ -123,11 +141,14 @@ export function memberGuarded<Args extends unknown[], Result>(
 ) {
   return async (...args: Args) => {
     const pending = resolveMemberAcceptanceForRequest();
-    return await requestAdmission.run(pending, async () => {
-      const admission = await pending;
-      if (!admission.ok) return toActionError(admission.failure);
-      return handler(admission.authorized, ...args);
-    });
+    return await requestAdmission.run(
+      () => pending,
+      async () => {
+        const admission = await pending;
+        if (!admission.ok) return toActionError(admission.failure);
+        return handler(admission.authorized, ...args);
+      }
+    );
   };
 }
 
@@ -171,16 +192,20 @@ export function withMemberAcceptance<Args extends unknown[]>(
         if (limited) return limited;
       }
       const pending = resolveMemberAcceptanceForRequest(request.headers);
-      return await requestAdmission.run(pending, async () => {
-        const admission = await pending;
-        if (admission.ok) return handler(admission.authorized, request, ...args);
-        const unauthorized = admission.failure.code === 'UNAUTHORIZED';
-        if (unauthorized && options?.authenticationRefusal) return options.authenticationRefusal();
-        return Response.json(
-          { error: admission.failure.code },
-          { status: unauthorized ? 401 : 403 }
-        );
-      });
+      return await requestAdmission.run(
+        () => pending,
+        async () => {
+          const admission = await pending;
+          if (admission.ok) return handler(admission.authorized, request, ...args);
+          const unauthorized = admission.failure.code === 'UNAUTHORIZED';
+          if (unauthorized && options?.authenticationRefusal)
+            return options.authenticationRefusal();
+          return Response.json(
+            { error: admission.failure.code },
+            { status: unauthorized ? 401 : 403 }
+          );
+        }
+      );
     } catch (error) {
       if (!options?.onError) throw error;
       return options.onError(error);
