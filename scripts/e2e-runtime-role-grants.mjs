@@ -9,7 +9,7 @@ const verificationGrants = new Map([
 
 /**
  * Tables whose migration narrows the runtime role's writes: no DELETE and UPDATE only on these
- * columns (WP-12 migration 0105). The bulk DML grant must not widen them, so provisioning
+ * columns (WP-12 migration 0106). The bulk DML grant must not widen them, so provisioning
  * re-applies the migration's grants. A test pins this list to the migration's own GRANT lines.
  */
 export const NARROWED_TABLE_GRANTS = Object.freeze({

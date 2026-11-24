@@ -45,32 +45,11 @@ export type ClaimsDeps = {
     tenantId: string;
   }) => Promise<void> | void;
   logAuditEvent?: (event: ClaimsAuditEvent) => Promise<void> | void;
-  notifyClaimSubmitted?: (
-    userId: string,
-    email: string,
-    claim: { id: string; title: string; category: string },
-    options: { authority: TenantAuthority }
-  ) => unknown;
-  notifyStatusChanged?: (
-    userId: string,
-    email: string,
-    claim: { id: string; title: string },
-    oldStatus: string,
-    newStatus: string,
-    options: { authority: TenantAuthority }
-  ) => unknown;
   notifyClaimAssigned?: (
     agentId: string,
     email: string,
     claim: { id: string; title: string },
     agentName: string,
-    options: { authority: TenantAuthority }
-  ) => unknown;
-  notifyRecoveryDecision?: (
-    userId: string,
-    email: string,
-    claim: { id: string; title: string },
-    decisionType: 'accepted' | 'declined',
     options: { authority: TenantAuthority }
   ) => unknown;
   dispatchClaimAiRun?: (queuedRun: QueuedClaimAiRun) => Promise<void> | void;

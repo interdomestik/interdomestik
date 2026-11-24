@@ -6,8 +6,6 @@ import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { nanoid } from 'nanoid';
 import {
   assertCanMutateClaim,
-  canAssignClaimOwner,
-  getActionSession,
   getClaimForMutation,
   getOpsMutationContext,
   lockClaimForOpsMutation,
@@ -20,19 +18,9 @@ import {
   OPS_ACTION_UNAUTHORIZED_ERROR,
   toSafeOpsActionError,
 } from './ops-action-outcome';
-import {
-  ASSIGNMENT_TARGET_DENIED_ERROR,
-  assignClaimOwnerInTransaction,
-  unassignClaimOwnerInTransaction,
-} from './ops-assignment';
-import { updateStatusAction } from './ops-status-action';
+import { assignOwnerAction, unassignOwnerAction } from './ops-assignment-action';
+import { updateStatusAction, type OpsStatusOptions } from './ops-status-action';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-
-const ASSIGNMENT_FAILED_ERROR = 'Assignment failed. Please try again.';
-const EXPECTED_ASSIGN_DENIALS: ReadonlySet<string> = new Set([
-  'Claim not found or access denied',
-  'Cannot perform assign on a terminal claim.',
-]);
 
 const INVALID_REMINDER_CHANNEL_ERROR = 'Invalid reminder channel';
 const REMINDER_CHANNELS: ReadonlySet<string> = new Set(['email', 'sms']);
@@ -40,106 +28,25 @@ const REMINDER_COOLDOWN_MINUTES = 10;
 
 type ReminderTransactionOutcome = { recorded: true } | { recorded: false; error: string };
 
-function toSafeAssignmentError(
-  actionName: 'assignOwner' | 'unassignOwner',
-  error: unknown
-): OpsActionResponse {
-  const message = error instanceof Error ? error.message : undefined;
-  if (message !== undefined && EXPECTED_ASSIGN_DENIALS.has(message)) {
-    return { success: false, error: message };
-  }
-  // Never log or return the raw error: Drizzle messages embed SQL and bound params.
-  console.error(`Action Failed: ${actionName}`, error instanceof Error ? error.name : typeof error);
-  return { success: false, error: ASSIGNMENT_FAILED_ERROR };
-}
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Assignment Actions
-// ─────────────────────────────────────────────────────────────────────────────
-
 export async function assignOwner(
   claimId: string,
   staffId: string,
   locale: string
 ): Promise<OpsActionResponse> {
-  try {
-    const ctx = await getActionSession();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
-
-    const actorId = ctx.session.user.id;
-    const actorRole = ctx.session.user.role;
-    if (!canAssignClaimOwner(actorRole)) return { success: false, error: 'Unauthorized' };
-
-    const targetStaffId = typeof staffId === 'string' ? staffId.trim() : '';
-    if (!targetStaffId || targetStaffId === actorId) {
-      return { success: false, error: ASSIGNMENT_TARGET_DENIED_ERROR };
-    }
-
-    const authorized = await authorizeSessionTenant();
-    if (!authorized) return { success: false, error: 'Unauthorized' };
-
-    const result = await withTenantAuthority(authorized.authority, tx =>
-      assignClaimOwnerInTransaction(tx, {
-        actorId,
-        actorRole,
-        claimId,
-        staffId: targetStaffId,
-        tenantId: ctx.tenantId,
-      })
-    );
-
-    if (result.success) {
-      // CRITICAL: Invalidate BOTH detail layout and global claims list to update KPIs immediately
-      revalidateClaim(locale, claimId);
-    }
-
-    return result;
-  } catch (error: unknown) {
-    return toSafeAssignmentError('assignOwner', error);
-  }
+  return assignOwnerAction(claimId, staffId, locale);
 }
 
 export async function unassignOwner(claimId: string, locale: string): Promise<OpsActionResponse> {
-  try {
-    const ctx = await getActionSession();
-    if (!ctx) return { success: false, error: 'Unauthorized' };
-    if (!canAssignClaimOwner(ctx.session.user.role)) {
-      return { success: false, error: 'Unauthorized' };
-    }
-
-    const authorized = await authorizeSessionTenant();
-    if (!authorized) return { success: false, error: 'Unauthorized' };
-
-    const result = await withTenantAuthority(authorized.authority, tx =>
-      unassignClaimOwnerInTransaction(tx, {
-        actorId: ctx.session.user.id,
-        actorRole: ctx.session.user.role,
-        claimId,
-        tenantId: ctx.tenantId,
-      })
-    );
-
-    if (result.success) {
-      // CRITICAL: Invalidate BOTH detail layout and global claims list to update KPIs immediately
-      revalidateClaim(locale, claimId);
-    }
-
-    return result;
-  } catch (error: unknown) {
-    return toSafeAssignmentError('unassignOwner', error);
-  }
+  return unassignOwnerAction(claimId, locale);
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Status Actions
-// ─────────────────────────────────────────────────────────────────────────────
 
 export async function updateStatus(
   claimId: string,
   newStatus: ClaimStatus,
-  locale: string
+  locale: string,
+  options?: OpsStatusOptions
 ): Promise<OpsActionResponse> {
-  return updateStatusAction(claimId, newStatus, locale);
+  return updateStatusAction(claimId, newStatus, locale, options);
 }
 
 export async function markSlaAcknowledged(

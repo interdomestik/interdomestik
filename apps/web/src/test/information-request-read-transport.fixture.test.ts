@@ -3,6 +3,7 @@ import {
   failInformationRequestRead,
   type ReadSeamMode,
 } from '../../e2e/gate/information-request-read-result.fixture';
+import { waitForReadSignal } from '../../e2e/gate/information-request-read-signals.fixture';
 import {
   TARGET,
   row,
@@ -122,6 +123,43 @@ describe('installInformationRequestReadSeam transport lifecycle', () => {
     expect(seam.counts()).toMatchObject({ eligible: 1, failed: 1, errors: 0 });
     expect(errorOf(seam)).toBe('');
     expect(() => seam.arm(FAIL)).not.toThrow();
+  });
+
+  it('surfaces a genuine server failure before holding the first retry', async () => {
+    const { seam, handler } = await mount();
+    seam.arm({ kind: 'failure', hold: true });
+    const held = seam.waitForRead('held');
+    const route = fakeRoute(rsc(sample(props({ requests: null }))));
+    const pending = send(handler, route);
+    try {
+      await held;
+      expect(() => seam.assertNoError()).toThrow('expected an actual staff requests list');
+      expect(seam.counts()).toMatchObject({ deliberateFailed: 0, held: 0, errors: 1 });
+      expect(route.abort).toHaveBeenCalledTimes(1);
+      expect(route.fulfill).not.toHaveBeenCalled();
+    } finally {
+      seam.release();
+      await pending;
+    }
+  });
+
+  it('stops waiting for a missing held retry at the shared deadline', async () => {
+    const { seam } = await mount();
+    seam.arm(HELD);
+    vi.useFakeTimers();
+    try {
+      const deadline = performance.now() + 120_000;
+      const result = vi.fn();
+      await vi.advanceTimersByTimeAsync(119_000);
+      void waitForReadSignal(seam.waitForRead('held'), deadline).then(result);
+      await vi.advanceTimersByTimeAsync(999);
+      expect(result).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(1);
+      expect(result).toHaveBeenCalledWith(false);
+    } finally {
+      vi.useRealTimers();
+      await seam.restore();
+    }
   });
 
   it.each([

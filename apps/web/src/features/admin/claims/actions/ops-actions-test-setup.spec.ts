@@ -1,24 +1,17 @@
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, expect, vi } from 'vitest';
 
+import { opsActionBoundaryMocks } from './ops-assignment.test-fixture';
+
 // Exercises the real ops action guards (action-helpers + ops-action-outcome) with only the
 // session/headers/cache boundary, the tenant transaction factory and the canonical transition
 // command replaced. This is source-level evidence, not restricted-role/RLS/rollback proof.
-const mocks = vi.hoisted(() => ({
-  directDb: vi.fn(),
-  getSession: vi.fn(),
-  revalidatePath: vi.fn(),
-  transitionInTx: vi.fn(),
-  withTenantContext: vi.fn(),
-}));
-
-vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
-vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
-vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
+const directDb = vi.hoisted(() => vi.fn());
+const mocks = { ...opsActionBoundaryMocks, directDb };
 vi.mock('@interdomestik/database', async importOriginal => {
   const actual = await importOriginal<typeof import('@interdomestik/database')>();
   const forbidden = (path: string) => () => {
-    mocks.directDb(path);
+    directDb(path);
     throw new Error(`ambient db.${path} must not be used`);
   };
   return {
@@ -34,19 +27,16 @@ vi.mock('@interdomestik/database', async importOriginal => {
       transaction: forbidden('transaction'),
       update: forbidden('update'),
     },
-    withTenantContext: mocks.withTenantContext,
+    withTenantContext: opsActionBoundaryMocks.withTenantContext,
   };
 });
-vi.mock('@interdomestik/domain-claims/admin-claims/status-transition', () => ({
-  transitionAdminClaimStatus: vi.fn(),
-  transitionAdminClaimStatusInTransaction: mocks.transitionInTx,
-}));
-vi.mock('./ops-assignment', () => ({
-  ASSIGNMENT_TARGET_DENIED_ERROR: 'Assignment target denied',
-  assignClaimOwnerInTransaction: vi.fn(),
+vi.mock('./ops-status-action', () => ({ updateStatusAction: vi.fn() }));
+vi.mock('./ops-assignment-action', () => ({
+  assignOwnerAction: vi.fn(),
+  unassignOwnerAction: vi.fn(),
 }));
 
-import { markSlaAcknowledged, sendMemberReminder, updateStatus } from './ops-actions';
+import { markSlaAcknowledged, sendMemberReminder } from './ops-actions';
 
 type Effect = Readonly<{ kind: string; table?: unknown; values?: Record<string, unknown> }>;
 type TxOptions = Readonly<{
@@ -129,14 +119,12 @@ export function insertedInto(table: unknown): Effect[] {
 
 export function expectNoResourceAccess() {
   expect(mocks.withTenantContext).not.toHaveBeenCalled();
-  expect(mocks.transitionInTx).not.toHaveBeenCalled();
   expect(mocks.directDb).not.toHaveBeenCalled();
   expect(mocks.revalidatePath).not.toHaveBeenCalled();
   expect(tenant.effects).toEqual([]);
 }
 
 export const ENTRYPOINTS = [
-  ['updateStatus', () => updateStatus('claim-1', 'verification', 'en')],
   ['markSlaAcknowledged', () => markSlaAcknowledged('claim-1', 'en')],
   ['sendMemberReminder', () => sendMemberReminder('claim-1', 'email', 'en')],
 ] as const;
@@ -182,12 +170,6 @@ beforeEach(() => {
   mocks.withTenantContext.mockImplementation(
     async (_context: unknown, action: (tx: unknown) => Promise<unknown>) => action(tenant.tx)
   );
-  mocks.transitionInTx.mockResolvedValue({
-    success: true,
-    fromStatus: 'evaluation',
-    lifecycleVersion: 4,
-    status: 'verification',
-  });
 });
 
 export { mocks };

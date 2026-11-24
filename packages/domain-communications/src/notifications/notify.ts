@@ -9,10 +9,8 @@ import { and, eq, like } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import {
   sendClaimAssignedEmail,
-  sendClaimSubmittedEmail,
   sendNewMessageEmail,
   sendPaymentVerificationEmail,
-  sendStatusChangedEmail,
 } from '../email';
 import { sendPushToUser } from '../push';
 import {
@@ -90,40 +88,6 @@ export async function sendNotification(
   }
 }
 
-/**
- * Notify a member that staff sent or updated the latest public support handoff response.
- *
- * This is intentionally in-app only for P32-CRM07; email, push, acknowledgements,
- * and support-handoff-specific unread semantics remain out of scope.
- */
-export async function notifySupportHandoffPublicResponse(
-  memberId: string,
-  handoff: { id: string; publicResponseVersion: number },
-  options: {
-    actionUrl?: string;
-    content?: string;
-    authority: TenantAuthority;
-    title?: string;
-  }
-) {
-  const { tenantId } = readTenantAuthority(options.authority);
-  return sendNotification(
-    memberId,
-    'support_handoff_public_response',
-    {
-      handoffId: handoff.id,
-      publicResponseVersion: handoff.publicResponseVersion,
-    },
-    {
-      actionUrl: options.actionUrl ?? '/member/help',
-      content: options.content ?? 'A staff update is available on your support request.',
-      notificationId: `ntf_support_handoff_${tenantId}_${handoff.id}_${handoff.publicResponseVersion}`,
-      authority: options.authority,
-      title: options.title ?? 'Staff update available',
-    }
-  );
-}
-
 export async function clearSupportHandoffPublicResponseNotifications(
   memberId: string,
   handoff: { id: string },
@@ -152,39 +116,6 @@ export async function clearSupportHandoffPublicResponseNotifications(
     console.error('Failed to clear support handoff public response notifications:', error);
     return { success: false, error: 'Database error' };
   }
-}
-
-/**
- * Notify member about claim submission
- */
-export async function notifyClaimSubmitted(
-  userId: string,
-  _userEmail: string,
-  claim: { id: string; title: string; category: string },
-  options: NotificationChannelOptions
-) {
-  const result = await sendNotification(
-    userId,
-    'claim_submitted',
-    {
-      claimId: claim.id,
-      claimTitle: claim.title,
-      category: claim.category,
-    },
-    {
-      title: 'Claim Submitted',
-      actionUrl: `/member/claims/${claim.id}`,
-      authority: options.authority,
-    }
-  );
-
-  if (result.success) {
-    sendVerifiedEmail(userId, options.authority, 'claim submitted', verifiedEmail =>
-      sendClaimSubmittedEmail(verifiedEmail, claim)
-    );
-  }
-
-  return result;
 }
 
 /**
@@ -233,50 +164,6 @@ function pushWith(deps: NotificationDeps) {
       authority: deps.authority,
     });
 }
-/**
- * Notify member about claim status change
- */
-export async function notifyStatusChanged(
-  userId: string,
-  _userEmail: string,
-  claim: { id: string; title: string },
-  oldStatus: string,
-  newStatus: string,
-  deps: NotificationDeps
-) {
-  const push = pushWith(deps);
-
-  const result = await sendNotification(
-    userId,
-    'claim_status_changed',
-    {
-      claimId: claim.id,
-      claimTitle: claim.title,
-      oldStatus,
-      newStatus,
-    },
-    {
-      title: 'Claim Status Updated',
-      actionUrl: `/member/claims/${claim.id}`,
-      authority: deps.authority,
-    }
-  );
-
-  if (result.success) {
-    sendVerifiedEmail(userId, deps.authority, 'status change', verifiedEmail =>
-      sendStatusChangedEmail(verifiedEmail, claim, oldStatus, newStatus)
-    );
-
-    push(userId, 'claim_updates', {
-      title: 'Claim Status Updated',
-      body: `${claim.title}: ${oldStatus} → ${newStatus}`,
-      url: `/member/claims/${claim.id}`,
-    }).catch(error => console.error('Failed to send status change push:', error));
-  }
-
-  return result;
-}
-
 /**
  * Notify user about new message on their claim
  */
@@ -386,50 +273,6 @@ export async function notifyClaimPackGenerated(
       authority: options.authority,
     }
   );
-}
-
-export async function notifyRecoveryDecision(
-  userId: string,
-  _userEmail: string,
-  claim: { id: string; title: string },
-  decisionType: 'accepted' | 'declined',
-  options: NotificationChannelOptions
-) {
-  const accepted = decisionType === 'accepted';
-  const event: NotificationEvent = accepted ? 'escalation_accepted' : 'escalation_declined';
-  const title = accepted ? 'Recovery accepted' : 'Recovery declined';
-  const intro = accepted
-    ? `Staff accepted ${claim.title} for recovery handling.`
-    : `Staff declined recovery handling for ${claim.title}.`;
-  const actionUrl = `/member/claims/${claim.id}`;
-
-  const result = await sendNotification(
-    userId,
-    event,
-    {
-      claimId: claim.id,
-      claimTitle: claim.title,
-      decisionType,
-    },
-    {
-      title,
-      actionUrl,
-      authority: options.authority,
-    }
-  );
-
-  if (result.success) {
-    sendVerifiedEmail(userId, options.authority, 'recovery decision', verifiedEmail =>
-      sendLifecycleEmail(verifiedEmail, {
-        title,
-        intro,
-        actionUrl,
-        ctaLabel: 'View claim',
-      })
-    );
-  }
-
-  return result;
 }
 
 export async function notifyDocumentRequested(

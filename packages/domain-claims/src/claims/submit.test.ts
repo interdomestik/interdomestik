@@ -5,6 +5,9 @@ import {
   appendEventMock,
   buildEvidenceFile,
   buildSubmitArgs,
+  createClaimResponseRequestMock,
+  enqueueClaimSubmittedNotificationMock,
+  enqueueStaffClaimNotificationMock,
   getActiveSubscriptionMock,
   logAuditEventMock,
   nanoidMock,
@@ -35,6 +38,29 @@ describe('submitClaimCore', () => {
     }
   );
 
+  it('redacts bound claim data when persistence fails', async () => {
+    const args = buildSubmitArgs({ files: [] });
+    args.trustedClaimId = 'claim-with-persistence-error';
+    txInsertValues.mockRejectedValueOnce(
+      Object.assign(new Error(`query parameters: ${args.data.description}`), { code: '23514' })
+    );
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    try {
+      await expect(submitClaimCore(args)).rejects.toThrow(
+        'Failed to create claim. Please try again.'
+      );
+      expect(log).toHaveBeenCalledExactlyOnceWith(
+        'Failed to create claim:',
+        expect.objectContaining({
+          message: 'Failed to create claim:',
+          cause: { name: 'Error', code: '23514' },
+        })
+      );
+    } finally {
+      log.mockRestore();
+    }
+  });
+
   it('persists initial documents without queueing AI when no explicit extraction consent exists', async () => {
     const dispatchClaimAiRun = vi.fn().mockResolvedValue(undefined);
     const validateSubmittedClaimFile = vi.fn().mockResolvedValue(undefined);
@@ -53,6 +79,7 @@ describe('submitClaimCore', () => {
       success: true,
       claimId: 'claim-1',
       claimNumber: 'CLM-T1-2026-000001',
+      deliveryIds: ['member-email', 'staff-email'],
     });
     expect(txInsert).toHaveBeenNthCalledWith(1, { __name: 'claim' });
     expect(txInsert).toHaveBeenNthCalledWith(2, { __name: 'claim_stage_history' });
@@ -86,6 +113,29 @@ describe('submitClaimCore', () => {
         uploadIntentToken: 'server-issued-upload-intent',
       }),
     });
+    // The notifications are written through the live handle of the transaction that wrote the
+    // claim, so they commit or roll back with it.
+    const claimWrite = txCalls.find(call => call.op === 'insert:claim');
+    expect(claimWrite?.handle).toBeGreaterThan(0);
+    const liveTx = expect.objectContaining({ handle: claimWrite?.handle });
+    expect(enqueueClaimSubmittedNotificationMock).toHaveBeenCalledWith(
+      liveTx,
+      expect.objectContaining({
+        claimId: 'claim-1',
+        tenantId: 'tenant-1',
+        recipient: { id: 'member-1' },
+      })
+    );
+    expect(enqueueStaffClaimNotificationMock).toHaveBeenCalledWith(
+      liveTx,
+      expect.objectContaining({ claimId: 'claim-1', claimNumber: 'CLM-T1-2026-000001' }),
+      { kind: 'staff_claim_submitted' },
+      [{ id: 'staff-1' }]
+    );
+    expect(createClaimResponseRequestMock).toHaveBeenCalledWith(
+      liveTx,
+      expect.objectContaining({ claimId: 'claim-1', tenantId: 'tenant-1', kind: 'claim_submitted' })
+    );
   });
 
   it('locks and re-reads each evidence object in the transaction that writes the claim and its documents', async () => {

@@ -56,6 +56,13 @@ function journalThrough(t: TestContext, stop: 'prior' | 'register') {
 
 async function proveJournal(t: TestContext, admin: ScratchClient) {
   await migrateJournal(admin, journalThrough(t, 'prior'));
+  const [claimKey] = await admin`
+    select pg_get_indexdef(to_regclass('public.claim_tenant_id_id_uq')) as definition`;
+  assert.equal(
+    claimKey?.definition,
+    'CREATE UNIQUE INDEX claim_tenant_id_id_uq ON public.claim USING btree (tenant_id, id)',
+    'the composite claim key is available before the WP-12 foreign keys are installed'
+  );
   await seedActors(admin);
   const retail = await insertClaim(admin, { id: 'l1', category: 'retail' });
   const injury = await insertClaim(admin, {

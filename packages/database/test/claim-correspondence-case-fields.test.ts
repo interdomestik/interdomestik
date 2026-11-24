@@ -12,11 +12,18 @@ import {
   type Case,
   type Connection,
 } from './claim-correspondence.fixture';
-import { migrateJournal, scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
-import { quoteIdentifier } from './rls-test-connection';
+import {
+  migrateJournalBeforeNotificationDeliveries,
+  migrateJournalThrough,
+} from './journal-prefix.support';
+import { scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
+import {
+  grantNotificationDeliveryRowLocks,
+  role,
+  runtimeRole,
+} from './wp11-notification-deliveries-rls.fixture';
 
 const rlsDenied = { code: '42501', message: /row-level security/u };
-const runtimeRole = 'interdomestik_runtime_rls';
 
 function caseFields(claim: Case, reference = 'proof-01') {
   return {
@@ -123,12 +130,14 @@ test('WP-12 case fields: effective grants of the runtime role after migration', 
   const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
   if (missing) return t.skip(missing);
   await withScratchDatabase('wp12_grants', async admin => {
-    const role = quoteIdentifier(runtimeRole);
     const [existing] = await admin`select 1 from pg_roles where rolname = ${runtimeRole}`;
     // The migration grants to the runtime role when it exists, as in every environment.
     if (!existing) await admin.unsafe(`create role ${role} nologin nosuperuser nobypassrls`);
     try {
-      await migrateJournal(admin, fileURLToPath(new URL('../drizzle', import.meta.url)));
+      const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url));
+      await migrateJournalBeforeNotificationDeliveries(admin, migrationsFolder);
+      await grantNotificationDeliveryRowLocks(admin);
+      await migrateJournalThrough(admin, migrationsFolder, '0106_wp12_claim_correspondence');
       const [table] = await admin`select
         has_table_privilege(${runtimeRole}, 'public.claim_case_fields', 'SELECT') as can_select,
         has_table_privilege(${runtimeRole}, 'public.claim_case_fields', 'INSERT') as can_insert,

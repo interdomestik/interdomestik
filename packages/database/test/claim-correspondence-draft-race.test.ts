@@ -31,12 +31,6 @@ type DraftEdit = (
     };
   }
 ) => Promise<{ success: boolean; code?: string }>;
-type Submit = (input: {
-  authority: Member['authority'];
-  actor: { id: string; role: string };
-  claimId: string;
-  toStatus: 'submitted';
-}) => Promise<unknown>;
 
 const barrierKey = 120104;
 
@@ -107,7 +101,8 @@ test('WP-12 draft edits and submissions race through both production commands', 
       await withDomainPools(admin, runtime, async () => {
         const [{ updateDraftClaimCore }, { transitionClaimStatus }] = await Promise.all([
           importDomain<{ updateDraftClaimCore: DraftEdit }>('/claims/draft'),
-          importDomain<{ transitionClaimStatus: Submit }>('/claims/transition'),
+          // The public status command refuses drafts before it reaches the writer.
+          import('../../domain-claims/src/claims/transition'),
         ]);
         const member = actor(homeActor, 'member', homeTenant, null);
         for (const submitFirst of [true, false]) {

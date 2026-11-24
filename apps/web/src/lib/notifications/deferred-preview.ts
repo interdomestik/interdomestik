@@ -10,7 +10,7 @@ import { deliverPreviewPush } from './deliver-preview-push';
 
 type Preview = NonNullable<Awaited<ReturnType<typeof resolveRecipientPreview>>>;
 
-/** Reuse the public-reply post-commit pattern after the in-app-only producer succeeds. */
+/** Schedules preview delivery after its inbox row has committed. */
 export function schedulePreviewDelivery(
   args: PreviewRecipient & {
     event: string;

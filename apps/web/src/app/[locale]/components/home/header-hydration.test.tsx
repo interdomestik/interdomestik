@@ -13,7 +13,12 @@ vi.mock('next-intl', () => ({
   useLocale: () => 'en',
   useTranslations: createUseTranslationsMock(() => enNavMessages),
 }));
+vi.mock('@/actions/preferred-locale', () => ({
+  updatePreferredLocale: vi.fn().mockResolvedValue({ success: true }),
+}));
+
 vi.mock('@/i18n/routing', () => ({
+  useRouter: () => ({ push: vi.fn() }),
   Link: (props: React.AnchorHTMLAttributes<HTMLAnchorElement>) => <a {...props} />,
 }));
 function signedInAs(role: string) {

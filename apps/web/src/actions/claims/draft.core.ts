@@ -1,7 +1,4 @@
-import {
-  cancelClaimCore as cancelClaimCoreDomain,
-  updateDraftClaimCore as updateDraftClaimCoreDomain,
-} from '@interdomestik/domain-claims/claims/draft';
+import { updateDraftClaimCore as updateDraftClaimCoreDomain } from '@interdomestik/domain-claims/claims/draft';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { CreateClaimValues } from '@interdomestik/domain-claims/validators/claims';
 
@@ -24,17 +21,5 @@ export async function updateDraftClaimCore(params: {
     validateSubmittedClaimFile: initialClaimEvidenceValidatorFor(params.authority, {
       actorRole: params.session?.user.role ?? null,
     }),
-  });
-}
-
-export async function cancelClaimCore(params: {
-  session: NonNullable<Session> | null;
-  authority: TenantAuthority | null;
-  requestHeaders: Headers;
-  claimId: string;
-}) {
-  return cancelClaimCoreDomain(params, {
-    logAuditEvent,
-    revalidatePath,
   });
 }

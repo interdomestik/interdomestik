@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockClaimWriterEffects } from './submit-test-support';
 
 const hoisted = vi.hoisted(() => {
   const txInsertValues = vi.fn();
@@ -70,13 +71,12 @@ vi.mock('drizzle-orm', () => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ left, right })),
 }));
 vi.mock('nanoid', () => ({ nanoid: hoisted.nanoid }));
-vi.mock('./ai-workflows', () => ({
-  queueClaimDocumentAiWorkflows: vi.fn().mockResolvedValue([]),
-}));
 
 import { appendEvent } from '@interdomestik/database';
-import { createClaimCore } from './create';
-import { submitClaimCore } from './submit';
+
+mockClaimWriterEffects();
+const { createClaimCore } = await import('./create');
+const { submitClaimCore } = await import('./submit');
 
 const authority = mintTestTenantAuthority('tenant-1');
 

@@ -12,7 +12,9 @@ import { mintIngressCapability, type IngressCapability } from '../src/ingress-ca
 import * as schema from '../src/schema';
 import { mintTenantAuthority, type TenantAuthority } from '../src/tenant-authority';
 import { restricted, runtimeRole } from './exchange-rates-restricted.fixture';
-import { migrateJournal, withScratchDatabase } from './pg16/scratch-database';
+import { runSequentially } from './in-order';
+import { migrateJournalBeforeNotificationDeliveries } from './journal-prefix.support';
+import { withScratchDatabase } from './pg16/scratch-database';
 import {
   applyRlsTestConnectionEnv,
   quoteIdentifier,
@@ -35,9 +37,7 @@ export const rateInput = (effectiveOn: string) => ({
   effectiveOn,
 });
 
-export function runSequentially<T>(items: readonly T[], run: (item: T) => Promise<void>) {
-  return items.reduce((previous, item) => previous.then(() => run(item)), Promise.resolve());
-}
+export { runSequentially } from './in-order';
 
 export type RateRow = {
   id: string;
@@ -159,8 +159,8 @@ export async function withPaymentPortDatabase(
   // The scratch database owns all append-only rows and disappears after the proof.
   await withScratchDatabase('wp07_payment', admin =>
     withRuntimeLogin(admin, async (username, password) => {
-      // Migration 0101 grants privileges to the runtime role when it exists.
-      await migrateJournal(admin, migrations);
+      // The billing migrations grant privileges to the runtime role when it exists.
+      await migrateJournalBeforeNotificationDeliveries(admin, migrations);
       const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
       const url = new URL(process.env.DATABASE_URL!);
       url.pathname = `/${name}`;

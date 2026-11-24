@@ -11,6 +11,21 @@ import {
   mockHasActiveMembership,
 } from './claims.test-support';
 
+vi.mock('@/lib/claim-notification-delivery-kick', () => ({
+  kickClaimNotificationDeliveries: vi.fn(),
+}));
+vi.mock('../../../../packages/domain-claims/src/staff-claims/notification-recipients', () => ({
+  resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([]),
+}));
+vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
+  enqueueClaimSubmittedNotification: vi.fn().mockResolvedValue([]),
+  enqueueStaffClaimNotification: vi.fn().mockResolvedValue([]),
+  lockClaimNotificationRecipient: vi.fn(),
+}));
+vi.mock('@interdomestik/domain-claims/claims/response-requests', () => ({
+  createClaimResponseRequest: vi.fn(),
+}));
+
 describe('Claim Actions', () => {
   describe('submitClaim', () => {
     const validPayload: CreateClaimValues = {

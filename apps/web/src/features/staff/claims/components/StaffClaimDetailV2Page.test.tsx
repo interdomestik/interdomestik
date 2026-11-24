@@ -6,6 +6,7 @@ const mocks = vi.hoisted(() => ({
   getCore: vi.fn(),
   getDetail: vi.fn(),
   getOptions: vi.fn(),
+  infoPane: vi.fn(() => null),
 }));
 
 vi.mock('next/headers', () => ({ headers: vi.fn(async () => new Headers()) }));
@@ -28,12 +29,27 @@ vi.mock('@/app/[locale]/(staff)/staff/claims/[id]/_core', () => ({
 }));
 vi.mock('@/components/agent/claim-detail-header', () => ({ ClaimDetailHeader: () => null }));
 vi.mock('@/components/agent/claim-documents-pane', () => ({ ClaimDocumentsPane: () => null }));
-vi.mock('@/components/agent/claim-info-pane', () => ({ ClaimInfoPane: () => null }));
+vi.mock('@/components/agent/claim-info-pane', () => ({ ClaimInfoPane: mocks.infoPane }));
 vi.mock('@/components/messaging/messaging-panel', () => ({ MessagingPanel: () => null }));
 vi.mock('@/components/staff/claim-action-panel', () => ({ ClaimActionPanel: () => null }));
 vi.mock('@/components/staff/claim-triage-notes', () => ({ ClaimTriageNotes: () => null }));
 
+import { isValidElement, type ReactNode } from 'react';
 import { StaffClaimDetailV2Page } from './StaffClaimDetailV2Page';
+
+/** The props of the first element of `type` in a rendered server-component tree. */
+function propsOf(node: ReactNode, type: unknown): Record<string, unknown> | undefined {
+  if (Array.isArray(node)) {
+    for (const child of node) {
+      const found = propsOf(child, type);
+      if (found) return found;
+    }
+    return undefined;
+  }
+  if (!isValidElement<{ children?: ReactNode }>(node)) return undefined;
+  if (node.type === type) return node.props as Record<string, unknown>;
+  return propsOf(node.props.children, type);
+}
 
 const authority = mintTestTenantAuthority('tenant-ks');
 const session = {
@@ -78,5 +94,23 @@ describe('StaffClaimDetailV2Page', () => {
     );
     expect(mocks.getDetail).not.toHaveBeenCalled();
     expect(mocks.getCore).not.toHaveBeenCalled();
+  });
+
+  it.each([
+    ['verification', 'verification'],
+    ['closed', null],
+    ['contacting', null],
+    [null, null],
+  ])('passes the info pane a canonical status: %s → %s', async (status, expected) => {
+    mocks.getCore.mockResolvedValue({
+      kind: 'ok',
+      claim: { id: 'claim-1', staffId: 'staff-1', status },
+      documents: [],
+      stageHistory: [],
+      slaPhase: 'running',
+    });
+    const page = await StaffClaimDetailV2Page({ id: 'claim-1', locale: 'en' });
+    const props = propsOf(page, mocks.infoPane);
+    expect(props?.claim).toMatchObject({ id: 'claim-1', status: expected });
   });
 });

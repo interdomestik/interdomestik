@@ -1004,3 +1004,7 @@ d5d87c787ba34c5c22f2dca750c014035fa756b5:sonar-project.properties:generic-api-ke
 533971f311a1a38dcc403e0bf7240b527336845c:scripts/modularity-guard-policy.mjs:generic-api-key:142
 533971f311a1a38dcc403e0bf7240b527336845c:scripts/modularity-guard-policy.mjs:generic-api-key:143
 533971f311a1a38dcc403e0bf7240b527336845c:scripts/modularity-guard-policy.mjs:generic-api-key:144
+
+# WP-11 (PR 2114): a test idempotency key literal in a unit test, not a credential.
+# The current file uses a short literal; this pins only the historical commit.
+adf40f853ef90caca9d7abac12ba0c1feb7250e4:packages/domain-communications/src/email-outcome.test.ts:generic-api-key:15

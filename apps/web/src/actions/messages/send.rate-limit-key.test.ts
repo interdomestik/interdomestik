@@ -7,7 +7,7 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: mocks.enforceRateLimit }));
 vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
-vi.mock('@interdomestik/domain-communications/messages/send', () => ({
+vi.mock('@interdomestik/domain-claims/claims/send-message', () => ({
   sendMessageDbCore: mocks.sendDomain,
 }));
 

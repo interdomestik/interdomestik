@@ -2,7 +2,7 @@ import { sendMessageSchema } from '@interdomestik/domain-communications/messages
 import {
   sendMessageDbCore as sendMessageDbCoreDomain,
   type SendMessageDbCoreResult,
-} from '@interdomestik/domain-communications/messages/send';
+} from '@interdomestik/domain-claims/claims/send-message';
 
 import { logAuditEvent } from '@/lib/audit';
 import { enforceRateLimit } from '@/lib/rate-limit';

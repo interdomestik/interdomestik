@@ -94,7 +94,40 @@
     "updateOn": "Përditësim për: {claim}",
     "yourClaim": "rastin tuaj",
     "updateBody": "Ka një përditësim të ri. Hapni njoftimin për hollësi.",
+    "staff": {
+      "claimWithoutNumber": "Kërkesë pa numër",
+      "content": "{event} · {category}",
+      "categories": {
+        "consumer": "Konsumator",
+        "consumer_rights": "Të Drejtat e Konsumatorit",
+        "housing": "Strehim",
+        "insurance": "Sigurim",
+        "employment": "Punësim",
+        "contracts": "Kontrata",
+        "utilities": "Shërbime Komunale",
+        "auto": "Automjet",
+        "vehicle": "Automjet",
+        "travel": "Udhëtim",
+        "retail": "Shitje me pakicë",
+        "real_estate": "Pasuri e Paluajtshme",
+        "property": "Pronë",
+        "flight_delay": "Vonesë Fluturimi",
+        "damaged_goods": "Mallra të Dëmtuara",
+        "service_issue": "Problem Shërbimi",
+        "liability": "Përgjegjësi Ligjore",
+        "medical": "Mjekësor",
+        "test": "Provë",
+        "other": "Tjetër",
+        "injury": "Lëndime Personale"
+      }
+    },
     "events": {
+      "staff_claim_submitted": {
+        "title": "Kërkesë e re e dorëzuar"
+      },
+      "staff_member_message": {
+        "title": "Mesazh i ri nga anëtari"
+      },
       "claimSubmitted": {
         "title": "Kërkesa u dërgua"
       },
