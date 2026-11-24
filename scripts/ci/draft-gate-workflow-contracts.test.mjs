@@ -54,9 +54,11 @@ test('CI exposes one effective heavy-lane decision while keeping required audit 
   assert.equal(action.outputs.should_run.value, '${{ steps.gate_policy.outputs.should_run }}');
   assert.equal(action.outputs.run_broad.value, '${{ steps.certification.outputs.run_broad }}');
   assert.ok(needs(audit, 'validation-surface'));
-  assert.equal(
-    findStep(audit, 'Run Audits').if,
-    "needs.validation-surface.outputs.run_broad == 'true'"
+  const auditRun = findStep(audit, 'Run Audits');
+  assert.equal(auditRun.env.RUN_BROAD, '${{ needs.validation-surface.outputs.run_broad }}');
+  assert.match(
+    auditRun.run,
+    /^if \[\[ "\$RUN_BROAD" == "true" \]\]; then\n  node scripts\/check-env-ci\.mjs\n(?:  [^\n]+\n)*  pnpm db:migrations:check-journal\nfi$/mu
   );
   const governance = findStep(audit, 'Run lightweight governance audits');
   assert.equal(governance.env.RUN_BROAD, '${{ needs.validation-surface.outputs.run_broad }}');
