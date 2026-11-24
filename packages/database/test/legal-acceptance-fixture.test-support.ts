@@ -1,9 +1,14 @@
+import { E2E_EMAIL_DOMAIN } from '../src/e2e-users';
 import { cleanSeededLegalAcceptance, seedLegalAcceptance } from '../src/seed-golden/index';
 
 type Identity = NonNullable<Parameters<typeof seedLegalAcceptance>[0]>[number];
 
+const syntheticDomains = new Set(['example.test', E2E_EMAIL_DOMAIN]);
+
 function isSyntheticEmail(value: unknown): value is string {
-  return typeof value === 'string' && /^[^@\s]+@example\.test$/u.test(value);
+  if (typeof value !== 'string') return false;
+  const match = /^[^@\s]+@([^@\s]+)$/u.exec(value);
+  return match !== null && syntheticDomains.has(match[1] ?? '');
 }
 
 function isFixtureIdentity(value: unknown): value is Identity {

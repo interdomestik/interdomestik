@@ -44,3 +44,26 @@ test('the fixture tool rejects a non-synthetic identity before opening the datab
   assert.equal(result.status, 1);
   assert.equal(result.stderr.trim(), 'Synthetic legal acceptance fixture operation failed');
 });
+
+test('the fixture tool accepts the shared E2E mailbox domain and nothing that only resembles it', () => {
+  // A valid identity passes validation and stops at the remote-target refusal.
+  const shared = runFixtureTool('seed', [
+    { ...member, email: 'recovery-a@plan070.example.invalid' },
+  ]);
+  assert.equal(shared.status, 1);
+  assert.equal(shared.stderr.trim(), 'Fixture database target refused');
+
+  for (const email of [
+    'recovery-a@plan070.example.invalid.attacker.test',
+    'recovery-a@evil-plan070.example.invalid',
+    'recovery-a@sub.example.test',
+  ]) {
+    const result = runFixtureTool('clean', [{ ...member, email }]);
+    assert.equal(result.status, 1, email);
+    assert.equal(
+      result.stderr.trim(),
+      'Synthetic legal acceptance fixture operation failed',
+      email
+    );
+  }
+});
