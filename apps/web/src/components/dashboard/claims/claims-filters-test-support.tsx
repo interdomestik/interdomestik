@@ -82,7 +82,6 @@ export function intlModule() {
 
 export function uiModule() {
   return {
-    badgeVariants: () => 'badge',
     Input: (props: InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
   };
 }

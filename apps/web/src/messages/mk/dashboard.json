@@ -31,6 +31,10 @@
         "external_response": "Се чека надворешен одговор",
         "court_schedule": "Проверете го судскиот распоред"
       },
+      "updates_item": {
+        "occurred": "Датум на настанот",
+        "current_status": "Тековен статус"
+      },
       "regions": {
         "case": {
           "label": "Вашите случаи",
