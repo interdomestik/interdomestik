@@ -163,8 +163,11 @@ export const PRIVILEGED = new Map([
       form: 'call',
       callers: [
         'apps/web/src/actions/leads.core.ts',
+        // Keep the direct callers on main admitted until WP-10 U1 merges.
         'apps/web/src/lib/actions/business-membership-lead.ts',
         'apps/web/src/actions/free-start/submit.core.ts',
+        // WP-10 R-37 item 7: admission resolves the public-site authority and checks public_intake.
+        'apps/web/src/lib/tenant/public-intake-admission.ts',
       ],
       reexports: [`${DB}/index.ts`],
     },
