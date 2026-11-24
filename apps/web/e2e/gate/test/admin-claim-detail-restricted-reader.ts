@@ -414,11 +414,10 @@ async function runReader(f: ClaimReadFixture, controller: Controller, getPool: (
           pool,
           () => read({ authority, claimId, documentsAfter: after }),
           {
-            afterRead: async (kind, run, query, checkoutAndBeginMs) => {
+            measurePoolTiming: true,
+            afterRead: async (kind, run, query, checkout) => {
               if (kind === 'documents') {
-                evidence.push(
-                  await measureRead(run, query, `${label}/${phase}`, checkoutAndBeginMs)
-                );
+                evidence.push(await measureRead(run, query, `${label}/${phase}`, checkout));
               }
             },
           }
@@ -446,9 +445,9 @@ async function runReader(f: ClaimReadFixture, controller: Controller, getPool: (
         pool,
         () => read({ authority: admin, claimId: f.localId, staffSearch: f.prefix, staffAfter }),
         {
-          afterRead: async (kind, run, query, checkoutAndBeginMs) => {
-            if (kind === 'staff')
-              evidence.push(await measureRead(run, query, label, checkoutAndBeginMs));
+          measurePoolTiming: true,
+          afterRead: async (kind, run, query, checkout) => {
+            if (kind === 'staff') evidence.push(await measureRead(run, query, label, checkout));
           },
         }
       );

@@ -1,4 +1,4 @@
-import { and, claims, eq } from '@interdomestik/database';
+import { and, claims, eq, type TenantTransaction } from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -7,7 +7,6 @@ import {
 import { withAccessTenant, withTenant } from '@interdomestik/database/tenant-security';
 import { isSuperAdmin, isTenantAdmin, ROLES } from '@interdomestik/shared-auth';
 import { isNull, or, sql, type SQL } from 'drizzle-orm';
-import { QueryBuilder } from 'drizzle-orm/pg-core';
 
 type Viewer = Pick<TenantAuthorityPrincipal, 'role' | 'branchId'>;
 
@@ -20,13 +19,7 @@ export function adminClaimsBranchCondition({ role, branchId }: Viewer): SQL | un
   return branchId ? eq(claims.branchId, branchId) : sql`false`;
 }
 
-export function selectVisibleOpsClaim({
-  authority,
-  claimId,
-}: {
-  authority: TenantAuthority;
-  claimId: string;
-}) {
+export function readOpsClaimAuthority(authority: TenantAuthority) {
   const { purpose, accessTenantId, tenantId, principal } = readTenantAuthority(authority);
   if (
     purpose !== 'session' ||
@@ -36,8 +29,18 @@ export function selectVisibleOpsClaim({
   ) {
     return null;
   }
+  return { accessTenantId, principal };
+}
 
-  return new QueryBuilder()
+export function selectVisibleOpsClaim(
+  tx: TenantTransaction,
+  { authority, claimId }: { authority: TenantAuthority; claimId: string }
+) {
+  const scope = readOpsClaimAuthority(authority);
+  if (!scope) return null;
+  const { accessTenantId, principal } = scope;
+
+  return tx
     .select()
     .from(claims)
     .where(
@@ -49,5 +52,6 @@ export function selectVisibleOpsClaim({
         eq(claims.id, claimId),
         adminClaimsBranchCondition(principal)
       )
-    );
+    )
+    .as('visible_ops_claim');
 }

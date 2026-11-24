@@ -1,19 +1,19 @@
 import { type TenantTransaction } from '@interdomestik/database';
 import { claimDocuments } from '@interdomestik/database/schema';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withAccessTenant, withTenant } from '@interdomestik/database/tenant-security';
-import { selectVisibleOpsClaim } from '@interdomestik/domain-claims/admin-claims/visible-ops-claim';
+import {
+  readOpsClaimAuthority,
+  selectVisibleOpsClaim,
+} from '@interdomestik/domain-claims/admin-claims/visible-ops-claim';
 import { searchAssignableStaff } from '@interdomestik/domain-users/admin/search-assignable-staff';
 import { isSuperAdmin, isTenantAdmin, ROLES } from '@interdomestik/shared-auth';
-import { and, asc, count, eq, exists, gt, isNull, type SQL } from 'drizzle-orm';
+import { and, asc, count, eq, exists, gt, isNull, sql, type SQL } from 'drizzle-orm';
 
 const OPS_CLAIM_DOCUMENT_PAGE_SIZE = 25;
 
-type VisibleClaimSelect = NonNullable<ReturnType<typeof selectVisibleOpsClaim>>;
+type VisibleClaim = NonNullable<ReturnType<typeof selectVisibleOpsClaim>>;
 
 function selectDocumentPageArm(tx: TenantTransaction, scope: SQL, afterId?: string) {
   const cursor = afterId === undefined ? undefined : gt(claimDocuments.id, afterId);
@@ -43,14 +43,17 @@ async function readClaimDocuments(
     countOnly,
     afterId,
   }: {
-    visibleClaim: VisibleClaimSelect;
+    visibleClaim: VisibleClaim;
     claimId: string;
     accessTenantId: string;
     countOnly: boolean;
     afterId?: string;
   }
 ) {
-  const claimScope = and(eq(claimDocuments.claimId, claimId), exists(visibleClaim));
+  const claimScope = and(
+    eq(claimDocuments.claimId, claimId),
+    exists(sql`(select 1 from ${visibleClaim})`)
+  );
   const explicitAccess = withAccessTenant({ accessTenantId }, claimDocuments, claimScope);
   const homeFallback = withTenant(
     accessTenantId,
@@ -94,13 +97,15 @@ export async function readOpsClaimDetailData({
   staffAfter?: string;
   staffSearch?: string;
 }) {
-  const visibleClaim = selectVisibleOpsClaim({ authority, claimId });
-  if (!visibleClaim) return null;
-  const { accessTenantId, principal } = readTenantAuthority(authority);
-  const countOnly = principal?.role === ROLES.branch_manager;
+  const scope = readOpsClaimAuthority(authority);
+  if (!scope) return null;
+  const { accessTenantId, principal } = scope;
+  const countOnly = principal.role === ROLES.branch_manager;
 
   return withTenantAuthority(authority, async tx => {
-    const [claim] = await tx.select().from(visibleClaim.as('visible_ops_claim'));
+    const visibleClaim = selectVisibleOpsClaim(tx, { authority, claimId });
+    if (!visibleClaim) return null;
+    const [claim] = await tx.select().from(visibleClaim);
     if (!claim) return null;
 
     const documents = await readClaimDocuments(tx, {
@@ -111,7 +116,7 @@ export async function readOpsClaimDetailData({
       afterId: documentsAfter,
     });
     const staffPage =
-      isTenantAdmin(principal?.role) || isSuperAdmin(principal?.role)
+      isTenantAdmin(principal.role) || isSuperAdmin(principal.role)
         ? await searchAssignableStaff(tx, { authority, search: staffSearch, afterId: staffAfter })
         : null;
     return { claim, documents, staffPage };

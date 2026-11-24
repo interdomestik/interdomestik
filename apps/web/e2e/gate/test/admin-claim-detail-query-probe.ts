@@ -18,10 +18,12 @@ type TransactionClient = {
 export type Pool = {
   begin: <T>(callback: (client: TransactionClient) => Promise<T>) => Promise<T>;
   end: (options: { timeout: number }) => Promise<void>;
+  options: typeof import('@interdomestik/database/db').dbRls.$client.options;
 };
 
 type Read = 'claim' | 'documents' | 'staff';
-type TransactionTrace = { pid: number; reads: Read[]; checkoutAndBeginMs: number };
+type TransactionTrace = { pid: number; reads: Read[] };
+export type CheckoutTiming = { poolWaitMs: number; beginRoundTripMs: number };
 
 function readKind(text: string): Read | undefined {
   if (text.includes('from "claim_documents"')) return 'documents';
@@ -55,25 +57,47 @@ export async function observeRestrictedPool<T>(
   pool: Pool,
   work: (transactions: TransactionTrace[]) => Promise<T>,
   hooks: {
+    measurePoolTiming?: boolean;
     beforeDocuments?: (run: RunSql, pid: number) => Promise<void>;
     afterRead?: (
       read: Read,
       run: RunSql,
       query: CapturedQuery,
-      checkoutAndBeginMs: number
+      checkout?: CheckoutTiming
     ) => Promise<void>;
   } = {}
 ) {
   const transactions: TransactionTrace[] = [];
   const begin = pool.begin;
+  const debug = pool.options.debug;
+  let requestedAt: number | undefined;
+  let dispatchedAt: number | undefined;
+  if (hooks.measurePoolTiming) {
+    // postgres-js calls debug after assigning a connection, just before sending BEGIN.
+    pool.options.debug = (connection, text, params, types) => {
+      if (text.trim() === 'begin') {
+        assert.ok(requestedAt !== undefined && dispatchedAt === undefined);
+        dispatchedAt = performance.now();
+      }
+      if (typeof debug === 'function') debug(connection, text, params, types);
+    };
+  }
   pool.begin = function observedBegin<R>(callback: (client: TransactionClient) => Promise<R>) {
-    const started = performance.now();
+    if (hooks.measurePoolTiming) {
+      assert.equal(requestedAt, undefined, 'Expected one transaction per measured read');
+      requestedAt = performance.now();
+    }
     return begin<R>(async client => {
-      const trace: TransactionTrace = {
-        pid: 0,
-        reads: [],
-        checkoutAndBeginMs: performance.now() - started,
-      };
+      let checkout: CheckoutTiming | undefined;
+      if (hooks.measurePoolTiming) {
+        const acknowledgedAt = performance.now();
+        assert.ok(requestedAt !== undefined && dispatchedAt !== undefined, 'Missing BEGIN timing');
+        checkout = {
+          poolWaitMs: dispatchedAt - requestedAt,
+          beginRoundTripMs: acknowledgedAt - dispatchedAt,
+        };
+      }
+      const trace: TransactionTrace = { pid: 0, reads: [] };
       transactions.push(trace);
       const unsafe = client.unsafe;
       client.unsafe = function observedQuery<Rows extends unknown[]>(...args: Parameters<RunSql>) {
@@ -87,12 +111,7 @@ export async function observeRestrictedPool<T>(
             if (read === 'claim') trace.pid = await restrictedBackend(unsafe);
             if (read === 'documents') await hooks.beforeDocuments?.(unsafe, trace.pid);
             const rows = await values();
-            await hooks.afterRead?.(
-              read,
-              unsafe,
-              { text, binds: [...binds] },
-              trace.checkoutAndBeginMs
-            );
+            await hooks.afterRead?.(read, unsafe, { text, binds: [...binds] }, checkout);
             return rows;
           };
         }
@@ -109,5 +128,6 @@ export async function observeRestrictedPool<T>(
     return await work(transactions);
   } finally {
     pool.begin = begin;
+    if (hooks.measurePoolTiming) pool.options.debug = debug;
   }
 }

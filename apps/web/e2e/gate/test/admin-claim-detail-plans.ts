@@ -1,8 +1,10 @@
 import type { TestInfo } from '@playwright/test';
+import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { dirname, resolve } from 'node:path';
 import { promisify } from 'node:util';
+import type { CheckoutTiming } from './admin-claim-detail-query-probe';
 
 export type ClaimReadFixture = {
   prefix: string;
@@ -40,8 +42,9 @@ export async function measureRead(
   run: (text: string, binds: unknown[]) => PromiseLike<{ 'QUERY PLAN': Explain[] }[]>,
   query: CapturedQuery,
   label: string,
-  checkoutAndBeginMs: number
+  checkout: CheckoutTiming | undefined
 ) {
+  assert.ok(checkout, `WP-19 ${label} is missing pool timing`);
   const explain = async () => {
     // Replay the driver's captured statement and untouched binds on the same checked-out
     // connection, role and transaction-local settings that produced the original result.
@@ -72,7 +75,7 @@ export async function measureRead(
     label.startsWith('staff/') ||
     (p75Ms <= DOCUMENT_BUDGET.p75ExecutionMs && sharedBlocks <= DOCUMENT_BUDGET.maxSharedBlocks);
 
-  return { label, passed, p75Ms, sharedBlocks, checkoutAndBeginMs, query, plans };
+  return { label, passed, p75Ms, sharedBlocks, ...checkout, query, plans };
 }
 
 export async function runRestrictedClaimReader(info: TestInfo, fixture: ClaimReadFixture) {

@@ -1,3 +1,4 @@
+import { claims } from '@interdomestik/database/schema';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -11,9 +12,8 @@ const hoisted = vi.hoisted(() => {
   const dbSelect = vi.fn();
   const getSession = vi.fn();
   const headersFn = vi.fn(() => Promise.resolve(new Headers([['host', 'ks.localhost:3000']])));
-  const withTenantContext = vi.fn(
-    async (_ctx: unknown, action: (tx: unknown) => unknown) => await action({ select: dbSelect })
-  );
+  const withTenantContext =
+    vi.fn<(ctx: unknown, action: (tx: unknown) => unknown) => Promise<unknown>>();
   const mapClaimToOperationalRow = vi.fn(() => ({
     id: 'claim-1',
     memberName: 'Member One',
@@ -175,7 +175,14 @@ export function resetOpsClaimDetailMocks(): void {
   });
   hoisted.withTenantContext.mockImplementation(
     async (_ctx: unknown, action: (tx: unknown) => unknown) =>
-      await action({ select: hoisted.dbSelect })
+      await action({
+        select: (...fields: unknown[]) => ({
+          from: (table: unknown) =>
+            table === claims
+              ? new QueryBuilder().select().from(claims)
+              : hoisted.dbSelect(...fields).from(table),
+        }),
+      })
   );
 }
 

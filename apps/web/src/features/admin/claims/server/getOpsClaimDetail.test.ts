@@ -106,7 +106,7 @@ describe('getOpsClaimDetail', () => {
     expect(documentScopes[0].sql).toContain('"claim_documents"."access_tenant_id" =');
     expect(documentScopes[1].sql).toContain('"claim_documents"."access_tenant_id" is null');
     for (const scope of documentScopes) {
-      expect(scope.sql).toContain('exists (select "id",');
+      expect(scope.sql).toContain('exists (select 1 from (select');
       expect(scope.sql).toContain('from "claim"');
       expect(scope.params).toEqual(['tenant_ks', 'claim-1', ...claimWhere.params]);
     }

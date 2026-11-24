@@ -3,10 +3,10 @@
 `./claim-documents` exports `readOpsClaimDetailData({ authority, claimId,
 documentsAfter, staffAfter, staffSearch })`. It opens one restricted
 transaction with the session authority validated by the claims owner. The
-claims-owned SELECT admits the exact claim. An empty selection returns null
+fixed claims-owned subquery admits the exact claim. An empty selection returns null
 before document or staff reads.
 
-The private document reader applies that same SELECT as an EXISTS in both
+The private document reader applies that same subquery as an EXISTS in both
 access arms for counts and metadata. Each arm matches the requested claim
 and either the document's explicit access tenant or its home tenant when
 the access tenant is null. Branch managers receive a count and a null
