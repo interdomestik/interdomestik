@@ -5,6 +5,7 @@ import { hash } from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { routes } from '../routes';
+import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 import { gotoApp } from '../utils/navigation';
 import { api, json } from './s5-otp-mailbox.fixture';
 
@@ -36,9 +37,21 @@ export async function withRecoveryAccount(
     `);
   });
 
+  // WP-13a: a synthetic member must accept the legal texts before member actions admit it.
+  const accepts = role === 'member';
   try {
+    if (accepts) await fixtureLegalAcceptance('seed', [{ id, tenantId, email }]);
     await run({ id, email });
   } finally {
+    if (accepts) {
+      // The flow may replace the address; clean by the current one with the original as legacy.
+      const [current] = await dbAdmin.execute<{ email: string }>(
+        sql`select email from "user" where id = ${id}`
+      );
+      await fixtureLegalAcceptance('clean', [
+        { id, tenantId, email: current?.email ?? email, legacyEmail: email },
+      ]);
+    }
     await dbAdmin.transaction(async tx => {
       await tx.execute(sql`
         delete from verification
