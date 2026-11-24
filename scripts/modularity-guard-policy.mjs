@@ -126,7 +126,6 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['de/admin-common.json', 'de-locale-catalog-contract'],
   ['de/admin-crm.json', 'de-locale-catalog-contract'],
   ['de/admin-dashboard.json', 'de-locale-catalog-contract'],
-  ['de/admin-settings.json', 'de-locale-catalog-contract'],
   ['de/admin.json', 'de-locale-catalog-contract'],
   ['de/agent-crm.json', 'locale-quality-pass-i18n-contract'],
   ['de/auth.json', PARITY_OWNER],
