@@ -76,7 +76,8 @@ export function startThrowawayMember(page: Page, testInfo: TestInfo): ThrowawayM
       errors.push(error);
     } finally {
       if (memberId !== undefined) await deleteThrowawayMember(memberId, errors);
-      if (errors.length > 0 && testInfo.errors.length === 0) throw errors[0];
+      // Playwright reports a hook error beside any test error, so a leak is never silent.
+      if (errors.length > 0) throw errors[0];
     }
   };
   return { ready, remove };
