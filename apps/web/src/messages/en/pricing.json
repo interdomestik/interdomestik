@@ -1,5 +1,6 @@
 {
   "pricing": {
+    "CLOSED": "Membership purchases are currently closed.",
     "title": "Claims-first membership",
     "subtitle": "Start with vehicle, property, and injury matters. Guidance-only cases stay advisory, and out-of-scope matters are referred out.",
     "monthly": "Monthly",
@@ -220,6 +221,7 @@
       }
     },
     "businessLead": {
+      "CLOSED": "Company enquiries are currently closed.",
       "title": "Talk to our business team",
       "subtitle": "Business memberships are set up with a short assisted intake so we can match the right protection scope before activation.",
       "callCta": "Call business intake",

@@ -30,6 +30,10 @@ export const both =
 
 export const REAL_NEXT = Object.freeze({
   'apps/web/next.config.mjs': fs.readFileSync('apps/web/next.config.mjs', 'utf8'),
+  'apps/web/src/lib/pilot-env-refusals.mjs': fs.readFileSync(
+    'apps/web/src/lib/pilot-env-refusals.mjs',
+    'utf8'
+  ),
   'apps/web/src/lib/supabase-deployment.mjs': fs.readFileSync(
     'apps/web/src/lib/supabase-deployment.mjs',
     'utf8'

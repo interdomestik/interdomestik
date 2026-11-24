@@ -56,19 +56,19 @@ describe('IDA-UI03a0b2 neutral OTP boundary', () => {
     expect(extractNeutralOtpEmail({ email: '   ' })).toBeNull();
   });
 
-  it('C03 accepts only canonical/local IDA hosts and the exact configured IDA_HOST', () => {
+  it('C03 accepts the fixed hosts and refuses custom IDA_HOST values', () => {
     vi.stubEnv('IDA_HOST', 'https://otp.internal.example:8443');
     for (const host of [
       'ida.interdomestik.com',
       'ida.localhost:3000',
       'ida.127.0.0.1.nip.io:3000',
-      'otp.internal.example:8443',
     ]) {
       expect(evaluateNeutralOtpHost(new Headers({ host }))).toBe(true);
     }
     expect(evaluateNeutralOtpHost(new Headers({ host: 'ida.attacker.example' }))).toBe(false);
     expect(evaluateNeutralOtpHost(new Headers({ host: 'preview.vercel.app' }))).toBe(false);
     expect(evaluateNeutralOtpHost(new Headers({ host: 'otp.internal.example' }))).toBe(false);
+    expect(evaluateNeutralOtpHost(new Headers({ host: 'otp.internal.example:8443' }))).toBe(false);
     for (const host of [
       'attacker@ida.interdomestik.com',
       'ida.interdomestik.com/path',
@@ -80,6 +80,48 @@ describe('IDA-UI03a0b2 neutral OTP boundary', () => {
     }
     vi.stubEnv('IDA_HOST', 'ida.interdomestik.com:8443');
     expect(evaluateNeutralOtpHost(new Headers({ host: 'ida.interdomestik.com:8443' }))).toBe(false);
+  });
+
+  it('admits only the portless staging door in the staging release class', () => {
+    const host = 'staging.interdomestik.com';
+    vi.stubEnv('VERCEL', '1');
+    vi.stubEnv('VERCEL_ENV', 'preview');
+    vi.stubEnv('VERCEL_TARGET_ENV', 'preview');
+    vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', 'staging');
+    vi.stubEnv('INTERDOMESTIK_PRODUCTION', undefined);
+    vi.stubEnv('IDA_HOST', 'ks.staging.interdomestik.com');
+
+    expect(evaluateNeutralOtpHost(new Headers({ host, 'x-forwarded-host': host }))).toBe(true);
+    expect(evaluateNeutralOtpHost(new Headers({ host: `${host}:443` }))).toBe(false);
+    expect(evaluateNeutralOtpHost(new Headers({ host: `${host}.` }))).toBe(false);
+    expect(evaluateNeutralOtpHost(new Headers({ host: 'ks.staging.interdomestik.com' }))).toBe(
+      false
+    );
+    expect(evaluateNeutralOtpHost(new Headers({ host, 'x-forwarded-host': `${host}:443` }))).toBe(
+      false
+    );
+    expect(
+      evaluateNeutralOtpHost(
+        new Headers({ host, 'x-forwarded-host': 'ks.staging.interdomestik.com' })
+      )
+    ).toBe(false);
+
+    vi.stubEnv('INTERDOMESTIK_PRODUCTION', '1');
+    expect(evaluateNeutralOtpHost(new Headers({ host }))).toBe(false);
+
+    vi.stubEnv('INTERDOMESTIK_PRODUCTION', undefined);
+    vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', 'development');
+    vi.stubEnv('VERCEL', undefined);
+    vi.stubEnv('VERCEL_URL', undefined);
+    vi.stubEnv('VERCEL_ENV', undefined);
+    vi.stubEnv('VERCEL_TARGET_ENV', undefined);
+    vi.stubEnv('NODE_ENV', 'development');
+    vi.stubEnv('DATABASE_URL', 'postgres://fixture@127.0.0.1/interdomestik_test');
+    vi.stubEnv('DATABASE_URL_RLS', 'postgres://fixture_rls@127.0.0.1/interdomestik_test');
+    expect(evaluateNeutralOtpHost(new Headers({ host }))).toBe(false);
+    for (const localHost of ['ida.localhost:3000', 'ida.127.0.0.1.nip.io:3000']) {
+      expect(evaluateNeutralOtpHost(new Headers({ host: localHost }))).toBe(true);
+    }
   });
 
   it('C04 requires direct Host approval and lets forwarded host restrict but never grant', () => {

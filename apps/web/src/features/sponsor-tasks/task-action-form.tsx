@@ -12,6 +12,7 @@ type Props = { kind: 'evidence' | 'close' | 'acknowledge'; id: string };
 
 export function TaskActionForm({ kind, id }: Readonly<Props>): ReactElement {
   const t = useTranslations('sponsorTasks');
+  const membership = useTranslations('membership');
   const router = useRouter();
   const formId = useId();
   const [pending, setPending] = useState(false);
@@ -57,6 +58,7 @@ export function TaskActionForm({ kind, id }: Readonly<Props>): ReactElement {
 
   let outcomeMessage = '';
   if (outcome?.ok) outcomeMessage = t('saved');
+  else if (outcome?.error === 'CLOSED') outcomeMessage = membership('CLOSED');
   else if (outcome) {
     const key = outcome.error === 'conflict' ? `conflicts.${kind}` : `errors.${outcome.error}`;
     outcomeMessage = t(key);

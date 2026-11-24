@@ -48,11 +48,13 @@ describe('resolveTenantClassificationCore', () => {
       expect(mocks.withTenantContext.mock.calls[0][0]).toBe(adminAuthority);
       expect(mocks.delegateSuperAdminTenant).not.toHaveBeenCalled();
       expect(mocks.set).toHaveBeenCalledWith({ tenantClassificationPending: false });
-      expect(mocks.withTenant).toHaveBeenCalledWith(
-        'tenant_ks',
-        'user.tenantId',
-        expect.anything()
-      );
+      expect(mocks.withTenant).toHaveBeenCalledWith('tenant_ks', 'user.tenantId', {
+        op: 'and',
+        conditions: [
+          { op: 'eq', left: 'user.id', right: 'member-1' },
+          { op: 'eq', left: 'user.emailVerified', right: true },
+        ],
+      });
     });
 
     it('reports previousPending false for an already-resolved user', async () => {
@@ -82,7 +84,7 @@ describe('resolveTenantClassificationCore', () => {
       expect(mocks.update).not.toHaveBeenCalled();
     });
 
-    it('returns User not found when the update affects no row', async () => {
+    it('returns EMAIL_NOT_PROVEN when the conditional update affects no row for an existing user', async () => {
       mocks.returning.mockResolvedValue([]);
 
       const result = await resolveTenantClassificationCore({
@@ -92,7 +94,7 @@ describe('resolveTenantClassificationCore', () => {
         currentTenantId: 'tenant_ks',
       });
 
-      expect(result).toEqual({ error: 'User not found' });
+      expect(result).toEqual({ error: 'EMAIL_NOT_PROVEN', code: 'EMAIL_NOT_PROVEN' });
     });
 
     it('lets a super admin confirm a non-session current tenant under that tenant context', async () => {

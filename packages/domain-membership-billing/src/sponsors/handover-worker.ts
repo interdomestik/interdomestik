@@ -174,8 +174,9 @@ export async function runSponsorHandovers(
           });
           summary.processed += 1;
           summary.outcomes[outcome] = (summary.outcomes[outcome] ?? 0) + 1;
-        } catch {
+        } catch (error) {
           summary.failed += 1;
+          console.error('[Sponsors] Handover intent failed', error);
         }
       }),
     Promise.resolve()

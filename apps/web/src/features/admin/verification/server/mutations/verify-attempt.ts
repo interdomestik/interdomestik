@@ -1,11 +1,13 @@
 import { notifyPaymentVerificationUpdate } from '@/lib/notifications';
 import { sendMemberActivationInvite } from '@/lib/member-activation-invite';
 import { isMemberEmailConflictError } from '@interdomestik/domain-leads/member-email-conflict';
+import { assertLeadSalesOpen } from '@interdomestik/domain-leads/sales-admission';
 import { ProtectedActionContext } from '@/lib/safe-action';
+import { actionFailure } from '@/lib/safe-action.failure';
 
 import { auditLog, user } from '@interdomestik/database/schema';
 import { leadPaymentAttempts, memberLeads } from '@interdomestik/database/schema/leads';
-import { and, eq, inArray, sql } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { verifyCashSchema } from '../schemas';
@@ -96,21 +98,29 @@ export async function verifyCashAttemptCore(
   };
 
   const txResult = await withTenantAuthority(authority, async tx => {
+    const version = sql<string>`${leadPaymentAttempts.updatedAt}::text`;
     // A. Fetch
     const [result] = await tx
       .select({
         attempt: leadPaymentAttempts,
+        versionToken: version,
         lead: memberLeads,
         agentEmail: user.email,
       })
       .from(leadPaymentAttempts)
       .innerJoin(memberLeads, eq(leadPaymentAttempts.leadId, memberLeads.id))
       .innerJoin(user, eq(memberLeads.agentId, user.id))
-      .where(and(eq(leadPaymentAttempts.id, attemptId), eq(leadPaymentAttempts.tenantId, tenantId)))
+      .where(
+        and(
+          eq(leadPaymentAttempts.id, attemptId),
+          eq(leadPaymentAttempts.tenantId, tenantId),
+          eq(leadPaymentAttempts.method, 'cash')
+        )
+      )
       .limit(1);
 
     if (!result) throw new Error('Payment attempt not found.');
-    const { attempt, lead, agentEmail } = result;
+    const { attempt, versionToken, lead, agentEmail } = result;
 
     // B. Security
     assertDecisionAdmitted(scope, lead, session.user.id);
@@ -119,11 +129,14 @@ export async function verifyCashAttemptCore(
     if (attempt.status !== 'pending' && attempt.status !== 'needs_info') {
       return repeatedDecision(attempt, decision);
     }
+    if (decision === 'approve') {
+      await assertLeadSalesOpen(tx, tenantId);
+    }
 
     // D. Status
     const newStatus = DECISION_STATUS[decision];
 
-    // E. Update: only one decision can move an open attempt; a concurrent loser changes nothing.
+    // E. Update: compare the exact observed version, including PostgreSQL microseconds.
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const decided = await tx
       .update(leadPaymentAttempts)
@@ -132,18 +145,20 @@ export async function verifyCashAttemptCore(
         isResubmission: false, // RESET FLAG
         verifiedBy: session.user.id,
         verifiedAt: new Date(),
-        updatedAt: new Date(),
+        updatedAt: sql`greatest(clock_timestamp(), ${leadPaymentAttempts.updatedAt} + interval '1 microsecond')`,
         verificationNote: note || null,
       })
       .where(
         and(
           eq(leadPaymentAttempts.id, attemptId),
-          inArray(leadPaymentAttempts.status, ['pending', 'needs_info'])
+          eq(leadPaymentAttempts.tenantId, tenantId),
+          eq(leadPaymentAttempts.status, attempt.status),
+          eq(version, versionToken)
         )
       )
       .returning({ id: leadPaymentAttempts.id });
     if (decided.length === 0) {
-      throw new Error('This payment attempt was just decided by someone else. Reload and retry.');
+      throw actionFailure('CONFLICT');
     }
 
     // F. Audit
@@ -188,7 +203,7 @@ export async function verifyCashAttemptCore(
     // conversion below marks the lead 'converted', together with its converted user.
     if (decision === 'approve') {
       // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
-      await tx
+      const paid = await tx
         .update(memberLeads)
         .set({
           status: 'paid',
@@ -199,7 +214,11 @@ export async function verifyCashAttemptCore(
             eq(memberLeads.id, attempt.leadId),
             sql`${memberLeads.status} IN ('new', 'payment_pending')`
           )
-        );
+        )
+        .returning({ id: memberLeads.id });
+      if (paid.length !== 1) {
+        throw actionFailure('CONFLICT');
+      }
     }
 
     return { success: true, status: newStatus, leadId: attempt.leadId, decision };
@@ -207,10 +226,14 @@ export async function verifyCashAttemptCore(
 
   if (pending.notice) {
     try {
-      await notifyPaymentVerificationUpdate(...pending.notice);
+      const result = await notifyPaymentVerificationUpdate(...pending.notice);
+      if (!result.success) {
+        throw new Error('Payment verification notifier returned a failure', { cause: result });
+      }
     } catch (err) {
       // The decision is committed; a failed notice must not report it as failed.
       console.error('Payment verification notice not sent', { attemptId, err });
+      return { ...txResult, notice: 'pending' as const };
     }
   }
 
@@ -218,7 +241,10 @@ export async function verifyCashAttemptCore(
   if (txResult.decision === 'approve' && txResult.leadId) {
     try {
       const { convertLeadToMember } = await import('@interdomestik/domain-leads/convert');
-      const conversionResult = await convertLeadToMember(authority, { leadId: txResult.leadId });
+      const conversionResult = await convertLeadToMember(authority, {
+        leadId: txResult.leadId,
+        admission: { kind: 'verified_cash', attemptId },
+      });
       if (conversionResult) {
         return await inviteConvertedMember(conversionResult, tenantId);
       }

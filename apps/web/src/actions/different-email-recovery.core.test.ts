@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
   confirmReplacementEmailCore,
@@ -9,8 +9,32 @@ import {
   type RecoveryDependencies,
 } from './different-email-recovery.core';
 
+const { getSession, captureException } = vi.hoisted(() => ({
+  getSession: vi.fn(),
+  captureException: vi.fn(),
+}));
+vi.mock('@/lib/auth', () => ({ auth: { api: { getSession } } }));
+vi.mock('@sentry/nextjs', async importOriginal => ({
+  ...(await importOriginal<typeof import('@sentry/nextjs')>()),
+  captureException,
+}));
+
 const requestHeaders = new Headers({ host: 'ida.localhost', 'x-forwarded-for': '127.0.0.1' });
-const context = { email: 'owner@example.com', tenantId: 'tenant_ks', userId: 'owner-1' };
+const context = { email: 'owner@example.com', tenantId: 'tenant_ks', userId: 'owner-1' } as const;
+const actions = [
+  { name: 'start', run: startDifferentEmailRecoveryCore, input: { locale: 'en' } },
+  {
+    name: 'current proof',
+    run: submitCurrentEmailProofCore,
+    input: { code: '123456', email: 'new@example.com', locale: 'en' },
+  },
+  { name: 'replacement confirmation', run: confirmReplacementEmailCore, input: { code: '123456' } },
+];
+
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.clearAllMocks();
+});
 
 function dependencies(overrides: Partial<RecoveryDependencies> = {}): RecoveryDependencies {
   return {
@@ -18,6 +42,7 @@ function dependencies(overrides: Partial<RecoveryDependencies> = {}): RecoveryDe
     activateReplacement: vi.fn().mockResolvedValue(true),
     confirmReplacement: vi.fn().mockResolvedValue({ ok: true }),
     discard: vi.fn().mockResolvedValue(undefined),
+    isPublicIntakeOpen: vi.fn().mockResolvedValue(true),
     nonce: () => '11111111-1111-4111-8111-111111111111',
     now: () => new Date('2026-08-07T12:00:00.000Z'),
     otp: () => '123456',
@@ -31,7 +56,66 @@ function dependencies(overrides: Partial<RecoveryDependencies> = {}): RecoveryDe
   };
 }
 
+function expectNoEffects(deps: RecoveryDependencies) {
+  for (const effect of [
+    deps.rate,
+    deps.reserveCurrent,
+    deps.reserveReplacement,
+    deps.activateCurrent,
+    deps.activateReplacement,
+    deps.confirmReplacement,
+    deps.discard,
+    deps.send,
+  ]) {
+    expect(effect).not.toHaveBeenCalled();
+  }
+}
+
 describe('IDA-UI03b recovery action boundary', () => {
+  it.each(actions)(
+    '$name returns CLOSED before rate, proof and mail work',
+    async ({ run, input }) => {
+      const deps = dependencies({ isPublicIntakeOpen: vi.fn().mockResolvedValue(false) });
+
+      expect(await run(requestHeaders, input, deps)).toEqual({ ok: false, code: 'CLOSED' });
+      expect(deps.isPublicIntakeOpen).toHaveBeenCalledExactlyOnceWith(context.tenantId);
+      expectNoEffects(deps);
+    }
+  );
+
+  it.each(actions)(
+    '$name reports a switch reader error and returns CLOSED',
+    async ({ run, input }) => {
+      const error = new Error('switch read failed');
+      const deps = dependencies({ isPublicIntakeOpen: vi.fn().mockRejectedValue(error) });
+
+      expect(await run(requestHeaders, input, deps)).toEqual({ ok: false, code: 'CLOSED' });
+      expect(captureException).toHaveBeenCalledWith(error, expect.any(Object));
+      expectNoEffects(deps);
+    }
+  );
+
+  it.each([undefined, 'tenant_invalid', 'tenant_ks '])(
+    'returns unavailable before effects with default tenant %s',
+    async tenant => {
+      vi.stubEnv('DEFAULT_PUBLIC_TENANT_ID', tenant);
+      for (const { run, input } of actions) {
+        expect(await run(requestHeaders, input)).toEqual({ ok: false, code: 'unavailable' });
+      }
+      expect(getSession).not.toHaveBeenCalled();
+    }
+  );
+
+  it('returns CLOSED if the switch closes before the replacement commits', async () => {
+    const deps = dependencies({
+      confirmReplacement: vi.fn().mockResolvedValue({ ok: false, code: 'CLOSED' }),
+    });
+    expect(await confirmReplacementEmailCore(requestHeaders, { code: '123456' }, deps)).toEqual({
+      ok: false,
+      code: 'CLOSED',
+    });
+  });
+
   it('rejects selectors and fails closed before persistence when authority is unavailable', async () => {
     const deps = dependencies();
     expect(
@@ -91,11 +175,17 @@ describe('IDA-UI03b recovery action boundary', () => {
       ok: true,
       stage: 'complete',
     });
-    const digest = vi.mocked(deps.confirmReplacement).mock.calls[0]![1];
+    const [userId, tenantId, digest] = vi.mocked(deps.confirmReplacement).mock.calls[0]!;
+    expect({ userId, tenantId }).toEqual({ userId: context.userId, tenantId: context.tenantId });
     expect(digest('new@example.com')).toBe(
       recoveryDigest('s'.repeat(32), 'replacement', 'new@example.com', '999999')
     );
     expect(deps.rate).toHaveBeenCalledTimes(4);
+    expect(vi.mocked(deps.isPublicIntakeOpen).mock.calls).toEqual([
+      [context.tenantId],
+      [context.tenantId],
+      [context.tenantId],
+    ]);
   });
 
   it('attempts exact proof cleanup when either activation throws', async () => {

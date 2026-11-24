@@ -1,3 +1,4 @@
+import { SalesClosedError } from '@interdomestik/database/pilot-switch';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { sponsorAction } from './actions';
 import { context, actionForm } from './test-fixtures';
@@ -34,6 +35,15 @@ describe('sponsor action entry', () => {
     expect(await sponsorAction('createSponsor', null, actionForm())).toEqual({
       ok: false,
       error: 'unavailable',
+    });
+    expect(mocks.revalidate).not.toHaveBeenCalled();
+  });
+
+  it('returns CLOSED for a refused approval without revalidating any layout', async () => {
+    mocks.run.mockRejectedValueOnce(new SalesClosedError());
+    expect(await sponsorAction('decideRevision', null, actionForm())).toEqual({
+      ok: false,
+      error: 'CLOSED',
     });
     expect(mocks.revalidate).not.toHaveBeenCalled();
   });

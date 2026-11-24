@@ -151,13 +151,18 @@ export function validateResolutionConfig(config, configRel) {
     refuse(`${configRel} has paths or baseUrl other than the fixed configuration's`);
 }
 
-// The web app's Next config and the one local file it loads, by sha256 of their exact text. Read
-// for this pin (2026-11-23): neither changes webpack's `resolve` or adds a plugin, and the config
-// selects no other tsconfig; it imports the four wrappers below and the helper, nothing else. An
-// absent `next.config.mjs` is Next's defaults, which D-1 models.
+// The web app's Next config and the two local files it loads, by sha256 of their exact text. Read
+// for this pin (2026-11-23; re-pinned 2026-11-24 by #2124, which changes the config, lead decision):
+// none changes webpack's `resolve` or adds a plugin, and the config selects no other tsconfig; it
+// imports the four wrappers below, Next's own `next/constants.js` and the two helpers, nothing else.
+// #2124 adds the pilot-env manifest check (a phase function returning the same wrapped config) and
+// one `env` value; `pilot-env-refusals.mjs` imports nothing. An absent `next.config.mjs` is Next's
+// defaults, which D-1 models.
 const NEXT_CONFIG = 'apps/web/next.config.mjs';
 const FIXED_NEXT_FILES = Object.freeze({
-  [NEXT_CONFIG]: 'a26096d3b440844ebd8f7a33f65f4953c24f6d2a56b2480d654290e0add10b39',
+  [NEXT_CONFIG]: 'c340cf96158e00cb74d8959619832e1b28c8067acd1c71e779d2b0d2ff677749',
+  'apps/web/src/lib/pilot-env-refusals.mjs':
+    '0f4bdf77d750c3ca0b9cac0adc6b679721472d63a0ef3941341d8e144fc8106f',
   'apps/web/src/lib/supabase-deployment.mjs':
     'abb080e7b2a72cf4efba6240fe547a3e31e412b98dee84278dd238d3c3e6f253',
 });

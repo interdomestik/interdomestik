@@ -1,10 +1,13 @@
+import 'server-only';
+
 import * as Sentry from '@sentry/nextjs';
+import { getTranslations } from 'next-intl/server';
 
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
-import { authorizePublicSiteTenant } from '@interdomestik/database';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { ActionError, ActionSuccess } from '@/lib/safe-action';
-import { resolveTenantIdFromSources } from '@/lib/tenant/tenant-hosts';
+import { resolvePublicAdmissionTenant } from '@/lib/tenant/public-admission-tenant';
+import { authorizeOpenPublicIntake } from '@/lib/tenant/public-intake-admission';
 import {
   submitFreeStartIntakeSchema,
   type SubmitFreeStartIntakeInput,
@@ -26,34 +29,22 @@ function formatFieldErrors(fieldErrors: Record<string, string[] | undefined>) {
   );
 }
 
-/**
- * Technical reservation partition only. Mirrors the server tenant-request host contract
- * (`x-forwarded-host ?? host ?? ''`; an empty forwarded host does not fall back) and never
- * reads cookie, x-tenant-id, query or client country hints. It grants no access, legal,
- * booking, identity or membership authority.
- *
- * The resolved tenant is projected onto the canonical tenants provisioned by migration0008: tenant_mk stays tenant_mk and every other value, including tenant_ks, tenant_al,
- * pilot-mk or any future alias, shares the tenant_ks technical partition. This keeps the
- * reservation tenant FK satisfiable without probing tenants; it does not imply AL/pilot to KS
- * user, access, legal, country or booking identity.
- */
-function resolveReservationTenantId(requestHeaders: Headers): 'tenant_ks' | 'tenant_mk' {
-  const host = requestHeaders.get('x-forwarded-host') ?? requestHeaders.get('host') ?? '';
-  const tenantId = resolveTenantIdFromSources({ host }, { productionSensitive: true });
-  return tenantId === 'tenant_mk' ? 'tenant_mk' : 'tenant_ks';
-}
-
 export async function submitFreeStartIntakeCore(params: {
   idempotencyKey?: string;
   requestHeaders: Headers;
   data: SubmitFreeStartIntakeInput;
 }): Promise<SubmitFreeStartIntakeResult> {
+  const tenantId = resolvePublicAdmissionTenant(params.requestHeaders);
+  let authority: Awaited<ReturnType<typeof authorizeOpenPublicIntake>> = null;
+  if (tenantId === 'tenant_ks' || tenantId === 'tenant_mk') {
+    authority = await authorizeOpenPublicIntake(tenantId);
+  }
+  if (!authority) {
+    const t = await getTranslations('freeStart');
+    return { success: false, code: 'CLOSED', error: t('CLOSED') };
+  }
+
   try {
-    // Anonymous public intake: the reservation partition's active tenant, never a payload value. An
-    // inactive partition yields no authority, which the idempotency scope refuses before any effect.
-    const authority = await authorizePublicSiteTenant(
-      resolveReservationTenantId(params.requestHeaders)
-    );
     return await runCommercialActionWithIdempotency({
       action: 'free-start.submit',
       scope: {

@@ -51,6 +51,7 @@ function renderRuntime(defaultPublicTenantId: string | undefined) {
     defaultPublicTenantId,
     locale: 'sq',
     neutralOtpHost: 'front-door.localhost:3000',
+    publicIntakeOpen: true,
     uiV2Enabled: true,
   } as Parameters<typeof HomePageRuntime>[0];
   return render(<HomePageRuntime {...props} />);
@@ -73,12 +74,33 @@ describe('HomePageRuntime', () => {
         defaultPublicTenantId="tenant_ks"
         locale="sq"
         neutralOtpHost="front-door.localhost:3000"
+        publicIntakeOpen
         uiV2Enabled={false}
       />
     );
     await waitFor(() => expect(h.replace).toHaveBeenCalledWith('/sq/member'));
     expect(h.replace).toHaveBeenCalledOnce();
   });
+
+  it.each([true, false])(
+    'hides both intake mounts when closed with session pending %s',
+    pending => {
+      h.session.mockReturnValue({ data: null, isPending: pending });
+      render(
+        <HomePageRuntime
+          defaultPublicTenantId="tenant_ks"
+          locale="sq"
+          neutralOtpHost="front-door.localhost:3000"
+          publicIntakeOpen={false}
+          uiV2Enabled
+        />
+      );
+      expect(h.intake).not.toHaveBeenCalled();
+      expect(h.hero).toHaveBeenLastCalledWith(
+        expect.objectContaining({ secondaryHref: undefined })
+      );
+    }
+  );
 
   it('keeps public entry available without tracking while the session is pending', async () => {
     h.session.mockReturnValue({ data: null, isPending: true });
@@ -116,6 +138,7 @@ describe('HomePageRuntime', () => {
         defaultPublicTenantId="tenant_ks"
         locale="sq"
         neutralOtpHost="front-door.localhost:3000"
+        publicIntakeOpen
         uiV2Enabled
       />
     );
