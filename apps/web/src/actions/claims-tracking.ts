@@ -29,6 +29,12 @@ function trackingLinkAction(authorized: AuthorizedSession) {
   });
 }
 
-export const createPublicTrackingLink = memberGuarded(async (authorized, claimId: string) =>
+const guardedCreatePublicTrackingLink = memberGuarded(async (authorized, claimId: string) =>
   trackingLinkAction(authorized)({ claimId })
 );
+
+export async function createPublicTrackingLink(
+  ...args: Parameters<typeof guardedCreatePublicTrackingLink>
+) {
+  return guardedCreatePublicTrackingLink(...args);
+}

@@ -33,7 +33,7 @@ export async function verifyCashAttemptAction(input: unknown) {
   });
 }
 
-export const resubmitCashAttemptAction = memberGuarded(async (authorized, input: unknown) => {
+const guardedResubmitCashAttemptAction = memberGuarded(async (authorized, input: unknown) => {
   return runAdmittedAction(authorized, async () => {
     const { tenantId } = readTenantAuthority(authorized.authority);
     const data = resubmitCashSchema.parse(input);
@@ -46,4 +46,10 @@ export async function resendActivationInviteAction(input: unknown) {
     const data = resendActivationInviteSchema.parse(input);
     return await resendActivationInviteCore(ctx, data);
   });
+}
+
+export async function resubmitCashAttemptAction(
+  ...args: Parameters<typeof guardedResubmitCashAttemptAction>
+) {
+  return guardedResubmitCashAttemptAction(...args);
 }

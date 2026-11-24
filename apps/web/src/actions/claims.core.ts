@@ -11,7 +11,7 @@ import { cancelClaimCore, updateDraftClaimCore } from './claims/draft';
 import { updateClaimStatusCore } from './claims/status';
 import { submitClaimCore } from './claims/submit';
 
-export const createClaim = memberGuarded(
+const guardedCreateClaim = memberGuarded(
   async ({ session, authority }, _prevState: unknown, formData: FormData) => {
     return runAuthenticatedAction(async ({ requestHeaders }) => {
       const limit = await enforceRateLimitForAction({
@@ -35,7 +35,7 @@ export const createClaim = memberGuarded(
 
 // ...
 
-export const submitClaim = memberGuarded(
+const guardedSubmitClaim = memberGuarded(
   async (
     { session, authority },
     data: CreateClaimValues,
@@ -70,7 +70,7 @@ export const submitClaim = memberGuarded(
   }
 );
 
-export const updateDraftClaim = memberGuarded(
+const guardedUpdateDraftClaim = memberGuarded(
   async ({ session, authority }, claimId: string, data: CreateClaimValues) => {
     return runAuthenticatedAction(async ({ requestHeaders }) => {
       const limit = await enforceRateLimitForAction({
@@ -86,7 +86,7 @@ export const updateDraftClaim = memberGuarded(
   }
 );
 
-export const cancelClaim = memberGuarded(async ({ session, authority }, claimId: string) => {
+const guardedCancelClaim = memberGuarded(async ({ session, authority }, claimId: string) => {
   return runAuthenticatedAction(async ({ requestHeaders }) => {
     const limit = await enforceRateLimitForAction({
       name: 'action:cancel-claim',
@@ -100,7 +100,7 @@ export const cancelClaim = memberGuarded(async ({ session, authority }, claimId:
   });
 });
 
-export const updateClaimStatus = memberGuarded(
+const guardedUpdateClaimStatus = memberGuarded(
   async ({ session, authority }, claimId: string, newStatus: string) => {
     return runAuthenticatedAction(async ({ requestHeaders }) => {
       const limit = await enforceRateLimitForAction({
@@ -115,3 +115,23 @@ export const updateClaimStatus = memberGuarded(
     });
   }
 );
+
+export async function createClaim(...args: Parameters<typeof guardedCreateClaim>) {
+  return guardedCreateClaim(...args);
+}
+
+export async function submitClaim(...args: Parameters<typeof guardedSubmitClaim>) {
+  return guardedSubmitClaim(...args);
+}
+
+export async function updateDraftClaim(...args: Parameters<typeof guardedUpdateDraftClaim>) {
+  return guardedUpdateDraftClaim(...args);
+}
+
+export async function cancelClaim(...args: Parameters<typeof guardedCancelClaim>) {
+  return guardedCancelClaim(...args);
+}
+
+export async function updateClaimStatus(...args: Parameters<typeof guardedUpdateClaimStatus>) {
+  return guardedUpdateClaimStatus(...args);
+}

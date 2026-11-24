@@ -1,6 +1,7 @@
 import path from 'node:path';
 import ts from 'typescript';
 import { resolveModule } from '../../../../../scripts/ci/server-mutation/ast.mjs';
+import { hasSymbolFlag } from './member-acceptance-ast.test-support';
 
 function localSpecifier(specifier: string) {
   return (
@@ -127,7 +128,7 @@ export function createSourceProgram(directory: string, files: string[]) {
   }
 
   function unalias(symbol: ts.Symbol | undefined) {
-    return symbol && symbol.flags & ts.SymbolFlags.Alias
+    return symbol && hasSymbolFlag(symbol, ts.SymbolFlags.Alias)
       ? checker.getAliasedSymbol(symbol)
       : symbol;
   }
@@ -143,7 +144,9 @@ export function createSourceProgram(directory: string, files: string[]) {
 
   function moduleExports(symbol: ts.Symbol | undefined) {
     const actual = unalias(symbol);
-    return actual && actual.flags & ts.SymbolFlags.Module ? checker.getExportsOfModule(actual) : [];
+    return actual && hasSymbolFlag(actual, ts.SymbolFlags.Module)
+      ? checker.getExportsOfModule(actual)
+      : [];
   }
 
   function exportsOf(file: string) {

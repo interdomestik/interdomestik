@@ -25,7 +25,7 @@ export type UploadResult =
     }
   | { success: false; error: string };
 
-export const uploadVoiceNote = memberGuarded(
+const guardedUploadVoiceNote = memberGuarded(
   async ({ session }, formData: FormData): Promise<UploadResult> => {
     const file = formData.get('file');
 
@@ -75,3 +75,7 @@ export const uploadVoiceNote = memberGuarded(
     });
   }
 );
+
+export async function uploadVoiceNote(...args: Parameters<typeof guardedUploadVoiceNote>) {
+  return guardedUploadVoiceNote(...args);
+}

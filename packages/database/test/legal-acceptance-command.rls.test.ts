@@ -39,7 +39,8 @@ async function verifyCommands(t: TestContext, admin: ScratchClient) {
     readOwnAcceptanceState,
   } = await import(pathToFileURL(publicExport).href);
   const { mintTenantAuthority } = await import('../src/tenant-authority-registrar');
-  const { withPrincipalTenantContext, sql } = await import('../src/index');
+  const { sql } = await import('../src/index');
+  const { withPrincipalTenantContext } = await import('../src/free-start-drafts');
 
   const authorityFor = (userId: string) =>
     mintTenantAuthority({

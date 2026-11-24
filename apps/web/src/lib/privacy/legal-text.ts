@@ -8,6 +8,10 @@ import { createTranslator, IntlErrorCode, type AbstractIntlMessages } from 'next
 
 const catalogues: Readonly<Record<string, typeof en | undefined>> = { de, en, mk, sq, sr };
 
+export type LegalTextForDisplay = LegalDocument & {
+  blocks: readonly { key: string; text: string }[];
+};
+
 const billingKeys = [
   'eyebrow',
   'title',
@@ -63,11 +67,10 @@ export function renderLegalTexts(locale: string, documents: readonly LegalDocume
       invalid = true;
     },
   });
-  const texts: RenderedLegalText[] = documents.map(doc => ({
-    kind: doc.kind,
-    version: doc.version,
-    values: keys[doc.kind].map(key => t(`${doc.kind}.${doc.version}.${key}`)),
-  }));
+  const texts: (RenderedLegalText & LegalTextForDisplay)[] = documents.map(({ kind, version }) => {
+    const blocks = keys[kind].map(key => ({ key, text: t(`${kind}.${version}.${key}`) }));
+    return { kind, version, blocks, values: blocks.map(block => block.text) };
+  });
   if (invalid || texts.some(text => text.values.some(value => !value.trim()))) {
     return { ok: false, code: 'legal_text_mismatch' } as const;
   }

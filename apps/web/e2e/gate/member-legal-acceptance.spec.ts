@@ -6,7 +6,8 @@ import {
 import { expect, test } from '@playwright/test';
 import messages from '../../src/messages/en/legal-acceptance.json';
 import texts from '../../src/messages/en/legal-documents.json';
-import { rootURL } from '../fixtures/routes';
+import { path, rootURL } from '../fixtures/routes';
+import { gotoApp } from '../utils/navigation';
 import { interactiveLogin, withFreshPage } from './test/login-handoff-page';
 
 const fixtureEmail = 'unaccepted.member@example.test';
@@ -21,7 +22,9 @@ test('a new member records both attestations before accessing the portal', async
     'The unaccepted seed belongs to the MK tenant.'
   );
   await withFreshPage(browser, testInfo, false, async page => {
-    await page.goto(rootURL(testInfo, '/mk/login'));
+    await gotoApp(page, new URL(path(testInfo, '/login')), testInfo, {
+      marker: 'domcontentloaded',
+    });
     await interactiveLogin(page, 'mk');
     await page.getByTestId('login-email').fill(fixtureEmail);
     await page.getByTestId('login-password').fill(E2E_PASSWORD);
@@ -33,9 +36,13 @@ test('a new member records both attestations before accessing the portal', async
     expect(claims.status()).toBe(403);
     expect(await claims.json()).toEqual({ error: 'acceptance_required' });
 
-    await page.goto(rootURL(testInfo, '/mk/member/claims/acceptance-fixture'));
+    await gotoApp(page, new URL(path(testInfo, '/member/claims/acceptance-fixture')), testInfo, {
+      marker: 'acceptance-step-ready',
+    });
     await expect(step).toBeVisible();
-    await page.goto(rootURL(testInfo, '/mk/member'));
+    await gotoApp(page, new URL(path(testInfo, '/member')), testInfo, {
+      marker: 'acceptance-step-ready',
+    });
     await step.getByRole('combobox').click();
     await page.getByRole('option', { name: /English/u }).click();
     await expect(page).toHaveURL(/\/en\/member(?:\/|$)/u);

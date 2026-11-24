@@ -31,7 +31,7 @@ function usesType(
 ): boolean {
   if (!type) return false;
   return descendants(type)
-    .filter(ts.isTypeReferenceNode)
+    .filter(node => ts.isTypeReferenceNode(node))
     .some(node => {
       const symbol = inventory.resolvedSymbol(node.typeName);
       // Treat an unresolved authority type conservatively as a protected signature.
@@ -57,7 +57,7 @@ function callableNodes(decl: ts.Node) {
 
 export function takesAuthority(inventory: Inventory, decl: ts.Node) {
   return callableNodes(decl)
-    .filter(ts.isFunctionLike)
+    .filter(node => ts.isFunctionLike(node))
     .some(fn =>
       fn.parameters.some(
         param =>

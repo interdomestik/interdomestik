@@ -31,14 +31,26 @@ ALTER TABLE "legal_document_versions" ENABLE ROW LEVEL SECURITY;--> statement-br
 ALTER TABLE "legal_acceptances" ADD CONSTRAINT "legal_acceptances_tenant_id_tenants_id_fk" FOREIGN KEY ("tenant_id") REFERENCES "public"."tenants"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "legal_acceptances" ADD CONSTRAINT "legal_acceptances_subject_fk" FOREIGN KEY ("tenant_id","subject_user_id") REFERENCES "public"."user"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "legal_acceptances" ADD CONSTRAINT "legal_acceptances_text_fk" FOREIGN KEY ("document_kind","document_version","locale","text_sha256") REFERENCES "public"."legal_document_versions"("kind","version","locale","text_sha256") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-CREATE POLICY "legal_acceptances_select" ON "legal_acceptances" AS PERMISSIVE FOR SELECT TO public USING ("legal_acceptances"."tenant_id" = nullif(current_setting('app.current_access_tenant_id', true), '')
-        and nullif(current_setting('app.current_actor_id', true), '') is not null
-        and nullif(current_setting('app.current_actor_role', true), '') is not null
-        and ("legal_acceptances"."subject_user_id" = current_setting('app.current_actor_id', true)
-          or current_setting('app.current_actor_role', true) = 'tenant_admin'));--> statement-breakpoint
-CREATE POLICY "legal_acceptances_insert" ON "legal_acceptances" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("legal_acceptances"."tenant_id" = nullif(current_setting('app.current_access_tenant_id', true), '')
-        and "legal_acceptances"."subject_user_id" = nullif(current_setting('app.current_actor_id', true), '')
-        and current_setting('app.current_actor_role', true) in ('member', 'user'));
+-- Quote the shared setting names into the static policy definitions.
+DO $$
+DECLARE
+  actor_id_setting CONSTANT text := 'app.current_actor_id';
+  actor_role_setting CONSTANT text := 'app.current_actor_role';
+BEGIN
+  EXECUTE format($policy$
+    CREATE POLICY "legal_acceptances_select" ON "legal_acceptances" AS PERMISSIVE FOR SELECT TO public USING ("legal_acceptances"."tenant_id" = nullif(current_setting('app.current_access_tenant_id', true), '')
+        and nullif(current_setting(%1$L, true), '') is not null
+        and nullif(current_setting(%2$L, true), '') is not null
+        and ("legal_acceptances"."subject_user_id" = current_setting(%1$L, true)
+          or current_setting(%2$L, true) = 'tenant_admin'))
+  $policy$, actor_id_setting, actor_role_setting);
+  EXECUTE format($policy$
+    CREATE POLICY "legal_acceptances_insert" ON "legal_acceptances" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("legal_acceptances"."tenant_id" = nullif(current_setting('app.current_access_tenant_id', true), '')
+        and "legal_acceptances"."subject_user_id" = nullif(current_setting(%1$L, true), '')
+        and current_setting(%2$L, true) in ('member', 'user'))
+  $policy$, actor_id_setting, actor_role_setting);
+END;
+$$;
 --> statement-breakpoint
 CREATE POLICY "legal_document_versions_read" ON "legal_document_versions" AS PERMISSIVE FOR SELECT TO public USING (true);--> statement-breakpoint
 ALTER TABLE public.legal_document_versions
@@ -126,14 +138,15 @@ END;
 $$;
 --> statement-breakpoint
 INSERT INTO public.legal_document_versions (kind, version, locale, text_sha256, review_status)
-VALUES
-  ('terms', 'v2026_11_pilot_draft_1', 'sq', '05799385a102a0aa2765cf7ba20d05b99e94b8e1826e9776ff9c2cd4635f4529', 'legal_review_pending'),
-  ('privacy_notice', 'v2026_11_pilot_draft_1', 'sq', '2070f8eadd0dade5d41a096b7ef5fe9c9f83982b7b8fdf8eadb1512e82cdba8c', 'legal_review_pending'),
-  ('terms', 'v2026_11_pilot_draft_1', 'en', '3f9bade073ca03021820bf66e1c92bb43d5ec0ab004fe7eb69a15182f49fce68', 'legal_review_pending'),
-  ('privacy_notice', 'v2026_11_pilot_draft_1', 'en', '0af5413567fcc5959dce9c7821d877c4a323454966428dfde290b62243cb6e58', 'legal_review_pending'),
-  ('terms', 'v2026_11_pilot_draft_1', 'sr', '6e01904429d454bd5980ac86c83a150108cfac738a06b84af41c31cc0c2fadd6', 'legal_review_pending'),
-  ('privacy_notice', 'v2026_11_pilot_draft_1', 'sr', 'b4c934cbdb798cee64c5a0a892ae749db70881bbb674f558801c28b8f7d23988', 'legal_review_pending'),
-  ('terms', 'v2026_11_pilot_draft_1', 'mk', 'b60ffc5c5e397d35da9611504c2c6803dce3ebe269d407fe03acba9a7f6294a4', 'legal_review_pending'),
-  ('privacy_notice', 'v2026_11_pilot_draft_1', 'mk', 'e82ef5d7497923d4e5f17c7a6eca7d0211e74b1bd011c7ffab5f21555f74d20c', 'legal_review_pending'),
-  ('terms', 'v2026_11_pilot_draft_1', 'de', 'c021062dcb077bdb623783275850f5bce9eb6fd751946809868403eb3dacffff', 'legal_review_pending'),
-  ('privacy_notice', 'v2026_11_pilot_draft_1', 'de', 'fc0cebcbb6c8bf9fb2b3564f216b32ad8fc8ae6677496ec41a27b415c494c1d9', 'legal_review_pending');
+SELECT document.kind, 'v2026_11_pilot_draft_1', source.locale, document.text_sha256, 'legal_review_pending'
+FROM (VALUES
+  ('sq', '05799385a102a0aa2765cf7ba20d05b99e94b8e1826e9776ff9c2cd4635f4529', '2070f8eadd0dade5d41a096b7ef5fe9c9f83982b7b8fdf8eadb1512e82cdba8c'),
+  ('en', '3f9bade073ca03021820bf66e1c92bb43d5ec0ab004fe7eb69a15182f49fce68', '0af5413567fcc5959dce9c7821d877c4a323454966428dfde290b62243cb6e58'),
+  ('sr', '6e01904429d454bd5980ac86c83a150108cfac738a06b84af41c31cc0c2fadd6', 'b4c934cbdb798cee64c5a0a892ae749db70881bbb674f558801c28b8f7d23988'),
+  ('mk', 'b60ffc5c5e397d35da9611504c2c6803dce3ebe269d407fe03acba9a7f6294a4', 'e82ef5d7497923d4e5f17c7a6eca7d0211e74b1bd011c7ffab5f21555f74d20c'),
+  ('de', 'c021062dcb077bdb623783275850f5bce9eb6fd751946809868403eb3dacffff', 'fc0cebcbb6c8bf9fb2b3564f216b32ad8fc8ae6677496ec41a27b415c494c1d9')
+) AS source(locale, terms_sha256, privacy_notice_sha256)
+CROSS JOIN LATERAL (VALUES
+  ('terms', source.terms_sha256),
+  ('privacy_notice', source.privacy_notice_sha256)
+) AS document(kind, text_sha256);

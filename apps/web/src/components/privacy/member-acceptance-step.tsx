@@ -19,13 +19,17 @@ export async function MemberAcceptanceStep({
     ? await checkMemberAcceptanceTexts(locale, rendered.texts)
     : rendered;
 
+  const texts =
+    rendered.ok && verification.ok
+      ? rendered.texts.map(({ kind, version, blocks }) => ({ kind, version, blocks }))
+      : [];
   return (
     <div data-testid="dashboard-page-ready">
       <MemberAcceptanceForm
         key={verification.ok ? verification.formToken : verification.code}
         formToken={verification.ok ? verification.formToken : undefined}
         locale={locale}
-        texts={rendered.ok && verification.ok ? rendered.texts : []}
+        texts={texts}
         pendingKinds={verification.ok ? verification.pending : []}
         unavailable={verification.ok ? undefined : verification.code}
       />

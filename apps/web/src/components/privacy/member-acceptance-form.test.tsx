@@ -11,11 +11,15 @@ vi.mock('@/lib/auth-client', () => ({ authClient: { signOut: vi.fn() } }));
 vi.mock('@/lib/auth/logout', () => ({ signOutAndRedirectToLogin: mocks.signOut }));
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: mocks.refresh }) }));
 
-const terms = { kind: 'terms', version: 'v1', values: ['Legal review pending. Terms.'] } as const;
+const terms = {
+  kind: 'terms',
+  version: 'v1',
+  blocks: [{ key: 'title', text: 'Legal review pending. Terms.' }],
+} as const;
 const notice = {
   kind: 'privacy_notice',
   version: 'v1',
-  values: ['Legal review pending. Privacy notice.'],
+  blocks: [{ key: 'title', text: 'Legal review pending. Privacy notice.' }],
 } as const;
 
 beforeEach(() => {

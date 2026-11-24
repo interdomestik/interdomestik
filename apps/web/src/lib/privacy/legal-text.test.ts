@@ -48,17 +48,32 @@ it('binds every pending version to the rendered catalogue and migration row', ()
     }
   }
   expect(registry).toEqual(seen);
-  const values = migration.split('INSERT INTO public.legal_document_versions')[1];
-  expect(values).toBeDefined();
-  const sqlRows = Array.from(
-    values.matchAll(/\('([^']+)', '([^']+)', '([^']+)', '([0-9a-f]{64})', '([^']+)'\)/gu),
-    ([, kind, version, locale, textSha256, reviewStatus]) => ({
+  const insert = migration.split('INSERT INTO public.legal_document_versions')[1];
+  const projection =
+    /SELECT document\.kind, '([^']+)', source\.locale, document\.text_sha256, '([^']+)'/u.exec(
+      insert
+    );
+  expect(projection).not.toBeNull();
+  const [, version, reviewStatus] = projection!;
+  const [source, documents] = insert.split('CROSS JOIN LATERAL');
+  const digestsByLocale = Array.from(
+    source.matchAll(/\('([^']+)', '([0-9a-f]{64})', '([0-9a-f]{64})'\)/gu),
+    ([, locale, terms, notice]) => ({
+      locale,
+      digests: { terms_sha256: terms, privacy_notice_sha256: notice } as Record<string, string>,
+    })
+  );
+  expect(source).toContain('AS source(locale, terms_sha256, privacy_notice_sha256)');
+  expect(documents).toContain('AS document(kind, text_sha256)');
+  const kinds = Array.from(documents.matchAll(/\('([^']+)', source\.(\w+)\)/gu));
+  const sqlRows = digestsByLocale.flatMap(({ locale, digests }) =>
+    kinds.map(([, kind, field]) => ({
       kind,
       version,
       locale,
-      textSha256,
+      textSha256: digests[field],
       reviewStatus,
-    })
+    }))
   );
   expect(sqlRows).toEqual(registry);
 });

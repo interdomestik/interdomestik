@@ -10,7 +10,7 @@ const inputSchema = z.object({
   language: z.string().min(2),
 });
 
-export const getCountryGuidanceAction = memberGuarded(
+const guardedGetCountryGuidanceAction = memberGuarded(
   async (_authorized, input: z.infer<typeof inputSchema>) => {
     return runAuthenticatedAction(
       () =>
@@ -36,3 +36,9 @@ export const getCountryGuidanceAction = memberGuarded(
     );
   }
 );
+
+export async function getCountryGuidanceAction(
+  ...args: Parameters<typeof guardedGetCountryGuidanceAction>
+) {
+  return guardedGetCountryGuidanceAction(...args);
+}

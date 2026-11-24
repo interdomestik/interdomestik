@@ -75,13 +75,17 @@ describe('fail-closed acceptance inventory fixtures', () => {
     ).toThrow(`expected direct ${via} export`);
   });
 
-  it('resolves a named route re-export and an aliased wrapper import', () => {
+  it.each([
+    'export const wrapped = check(async () => new Response());',
+    `const guardedRead = check(async () => new Response());
+     export async function wrapped(request: Request) { return guardedRead(request); }`,
+  ])('resolves a named route re-export and an aliased wrapper import in %s', declaration => {
     write(web + 'app/api/fixture/route.ts', "export { wrapped as GET } from './core';");
     write(
       web + 'app/api/fixture/core.ts',
       `
       import { withMemberAcceptance as check } from '@/lib/privacy/require-member-acceptance';
-      export const wrapped = check(async () => new Response());
+      ${declaration}
     `
     );
     const inventory = loadInventory(dir, []);

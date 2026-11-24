@@ -6,7 +6,7 @@ import { listMembersWithoutAcceptance as reportAcceptance } from '@interdomestik
 import { ROLES } from '@interdomestik/shared-auth';
 import { z } from 'zod';
 
-export const listMembersWithoutAcceptance = defineAction({
+const listMembersWithoutAcceptanceAction = defineAction({
   name: 'privacy.listMembersWithoutAcceptance',
   basis: { kind: 'role', roles: [ROLES.tenant_admin] },
   subject: { type: 'none' },
@@ -16,3 +16,9 @@ export const listMembersWithoutAcceptance = defineAction({
     return result.ok ? result.members : actionFailure('FORBIDDEN');
   },
 });
+
+export async function listMembersWithoutAcceptance(
+  ...args: Parameters<typeof listMembersWithoutAcceptanceAction>
+) {
+  return listMembersWithoutAcceptanceAction(...args);
+}

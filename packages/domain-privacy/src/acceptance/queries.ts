@@ -1,4 +1,5 @@
-import { and, eq, inArray, withPrincipalTenantContext } from '@interdomestik/database';
+import { and, eq, inArray } from '@interdomestik/database';
+import { withPrincipalTenantContext } from '@interdomestik/database/free-start-drafts';
 import { legalAcceptances, legalDocumentVersions, user } from '@interdomestik/database/schema';
 import {
   readTenantAuthority,

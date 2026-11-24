@@ -123,7 +123,7 @@ export function memberGuarded<Args extends unknown[], Result>(
 ) {
   return async (...args: Args) => {
     const pending = resolveMemberAcceptanceForRequest();
-    return requestAdmission.run(pending, async () => {
+    return await requestAdmission.run(pending, async () => {
       const admission = await pending;
       if (!admission.ok) return toActionError(admission.failure);
       return handler(admission.authorized, ...args);

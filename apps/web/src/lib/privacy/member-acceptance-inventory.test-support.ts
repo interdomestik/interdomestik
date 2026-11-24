@@ -9,10 +9,12 @@ import {
 import { collectUnits } from '../../../../../scripts/ci/server-mutation/units.mjs';
 import {
   descendants,
+  hasSymbolFlag,
   isValueUse,
   sourceFile,
   type Declaration,
 } from './member-acceptance-ast.test-support';
+import { createDirectGuard } from './member-acceptance-guard-delegate.test-support';
 import {
   createSourceProgram,
   importBinding,
@@ -79,7 +81,7 @@ function isTopLevel(decl: ts.Node) {
 function runtimeReference(sources: SourceProgram, node: ts.Node) {
   if (ts.isPropertyAccessExpression(node)) {
     const receiver = sources.unalias(sources.symbolAt(node.expression));
-    if (receiver && receiver.flags & ts.SymbolFlags.Module) {
+    if (receiver && hasSymbolFlag(receiver, ts.SymbolFlags.Module)) {
       return sources.refOf(sources.symbolAt(node.name));
     }
   }
@@ -232,21 +234,6 @@ export function loadInventory(
     );
   }
 
-  function directGuard({ decl }: Declaration, name: string) {
-    if (!ts.isVariableDeclaration(decl)) return false;
-    const value = decl.initializer;
-    return Boolean(
-      value &&
-      ts.isCallExpression(value) &&
-      (value.arguments.length === 1 ||
-        (name === 'withMemberAcceptance' &&
-          value.arguments.length === 2 &&
-          ts.isObjectLiteralExpression(value.arguments[1]))) &&
-      !ts.isSpreadElement(value.arguments[0]) &&
-      callsExport(value, guardModule, name)
-    );
-  }
-
   function sourceImports({ file, decl }: Declaration, wholeFile = false) {
     const imports = wholeFile
       ? allImports(parse(file)).flatMap(node => importBinding(symbolAt(node)) ?? [])
@@ -288,7 +275,7 @@ export function loadInventory(
     callsExport,
     webCallsTo,
     hasCall,
-    directGuard,
+    directGuard: createDirectGuard(sources, (call, name) => callsExport(call, guardModule, name)),
     getExport,
     sourceImports,
     symbolAt,

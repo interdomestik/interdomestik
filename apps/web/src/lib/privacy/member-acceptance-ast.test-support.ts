@@ -62,12 +62,20 @@ export function previousStatements(node: ts.Node) {
   return result;
 }
 
+function isConstantDeclarationList(list: ts.VariableDeclarationList) {
+  return (list.flags & ts.NodeFlags.Const) !== 0;
+}
+
+export function hasSymbolFlag(symbol: ts.Symbol, flag: ts.SymbolFlags) {
+  return (symbol.flags & flag) !== 0;
+}
+
 export function constDeclaration(decl: ts.Node | undefined) {
   if (
     decl &&
     ts.isVariableDeclaration(decl) &&
     ts.isVariableDeclarationList(decl.parent) &&
-    decl.parent.flags & ts.NodeFlags.Const
+    isConstantDeclarationList(decl.parent)
   )
     return decl;
 }

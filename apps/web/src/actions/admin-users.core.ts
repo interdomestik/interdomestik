@@ -67,7 +67,7 @@ export async function resolveTenantClassification(params: {
   });
 }
 
-export const getUsers = memberGuarded(
+const guardedGetUsers = memberGuarded(
   async (
     authorized,
     filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
@@ -76,7 +76,7 @@ export const getUsers = memberGuarded(
   }
 );
 
-export const getUserChoices = memberGuarded(
+const guardedGetUserChoices = memberGuarded(
   async (
     authorized,
     filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
@@ -111,7 +111,7 @@ async function getFilteredUsers(
   });
 }
 
-export const getAgents = memberGuarded(
+const guardedGetAgents = memberGuarded(
   async (authorized): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> => {
     return runAdmittedAction(authorized, async () => {
       const { session, authority } = authorized;
@@ -131,7 +131,7 @@ export const getAgents = memberGuarded(
   }
 );
 
-export const getStaff = memberGuarded(
+const guardedGetStaff = memberGuarded(
   async (authorized): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> => {
     return runAdmittedAction(authorized, async () => {
       const { session, authority } = authorized;
@@ -149,3 +149,19 @@ export const getStaff = memberGuarded(
     });
   }
 );
+
+export async function getUsers(...args: Parameters<typeof guardedGetUsers>) {
+  return guardedGetUsers(...args);
+}
+
+export async function getUserChoices(...args: Parameters<typeof guardedGetUserChoices>) {
+  return guardedGetUserChoices(...args);
+}
+
+export async function getAgents(...args: Parameters<typeof guardedGetAgents>) {
+  return guardedGetAgents(...args);
+}
+
+export async function getStaff(...args: Parameters<typeof guardedGetStaff>) {
+  return guardedGetStaff(...args);
+}

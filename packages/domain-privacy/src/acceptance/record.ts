@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
-import { eq, type TenantTransaction, withPrincipalTenantContext } from '@interdomestik/database';
+import { eq, type TenantTransaction } from '@interdomestik/database';
+import { withPrincipalTenantContext } from '@interdomestik/database/free-start-drafts';
 import { auditLog, legalAcceptances, user } from '@interdomestik/database/schema';
 import {
   readTenantAuthority,

@@ -9,7 +9,7 @@ import { updateAgentCommissionRatesCore } from './agent-settings/update-rates';
 import { updateAgentTierCore } from './agent-settings/update-tier';
 
 /** Get agent's commission settings */
-export const getAgentSettings = memberGuarded(
+const guardedGetAgentSettings = memberGuarded(
   async (
     { session, authority },
     agentId: string
@@ -33,4 +33,8 @@ export async function updateAgentTier(
 ): Promise<ActionResult> {
   const { session, authority } = await getActionContext();
   return updateAgentTierCore({ session, authority, agentId, tier });
+}
+
+export async function getAgentSettings(...args: Parameters<typeof guardedGetAgentSettings>) {
+  return guardedGetAgentSettings(...args);
 }

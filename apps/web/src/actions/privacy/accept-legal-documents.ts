@@ -27,7 +27,7 @@ const inputSchema = z.strictObject({
   }),
 });
 
-export const acceptLegalDocuments = defineAction({
+const acceptLegalDocumentsAction = defineAction({
   name: 'privacy.acceptLegalDocuments',
   basis: { kind: 'self' },
   subject: { type: 'self' },
@@ -59,3 +59,7 @@ export const acceptLegalDocuments = defineAction({
     return { accepted: true } as const;
   },
 });
+
+export async function acceptLegalDocuments(...args: Parameters<typeof acceptLegalDocumentsAction>) {
+  return acceptLegalDocumentsAction(...args);
+}

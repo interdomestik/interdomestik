@@ -4,11 +4,8 @@ import { acceptLegalDocuments } from '@/actions/privacy/accept-legal-documents';
 import { LanguageSettings } from '@/components/settings/language-settings';
 import { authClient } from '@/lib/auth-client';
 import { signOutAndRedirectToLogin } from '@/lib/auth/logout';
-import type {
-  LegalDocumentKind,
-  LegalTextFailure,
-  RenderedLegalText,
-} from '@interdomestik/domain-privacy/acceptance';
+import type { LegalTextForDisplay } from '@/lib/privacy/legal-text';
+import type { LegalDocumentKind, LegalTextFailure } from '@interdomestik/domain-privacy/acceptance';
 import { Button } from '@interdomestik/ui/components/button';
 import { Card, CardContent } from '@interdomestik/ui/components/card';
 import { useTranslations } from 'next-intl';
@@ -33,7 +30,7 @@ export function MemberAcceptanceForm({
 }: Readonly<{
   formToken?: string;
   locale: string;
-  texts: readonly RenderedLegalText[];
+  texts: readonly LegalTextForDisplay[];
   pendingKinds: readonly LegalDocumentKind[];
   unavailable?: LegalTextFailure;
 }>) {
@@ -164,9 +161,9 @@ export function MemberAcceptanceForm({
                     <p className="mt-2 text-sm text-muted-foreground">
                       {t('version', { version: document.version })}
                     </p>
-                    {document.values.map((value, index) => (
-                      <p key={index} data-testid="legal-document-text" className="mt-2">
-                        {value}
+                    {document.blocks.map(block => (
+                      <p key={block.key} data-testid="legal-document-text" className="mt-2">
+                        {block.text}
                       </p>
                     ))}
                   </details>
