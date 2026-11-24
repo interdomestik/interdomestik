@@ -159,7 +159,7 @@ export async function withPaymentPortDatabase(
   // The scratch database owns all append-only rows and disappears after the proof.
   await withScratchDatabase('wp07_payment', admin =>
     withRuntimeLogin(admin, async (username, password) => {
-      // Migrations 0101 to 0103 grant privileges to the runtime role when it exists.
+      // The billing migrations grant privileges to the runtime role when it exists.
       await migrateJournalBeforeNotificationDeliveries(admin, migrations);
       const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
       const url = new URL(process.env.DATABASE_URL!);
