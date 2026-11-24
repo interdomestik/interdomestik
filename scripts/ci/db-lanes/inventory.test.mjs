@@ -86,7 +86,7 @@ for (const [spec, prerequisites] of [
 
 test('discovers a newly tracked orphan independently of advisory selectors', t => {
   const root = scratch(t);
-  const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
+  const git = (...args) => execFileSync('/usr/bin/git', args, { cwd: root, stdio: 'pipe' });
   git('init', '-q');
   const orphan = 'packages/other/test/new-db.test.ts';
   const rlsSpec = 'packages/domain-claims/src/rls.spec.ts';
@@ -172,7 +172,7 @@ for (const [label, source, directory = 'scripts/pilot'] of [
 ]) {
   test(`reports an orphan for a tracked test with ${label}`, t => {
     const root = scratch(t);
-    const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
+    const git = (...args) => execFileSync('/usr/bin/git', args, { cwd: root, stdio: 'pipe' });
     git('init', '-q');
     const file = `${directory}/db-opt-in.test.ts`;
     mkdirSync(join(root, dirname(file)), { recursive: true });

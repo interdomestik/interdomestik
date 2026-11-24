@@ -83,7 +83,7 @@ export function inventoryFixture(t, extra = []) {
     mkdirSync(dirname(join(root, file)), { recursive: true });
     writeFileSync(join(root, file), source);
   }
-  const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
+  const git = (...args) => execFileSync('/usr/bin/git', args, { cwd: root, stdio: 'pipe' });
   git('init', '-q');
   git('add', '--', ...fixtures.keys());
   return root;

@@ -62,7 +62,7 @@ test('PG16 refuses to run without a successful journal build', () => {
   const step = job.steps.find(candidate => candidate.id === 'pg16');
   assert.equal(step.env.MIGRATION_OUTCOME, '${{ steps.migration.outcome }}');
   for (const outcome of ['failure', 'skipped', '']) {
-    const run = spawnSync('bash', ['-ec', step.run], {
+    const run = spawnSync('/bin/bash', ['-ec', step.run], {
       env: { MIGRATION_OUTCOME: outcome },
       encoding: 'utf8',
     });
@@ -93,7 +93,7 @@ test('the advisory summary reports each execution and fails on failed or missing
     [{ PG16_OUTCOME: 'skipped' }, 1, /PG16: skipped/u],
     [{ PG16_OUTCOME: '' }, 1, /PG16: missing/u],
   ]) {
-    const run = spawnSync('bash', ['-e', '-o', 'pipefail', '-c', summary.run], {
+    const run = spawnSync('/bin/bash', ['-e', '-o', 'pipefail', '-c', summary.run], {
       env: { ...success, ...changes },
       encoding: 'utf8',
     });
@@ -148,6 +148,8 @@ test('advisory unit fails for each selected contract with zero executed cases', 
     const file = `scripts/ci/contract-${name}.mjs`;
     cpSync(join(repoRoot, file), join(root, file));
   }
+  const ordering = 'scripts/ci/db-access-order.mjs';
+  cpSync(join(repoRoot, ordering), join(root, ordering));
   const directory = 'scripts/ci/db-lanes';
   cpSync(join(repoRoot, directory), join(root, directory), {
     recursive: true,

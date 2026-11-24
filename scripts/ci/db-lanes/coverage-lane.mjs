@@ -1,7 +1,7 @@
-import { spawnSync } from 'node:child_process';
 import { join, matchesGlob, relative } from 'node:path';
 import ts from 'typescript';
 import { hasUnfilteredCoverageConfig } from './coverage-config.mjs';
+import { spawnPnpm } from './execution.mjs';
 import { provenWorkflowStep } from './workflow-selectors.mjs';
 
 const gateCommand = 'pnpm test:coverage && node scripts/ci/coverage-gate.mjs --min-lines 60';
@@ -9,19 +9,23 @@ const cleanupCommand = 'node scripts/ci/clean-coverage-artifacts.mjs';
 const coverageInvocation =
   /^pnpm --filter (@interdomestik\/[\w*-]+) (exec vitest run|test:unit) (.+)$/u;
 
+function recordVitestBindings(imports, clause) {
+  const names = clause?.namedBindings;
+  if (!names || !ts.isNamedImports(names) || clause.name) return false;
+  for (const { name, propertyName, isTypeOnly } of names.elements) {
+    if (isTypeOnly || clause.isTypeOnly) continue;
+    if (imports.has(name.text)) return false;
+    imports.set(name.text, (propertyName ?? name).text);
+  }
+  return true;
+}
+
 function vitestImports(syntax) {
   const imports = new Map();
   for (const statement of syntax.statements) {
     if (!ts.isImportDeclaration(statement)) continue;
     if (statement.moduleSpecifier.text !== 'vitest') return null;
-    const names = statement.importClause?.namedBindings;
-    if (!names || !ts.isNamedImports(names) || statement.importClause.name) return null;
-    for (const { name, propertyName, isTypeOnly } of names.elements) {
-      if (!isTypeOnly && !statement.importClause.isTypeOnly) {
-        if (imports.has(name.text)) return null;
-        imports.set(name.text, (propertyName ?? name).text);
-      }
-    }
+    if (!recordVitestBindings(imports, statement.importClause)) return null;
   }
   return imports;
 }
@@ -77,6 +81,20 @@ function isDirectCase(body, imports) {
   );
 }
 
+function readVitestDeclaration(call, imports) {
+  if (!ts.isIdentifier(call.expression) || call.questionDotToken) return null;
+  const name = imports.get(call.expression.text);
+  const [label, callback] = call.arguments;
+  if (
+    call.arguments.length !== 2 ||
+    !ts.isStringLiteralLike(label) ||
+    !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)) ||
+    callback.parameters.length
+  )
+    return null;
+  return { name, callback };
+}
+
 // Follow only direct Vitest declarations. Delegated registration and conditional suite
 // control flow do not have a statically known set of runnable cases.
 function registeredCases(statements, imports, databaseMock) {
@@ -86,25 +104,17 @@ function registeredCases(statements, imports, databaseMock) {
       return null;
     const call = statement.expression;
     if (call === databaseMock) continue;
-    if (!ts.isIdentifier(call.expression) || call.questionDotToken) return null;
-    const name = imports.get(call.expression.text);
-    const [label, callback] = call.arguments;
-    if (
-      call.arguments.length !== 2 ||
-      !ts.isStringLiteralLike(label) ||
-      !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)) ||
-      callback.parameters.length
-    )
-      return null;
+    const declaration = readVitestDeclaration(call, imports);
+    if (!declaration) return null;
+    const { name, callback } = declaration;
     if ((name === 'it' || name === 'test') && isDirectCase(callback.body, imports)) {
       cases += 1;
-    } else if (name === 'describe' && ts.isBlock(callback.body)) {
-      const nested = registeredCases(callback.body.statements, imports);
-      if (!nested) return null;
-      cases += nested;
-    } else {
-      return null;
+      continue;
     }
+    if (name !== 'describe' || !ts.isBlock(callback.body)) return null;
+    const nested = registeredCases(callback.body.statements, imports);
+    if (!nested) return null;
+    cases += nested;
   }
   return cases;
 }
@@ -154,8 +164,7 @@ export const vitestProjects = files =>
 export function listVitestFiles(root, project, candidates, options) {
   const cwd = join(root, project);
   const filters = candidates.map(file => relative(cwd, join(root, file)));
-  const run = spawnSync(
-    'pnpm',
+  const run = spawnPnpm(
     [
       'exec',
       'vitest',
@@ -181,6 +190,24 @@ export function listVitestFiles(root, project, candidates, options) {
   return new Set(listing.map(({ file }) => relative(root, file)));
 }
 
+function* projectCoverageTargets(root, project, candidates, manifest, invocations) {
+  for (const { filter, runner, vitestOptions } of invocations) {
+    if (!matchesGlob(manifest.name, filter)) continue;
+    if (runner === 'test:unit' && manifest.scripts?.['test:unit'] !== 'vitest run') {
+      continue;
+    }
+    let listed;
+    try {
+      listed = listVitestFiles(root, project, candidates, vitestOptions);
+    } catch {
+      continue; // The advisory selector still needs to confirm these files independently.
+    }
+    for (const file of candidates) {
+      if (listed.has(file)) yield file;
+    }
+  }
+}
+
 export function coverageTargets(root, workflow, scripts, read, files) {
   if (!files.length) return [];
   const gate = provenWorkflowStep(workflow, 'unit', 'Coverage Gate');
@@ -192,20 +219,8 @@ export function coverageTargets(root, workflow, scripts, read, files) {
   for (const [project, candidates] of vitestProjects(proven)) {
     if (!hasUnfilteredCoverageConfig(root, project, read)) continue;
     const manifest = JSON.parse(read(`${project}/package.json`));
-    for (const { filter, runner, vitestOptions } of invocations) {
-      if (!matchesGlob(manifest.name, filter)) continue;
-      if (runner === 'test:unit' && manifest.scripts?.['test:unit'] !== 'vitest run') {
-        continue;
-      }
-      let listed;
-      try {
-        listed = listVitestFiles(root, project, candidates, vitestOptions);
-      } catch {
-        continue; // The advisory selector still needs to confirm these files independently.
-      }
-      for (const file of candidates) {
-        if (listed.has(file)) selected.add(file);
-      }
+    for (const file of projectCoverageTargets(root, project, candidates, manifest, invocations)) {
+      selected.add(file);
     }
   }
   return [...selected];

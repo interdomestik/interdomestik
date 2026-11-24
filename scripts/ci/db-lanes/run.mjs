@@ -1,10 +1,9 @@
-import { spawnSync } from 'node:child_process';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { runParallel } from '../contract-test-shards.mjs';
-import { checkExecution, nodeExecution, readExecution } from './execution.mjs';
+import { checkExecution, nodeExecution, readExecution, spawnPnpm } from './execution.mjs';
 import { repoRoot, repositoryInventory } from './inventory.mjs';
 
 const database = join(repoRoot, 'packages/database');
@@ -59,8 +58,7 @@ function runVitest() {
       const filename = join(temp, `${index}.json`);
       index += 1;
       const cwd = join(repoRoot, project);
-      const result = spawnSync(
-        'pnpm',
+      const result = spawnPnpm(
         [
           'exec',
           'vitest',

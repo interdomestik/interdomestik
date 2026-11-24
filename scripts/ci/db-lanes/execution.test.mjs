@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync } from 'node:child_process';
 import { mkdtempSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
-import { checkExecution, readExecution } from './execution.mjs';
+import { checkExecution, readExecution, spawnPnpm } from './execution.mjs';
 import { repoRoot } from './inventory.mjs';
 
 const selected = 'packages/database/test/proof.test.ts';
@@ -103,8 +103,7 @@ test('a real Vitest run records skips, TODOs and retries even when Vitest exits 
     });
   `
   );
-  const run = spawnSync(
-    'pnpm',
+  const run = spawnPnpm(
     [
       'exec',
       'vitest',

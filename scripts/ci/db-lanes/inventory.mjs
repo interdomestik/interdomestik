@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { RETIRED_LEGACY_FILES } from '../contract-test-shards.mjs';
+import { compareCodeUnits } from '../db-access-order.mjs';
 import { listVitestFiles, vitestProjects } from './coverage-lane.mjs';
 import { isContractTest, isReleaseGateTest, protectedLanes } from './protected-lanes.mjs';
 
@@ -10,7 +11,7 @@ export const repoRoot = resolve(import.meta.dirname, '../../..');
 const testFile = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
 const databaseMarker = /(?:^|[.-])(?:db|pg16|postgres|integration|rls|restricted-role)/u;
 const marked = new RegExp(`${databaseMarker.source}[.-]`, 'u');
-const liveTestSuffix = new RegExp(`${databaseMarker.source}\\.test\\.ts$`, 'u');
+const liveTestSuffix = new RegExp(String.raw`${databaseMarker.source}\.test\.ts$`, 'u');
 const rlsMarked = /(?:^|[.-])(?:rls|restricted-role)[.-]/u;
 const sourceTree = /^(?:apps\/web|packages\/[^/]+)\/src\//u;
 const authContracts = /^apps\/web\/src\/lib\/auth\/[^/]+\.contract\./u;
@@ -34,7 +35,7 @@ function isDatabaseTest(root, file) {
 }
 
 export function trackedTests(root) {
-  const output = execFileSync('git', ['ls-files', '--cached', '--deduplicate', '-z'], {
+  const output = execFileSync('/usr/bin/git', ['ls-files', '--cached', '--deduplicate', '-z'], {
     cwd: root,
     encoding: 'utf8',
   });
@@ -42,7 +43,7 @@ export function trackedTests(root) {
     .split('\0')
     .filter(file => testFile.test(file))
     .filter(file => isDatabaseTest(root, file))
-    .sort();
+    .sort(compareCodeUnits);
 }
 
 function isExactTestPath(file) {
@@ -107,9 +108,7 @@ function isVitestCandidate(file) {
   );
 }
 
-export function buildInventory(files, existing, exclusions, advisoryVitest = new Set()) {
-  const lanesByFile = new Map(files.map(file => [file, []]));
-  const excluded = new Map(exclusions.map(entry => [entry.file, entry]));
+function recordExistingLanes(lanesByFile, existing) {
   for (const { name, files: selected } of existing) {
     if (selected.length === 0) throw new Error(`${name} has an empty selector`);
     for (const file of selected) {
@@ -118,6 +117,12 @@ export function buildInventory(files, existing, exclusions, advisoryVitest = new
       if (!lanes.includes(name)) lanes.push(name);
     }
   }
+}
+
+export function buildInventory(files, existing, exclusions, advisoryVitest = new Set()) {
+  const lanesByFile = new Map(files.map(file => [file, []]));
+  const excluded = new Map(exclusions.map(entry => [entry.file, entry]));
+  recordExistingLanes(lanesByFile, existing);
   for (const file of excluded.keys()) {
     if (!lanesByFile.has(file)) throw new Error(`exclusion is not a tracked test: ${file}`);
     if (lanesByFile.get(file).length) throw new Error(`excluded test is already selected: ${file}`);
