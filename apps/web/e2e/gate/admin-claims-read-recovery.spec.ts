@@ -6,7 +6,7 @@ import {
   FILTERS,
   SEARCH_TERM,
   catalogFor,
-  until,
+  expectRead,
   openClaims,
   expectRetainedUrl,
   expectFailed,
@@ -33,7 +33,7 @@ test.describe('S7 admin claims read recovery', () => {
 
       seam.arm({ kind: 'failure' });
       await parts.search.fill(search);
-      await until(seam, 'matching native search read was failed', c => c.failed === 1);
+      await expectRead(seam, 'matching native search read was failed', c => c.failed === 1);
       await expectFailed(parts, catalog, { retried: false, draft: search });
       expectRetainedUrl(page, pathname, { search });
       const url = page.url();
@@ -41,7 +41,7 @@ test.describe('S7 admin claims read recovery', () => {
       seam.arm({ kind: 'passthrough' });
       await parts.retry.focus();
       await page.keyboard.press('Enter');
-      await until(seam, 'populated successful read was delivered', c => c.passed === 1);
+      await expectRead(seam, 'populated successful read was delivered', c => c.passed === 1);
       expect(await expectAnnounced(parts, seam, catalog)).toBeGreaterThan(0);
       expect(await parts.cards.count()).toBeGreaterThan(0);
       await expect(parts.region).toBeFocused();
@@ -60,7 +60,7 @@ test.describe('S7 admin claims read recovery', () => {
       // A native search navigation is the one read that is failed.
       seam.arm({ kind: 'failure' });
       await parts.search.fill(SEARCH_TERM);
-      await until(seam, 'native search read was failed', c => c.failed === 1);
+      await expectRead(seam, 'native search read was failed', c => c.failed === 1);
       await expectFailed(parts, catalog, { retried: false, draft: SEARCH_TERM });
       expectRetainedUrl(page, pathname, { ...FILTERS, search: SEARCH_TERM });
       const assigned = visible(page, 'assigned-filter-unassigned');
@@ -76,14 +76,14 @@ test.describe('S7 admin claims read recovery', () => {
       await parts.retry.focus();
       await expect(parts.retry).toBeFocused();
       await page.keyboard.press('Enter');
-      await until(seam, 'held failed read reached the server', c => c.awaitingRelease);
+      await expectRead(seam, 'held failed read reached the server', c => c.awaitingRelease, 'held');
       await expectPending(parts, catalog);
       await page.keyboard.press('Enter');
       await settleFrames(page);
       expect(seam.counts().eligible).toBe(before + 1);
       await expectPending(parts, catalog);
       seam.release();
-      await until(seam, 'held failure was delivered', c => c.failed === 2);
+      await expectRead(seam, 'held failure was delivered', c => c.failed === 2);
       await expectFailed(parts, catalog, { retried: true, draft: SEARCH_TERM });
       expectRetainedUrl(page, pathname, { ...FILTERS, search: SEARCH_TERM });
 
@@ -93,7 +93,7 @@ test.describe('S7 admin claims read recovery', () => {
       await parts.retry.focus();
       await expect(parts.retry).toBeFocused();
       await page.keyboard.press('Enter');
-      await until(seam, 'successful read was delivered', c => c.passed === 1);
+      await expectRead(seam, 'successful read was delivered', c => c.passed === 1);
       await expectAnnounced(parts, seam, catalog);
       await expect(parts.region).toBeFocused();
       expect(page.url()).toBe(url);
@@ -116,7 +116,7 @@ test.describe('S7 admin claims read recovery', () => {
 
       seam.arm({ kind: 'failure' });
       await parts.search.fill(noMatch);
-      await until(seam, 'native search read was failed', c => c.failed === 1);
+      await expectRead(seam, 'native search read was failed', c => c.failed === 1);
       await expectFailed(parts, catalog, { retried: false, draft: noMatch });
       expectRetainedUrl(page, pathname, { search: noMatch });
       await expectNarrowFit(page, parts, testInfo);
@@ -124,7 +124,7 @@ test.describe('S7 admin claims read recovery', () => {
       // Pointer retry to a genuine no-match: zero announced, true empty, no alert, no forced focus.
       seam.arm({ kind: 'passthrough' });
       await parts.retry.click();
-      await until(seam, 'no-match read was delivered', c => c.passed === 1);
+      await expectRead(seam, 'no-match read was delivered', c => c.passed === 1);
       expect(await expectAnnounced(parts, seam, catalog)).toBe(0);
       await expect(parts.region).not.toBeFocused();
       await expect(parts.retry).toHaveCount(0);
@@ -132,7 +132,7 @@ test.describe('S7 admin claims read recovery', () => {
       // A filter navigation fails again; a newer control takes focus during the held keyboard pass.
       seam.arm({ kind: 'failure' });
       await visible(page, 'assigned-filter-unassigned').click();
-      await until(seam, 'native filter read was failed', c => c.failed === 2);
+      await expectRead(seam, 'native filter read was failed', c => c.failed === 2);
       await expectFailed(parts, catalog, { retried: false, draft: noMatch });
       expectRetainedUrl(page, pathname, { search: noMatch, assigned: 'unassigned' });
 
@@ -140,12 +140,17 @@ test.describe('S7 admin claims read recovery', () => {
       await parts.retry.focus();
       await expect(parts.retry).toBeFocused();
       await page.keyboard.press('Enter');
-      await until(seam, 'held successful read reached the server', c => c.awaitingRelease);
+      await expectRead(
+        seam,
+        'held successful read reached the server',
+        c => c.awaitingRelease,
+        'held'
+      );
       await expectPending(parts, catalog);
       await parts.search.focus();
       await expect(parts.search).toBeFocused();
       seam.release();
-      await until(seam, 'held successful read was delivered', c => c.passed === 2);
+      await expectRead(seam, 'held successful read was delivered', c => c.passed === 2);
       expect(await expectAnnounced(parts, seam, catalog)).toBe(0);
       await expect(parts.search).toBeFocused();
       await expect(parts.region).not.toBeFocused();

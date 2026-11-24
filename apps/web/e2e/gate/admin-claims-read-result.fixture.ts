@@ -42,8 +42,11 @@ export type AdminClaimsReadCounts = {
   awaitingRelease: boolean;
 };
 
+export type AdminClaimsReadPhase = 'held' | 'settled';
+
 export type AdminClaimsReadSeam = {
   arm(mode: AdminClaimsReadMode): void;
+  waitForRead(phase: AdminClaimsReadPhase): Promise<void>;
   release(): void;
   counts(): AdminClaimsReadCounts;
   /** Announced result text of the last delivered passthrough read, if any. */
@@ -53,7 +56,12 @@ export type AdminClaimsReadSeam = {
 };
 
 type Gate = { promise: Promise<void>; open: () => void; isOpen: () => boolean };
-type Slot = { mode: AdminClaimsReadMode; gate: Gate | null; held: boolean };
+type Slot = {
+  mode: AdminClaimsReadMode;
+  gate: Gate | null;
+  readyToRelease: Gate;
+  finished: Gate;
+};
 
 function createGate(): Gate {
   let opened = false;
@@ -96,12 +104,14 @@ export async function installAdminClaimsReadSeam(
   };
   let armed: Slot | null = null;
   let active: Slot | null = null;
+  let lastArmed: Slot | null = null;
   let inflight: Promise<void> = Promise.resolve();
   let closed = false;
   let lastDelivered: string | null = null;
   let storedError: Error | null = null;
 
-  const awaiting = (): boolean => active?.held === true && active.gate?.isOpen() === false;
+  const awaiting = (): boolean =>
+    active?.readyToRelease.isOpen() === true && active.gate?.isOpen() === false;
   // Opens the armed or active gate; an early release can never strand a later hold.
   const release = (): void => {
     (armed ?? active)?.gate?.open();
@@ -118,8 +128,8 @@ export async function installAdminClaimsReadSeam(
       slot.mode.kind === 'failure' ? failAdminClaimsRead(text, options.failureMessage) : undefined;
     const announcement = projected === undefined ? readAdminClaimsResult(text) : null;
     if (slot.gate) {
-      slot.held = true;
       if (!closed) counts.held += 1;
+      slot.readyToRelease.open();
       await slot.gate.promise;
     }
     if (projected === undefined) {
@@ -165,6 +175,7 @@ export async function installAdminClaimsReadSeam(
       await settling;
     } finally {
       if (active === slot) active = null;
+      slot.finished.open();
     }
   };
 
@@ -173,7 +184,20 @@ export async function installAdminClaimsReadSeam(
   return {
     arm(mode) {
       if (armed || active) invalid('is already armed');
-      armed = { mode, gate: mode.hold ? createGate() : null, held: false };
+      armed = {
+        mode,
+        gate: mode.hold ? createGate() : null,
+        readyToRelease: createGate(),
+        finished: createGate(),
+      };
+      lastArmed = armed;
+    },
+    waitForRead(phase) {
+      if (!lastArmed) invalid('has no armed read');
+      if (phase === 'settled') return lastArmed.finished.promise;
+      if (!lastArmed.gate) invalid('read was armed without a hold');
+      // An error can settle the route before it reaches the hold. Let assertNoError report it.
+      return Promise.race([lastArmed.readyToRelease.promise, lastArmed.finished.promise]);
     },
     release,
     counts: () => ({ ...counts, awaitingRelease: awaiting() }),
