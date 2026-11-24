@@ -46,6 +46,7 @@ async function run() {
       '--testTimeout=30000',
       'src/app/[locale]/(staff)/staff/claims/[id]/staff-detail-rls.integration.test.ts',
       'src/features/admin/branches/branch-dashboard-rls.integration.test.ts',
+      'src/lib/refusal-audit-rls.integration.test.ts',
     ],
     {
       cwd: webRoot,

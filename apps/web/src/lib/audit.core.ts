@@ -62,7 +62,12 @@ export async function writeAuditEvent({
         action,
         entityType,
         entityId: entityId || null,
-        metadata: metadata ?? {},
+        // Drizzle inspects the value's prototype before encoding JSONB. Copy the refusal's
+        // own fields here and shadow inherited toJSON; its nested subject stays null-prototype.
+        metadata:
+          action === 'action.refused' && metadata && Object.getPrototypeOf(metadata) === null
+            ? { ...metadata, toJSON: undefined }
+            : (metadata ?? {}),
         createdAt: new Date(),
       })
     );
