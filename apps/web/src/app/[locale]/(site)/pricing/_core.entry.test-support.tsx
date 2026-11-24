@@ -6,7 +6,13 @@ const hoisted = vi.hoisted(() => {
 
   return {
     entityDisclosure,
-    headersMock: vi.fn(() => Promise.resolve(new Headers([['host', 'ks.127.0.0.1.nip.io:3000']]))),
+    // A promise executor keeps a throwing constructor a rejected promise, as `async` did.
+    headersMock: vi.fn(
+      () =>
+        new Promise<Headers>(resolve => {
+          resolve(new Headers([['host', 'ks.127.0.0.1.nip.io:3000']]));
+        })
+    ),
     authorize: vi.fn(),
     newSales: vi.fn(),
     getSessionMock: vi.fn(() =>
@@ -52,8 +58,11 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn((options?: { namespace?: string } | string) =>
-    Promise.resolve(getNamespacedTranslation(options))
+  getTranslations: vi.fn(
+    (options?: { namespace?: string } | string) =>
+      new Promise<ReturnType<typeof getNamespacedTranslation>>(resolve => {
+        resolve(getNamespacedTranslation(options));
+      })
   ),
 }));
 
