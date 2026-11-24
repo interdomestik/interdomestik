@@ -188,9 +188,10 @@ test.describe('S6 provider-order entitlement boundary', () => {
     } finally {
       const activeSession = session;
       const activePage = page;
+      const cleanedIds = new Set<string>();
       await teardown(
         [
-          () => cleanupS5(claimId, journey),
+          () => cleanupS5(claimId, journey, cleanedIds),
           ...(activeSession ? [() => signOut(activeSession)] : []),
           ...(activePage ? [() => activePage.context().close()] : []),
           () =>
@@ -200,7 +201,7 @@ test.describe('S6 provider-order entitlement boundary', () => {
               tenantId: owner.tenantId,
               userId: owner.ownerUserId,
             }),
-          () => expectJourneyClean(claimId, journey),
+          () => expectJourneyClean(claimId, journey, cleanedIds),
           () =>
             expectActivationClean({
               eventId,

@@ -164,12 +164,13 @@ test.describe('S5 first-case saved-draft continuity', () => {
       failure = error;
       throw error;
     } finally {
+      const cleanedIds = new Set<string>();
       await teardown(
         [
-          () => cleanupS5(claimId, journey),
+          () => cleanupS5(claimId, journey, cleanedIds),
           ...sessions.map(session => () => signOut(session)),
           ...pages.map(page => () => page.context().close()),
-          () => expectJourneyClean(claimId, journey),
+          () => expectJourneyClean(claimId, journey, cleanedIds),
         ],
         failure
       );

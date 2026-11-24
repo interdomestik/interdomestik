@@ -84,13 +84,16 @@ async function claimIdsForJourney(
 
 export async function cleanupJourney(
   claimId: string | null,
-  journey: S3JourneyIdentity
-): Promise<string[]> {
-  return db.transaction(async tx => {
+  journey: S3JourneyIdentity,
+  cleanedIds: Set<string>
+): Promise<void> {
+  const drainFailures: unknown[] = [];
+  const cleanup = db.transaction(async tx => {
     // Each notification read must see commits made after the claim lock was taken.
     await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL READ COMMITTED`);
     await tx.execute(sql`SET LOCAL statement_timeout = '5s'`);
     const ids = await claimIdsForJourney(claimId, journey, tx);
+    ids.forEach(id => cleanedIds.add(id));
     if (ids.length) {
       const journeyClaims = and(
         eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
@@ -107,7 +110,8 @@ export async function cleanupJourney(
         .from(claims)
         .where(journeyClaims)
         .for('update');
-      await drainJourneyNotifications(tx, lockedClaims);
+      // Keep the lock and delete residue even when the notification assertion times out.
+      await drainJourneyNotifications(tx, lockedClaims).catch(error => drainFailures.push(error));
       const events = await tx.query.domainEvents.findMany({
         where: and(
           inArray(domainEvents.entityId, ids),
@@ -151,8 +155,17 @@ export async function cleanupJourney(
           eq(freeStartDrafts.summary, journey.summary)
         )
       );
-    return ids;
   });
+  await cleanup.catch(error => {
+    if (drainFailures.length) {
+      throw new AggregateError(
+        [...drainFailures, error],
+        'Journey notification drain and cleanup failed'
+      );
+    }
+    throw error;
+  });
+  if (drainFailures.length) throw drainFailures[0];
 }
 
 async function drainJourneyNotifications(
@@ -199,7 +212,7 @@ async function drainJourneyNotifications(
 export async function expectJourneyClean(
   claimId: string | null,
   journey: S3JourneyIdentity,
-  cleanedIds: string[] = []
+  cleanedIds: ReadonlySet<string>
 ): Promise<void> {
   const ids = [...new Set([...cleanedIds, ...(await claimIdsForJourney(claimId, journey))])];
   const selection = { columns: { id: true } } as const;

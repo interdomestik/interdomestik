@@ -33,6 +33,7 @@ import {
   openMemberContext,
   submitExactDraft,
 } from './member-staff-evidence-journey.fixture';
+import { teardown } from './s5-saved-draft.fixture';
 import { signalTest } from './signal-wait.fixture';
 
 const test = mergeTests(authTest, signalTest);
@@ -46,12 +47,17 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
   } | null = null;
 
   test.afterEach(async () => {
-    if (!residue) return;
+    const run = residue;
+    if (!run) return;
+    const cleanedIds = new Set<string>();
+    const context = run.memberSession?.context;
     try {
-      await residue.memberSession?.context.close();
+      await teardown([
+        ...(context ? [() => context.close()] : []),
+        () => cleanupJourney(run.claimId, run, cleanedIds),
+        () => expectJourneyClean(run.claimId, run, cleanedIds),
+      ]);
     } finally {
-      const cleanedIds = await cleanupJourney(residue.claimId, residue);
-      await expectJourneyClean(residue.claimId, residue, cleanedIds);
       residue = null;
     }
   });
