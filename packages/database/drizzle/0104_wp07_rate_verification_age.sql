@@ -32,8 +32,24 @@ ALTER TABLE "exchange_rate_verifications" ADD CONSTRAINT "exchange_rate_verifica
 ALTER TABLE "exchange_rate_verifications" ADD CONSTRAINT "exchange_rate_verifications_entity_fk" FOREIGN KEY ("tenant_id","legal_entity_id") REFERENCES "public"."legal_entities"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "exchange_rate_verifications" ADD CONSTRAINT "exchange_rate_verifications_actor_fk" FOREIGN KEY ("tenant_id","verified_by") REFERENCES "public"."user"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "exchange_rate_verifications_latest_idx" ON "exchange_rate_verifications" USING btree ("tenant_id","book_id","rate_id","verified_at");--> statement-breakpoint
-CREATE POLICY "exchange_rate_verification_limits_tenant_policy" ON "exchange_rate_verification_limits" AS PERMISSIVE FOR ALL TO public USING ("exchange_rate_verification_limits"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("exchange_rate_verification_limits"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
-CREATE POLICY "exchange_rate_verifications_tenant_policy" ON "exchange_rate_verifications" AS PERMISSIVE FOR ALL TO public USING ("exchange_rate_verifications"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("exchange_rate_verifications"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);
+DO $$
+DECLARE
+  tenant_predicate CONSTANT text :=
+    'tenant_id = (select current_setting(''app.current_access_tenant_id'', true))::text';
+  target_table text;
+BEGIN
+  FOREACH target_table IN ARRAY ARRAY['exchange_rate_verification_limits', 'exchange_rate_verifications']
+  LOOP
+    EXECUTE format(
+      'CREATE POLICY %I ON public.%I AS PERMISSIVE FOR ALL TO public USING (%s) WITH CHECK (%s)',
+      target_table || '_tenant_policy',
+      target_table,
+      tenant_predicate,
+      tenant_predicate
+    );
+  END LOOP;
+END;
+$$;
 --> statement-breakpoint
 ALTER TABLE "exchange_rate_verification_limits" FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint

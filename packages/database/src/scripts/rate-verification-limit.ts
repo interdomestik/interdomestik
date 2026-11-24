@@ -103,7 +103,7 @@ export async function setRateVerificationLimit(
 ) {
   validateOperation(operation);
   const { tenantId, maxAgeSeconds, operationId } = operation;
-  return client.begin('isolation level read committed', async tx => {
+  return await client.begin('isolation level read committed', async tx => {
     await bindReleaseTenant(tx, tenantId);
     const [book] = await tx`select id from public.exchange_rate_books
       where tenant_id = ${tenantId} and base = 'EUR' and quote = 'MKD'
@@ -151,7 +151,7 @@ export async function checkRateVerificationLimitReceipt(
 ) {
   validateOperation(operation);
   const { operationId: receiptId, maxAgeSeconds } = operation;
-  return client.begin('isolation level read committed read only', async tx => {
+  return await client.begin('isolation level read committed read only', async tx => {
     await bindReleaseTenant(tx, operation.tenantId);
     const { present, matches, prior, current } = await readReleaseState(tx, operation);
     if (!present) return { status: 'absent', currentMaxAgeSeconds: current } as const;
