@@ -105,13 +105,9 @@ export function ClaimsFilters() {
       </div>
 
       {pendingKind ? (
-        <div
-          data-testid="member-claims-pending"
-          role="status"
-          className="text-sm text-foreground/70"
-        >
+        <output data-testid="member-claims-pending" className="block text-sm text-foreground/70">
           {tCommon('processing')}
-        </div>
+        </output>
       ) : null}
 
       <fieldset className="flex min-w-0 flex-wrap gap-2">

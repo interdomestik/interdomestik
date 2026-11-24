@@ -182,7 +182,9 @@ describe('ClaimsFilters', () => {
     expect(draft).toHaveFocus();
     expect(screen.getByRole('textbox')).toHaveAttribute('readonly');
     expect(screen.getByRole('textbox')).not.toBeDisabled();
-    expect(screen.getByTestId('member-claims-pending')).toHaveAttribute('role', 'status');
+    // <output> carries the implicit status role (Sonar S6819); it must be the one status node.
+    expect(screen.getByRole('status')).toBe(screen.getByTestId('member-claims-pending'));
+    expect(screen.getByTestId('member-claims-pending')).toBeInstanceOf(HTMLOutputElement);
     expect(screen.getByTestId('member-claims-pending')).not.toHaveAttribute('aria-live');
 
     expect(hoisted.push).toHaveBeenCalledWith('/member/claims?status=draft&search=claim', {

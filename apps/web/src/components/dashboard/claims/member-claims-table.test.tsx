@@ -1,7 +1,8 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { AnchorHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemberClaimsTable } from './member-claims-table';
+import { mockClaims } from './member-claims-table-test-support';
 
 const hoisted = vi.hoisted(() => ({
   push: vi.fn(),
@@ -90,29 +91,6 @@ vi.mock('@/components/dashboard/claims/claim-status-badge', () => ({
 vi.mock('@/lib/api/claims', () => ({
   fetchClaims: vi.fn(),
 }));
-
-const mockClaims = [
-  {
-    id: 'claim-1',
-    title: 'Car Accident',
-    companyName: 'State Farm',
-    category: 'auto',
-    status: 'submitted',
-    claimAmount: '5000',
-    currency: 'EUR',
-    createdAt: '2024-01-15T10:00:00Z',
-  },
-  {
-    id: 'claim-2',
-    title: 'Flight Delay',
-    companyName: 'Lufthansa',
-    category: 'travel',
-    status: 'verification',
-    claimAmount: '600',
-    currency: 'EUR',
-    createdAt: '2024-01-14T10:00:00Z',
-  },
-];
 
 describe('MemberClaimsTable', () => {
   beforeEach(() => {
@@ -254,81 +232,5 @@ describe('MemberClaimsTable', () => {
       expect(screen.getByText('Flight Delay')).toBeInTheDocument();
       expect(screen.getByText('Lufthansa')).toBeInTheDocument();
     });
-  });
-
-  it('shows deterministic pending feedback when pagination changes page', async () => {
-    mockUseQuery.mockReturnValue({
-      data: { claims: mockClaims, totalPages: 3 },
-      isLoading: false,
-      isError: false,
-      refetch: vi.fn(),
-    } as unknown as ReturnType<typeof useQuery>);
-
-    render(<MemberClaimsTable />);
-
-    fireEvent.click(screen.getByTestId('member-claims-page-next'));
-
-    expect(hoisted.push).toHaveBeenCalledWith('/member/claims?page=2', { scroll: false });
-    expect(screen.getByTestId('member-claims-table-region')).toHaveAttribute('aria-busy', 'true');
-    expect(screen.getByTestId('member-claims-pagination-pending')).toHaveTextContent(
-      'Processing...'
-    );
-  });
-
-  it('keeps current and pending pagination controls inert', async () => {
-    hoisted.searchParams = new URLSearchParams('page=2&search=claim');
-    mockUseQuery.mockReturnValue({
-      data: { claims: mockClaims, totalPages: 3 },
-      isLoading: false,
-      isError: false,
-      refetch: vi.fn(),
-    } as unknown as ReturnType<typeof useQuery>);
-
-    render(<MemberClaimsTable />);
-
-    fireEvent.click(screen.getByTestId('member-claims-page-next'));
-    const previous = screen.getByTestId('member-claims-page-previous');
-    expect(previous).toHaveAttribute('href', '/member/claims?search=claim');
-    expect(fireEvent.click(previous)).toBe(false);
-    expect(fireEvent.click(previous, { ctrlKey: true })).toBe(false);
-
-    expect(hoisted.push).toHaveBeenCalledTimes(1);
-    expect(hoisted.push).toHaveBeenCalledWith('/member/claims?page=3&search=claim', {
-      scroll: false,
-    });
-    expect(screen.getByTestId('member-claims-page-previous')).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
-  });
-  it('times out only the page navigation that has not committed', () => {
-    vi.useFakeTimers();
-    try {
-      const settled = {
-        data: { claims: mockClaims, totalPages: 3, page: 1 },
-        isError: false,
-        isPlaceholderData: false,
-        refetch: vi.fn(),
-      } as unknown as ReturnType<typeof useQuery>;
-      mockUseQuery.mockReturnValue(settled);
-      const view = render(<MemberClaimsTable />);
-      const next = screen.getByTestId('member-claims-page-next');
-      fireEvent.click(next);
-      act(() => vi.advanceTimersByTime(10_000));
-      expect(next).not.toHaveAttribute('aria-disabled', 'true');
-
-      fireEvent.click(next);
-      hoisted.searchParams = new URLSearchParams('page=2');
-      mockUseQuery.mockReturnValue({ ...settled, isPlaceholderData: true } as ReturnType<
-        typeof useQuery
-      >);
-      view.rerender(<MemberClaimsTable />);
-      act(() => vi.advanceTimersByTime(10_000));
-      expect(next).toHaveAttribute('aria-disabled', 'true');
-      expect(screen.getByText('memberList.updating')).toBeVisible();
-      expect(screen.getByTestId('member-claims-pagination-pending')).toBeVisible();
-    } finally {
-      vi.useRealTimers();
-    }
   });
 });
