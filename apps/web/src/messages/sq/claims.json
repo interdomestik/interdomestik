@@ -15,7 +15,14 @@
       "filtered": "Provoni filtra të tjerë ose ndryshoni kërkimin.",
       "createFirst": "Hap Kërkesën e Parë"
     },
+    "memberList": {
+      "searchPlaceholder": "Kërko...",
+      "resultStatus": "Faqja {page} nga {pages}: {count, plural, one {# rast} other {# raste}}",
+      "updating": "Rastet e mëparshme shfaqen derisa të përditësohen rezultatet…",
+      "pageEmpty": "Nuk ka raste në këtë faqe."
+    },
     "table": {
+      "unavailable": "Nuk disponohet",
       "title": "Rasti",
       "company": "Kompania",
       "category": "Kategoria",

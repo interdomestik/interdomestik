@@ -15,7 +15,14 @@
       "filtered": "Pokušajte da prilagodite filtere ili pretragu.",
       "createFirst": "Kreiraj Prvi Zahtev"
     },
+    "memberList": {
+      "searchPlaceholder": "Pretraga...",
+      "resultStatus": "Strana {page} od {pages}: {count, plural, one {# slučaj} few {# slučaja} other {# slučajeva}}",
+      "updating": "Prethodni rezultati se prikazuju dok traje ažuriranje…",
+      "pageEmpty": "Na ovoj stranici nema slučajeva."
+    },
     "table": {
+      "unavailable": "Nije dostupno",
       "title": "Naslov",
       "company": "Kompanija",
       "category": "Kategorija",
