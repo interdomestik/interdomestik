@@ -153,7 +153,7 @@ function describeCopies({ kind, text, anchor, contains }: CopyQuery) {
   return matches.map((node, index) => {
     const ancestors: string[] = [];
     for (let at = node.parentElement; at && at !== document.body; at = at.parentElement) {
-      const testId = at.getAttribute('data-testid');
+      const testId = at.dataset.testid;
       if (testId) ancestors.push(testId);
     }
     const visible = node.checkVisibility({ visibilityProperty: true, opacityProperty: true });
