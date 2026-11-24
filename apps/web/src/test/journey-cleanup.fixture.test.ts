@@ -4,11 +4,13 @@ import {
   auditLog,
   claimDocuments,
   claimMessages,
+  claimResponseRequests,
   claimStageHistory,
   claims,
   domainEventDeliveries,
   domainEvents,
   freeStartDrafts,
+  notificationDeliveries,
   notifications,
 } from '@interdomestik/database';
 import {
@@ -17,9 +19,8 @@ import {
 } from '../../e2e/gate/member-staff-evidence-journey-cleanup.fixture';
 import { cleanupS5, teardown } from '../../e2e/gate/s5-saved-draft.fixture';
 
-const { db } = vi.hoisted(() => ({
+const { db, dbAdmin } = vi.hoisted(() => ({
   db: {
-    transaction: vi.fn(),
     query: {
       auditLog: { findMany: vi.fn() },
       claims: { findMany: vi.fn() },
@@ -29,11 +30,13 @@ const { db } = vi.hoisted(() => ({
       notifications: { findMany: vi.fn() },
     },
   },
+  dbAdmin: { transaction: vi.fn() },
 }));
 
 vi.mock('@interdomestik/database', async importOriginal => ({
   ...(await importOriginal<typeof import('@interdomestik/database')>()),
   db,
+  dbAdmin,
 }));
 vi.mock('../../e2e/fixtures/auth.fixture', async () => ({
   expect: (await import('@playwright/test')).expect,
@@ -44,10 +47,12 @@ const journey = { counterparty: 'Test operator', summary: 'Test-only journey' };
 
 function simulateClaimCleanup(notificationCount: number) {
   const submitted = { actionUrl: `/member/claims/${claimId}`, type: 'claim_submitted' };
-  const findNotifications = vi.fn(async () =>
-    Array.from({ length: notificationCount }, () => submitted)
+  const findNotifications = vi.fn(() =>
+    Promise.resolve(Array.from({ length: notificationCount }, () => submitted))
   );
-  const lock = vi.fn(async () => [{ id: claimId, ...claimLifecycleFieldsForStatus('submitted') }]);
+  const lock = vi.fn(() =>
+    Promise.resolve([{ id: claimId, ...claimLifecycleFieldsForStatus('submitted') }])
+  );
   const remove = vi.fn((_table: unknown) => ({ where: vi.fn().mockResolvedValue(undefined) }));
   const tx = {
     execute: vi.fn().mockResolvedValue(undefined),
@@ -60,11 +65,13 @@ function simulateClaimCleanup(notificationCount: number) {
     delete: remove,
   };
   const commit = vi.fn();
-  db.transaction.mockImplementation(async (run: (transaction: typeof tx) => Promise<unknown>) => {
-    const result = await run(tx);
-    commit();
-    return result;
-  });
+  dbAdmin.transaction.mockImplementation(
+    async (run: (transaction: typeof tx) => Promise<unknown>) => {
+      const result = await run(tx);
+      commit();
+      return result;
+    }
+  );
   return { commit, findNotifications, lock, remove };
 }
 
@@ -101,6 +108,8 @@ it.each([0, 2])(
       domainEvents,
       auditLog,
       notifications,
+      notificationDeliveries,
+      claimResponseRequests,
       claimStageHistory,
       claimDocuments,
       claimMessages,

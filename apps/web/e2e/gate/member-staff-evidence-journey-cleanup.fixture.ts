@@ -4,14 +4,17 @@ import {
   auditLog,
   claimDocuments,
   claimMessages,
+  claimResponseRequests,
   claimStageHistory,
   claims,
   db,
+  dbAdmin,
   domainEventDeliveries,
   domainEvents,
   eq,
   freeStartDrafts,
   inArray,
+  notificationDeliveries,
   notifications,
   sql,
   type TenantTransaction,
@@ -88,7 +91,7 @@ export async function cleanupJourney(
   cleanedIds: Set<string>
 ): Promise<void> {
   const drainFailures: unknown[] = [];
-  const cleanup = db.transaction(async tx => {
+  const cleanup = dbAdmin.transaction(async tx => {
     // Each notification read must see commits made after the claim lock was taken.
     await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL READ COMMITTED`);
     await tx.execute(sql`SET LOCAL statement_timeout = '5s'`);
@@ -136,14 +139,24 @@ export async function cleanupJourney(
           eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
           inArray(
             notifications.actionUrl,
-            ids.map(id => `/member/claims/${id}`)
+            ids.flatMap(id => [`/member/claims/${id}`, `/staff/claims/${id}`])
           )
         )
       );
-      await inSequence([claimStageHistory, claimDocuments, claimMessages] as const, table =>
-        tx
-          .delete(table)
-          .where(and(eq(table.tenantId, E2E_USERS.KS_MEMBER.tenantId), inArray(table.claimId, ids)))
+      await inSequence(
+        [
+          notificationDeliveries,
+          claimResponseRequests,
+          claimStageHistory,
+          claimDocuments,
+          claimMessages,
+        ] as const,
+        table =>
+          tx
+            .delete(table)
+            .where(
+              and(eq(table.tenantId, E2E_USERS.KS_MEMBER.tenantId), inArray(table.claimId, ids))
+            )
       );
       await tx.delete(claims).where(journeyClaims);
     }
@@ -256,7 +269,7 @@ export async function expectJourneyClean(
               eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
               inArray(
                 notifications.actionUrl,
-                ids.map(id => `/member/claims/${id}`)
+                ids.flatMap(id => [`/member/claims/${id}`, `/staff/claims/${id}`])
               )
             ),
           })

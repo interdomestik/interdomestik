@@ -26,6 +26,26 @@
           "verbose_logging_desc": "Detaillierte Protokolle zur Fehlersuche aktivieren."
         }
       },
+      "pilot": {
+        "title": "Pilot-Schalter",
+        "description": "Steuern Sie die öffentliche Aufnahme und den Neuverkauf für Ihre Organisation.",
+        "switch": "Schalter",
+        "public_intake": "Öffentliche Aufnahme",
+        "new_sales": "Neuverkäufe",
+        "open": "Offen",
+        "closed": "Geschlossen",
+        "reason": "Grund für die Änderung (mindestens 10 Zeichen)",
+        "approval": "Referenz der unterzeichneten Freigabe zur Wiederaufnahme",
+        "approval_required": "Geben Sie die Referenz der unterzeichneten Freigabe zur Wiederaufnahme ein.",
+        "open_switch": "Schalter öffnen",
+        "close_switch": "Schalter schließen",
+        "unavailable": "Die Pilot-Schalter konnten nicht geladen werden.",
+        "pending": "Änderung wird gespeichert…",
+        "saved": "Pilot-Schalter aktualisiert.",
+        "failed": "Die Änderung konnte nicht gespeichert werden. Versuchen Sie es erneut.",
+        "conflict": "Der Schalter wurde geändert. Laden Sie die Seite neu und prüfen Sie den aktuellen Status.",
+        "reload": "Schalter neu laden"
+      },
       "save_changes": "Änderungen speichern",
       "success_message": "Einstellungen erfolgreich aktualisiert"
     }

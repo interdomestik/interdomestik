@@ -3,18 +3,51 @@ import postgres from 'postgres';
 import { expect } from 'vitest';
 
 import * as store from './different-email-recovery-store';
+import { requireMatchingLocalContractDatabase } from './pilot-contract-database.test-support';
 
-export const recoverySql = postgres(
+const recoveryDatabaseUrl =
   process.env.DIFFERENT_EMAIL_RECOVERY_DATABASE_URL ??
-    process.env.DATABASE_URL ??
-    'postgresql://postgres:postgres@127.0.0.1:54322/postgres',
-  { max: 4 }
-);
+  process.env.DATABASE_URL ??
+  'postgresql://postgres:postgres@127.0.0.1:54322/postgres';
+export const recoverySql = postgres(recoveryDatabaseUrl, { max: 4 });
 
 const owners = new Set<string>();
 const challengePattern = (userId: string) => `ida-ui03b:${userId}:%`;
 
+export const recoveryTenant = 'tenant_ks';
+
+async function readRecoveryContractIntake() {
+  const [previous] = await recoverySql<{ value: string }[]>`
+    select value::text as value from tenant_settings
+    where tenant_id = ${recoveryTenant} and category = 'pilot' and key = 'public_intake'
+  `;
+  return previous;
+}
+
+export async function openRecoveryContractIntake() {
+  await requireMatchingLocalContractDatabase(recoverySql, recoveryDatabaseUrl);
+  const previous = await readRecoveryContractIntake();
+  const id = randomUUID();
+  await recoverySql`
+    insert into tenant_settings (id, tenant_id, category, key, value)
+    values (${id}, ${recoveryTenant}, 'pilot', 'public_intake', '{"enabled":true,"revision":1}'::jsonb)
+    on conflict (tenant_id, category, key) do update set value = excluded.value
+  `;
+  return async () => {
+    if (previous) {
+      await recoverySql`
+        update tenant_settings set value = ${previous.value}::text::jsonb
+        where tenant_id = ${recoveryTenant} and category = 'pilot' and key = 'public_intake'
+      `;
+    } else {
+      await recoverySql`delete from tenant_settings where id = ${id}`;
+    }
+    expect(await readRecoveryContractIntake()).toEqual(previous);
+  };
+}
+
 export async function createRecoveryOwner(label: string, email?: string) {
+  await requireMatchingLocalContractDatabase(recoverySql, recoveryDatabaseUrl);
   const id = randomUUID();
   const address = email ?? `ida-ui03b-${label}-${randomUUID()}@example.com`;
   owners.add(id);
@@ -83,8 +116,8 @@ export async function proveOwnerGraphAndConcurrentWriter() {
   await stageReplacement(owner.id, owner.email, finalTarget, 'final');
   expect(await store.activateReplacementProof(owner.id, superseded, new Date(0))).toBe(false);
   const confirms = await Promise.all([
-    store.confirmReplacementProof(owner.id, () => 'final-r', new Date(0)),
-    store.confirmReplacementProof(owner.id, () => 'final-r', new Date(0)),
+    store.confirmReplacementProof(owner.id, recoveryTenant, () => 'final-r', new Date(0)),
+    store.confirmReplacementProof(owner.id, recoveryTenant, () => 'final-r', new Date(0)),
   ]);
   expect(confirms.filter(result => result.ok)).toHaveLength(1);
   expect(await ownershipSnapshot(owner.id)).toEqual(before);
@@ -104,7 +137,12 @@ export async function proveOwnerGraphAndConcurrentWriter() {
     await release;
   });
   await ready;
-  const blockedConfirm = store.confirmReplacementProof(owner.id, () => 'blocked-r', new Date(0));
+  const blockedConfirm = store.confirmReplacementProof(
+    owner.id,
+    recoveryTenant,
+    () => 'blocked-r',
+    new Date(0)
+  );
   let serialized = false;
   for (let attempt = 0; attempt < 50; attempt += 1) {
     const [waiting] =

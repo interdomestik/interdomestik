@@ -87,6 +87,21 @@ async function inspectFailedHistory(
   );
 }
 
+async function drainStaffStatusRoutes(page: Page): Promise<void> {
+  if (page.isClosed()) return;
+
+  try {
+    await withSignalTimeout('Drain staff status routes', ROUTE_TEARDOWN_TIMEOUT_MS, () =>
+      page.unrouteAll({ behavior: 'wait' })
+    );
+  } catch (error) {
+    await withSignalTimeout('Cancel staff status routes', ROUTE_TEARDOWN_TIMEOUT_MS, () =>
+      page.context().close()
+    );
+    throw error;
+  }
+}
+
 /** Exercise both unknown outcomes and inspect history without navigating the retained form. */
 export async function verifyStatusTransportRecovery(
   page: Page,
@@ -202,18 +217,7 @@ export async function verifyStatusTransportRecovery(
     expect(writes).toBe(2);
     expect(refreshReads).toBe(0);
   } finally {
-    if (!page.isClosed()) {
-      try {
-        await withSignalTimeout('Drain staff status routes', ROUTE_TEARDOWN_TIMEOUT_MS, () =>
-          page.unrouteAll({ behavior: 'wait' })
-        );
-      } catch (error) {
-        await withSignalTimeout('Cancel staff status routes', ROUTE_TEARDOWN_TIMEOUT_MS, () =>
-          page.context().close()
-        );
-        throw error;
-      }
-    }
+    await drainStaffStatusRoutes(page);
   }
 }
 

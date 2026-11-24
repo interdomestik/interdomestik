@@ -68,7 +68,8 @@ export async function storeClaimMessage(
     })
     .from(claimMessages)
     .where(withTenant(values.tenantId, claimMessages.tenantId, eq(claimMessages.id, id)))
-    .limit(1);
+    .limit(1)
+    .for('share');
 
   const sameMessage =
     existing?.senderId === values.senderId &&

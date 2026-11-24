@@ -8,6 +8,10 @@ const mocks = vi.hoisted(() => ({
   getStaffCore: vi.fn(),
 }));
 
+vi.mock('next-intl/server', () => ({
+  getTranslations: async () => (key: string) => `translated ${key}`,
+}));
+
 vi.mock('./admin-users/update-user-agent.core', () => ({
   updateUserAgentCore: (...args: unknown[]) => mocks.updateUserAgentCore(...args),
 }));
@@ -150,6 +154,22 @@ describe('admin-users action wrappers', () => {
       currentTenantId: 'tenant_other',
     });
     expect(result).toEqual({ success: false, code: 'UNAUTHORIZED', error: 'Unauthorized' });
+  });
+
+  it('resolveTenantClassification returns the translated mailbox conflict', async () => {
+    mocks.resolveTenantClassificationCore.mockResolvedValue({
+      error: 'EMAIL_NOT_PROVEN',
+      code: 'EMAIL_NOT_PROVEN',
+    });
+    const result = await actions.resolveTenantClassification({
+      userId: 'user-1',
+      currentTenantId: 't1',
+    });
+    expect(result).toEqual({
+      success: false,
+      code: 'EMAIL_NOT_PROVEN',
+      error: 'translated EMAIL_NOT_PROVEN',
+    });
   });
 
   it('resolveTenantClassification treats an uncoded domain error as an internal failure', async () => {

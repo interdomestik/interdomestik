@@ -2,13 +2,11 @@ import {
   and,
   appendEvent,
   claimEscalationAgreements,
-  claims,
   db,
   eq,
   type DomainEventTx,
 } from '@interdomestik/database';
 
-import type { ClaimsSession } from '../claims/types';
 import { buildRecoveryDecisionSnapshot } from './recovery-decision';
 import type { RecoveryDecisionSnapshot, SaveRecoveryDecisionInput } from './types';
 
@@ -41,19 +39,12 @@ export async function upsertRecoveryDecisionRecord(params: {
   decisionType: SaveRecoveryDecisionInput['decisionType'];
   declineReasonCode?: DeclineReasonCode;
   explanation?: string;
-  session: ClaimsSession;
+  actor: { id: string; role: string };
   tenantId: string;
   tx: RecoveryDecisionTransaction;
-}): Promise<RecoveryDecisionSnapshot> {
+}): Promise<{ snapshot: RecoveryDecisionSnapshot; decisionDomainEventId: string }> {
   const now = new Date();
   const explanation = params.explanation?.trim() || null;
-
-  // db-access-guard: tenant-scoped -- reason: serialize decision writes with public note selection.
-  await params.tx
-    .select({ id: claims.id })
-    .from(claims)
-    .where(and(eq(claims.tenantId, params.tenantId), eq(claims.id, params.claimId)))
-    .for('no key update');
 
   const [existingDecision] = await params.tx
     .select({ id: claimEscalationAgreements.id })
@@ -70,7 +61,7 @@ export async function upsertRecoveryDecisionRecord(params: {
     params.decisionType === 'declined' ? (params.declineReasonCode ?? null) : null;
   const values = {
     acceptedAt: now,
-    acceptedById: params.session.user.id,
+    acceptedById: params.actor.id,
     decisionReason: explanation,
     decisionType: params.decisionType,
     declineReasonCode,
@@ -97,8 +88,10 @@ export async function upsertRecoveryDecisionRecord(params: {
     });
   }
 
+  const eventId = crypto.randomUUID();
   await appendEvent(params.tx as DomainEventTx, {
-    actor: { id: params.session.user.id, role: params.session.user.role?.trim() || 'staff' },
+    id: eventId,
+    actor: params.actor,
     aggregateVersion: 0,
     correlationId: `claim:${params.claimId}:recovery-decision:${params.decisionType}`,
     createdAt: now,
@@ -113,10 +106,13 @@ export async function upsertRecoveryDecisionRecord(params: {
     tenantId: params.tenantId,
   });
 
-  return buildRecoveryDecisionSnapshot({
-    decidedAt: now,
-    declineReasonCode,
-    decisionType: params.decisionType,
-    explanation,
-  });
+  return {
+    decisionDomainEventId: eventId,
+    snapshot: buildRecoveryDecisionSnapshot({
+      decidedAt: now,
+      declineReasonCode,
+      decisionType: params.decisionType,
+      explanation,
+    }),
+  };
 }

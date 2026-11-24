@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { NextRequest } from 'next/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { createWebhookRequest, fixtureWebhookSecret } from '../route.test-support';
 
 const hoisted = vi.hoisted(() => ({
   enforceRateLimit: vi.fn(),
@@ -33,87 +33,43 @@ import { POST } from './route';
 describe('POST /api/webhooks/paddle/[entity]', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    hoisted.enforceRateLimit.mockResolvedValue(null);
-    hoisted.resolveBillingEntityFromPathSegment.mockReturnValue('ks');
-    hoisted.getPaddleAndConfigForEntity.mockReturnValue({
-      paddle: { mocked: true },
-      config: {
-        entity: 'ks',
-        webhookSecret: 'whsec_ks',
-      },
-    });
-    hoisted.handlePaddleWebhookEntityCore.mockResolvedValue({ status: 200, body: { ok: true } });
-  });
-
-  it('returns early when rate limited', async () => {
     hoisted.enforceRateLimit.mockResolvedValue(new Response('limited', { status: 429 }));
-
-    const req = new NextRequest('http://localhost:3000/api/webhooks/paddle/ks', {
-      method: 'POST',
-      body: 'x',
-    });
-
-    const res = await POST(req, { params: Promise.resolve({ entity: 'ks' }) });
-
-    expect(res.status).toBe(429);
-    expect(await res.text()).toBe('limited');
   });
 
-  it('rejects unknown entities', async () => {
-    hoisted.resolveBillingEntityFromPathSegment.mockReturnValue(null);
+  afterEach(() => vi.unstubAllEnvs());
 
-    const req = new NextRequest('http://localhost:3000/api/webhooks/paddle/zz', {
-      method: 'POST',
-      body: 'payload',
-    });
+  it.each([
+    { entity: 'ks', signed: true },
+    { entity: 'zz', signed: false },
+  ])(
+    'refuses before every effect (entity: $entity, signed delivery: $signed)',
+    async ({ entity, signed }) => {
+      vi.stubEnv('PADDLE_WEBHOOK_SECRET_KEY_KS', signed ? fixtureWebhookSecret : undefined);
+      const req = createWebhookRequest(`/api/webhooks/paddle/${entity}`, signed);
+      const readBody = vi.spyOn(req, 'text');
+      const readHeader = vi.spyOn(req.headers, 'get');
+      const readParams = vi.fn(async () => ({ entity }));
+      const context = {
+        get params() {
+          return readParams();
+        },
+      };
 
-    const res = await POST(req, { params: Promise.resolve({ entity: 'zz' }) });
-    const data = await res.json();
+      const res = await POST(req, context);
 
-    expect(res.status).toBe(404);
-    expect(data).toEqual({ error: 'Unknown billing entity' });
-    expect(hoisted.getPaddleAndConfigForEntity).not.toHaveBeenCalled();
-    expect(hoisted.handlePaddleWebhookEntityCore).not.toHaveBeenCalled();
-  });
-
-  it('uses entity-scoped billing config for webhook handling', async () => {
-    hoisted.handlePaddleWebhookEntityCore.mockResolvedValue({
-      status: 202,
-      body: { accepted: true },
-    });
-
-    const req = new NextRequest('http://localhost:3000/api/webhooks/paddle/ks', {
-      method: 'POST',
-      headers: {
-        'paddle-signature': 'sig_ks',
-      },
-      body: 'payload-ks',
-    });
-
-    const res = await POST(req, { params: Promise.resolve({ entity: 'ks' }) });
-    const data = await res.json();
-
-    expect(res.status).toBe(202);
-    expect(data).toEqual({ accepted: true });
-    expect(hoisted.resolveBillingEntityFromPathSegment).toHaveBeenCalledWith('ks');
-    expect(hoisted.getPaddleAndConfigForEntity).toHaveBeenCalledWith('ks', {
-      allowLegacyFallback: false,
-    });
-    expect(hoisted.handlePaddleWebhookEntityCore).toHaveBeenCalledWith(
-      expect.objectContaining({
-        expectedEntity: 'ks',
-        signature: 'sig_ks',
-        secret: 'whsec_ks',
-        bodyText: 'payload-ks',
-        headers: req.headers,
-      })
-    );
-    expect(hoisted.enforceRateLimit).toHaveBeenCalledWith(
-      expect.objectContaining({
-        name: 'api/webhooks/paddle',
-        productionSensitive: true,
-      })
-    );
-    expect(hoisted.setTag).toHaveBeenCalledWith('slo_alert', 'd07.webhook.processing');
-  });
+      expect(res.status).toBe(503);
+      expect(res.headers.get('Retry-After')).toBe('3600');
+      expect(await res.json()).toEqual({ code: 'PADDLE_CLOSED', error: 'Paddle is closed' });
+      expect(hoisted.enforceRateLimit).not.toHaveBeenCalled();
+      expect(readParams).not.toHaveBeenCalled();
+      expect(hoisted.resolveBillingEntityFromPathSegment).not.toHaveBeenCalled();
+      expect(hoisted.getPaddleAndConfigForEntity).not.toHaveBeenCalled();
+      expect(readBody).not.toHaveBeenCalled();
+      expect(readHeader).not.toHaveBeenCalled();
+      expect(hoisted.setTag).not.toHaveBeenCalled();
+      expect(hoisted.captureException).not.toHaveBeenCalled();
+      // Receipt, entitlement, user, lead, and onboarding effects are behind the core.
+      expect(hoisted.handlePaddleWebhookEntityCore).not.toHaveBeenCalled();
+    }
+  );
 });

@@ -13,7 +13,7 @@ export type RecoveryInvariantReadRow = {
   evidence: RecoveryInvariantEvidence | null;
 };
 
-type EscalationAgreementEvidence = Pick<
+export type EscalationAgreementEvidence = Pick<
   RecoveryInvariantEvidence,
   | 'legalActionCapPercentage'
   | 'acceptedAt'
@@ -86,8 +86,17 @@ async function lockNoFeeEvidence(
 
 export async function loadRecoveryInvariantReadRow(
   tx: TransitionTx,
-  params: { claimId: string; readWhere: SQL; tenantId: string }
+  params: { claimId: string; readWhere: SQL; tenantId: string },
+  locked?: { current: TransitionCurrentState; agreement: EscalationAgreementEvidence | undefined }
 ): Promise<RecoveryInvariantReadRow> {
+  if (locked) {
+    const noFee = await lockNoFeeEvidence(tx, params);
+    return {
+      current: locked.current,
+      evidence: { claimId: params.claimId, ...locked.agreement, ...noFee },
+    };
+  }
+
   // Claim first, then agreement and no-fee evidence, matching decision and status writers.
   const [current] = await tx
     .select({

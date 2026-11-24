@@ -197,6 +197,7 @@ describe('queued account draft writes after an authoritative auth refusal', () =
 
   it.each([
     ['unavailable', 'error'],
+    ['CLOSED', 'closed'],
     ['conflict', 'conflict'],
     ['unavailableAccountContext', 'accountContext'],
   ] as const)('keeps write admission after a queued update %s refusal', async (code, state) => {

@@ -1,12 +1,34 @@
 # MODULE — web server layer (`apps/web/src`: server actions, route handlers, the action wrapper)
 
-Module contract, adopted from the review of 2026-11-13 (run A). Paths that begin with `A/` or `inputs/` cite the review record, which is kept outside this repository. Written by a helper on Opus 5.5 from the R1 reports and the code at `ef1bd0ef5`; reviewed by the main session on Fable 5.2, which re-read: the counts of the wrapper, the two paths that open a second tenant transaction, the anonymous lead action and the proxy matcher. The other lines rest on R1's security and server-context reports. Rules of `AGENTS.md` that bind this area: R-05, R-08, R-15, R-17, R-20, R-34. Line numbers into `docs/engineering/DIRECTION.md` are those of 2026-11-17, 01:00Z; the work-package numbers are the stable reference. **Corrected in R3 (2026-11-17)** after the independent review of R2b (comment R2b-C03): every statement of this file was checked against the pinned commit and the active finding records by a helper on Opus 5.5 (`A/raw/R3/modules/modcheck.md`), and the main session re-read the lines behind each correction it took. "Owned" means the package whose exported commands should write a table; `packages/database` declares every table and owns none (R-16).
+Module contract, adopted from the review of 2026-11-13 (run A). Paths that begin with `A/` or `inputs/` cite the review record, which is kept outside this repository. Written by a helper on Opus 5.5 from the R1 reports and the code at `ef1bd0ef5`; reviewed by the main session on Fable 5.2, which re-read: the counts of the wrapper, the two paths that open a second tenant transaction, the anonymous lead action and the proxy matcher. The other lines rest on R1's security and server-context reports. Rules of `AGENTS.md` that bind this area: R-05, R-08, R-15, R-17, R-20, R-34. Line numbers into `docs/engineering/DIRECTION.md` are those of 2026-11-17, 01:00Z; the work-package numbers are the stable reference. **Corrected in R3 (2026-11-17)** after the independent review of R2b (comment R2b-C03): every statement of this file was checked against the pinned commit and the active finding records by a helper on Opus 5.5 (`A/raw/R3/modules/modcheck.md`), and the main session re-read the lines behind each correction it took. "Owned" means the package whose exported commands should write a table; `packages/database` declares every table and owns commands for the pilot category of `tenant_settings` (R-16).
 
 ## Responsibility
 
 The HTTP and RSC surface of the product: route handlers under `app/api/`, exported `'use server'` actions, and the wrapper that is supposed to put authentication, tenancy and a uniform result in front of every action.
 
+The Free Start draft lifecycle delegates write admission to its internal `actions/free-start-drafts/write-admission.core.ts` module.
+
 ## Public API
+
+Password sign-up and unknown-address door OTP send require `pilot/public_intake` for the ingress tenant. Better Auth disables public sign-up unless `IDENTITY_PUBLIC_SIGN_UP` is exactly `open`. Door OTP checks the request host and forwarded host, then requires exact door ingress and an explicit default tenant before applying the IP limit or parsing the body. The OTP host check accepts `staging.interdomestik.com` without a port only in the staging release class. Known accounts must belong to the door tenant and still have pending tenant classification. Door verify also requires a verified email and returns `INVALID_OTP` for an absent account before calling Better Auth, regardless of the intake phase. Tenant classification confirmation returns `EMAIL_NOT_PROVEN` until the account holder has proven their email.
+
+Different-email recovery requires a valid `DEFAULT_PUBLIC_TENANT_ID` that matches the fresh session's access tenant. All three actions return `CLOSED` before proof, mail or rate-limit work when `pilot/public_intake` is closed or unreadable. Replacement confirmation also holds a shared lock on the tenant's switch row through the address update and commit. A close that commits first prevents the update. If recovery locks the switch first, the close waits for recovery to commit.
+
+The closed-pilot deploy requires both pilot switches to be absent (closed) from deployment. B1-a is closed after 300 continuous seconds from deployment and after 300 continuous seconds from any later `public_intake` close commit. Better Auth sign-in OTPs expire after 300 seconds and restored challenges retain their original expiry. The post-pilot fix must bind sign-in codes to the account at issuance before public intake opens.
+
+`setPilotSwitch` declares the `super_admin` and `tenant_admin` roles and a strict input schema on `defineAction`. It uses the session's access tenant. The database pilot command requires the current revision and writes the switch and its audit row in one transaction.
+
+Both Paddle webhook routes respond with HTTP 503 and `Retry-After` before request processing. Member cancellation and payment-update actions return `CLOSED` before session lookup or idempotency and the pricing page renders display-only plans while Paddle is closed.
+
+The enabled billing-test activation and staff sponsor approval actions report `CLOSED` when new sales are paused. Staff handover closure reports `CLOSED` when the Paddle read-back is unavailable because Paddle is closed.
+
+`importMembers` checks `pilot/new_sales` in each sponsored registration transaction. At the first closed row the action returns `CLOSED` with the partial import summary. Earlier committed rows remain available.
+
+The agent lead payment and status actions return `CLOSED` when `pilot/new_sales` refuses a payment start or a status-only conversion. The lead commands apply the check in the tenant write transaction.
+
+The cash verification action returns the committed decision with `notice: 'pending'` when the agent notification fails after commit.
+
+`resubmitCashAttemptAction` uses `defineAction` with the `agent` role and a strict input schema. The assigned agent can resubmit a cash attempt for a lead in the session tenant. Verification and resubmission return `CONFLICT` when another writer changes the observed cash attempt before the update. The losing transaction rolls back without a decision or resubmission audit.
 
 `apps/web/src/lib/safe-action.ts:14-26` — `ActionResult<T>`, a **promise** of the union `ActionSuccess<T> | ActionError` (`{success:true,data?}` | `{success:false,error,code?,issues?}`): the alias wraps the promise at `:26`, so it types what an action returns, not the awaited value (corrected in the closing pass, review comment R3-C05); `:91-144` — `runAuthenticatedAction(handler)`, which resolves the session, throws on a missing tenant and maps `UnauthorizedError` / `MissingTenantError` to the codes `UNAUTHORIZED` / `MISSING_TENANT` (`:170-176`). Route handlers are reached by path, not by import. `apps/web/src/proxy.ts:8-10` does **not** run for `/api`.
 
@@ -32,6 +54,10 @@ None of its own: this layer writes the tables of `packages/database` through the
 
 ## Tenant boundary
 
+WP-10 public intake resolves the tenant from request headers using the release-specific ingress table. The server checks `pilot/public_intake` under the public site authority before action work starts and uses that authority for the effect. Pricing also requires `pilot/new_sales` and a matching checkout tenant. Draft create and update use the filing screen's active-membership check to admit verified owners under the same tenant authority. Other signed-in owners still need open `pilot/public_intake` and verified email to write drafts. Draft writes always require a session.
+
+The web build scripts check the release environment before Next inlines public settings. The Next production build phase verifies that the supplied manifest matches the refused public names resolved from the build environment. The Node server checks the manifest and runtime environment in `instrumentation.ts` at startup. Production refusal messages list variable names.
+
 The tenant comes from the session's authority, resolved per request (`apps/web/src/lib/tenant-authority.server.ts:27-47`) and carried into `withTenantAuthority`. An exported action that _takes_ an authority argument is safe by construction: a client cannot produce a registered token (`A/modules/tenancy.md:170`). The proxy is not a tenant source and never sees `/api` (`apps/web/src/proxy.ts:8-10`), so route handlers get no proxy-set header and no proxy security header (SEC-07).
 
 ## Where a new entry point goes (added after the drill of R3)
@@ -41,6 +67,32 @@ A new server action is a file `apps/web/src/actions/<area>/<name>.ts` that begin
 ## Live and not live
 
 A caller **without a session** reaches, per `A/raw/R2b/entry/public-entry-inventory.md`: the whole `/api/auth/*` surface including `POST /api/auth/sign-up/email`, which is enabled, guarded by a tenant-context check only and **has no mounted UI** (`:35`); the e-mailed-code paths; Free Start, of which three entries need **no** session — the intake `submitFreeStartIntake` (`apps/web/src/actions/free-start/submit.core.ts:46-64`, "anonymous public intake"), the claim-pack action and the e-mailed code of "secure save" (`:67-69`) — while its six draft actions need one (`:70`); the E2E helper route `/api/e2e/branches`, which is closed only while `E2E_API_SECRET` is unset and, with the secret configured, accepts a request that carries it under `NODE_ENV=production` too (`apps/web/src/app/api/e2e/branches/route.ts:18-43`; WP-10 makes production refuse the variable); pages without a session (section C); 13 route handlers without authentication, all of which R1 judged intended or inert (`A/modules/security.md:42`); and 10 action rows without authentication, 4 of them a real gap (`A/modules/security.md:44`). Section H lists what a closure **must not break**: the activation invite → password-reset chain, sign-in by password and by code, session reads, the sponsor opt-out link, claim tracking by token and share packs (`…/public-entry-inventory.md:199-212`). Not live: `RegisterForm` is referenced only by its own test and `/[locale]/register` redirects to `/pricing` (`:35`); the dead prototype and legacy entry points of SEC-09; four cron routes have no scheduler in the repository (MAIN-11; SCTX-08 is another name of the same record).
+
+## Proxy: identical tenant cookie on homepage actions (WP-10, owner 2026-11-24 "Yes, approve")
+
+`apps/web/src/lib/proxy-logic.ts` does not re-issue the `tenantId` cookie for a server-action POST (`next-action`, no
+`x-nextjs-data`) to exactly `/<locale>` whose incoming cookie already equals the host-resolved tenant, so Next does not
+revalidate the dynamic homepage after a Free Start or claim-pack action. Every other request writes the cookie as before,
+and every hardening header is set in every case (`proxy-secure.ts:97-112`). Regression matrix: `proxy-front-door.test.ts`.
+
+**What the skip omits.** It keeps the host-resolved tenant, the session authority and every configured hardening
+header. It omits only `Set-Cookie` (and Next's `x-middleware-set-cookie`) for `tenantId`, so that response does not renew
+the cookie: a matching cookie keeps its current expiry instead of a fresh 30 days, and `Path=/`, `HttpOnly`,
+`SameSite=Lax` and the request-dependent `Secure` flag are not reapplied (`tenant/tenant-cookie.ts:17-29`). The next
+request that reaches the cookie write sets it again, for example a page GET on the tenant host; responses that never
+write a tenant cookie (the country-host cutover redirect, `proxy-logic.ts:14-18`) do not. The owner approved this omission.
+
+**Named limit (lead, 2026-11-24, within the owner's approval).** Next 16.4.5 normalizes `/<locale>.rsc` before the proxy
+runs: the adapter rewrites `request.url` and `nextUrl` to the pathname `/<locale>` and passes no original URL or marker
+(`node_modules/next/dist/server/web/adapter.js:113`; matcher `build/analysis/get-page-static-info.js:364`). The pathname
+the proxy sees is the same; the query string can differ, because the adapter also strips `.rsc` from query values. The
+proxy therefore cannot tell `/<locale>.rsc` from `/<locale>`, and the same omission applies to it, under the same
+condition (the incoming cookie already equals the host tenant). The matrix asserts this case through the installed
+adapter. Pages Router data requests (`/_next/data/<build>/<locale>.json`) also reach the proxy as `/<locale>`, but the
+Next router marks them with `x-nextjs-data` before the adapter (`server/lib/router-utils/resolve-routes.js:272`), and a
+marked request writes the cookie; an unmarked one would fall under this same named limit. Every request whose
+proxy-seen pathname is not exactly `/<locale>` writes the cookie: `.json`, segment prefetch, `/index.*`,
+`/_next/data/…` forms that keep their prefix, `/<locale>/.rsc` and `/<locale>/<page>.rsc`.
 
 ## Tests to run
 

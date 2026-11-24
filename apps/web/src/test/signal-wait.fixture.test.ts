@@ -28,7 +28,7 @@ vi.mock('@playwright/test', () => ({
 afterEach(() => vi.useRealTimers());
 
 it('honors the active Playwright deadline when setup used part of the test budget', async () => {
-  const trigger = vi.fn(async () => undefined);
+  const trigger = vi.fn(() => Promise.resolve());
   const info = { timeout: 60_000, _deadline: () => ({ deadline: 25_000 }) };
 
   await setupWaitForSignal(
@@ -44,7 +44,7 @@ it('honors the active Playwright deadline when setup used part of the test budge
 });
 
 it('does not start a browser action when the phase budget is exhausted', async () => {
-  const trigger = vi.fn(async () => undefined);
+  const trigger = vi.fn(() => Promise.resolve());
 
   await expect(withSignalTimeout('Open staff history', 0, trigger)).rejects.toThrow(
     'Open staff history timed out'

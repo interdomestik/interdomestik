@@ -61,7 +61,9 @@ describe('convertLeadToMember email identity', () => {
   });
 
   it('writes the member unverified, with the email trimmed and lowercased', async () => {
-    await expect(convertLeadToMember(authority, { leadId: 'lead-1' })).resolves.toMatchObject({
+    await expect(
+      convertLeadToMember(authority, { leadId: 'lead-1', admission: { kind: 'check' } })
+    ).resolves.toMatchObject({
       userId: 'usr_seed',
       email: 'arben.k@example.com',
     });
@@ -75,7 +77,10 @@ describe('convertLeadToMember email identity', () => {
     'reports a %s violation as a member email conflict, with no cause text',
     async constraint => {
       failUserInsertWith(harness, uniqueViolation(constraint));
-      const failure = await convertLeadToMember(authority, { leadId: 'lead-1' }).catch(e => e);
+      const failure = await convertLeadToMember(authority, {
+        leadId: 'lead-1',
+        admission: { kind: 'check' },
+      }).catch(e => e);
       expect(failure).toBeInstanceOf(MemberEmailConflictError);
       expect(isMemberEmailConflictError(failure)).toBe(true);
       expect(failure.cause).toBeUndefined();
@@ -86,12 +91,16 @@ describe('convertLeadToMember email identity', () => {
   it('keeps any other unique violation a plain failure', async () => {
     const error = uniqueViolation('membership_cards_card_number_unique');
     failUserInsertWith(harness, error);
-    await expect(convertLeadToMember(authority, { leadId: 'lead-1' })).rejects.toBe(error);
+    await expect(
+      convertLeadToMember(authority, { leadId: 'lead-1', admission: { kind: 'check' } })
+    ).rejects.toBe(error);
   });
 
   it('returns no result when a concurrent approval converted the lead first', async () => {
     mocks.lockedLead.splice(0, 1, { status: 'converted', convertedUserId: 'usr_first' });
-    await expect(convertLeadToMember(authority, { leadId: 'lead-1' })).resolves.toBeNull();
+    await expect(
+      convertLeadToMember(authority, { leadId: 'lead-1', admission: { kind: 'check' } })
+    ).resolves.toBeNull();
     expect(harness.insertRecords).toEqual([]);
     expect(mocks.issueTenantMemberNumber).not.toHaveBeenCalled();
   });

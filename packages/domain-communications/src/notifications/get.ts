@@ -1,10 +1,10 @@
-import { notifications } from '@interdomestik/database/schema';
+import { notificationPreviewRestrictions, notifications } from '@interdomestik/database/schema';
 import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { desc } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns } from 'drizzle-orm';
 
 import type { Session } from '../types';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
@@ -27,10 +27,21 @@ export async function getNotificationsCore(params: {
 
   const { tenantId } = readTenantAuthority(authority);
   return withTenantAuthority(authority, tx =>
-    tx.query.notifications.findMany({
-      where: (table, { eq }) => withTenant(tenantId, table.tenantId, eq(table.userId, user.id)),
-      orderBy: [desc(notifications.createdAt)],
-      limit,
-    })
+    tx
+      .select({
+        ...getTableColumns(notifications),
+        previewRestricted: notificationPreviewRestrictions.restricted,
+      })
+      .from(notifications)
+      .leftJoin(
+        notificationPreviewRestrictions,
+        and(
+          eq(notificationPreviewRestrictions.tenantId, notifications.tenantId),
+          eq(notificationPreviewRestrictions.notificationId, notifications.id)
+        )
+      )
+      .where(withTenant(tenantId, notifications.tenantId, eq(notifications.userId, user.id)))
+      .orderBy(desc(notifications.createdAt))
+      .limit(limit)
   );
 }

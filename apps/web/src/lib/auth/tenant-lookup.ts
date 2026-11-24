@@ -4,13 +4,37 @@ import { eq } from 'drizzle-orm';
 
 import { coerceTenantId, type TenantId } from '@/lib/tenant/tenant-hosts';
 
-export async function lookupUserTenantByEmail(email: string): Promise<TenantId | null> {
-  // db-access-guard: system-exempt -- reason: login bootstrap resolves tenant by normalized email before tenant session exists
+export async function lookupNeutralOtpAccountByEmail(email: string): Promise<{
+  id: string;
+  emailVerified: boolean;
+  tenantId: TenantId | null;
+  tenantClassificationPending: boolean;
+} | null> {
+  // db-access-guard: system-exempt -- reason: anonymous login resolves tenant and door eligibility by normalized email before a tenant session exists
   const rows = await dbAdmin
-    .select({ tenantId: userTable.tenantId })
+    .select({
+      id: userTable.id,
+      emailVerified: userTable.emailVerified,
+      tenantId: userTable.tenantId,
+      tenantClassificationPending: userTable.tenantClassificationPending,
+    })
     .from(userTable)
     .where(eq(userTable.email, email))
     .limit(1);
 
-  return coerceTenantId(rows[0]?.tenantId ?? undefined);
+  const [account] = rows;
+  if (!account) {
+    return null;
+  }
+  return {
+    id: account.id,
+    emailVerified: account.emailVerified,
+    tenantId: coerceTenantId(account.tenantId),
+    tenantClassificationPending: account.tenantClassificationPending === true,
+  };
+}
+
+export async function lookupUserTenantByEmail(email: string): Promise<TenantId | null> {
+  const account = await lookupNeutralOtpAccountByEmail(email);
+  return account?.tenantId ?? null;
 }

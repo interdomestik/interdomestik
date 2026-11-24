@@ -35,6 +35,7 @@ export function buildEmailTemplate({
   ctaLabel,
   ctaUrl,
   footer,
+  locale,
 }: TemplateOptions): EmailTemplate {
   const safeTitle = escapeHtml(title);
   const safeIntro = escapeHtml(intro);
@@ -47,7 +48,7 @@ export function buildEmailTemplate({
     .join('');
 
   const html = `<!doctype html>
-<html>
+<html${locale ? ` lang="${escapeHtml(locale)}"` : ''}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />

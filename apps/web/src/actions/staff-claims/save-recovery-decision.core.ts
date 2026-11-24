@@ -1,10 +1,14 @@
-import { saveStaffRecoveryDecisionCore as saveRecoveryDecisionCoreDomain } from '@interdomestik/domain-claims';
+import {
+  resolveRecoveryDecisionActor,
+  saveRecoveryDecisionSchema,
+  saveStaffRecoveryDecisionCore as saveRecoveryDecisionCoreDomain,
+} from '@interdomestik/domain-claims';
 
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import { logAuditEvent } from '@/lib/audit';
 import { runCommercialActionWithIdempotency } from '@/lib/commercial-action-idempotency';
-import { notifyRecoveryDecision } from '@/lib/notifications';
+import { kickClaimNotificationDeliveries } from '@/lib/claim-notification-delivery-kick';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
@@ -26,42 +30,49 @@ export async function saveRecoveryDecisionCore(
     session: NonNullable<Session> | null;
   }
 ): Promise<ActionResult<RecoveryDecisionSnapshot>> {
-  if (params.session?.user?.role !== 'staff' || !params.authority) {
+  const { authority, session, idempotencyKey, requestHeaders, ...input } = params;
+  const actor = resolveRecoveryDecisionActor(authority, session);
+  if (!authority || !actor) {
     return { success: false, error: 'Unauthorized' };
   }
 
-  const requestFingerprint =
-    params.decisionType === 'declined'
-      ? {
-          claimId: params.claimId,
-          decisionType: params.decisionType,
-          declineReasonCode: params.declineReasonCode,
-          explanation: params.explanation,
-        }
-      : {
-          claimId: params.claimId,
-          decisionType: params.decisionType,
-          explanation: params.explanation,
-        };
+  const parsed = saveRecoveryDecisionSchema.safeParse(input);
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: parsed.error.issues[0]?.message ?? 'Invalid recovery decision',
+    };
+  }
+  const { claimId } = parsed.data;
 
   const result = await runCommercialActionWithIdempotency({
     action: 'staff-claims.save-recovery-decision',
     scope: {
       kind: 'tenant',
-      actorUserId: params.session?.user?.id ?? null,
-      authority: params.authority,
+      actorUserId: actor.id,
+      authority,
     },
-    idempotencyKey: params.idempotencyKey,
-    requestFingerprint,
-    execute: () =>
-      saveRecoveryDecisionCoreDomain(params, { logAuditEvent, notifyRecoveryDecision }),
+    idempotencyKey,
+    requestFingerprint: { ...input, explanation: input.explanation },
+    execute: async () => {
+      const { deliveryIds, ...outcome } = await saveRecoveryDecisionCoreDomain(
+        { ...parsed.data, authority, requestHeaders, session },
+        { logAuditEvent }
+      );
+      if (outcome.success) await kickClaimNotificationDeliveries(authority, deliveryIds ?? []);
+      return outcome;
+    },
   });
 
   if (result.success) {
-    revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
-    revalidatePathForAllLocales('/staff/claims');
-    revalidatePathForAllLocales(`/member/claims/${params.claimId}`);
-    revalidatePathForAllLocales('/member/claims');
+    try {
+      revalidatePathForAllLocales(`/staff/claims/${claimId}`);
+      revalidatePathForAllLocales('/staff/claims');
+      revalidatePathForAllLocales(`/member/claims/${claimId}`);
+      revalidatePathForAllLocales('/member/claims');
+    } catch (error) {
+      console.error('Recovery decision refresh failed after commit', error);
+    }
   }
 
   return result;

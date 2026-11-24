@@ -1,7 +1,7 @@
+import { kickClaimNotificationDeliveries } from '@/lib/claim-notification-delivery-kick';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { revalidatePath } from 'next/cache';
 import type { Session } from './context';
-import { notifyPublicReplyCore } from './public-reply-notification.core';
 import { sendMessageDbCore } from './send.core';
 import type { MessageWithSender } from './types';
 
@@ -24,6 +24,14 @@ export async function sendMessageCore(params: {
     return result;
   }
 
+  if (params.authority && result.deliveryIds.length > 0) {
+    try {
+      await kickClaimNotificationDeliveries(params.authority, result.deliveryIds);
+    } catch (error) {
+      console.error('Message notification dispatch failed after commit', error);
+    }
+  }
+
   for (const path of [
     `/member/claims/${params.claimId}`,
     `/staff/claims/${params.claimId}`,
@@ -31,27 +39,9 @@ export async function sendMessageCore(params: {
   ]) {
     try {
       revalidatePath(path);
-    } catch {
-      console.error('Message cache refresh failed after commit');
+    } catch (error) {
+      console.error('Message cache refresh failed after commit', error);
     }
-  }
-
-  if (
-    params.session &&
-    params.authority &&
-    result.claimOwnerEmail &&
-    !result.isInternal &&
-    result.isStaff &&
-    !result.replayed
-  ) {
-    // Optional: never fails the persisted message response.
-    await notifyPublicReplyCore({
-      session: params.session,
-      authority: params.authority,
-      claimId: result.claim.id,
-      messageId: result.message.id,
-      expectedRecipientId: result.claim.userId,
-    });
   }
 
   return { success: true, message: result.message };

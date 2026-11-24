@@ -1,8 +1,17 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { generateClaimPackCore } from './claim-pack.core';
+import { generateClaimPackCore } from './claim-pack-internal';
+import { generateClaimPackAction } from './claim-pack.core';
 
 const mockRateLimit = vi.fn();
+const admit = vi.fn();
+vi.mock('@/lib/tenant/public-admission-tenant', () => ({
+  resolvePublicAdmissionTenant: () => 'tenant_ks',
+}));
+vi.mock('@/lib/tenant/public-intake-admission', () => ({
+  authorizeOpenPublicIntake: (...args: unknown[]) => admit(...args),
+}));
+vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 
 vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimitForAction: (...args: unknown[]) => mockRateLimit(...args),
@@ -12,6 +21,7 @@ describe('actions/claim-pack generateClaimPackCore', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockRateLimit.mockResolvedValue({ limited: false });
+    admit.mockResolvedValue({});
   });
 
   const validInput = {
@@ -27,6 +37,23 @@ describe('actions/claim-pack generateClaimPackCore', () => {
     generatedAt: '2026-04-24T08:00:00.000Z',
     locale: 'en',
   } as const;
+
+  it('returns CLOSED through the action before parsing or rate limiting', async () => {
+    admit.mockResolvedValueOnce(null);
+    const input = {
+      ...validInput,
+      get answers(): typeof validInput.answers {
+        throw new Error('input parsed');
+      },
+    };
+    await expect(generateClaimPackAction(input)).resolves.toEqual({
+      success: false,
+      code: 'CLOSED',
+      error: 'claimPack.CLOSED',
+    });
+    expect(admit).toHaveBeenCalledWith('tenant_ks');
+    expect(mockRateLimit).not.toHaveBeenCalled();
+  });
 
   it('returns a generated pack for valid input', async () => {
     const result = await generateClaimPackCore({
@@ -58,7 +85,7 @@ describe('actions/claim-pack generateClaimPackCore', () => {
           incidentDate: '',
           description: 'short',
         },
-      } as unknown as typeof validInput,
+      },
     });
 
     expect(result).toEqual({

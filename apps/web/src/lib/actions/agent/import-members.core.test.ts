@@ -33,13 +33,11 @@ describe('importMembersCore', () => {
   const branchId = 'branch-1';
 
   beforeEach(() => {
-    vi.clearAllMocks();
+    mocks.registerMemberCore.mockReset();
   });
 
   it('imports valid rows and reports row-level failures without aborting the batch', async () => {
-    mocks.registerMemberCore
-      .mockResolvedValueOnce({ ok: true })
-      .mockResolvedValueOnce({ ok: false, error: 'Validation failed' });
+    mocks.registerMemberCore.mockResolvedValueOnce({ ok: true });
 
     const result = await importMembersCore({
       agent,
@@ -95,6 +93,39 @@ describe('importMembersCore', () => {
       error: 'No rows to import',
     });
     expect(mocks.registerMemberCore).not.toHaveBeenCalled();
+  });
+
+  it('stops at the first closed row and preserves the earlier registration result', async () => {
+    mocks.registerMemberCore
+      .mockResolvedValueOnce({ ok: true })
+      .mockResolvedValueOnce({ ok: false, code: 'CLOSED' });
+
+    const result = await importMembersCore({
+      agent,
+      authority,
+      branchId,
+      rows: [
+        buildImportRow({ email: 'first@example.com' }),
+        buildImportRow({ email: 'closed@example.com' }),
+        buildImportRow({ email: 'unattempted@example.com' }),
+      ],
+    });
+
+    expect(result).toEqual({
+      code: 'CLOSED',
+      summary: { total: 3, imported: 1, failed: 1 },
+      results: [
+        { index: 0, email: 'first@example.com', fullName: 'Jane Doe', ok: true },
+        {
+          index: 1,
+          email: 'closed@example.com',
+          fullName: 'Jane Doe',
+          ok: false,
+          code: 'CLOSED',
+        },
+      ],
+    });
+    expect(mocks.registerMemberCore).toHaveBeenCalledTimes(2);
   });
 
   it('creates sponsored seats through the sponsored registration mode', async () => {

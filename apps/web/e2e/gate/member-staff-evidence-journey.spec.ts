@@ -1,6 +1,7 @@
 import {
   E2E_USERS,
   and,
+  auditLog,
   claimStageHistory,
   claims,
   db,
@@ -12,13 +13,17 @@ import {
 } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { updateClaimStatusCore } from '@interdomestik/domain-claims/staff-claims/update-status';
+import { changeClaimStatus } from '@interdomestik/domain-claims/claims/change-status';
 import { mergeTests } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { expect, test as authTest } from '../fixtures/auth.fixture';
+import {
+  CLOSED_SERVICES_PROJECT,
+  expect,
+  test as closedServicesTest,
+} from '../../e2e-mac/closed-services.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-import { inSequence } from './in-sequence';
+import { verifyOtherRolesCannotChangeStatus } from './member-staff-evidence-journey-access.fixture';
 import {
   saveInterveningPublicNote,
   verifyStatusTransportRecovery,
@@ -33,10 +38,11 @@ import {
   openMemberContext,
   submitExactDraft,
 } from './member-staff-evidence-journey.fixture';
+
 import { teardown } from './s5-saved-draft.fixture';
 import { signalTest } from './signal-wait.fixture';
 
-const test = mergeTests(authTest, signalTest);
+const test = mergeTests(closedServicesTest, signalTest);
 
 test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
   let residue: {
@@ -67,8 +73,11 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     staffPage,
     waitForSignal,
   }, testInfo) => {
-    // Only gate-ks-sq may own S3 residue.
-    test.skip(testInfo.project.name !== 'gate-ks-sq', 'Other project');
+    // Only the serial KS runs may own S3 residue.
+    test.skip(
+      !['gate-ks-sq', CLOSED_SERVICES_PROJECT].includes(testInfo.project.name),
+      'Other project'
+    );
     expect(testInfo.config.workers).toBe(1);
     expect(testInfo.parallelIndex).toBe(0);
     test.setTimeout(120_000);
@@ -84,7 +93,6 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     const publicNote = `S3 public verification ${randomUUID()}`;
     const newerNote = `S7 intervening public update ${randomUUID()}`;
     const privateNote = `S3 private staff note ${randomUUID()}`;
-    const unauthorizedNotes: string[] = [];
     await establishDraftTenantContext(residue.memberSession.page, memberBaseURL, locale);
     const submitted = await submitExactDraft(
       residue.memberSession.page,
@@ -114,43 +122,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       })
       .toBe('submitted');
 
-    await inSequence(
-      [E2E_USERS.KS_MEMBER, E2E_USERS.KS_AGENT, E2E_USERS.KS_BRANCH_MANAGER],
-      async seeded => {
-        const actor = await db.query.user.findFirst({
-          where: and(eq(user.email, seeded.email), eq(user.tenantId, E2E_USERS.KS_MEMBER.tenantId)),
-          columns: { branchId: true, id: true, role: true, tenantId: true },
-        });
-        expect(actor).toMatchObject({
-          branchId: seeded.branchId,
-          role: seeded.dbRole,
-          tenantId: seeded.tenantId,
-        });
-        if (!actor) throw new Error(`Seeded ${seeded.dbRole} actor missing`);
-        const probeNote = `S3 unauthorized ${seeded.dbRole} ${randomUUID()}`;
-        unauthorizedNotes.push(probeNote);
-        const result = await updateClaimStatusCore({
-          authority: mintTestTenantAuthority(actor.tenantId),
-          claimId: submitted.claimId,
-          newStatus: 'verification',
-          note: probeNote,
-          isPublicChange: false,
-          session: { user: actor },
-        });
-        expect(result).toEqual({ success: false, error: 'Unauthorized' });
-      }
-    );
-
-    const stillSubmitted = await db.query.claims.findFirst({
-      where: and(
-        eq(claims.id, submitted.claimId),
-        eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-      ),
-      columns: { caseLifecycleState: true, recoveryLifecycleState: true },
-    });
-    expect(stillSubmitted ? claimStatusFromLifecycleFields(stillSubmitted) : null).toBe(
-      'submitted'
-    );
+    const unauthorizedNotes = await verifyOtherRolesCannotChangeStatus(submitted.claimId);
 
     await gotoApp(staffPage, routes.staffClaimDetail(submitted.claimId, testInfo), testInfo, {
       marker: 'staff-claim-detail-ready',
@@ -195,15 +167,21 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
         return newerNote;
       }
     );
-    const privateResult = await updateClaimStatusCore({
-      authority: mintTestTenantAuthority(staffActor.tenantId),
-      claimId: submitted.claimId,
-      newStatus: 'verification',
-      note: privateNote,
-      isPublicChange: false,
-      session: { user: staffActor },
+    const staffAuthority = mintTestTenantAuthority(staffActor.tenantId, {
+      userId: staffActor.id,
+      role: staffActor.role,
     });
-    expect(privateResult.success).toBe(true);
+    const privateResult = await changeClaimStatus(
+      staffAuthority,
+      {
+        claimId: submitted.claimId,
+        toStatus: 'verification',
+        note: privateNote,
+        isPublicNote: false,
+      },
+      { hostId: staffActor.tenantId }
+    );
+    expect(privateResult).toMatchObject({ ok: true, changed: false });
     await expect
       .poll(async () => {
         const rows = await db.query.notifications.findMany({
@@ -284,6 +262,17 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     expect(events.map(event => event.eventName)).toEqual(
       expect.arrayContaining(['case.created', 'claim.status_changed'])
     );
+    // The staff UI (S1) made one real change; the two notes after it are same-status notes.
+    // Exactly one event and one audit row record it: the after-commit projection adds none.
+    expect(events.filter(event => event.eventName === 'claim.status_changed')).toHaveLength(1);
+    const audits = await db.query.auditLog.findMany({
+      where: and(
+        eq(auditLog.entityId, submitted.claimId),
+        eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+      ),
+      columns: { action: true },
+    });
+    expect(audits.filter(audit => audit.action === 'claim.status_changed')).toHaveLength(1);
 
     residue.memberSession = await openMemberContext(browser, memberBaseURL);
     await establishDraftTenantContext(residue.memberSession.page, memberBaseURL, locale);

@@ -7,6 +7,7 @@ import { ClaimTriageNotes } from '@/components/staff/claim-triage-notes';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { getStaffClaimDetail } from '@interdomestik/domain-claims';
+import { isClaimStatus } from '@interdomestik/domain-claims/claims/transition-guard';
 import { MissingTenantError } from '@interdomestik/shared-auth';
 import {
   Card,
@@ -191,7 +192,10 @@ export async function StaffClaimDetailV2Page({
             assigneeId={claim.staffId || null}
             assignmentOptions={assignmentOptions}
           />
-          <ClaimInfoPane claim={claim} slaPhase={slaPhase} />
+          <ClaimInfoPane
+            claim={{ ...claim, status: isClaimStatus(claim.status) ? claim.status : null }}
+            slaPhase={slaPhase}
+          />
         </div>
       </div>
     </div>

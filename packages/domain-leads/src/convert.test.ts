@@ -42,7 +42,10 @@ describe('convertLeadToMember', () => {
     });
     mocks.selectResults.push([], [], [{ id: 'tenant-standard-plan', tier: 'standard' }]);
 
-    const result = await convertLeadToMember(authority, { leadId: 'lead-1' });
+    const result = await convertLeadToMember(authority, {
+      leadId: 'lead-1',
+      admission: { kind: 'check' },
+    });
 
     expect(result).toBeNull();
     // Only the tenant-scoped lead lookup ran; no conversion transaction was opened.
@@ -81,7 +84,10 @@ describe('convertLeadToMember', () => {
       callback({ ...tx, select: mocks.db.select, query: mocks.db.query })
     );
 
-    const result = await convertLeadToMember(authority, { leadId: 'lead-1' });
+    const result = await convertLeadToMember(authority, {
+      leadId: 'lead-1',
+      admission: { kind: 'check' },
+    });
 
     expect(result).toMatchObject({
       userId: 'usr_user-seed',
@@ -176,7 +182,11 @@ describe('convertLeadToMember', () => {
       callback({ ...tx, select: mocks.db.select, query: mocks.db.query })
     );
 
-    await convertLeadToMember(authority, { leadId: 'lead-1', planId: 'family' });
+    await convertLeadToMember(authority, {
+      leadId: 'lead-1',
+      planId: 'family',
+      admission: { kind: 'check' },
+    });
 
     const agentClientInsert = insertRecords.find(record => record.table === tableRefs.agentClients);
     expect(agentClientInsert).toBeUndefined();
@@ -218,7 +228,9 @@ describe('convertLeadToMember', () => {
       callback({ ...tx, select: mocks.db.select, query: mocks.db.query })
     );
 
-    await expect(convertLeadToMember(authority, { leadId: 'lead-1' })).resolves.toMatchObject({
+    await expect(
+      convertLeadToMember(authority, { leadId: 'lead-1', admission: { kind: 'check' } })
+    ).resolves.toMatchObject({
       userId: 'usr_user-seed',
       memberNumber: null,
       subscriptionId: 'sub_subscription-seed',
@@ -242,9 +254,9 @@ describe('convertLeadToMember', () => {
       callback({ ...tx, select: mocks.db.select, query: mocks.db.query })
     );
 
-    await expect(convertLeadToMember(authority, { leadId: 'lead-1' })).rejects.toThrow(
-      'Lead not found'
-    );
+    await expect(
+      convertLeadToMember(authority, { leadId: 'lead-1', admission: { kind: 'check' } })
+    ).rejects.toThrow('Lead not found');
 
     expect(mocks.withTenantContext).toHaveBeenCalledTimes(1);
     expect(insertRecords).toHaveLength(0);

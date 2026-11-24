@@ -29,9 +29,11 @@ type MocksMocks = {
   user: {
     id: string;
     tenantId: string;
+    emailVerified: string;
     tenantClassificationPending: string;
   };
   eq: MockFunction;
+  and: MockFunction;
   withTenant: MockFunction;
   ensureAccessTenantId: MockFunction;
   ensureTenantId: MockFunction;
@@ -59,9 +61,11 @@ const mocks: MocksMocks = vi.hoisted(() => {
     user: {
       id: 'user.id',
       tenantId: 'user.tenantId',
+      emailVerified: 'user.emailVerified',
       tenantClassificationPending: 'user.tenantClassificationPending',
     },
     eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
+    and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
     withTenant: vi.fn((tenantId: string, tenantColumn: unknown, filter: unknown) => ({
       op: 'withTenant',
       tenantId,
@@ -77,6 +81,7 @@ const mocks: MocksMocks = vi.hoisted(() => {
 vi.mock('@interdomestik/database', () => ({
   user: mocks.user,
   eq: mocks.eq,
+  and: mocks.and,
   withTenantContext: mocks.withTenantContext,
   delegateSuperAdminTenant: mocks.delegateSuperAdminTenant,
 }));

@@ -1,4 +1,5 @@
 import { sponsorRevisionDecisions, sponsorTerms } from '@interdomestik/database';
+import { SalesClosedError } from '@interdomestik/database/pilot-switch';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
@@ -21,12 +22,16 @@ const revisionRows = [
   [],
   [{ revision: 1 }],
 ];
+const openSwitch = [{ value: { enabled: true, revision: 1 } }];
+const closedSwitch = [{ value: { enabled: false, revision: 2 } }];
 
 describe('decision audit', () => {
   it.each(['approved', 'rejected'] as const)(
     'records %s on the revision without invoice text',
     async decision => {
-      const db = auditTransaction({ selects: revisionRows });
+      const db = auditTransaction({
+        selects: [...revisionRows, decision === 'approved' ? openSwitch : closedSwitch],
+      });
       use(db);
       expect(
         (
@@ -37,6 +42,7 @@ describe('decision audit', () => {
           })
         ).ok
       ).toBe(true);
+      expect(db.tx.select).toHaveBeenCalledTimes(decision === 'approved' ? 5 : 4);
       expect(db.writes[0]?.table).toBe(sponsorRevisionDecisions);
       expectAudits(
         db,
@@ -53,8 +59,21 @@ describe('decision audit', () => {
       );
     }
   );
+  it('refuses approval while sales are closed before inserting the decision or audit', async () => {
+    const db = auditTransaction({ selects: [...revisionRows, closedSwitch] });
+    use(db);
+    await expect(
+      decideRevision(authority, actor, {
+        revisionId: 'revision',
+        decision: 'approved',
+        invoiceReference: null,
+      })
+    ).rejects.toBeInstanceOf(SalesClosedError);
+    expect(db.tx.insert).not.toHaveBeenCalled();
+  });
+
   it('omits a conflicting decision', async () => {
-    const db = auditTransaction({ selects: revisionRows, inserted: [[]] });
+    const db = auditTransaction({ selects: [...revisionRows, openSwitch], inserted: [[]] });
     use(db);
     expect(
       await decideRevision(authority, actor, {

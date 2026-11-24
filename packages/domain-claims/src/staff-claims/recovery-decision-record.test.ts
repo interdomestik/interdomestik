@@ -1,6 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import type { ClaimsSession } from '../claims/types';
 import { upsertRecoveryDecisionRecord } from './recovery-decision-record';
 
 type RecoveryDecisionTx = Parameters<typeof upsertRecoveryDecisionRecord>[0]['tx'];
@@ -39,20 +38,16 @@ vi.mock('@interdomestik/database', () => ({
   eq: mocks.eq,
 }));
 
-const session = {
-  user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
-} as unknown as ClaimsSession;
+const actor = { id: 'staff-1', role: 'staff' };
 
 describe('upsertRecoveryDecisionRecord', () => {
   it('appends the recovery decision event through the passed transaction', async () => {
     const insertValues = vi.fn();
-    const claimLock = vi.fn().mockResolvedValue([{ id: 'claim-1' }]);
     const tx = {
       insert: vi.fn(() => ({ values: insertValues })),
       select: vi.fn(() => ({
         from: () => ({
           where: () => ({
-            for: claimLock,
             limit: async () => [],
           }),
         }),
@@ -60,12 +55,12 @@ describe('upsertRecoveryDecisionRecord', () => {
       update: vi.fn(),
     };
 
-    await upsertRecoveryDecisionRecord({
+    const { decisionDomainEventId } = await upsertRecoveryDecisionRecord({
       claimId: 'claim-1',
       decisionType: 'declined',
       declineReasonCode: 'no_monetary_recovery_path',
       explanation: 'Declined after review',
-      session,
+      actor,
       tenantId: 'tenant-1',
       tx: recoveryDecisionTx(tx),
     });
@@ -77,21 +72,14 @@ describe('upsertRecoveryDecisionRecord', () => {
         tenantId: 'tenant-1',
       })
     );
-    expect(claimLock).toHaveBeenCalledWith('no key update');
-    expect(mocks.and).toHaveBeenCalledWith(
-      { op: 'eq', left: 'claims.tenantId', right: 'tenant-1' },
-      { op: 'eq', left: 'claims.id', right: 'claim-1' }
-    );
     expect(mocks.and).toHaveBeenCalledWith(
       { op: 'eq', left: 'claim_escalation_agreements.tenant_id', right: 'tenant-1' },
       { op: 'eq', left: 'claim_escalation_agreements.claim_id', right: 'claim-1' }
     );
-    expect(claimLock.mock.invocationCallOrder[0]).toBeLessThan(
-      insertValues.mock.invocationCallOrder[0]
-    );
     expect(mocks.appendEvent).toHaveBeenCalledWith(
       tx,
       expect.objectContaining({
+        id: decisionDomainEventId,
         eventName: 'recovery.decision_recorded',
         tenantId: 'tenant-1',
       })
@@ -100,13 +88,11 @@ describe('upsertRecoveryDecisionRecord', () => {
 
   it('updates an existing recovery decision through the passed transaction', async () => {
     const updateSet = vi.fn(() => ({ where: vi.fn() }));
-    const claimLock = vi.fn().mockResolvedValue([{ id: 'claim-1' }]);
     const tx = {
       insert: vi.fn(),
       select: vi.fn(() => ({
         from: () => ({
           where: () => ({
-            for: claimLock,
             limit: async () => [{ id: 'agreement-1' }],
           }),
         }),
@@ -118,13 +104,12 @@ describe('upsertRecoveryDecisionRecord', () => {
       claimId: 'claim-1',
       decisionType: 'accepted',
       explanation: 'Accepted after review',
-      session,
+      actor,
       tenantId: 'tenant-1',
       tx: recoveryDecisionTx(tx),
     });
 
     expect(tx.insert).not.toHaveBeenCalled();
-    expect(claimLock).toHaveBeenCalledWith('no key update');
     expect(updateSet).toHaveBeenCalledWith(
       expect.objectContaining({
         decisionReason: 'Accepted after review',

@@ -17,6 +17,9 @@ const context = {
 const expectedContext = { ownerUserId: context.ownerUserId, tenantId: context.tenantId };
 function setup(current: FreeStartDraftSessionContext = context, emailVerified = false) {
   const dependencies: FreeStartDraftLifecycleDependencies = {
+    hasClaimEntitlement: vi.fn().mockResolvedValue(false),
+    readIntakeOpen: vi.fn().mockResolvedValue(true),
+    readPublicIntakeOpen: vi.fn().mockResolvedValue(false),
     resolveSession: vi.fn().mockResolvedValue({ ok: true, context: current, emailVerified }),
     createDraft: vi.fn(),
     updateDraft: vi.fn(),
