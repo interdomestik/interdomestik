@@ -736,6 +736,20 @@
       "when": 1795347018768,
       "tag": "0104_wp07_rate_verification_age",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1795533843496,
+      "tag": "0105_wp07_rate_check_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 106,
+      "version": "7",
+      "when": 1795533975837,
+      "tag": "0106_wp07_rate_check_contract",
+      "breakpoints": true
     }
   ]
 }
