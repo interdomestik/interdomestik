@@ -228,7 +228,7 @@ export function registerInvariantCases(fixture: () => Promise<SaleFixture>) {
 
     const halfPlan = await f.plan({ price: '0.01' });
     success(await f.publish({ planId: halfPlan, legalEntityId: f.legalEntityId }));
-    await f.addRate('50.00000000', '2000-01-10');
+    await f.checkedCorrection({ id: offer.rateId, effective_on: f.today }, '50.00000000');
     const half = success(await f.quote(halfPlan)).offer;
     expect(half.amountMkdMinor).toBe(100n);
     const halfRequest = accepted(half, { memberUserId: f.member.id });

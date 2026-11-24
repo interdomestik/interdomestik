@@ -143,8 +143,7 @@ test('WP-07 verification invariants on PostgreSQL 16 under the restricted role',
         ),
         {
           code: '42501',
-          message:
-            'new row violates row-level security policy for table "exchange_rate_verifications"',
+          message: 'Rate verification requires bound tenant',
         }
       );
       assert.equal(await countEvidence(), before);
@@ -276,5 +275,19 @@ test('WP-07 verification invariants on PostgreSQL 16 under the restricted role',
       );
       assert.deepEqual(await rows(), before);
     });
-  });
+  }, 'expand');
+});
+
+test('WP-07 check windows and terminal transitions defend the contracted schema', async t => {
+  const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
+  if (missing) return t.skip(missing);
+  const { proveOfficialCheckConstraints } = await import('./exchange-rate-checks.proof');
+  await withExchangeRateFixture(proveOfficialCheckConstraints);
+});
+
+test('WP-07 representative PG16 head lookup uses the tenant and date key in order', async t => {
+  const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
+  if (missing) return t.skip(missing);
+  const { proveHeadQueryPlan } = await import('./exchange-rate-checks.proof');
+  await withExchangeRateFixture(proveHeadQueryPlan);
 });

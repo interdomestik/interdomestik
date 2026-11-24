@@ -223,7 +223,7 @@ export function registerLimitReleaseCases(fixture: AgeFixture) {
     });
     expect(await f.counts(input.operationKey)).toEqual(absent);
     await assertClosed(f, { ...input, operationKey: randomUUID() });
-    success(await f.verify({ ...evidence, operationKey: randomUUID() }));
+    success(await f.verify(await f.newEvidence(evidence.rateId, evidence.observedRate)));
     const [{ count }] = await f.admin`select count(*)::int as count from exchange_rate_verifications
       where rate_id = ${evidence.rateId} and extract(epoch from (clock_timestamp() - verified_at)) <= 86400`;
     expect(count).toBe(2);

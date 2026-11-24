@@ -5,6 +5,7 @@ import {
   insertRate,
   paymentPortTestGuardRole,
   paymentPortTestSession,
+  provisionRateWindow,
   restricted,
   runSequentially,
   runtimeRole,
@@ -56,7 +57,11 @@ export function success<T extends { ok: boolean }>(result: T): Extract<T, { ok: 
   return result as Extract<T, { ok: true }>;
 }
 
-export async function saleFixture(db: PaymentPortDatabase, maxAgeSeconds: number | null = 86400) {
+export async function saleFixture(
+  db: PaymentPortDatabase,
+  maxAgeSeconds: number | null = 86400,
+  defaultWindow = true
+) {
   const { admin } = db;
   const port: PaymentPort = await import('../../payment-port');
   const tenantId = randomUUID();
@@ -150,7 +155,12 @@ export async function saleFixture(db: PaymentPortDatabase, maxAgeSeconds: number
     tenantId,
     tx => tx<{ id: string }[]>`select id from exchange_rate_books`
   );
-  const addUnverifiedRate = (rate = '61.50', effectiveOn = '2000-01-03') =>
+  const [{ today }] = await admin<{ today: string }[]>`
+    select (statement_timestamp() at time zone 'Europe/Skopje')::date::text as today`;
+  const window = (day = today, opensAt?: string, deadlineAt?: string) =>
+    provisionRateWindow(admin, tenantId, book.id, day, opensAt, deadlineAt);
+  if (defaultWindow) await window();
+  const addUnverifiedRate = (rate = '61.50', effectiveOn = today) =>
     restricted(db.peer, tenantId, tx =>
       insertRate(tx, { ...firstRate(tenantId, book.id, effectiveOn), rate })
     );
@@ -166,19 +176,56 @@ export async function saleFixture(db: PaymentPortDatabase, maxAgeSeconds: number
       setRateVerificationLimit(client, limitRequest(seconds))
     );
   if (maxAgeSeconds !== null) await setLimit(maxAgeSeconds);
-  const verificationInput = (rateId: string, observedRate = '61.50') => ({
-    legalEntityId,
+  const checkInput = (entityId = legalEntityId) => ({
+    legalEntityId: entityId,
+    operationKey: randomUUID(),
+  });
+  const begin = (input: unknown = checkInput(), who = owner) =>
+    port.beginRateCheck(who.authority, input, who);
+  const close = (input: unknown, who = owner) =>
+    port.recordRateCheckInconclusive(who.authority, input, who);
+  const verificationInput = (rateId: string, observedRate = '61.50', checkId?: string) => ({
+    ...checkInput(),
+    checkId,
     rateId,
     observedRate,
     sourceRef: 'NBRM/test-entry',
-    operationKey: randomUUID(),
   });
   const verify = (input: ReturnType<typeof verificationInput>, who = owner) =>
     port.recordRateVerification(who.authority, input, who);
-  const addRate = async (rate = '61.50', effectiveOn = '2000-01-03') => {
+  const newEvidence = async (rateId: string, observedRate = '61.50', who = owner) => {
+    const { check } = success(await begin(checkInput(), who));
+    return verificationInput(rateId, observedRate, check.id);
+  };
+  const addRate = async (rate = '61.50', effectiveOn = today) => {
     const rows = await addUnverifiedRate(rate, effectiveOn);
-    success(await verify(verificationInput(rows[0].id, rate)));
+    success(await verify(await newEvidence(rows[0].id, rate)));
     return rows;
+  };
+  const correctRate = async (predecessor: { id: string; effective_on: string }, rate: string) => {
+    const { rate: replacement } = success(
+      await port.recordExchangeRate(
+        owner.authority,
+        {
+          base: 'EUR',
+          quote: 'MKD',
+          rate,
+          effectiveOn: predecessor.effective_on,
+          correctsRateId: predecessor.id,
+          correctionReason: 'Corrected synthetic bulletin',
+        },
+        owner
+      )
+    );
+    return { id: replacement.id, effective_on: replacement.effectiveOn };
+  };
+  const checkedCorrection = async (
+    predecessor: { id: string; effective_on: string },
+    rate: string
+  ) => {
+    const replacement = await correctRate(predecessor, rate);
+    success(await verify(await newEvidence(replacement.id, rate)));
+    return replacement;
   };
   const publishInput = { planId, legalEntityId };
   const publish = (input = publishInput) => port.publishPlanVersion(owner.authority, input, owner);
@@ -221,6 +268,14 @@ export async function saleFixture(db: PaymentPortDatabase, maxAgeSeconds: number
     plan,
     planId,
     bookId: book.id,
+    today,
+    window,
+    checkInput,
+    begin,
+    close,
+    newEvidence,
+    correctRate,
+    checkedCorrection,
     addRate,
     addUnverifiedRate,
     limitRequest,

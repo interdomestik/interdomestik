@@ -1,12 +1,15 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
 
-import { withDisposableClient } from '../src/disposable-client';
+import { withDisposableClient, type DisposableClient } from '../src/disposable-client';
 import type { TenantTransaction } from '../src/index';
 import { mintIngressCapability, type IngressCapability } from '../src/ingress-capability';
 import * as schema from '../src/schema';
@@ -114,6 +117,57 @@ async function withRuntimeLogin(
 }
 
 export type PaymentPortDatabase = { admin: postgres.Sql; peer: postgres.Sql };
+type RateMigrationPhase = '0104' | 'expand' | 'contract';
+
+export async function migratePaymentPortPhase(client: DisposableClient, phase: RateMigrationPhase) {
+  if (phase === 'contract') return migrateJournal(client, migrations);
+  const boundary =
+    phase === '0104' ? '0104_wp07_rate_verification_age' : '0105_wp07_rate_check_expand';
+  const folder = await mkdtemp(join(tmpdir(), 'wp07-journal-'));
+  try {
+    const journal = JSON.parse(await readFile(join(migrations, 'meta', '_journal.json'), 'utf8'));
+    const index = journal.entries.findIndex((entry: { tag: string }) => entry.tag === boundary);
+    assert.ok(index >= 0, 'the journal contains the requested WP-07 phase');
+    const entries = journal.entries.slice(0, index + 1);
+    await mkdir(join(folder, 'meta'));
+    await writeFile(join(folder, 'meta', '_journal.json'), JSON.stringify({ ...journal, entries }));
+    await Promise.all(
+      entries.map(({ tag }: { tag: string }) =>
+        copyFile(join(migrations, `${tag}.sql`), join(folder, `${tag}.sql`))
+      )
+    );
+    await migrateJournal(client, folder);
+  } finally {
+    await rm(folder, { recursive: true, force: true });
+  }
+}
+
+export async function provisionRateWindow(
+  client: postgres.Sql,
+  tenantId: string,
+  bookId: string,
+  effectiveOn: string,
+  opensAt?: string,
+  deadlineAt?: string
+) {
+  const role = quoteIdentifier(TEST_DB_ROLE);
+  await client.unsafe(`grant select on exchange_rate_books to ${role}`);
+  await client.unsafe(`grant update (id) on exchange_rate_books to ${role}`);
+  await client.unsafe(`grant select, insert on exchange_rate_check_windows to ${role}`);
+  const id = randomUUID();
+  await restricted(
+    client,
+    tenantId,
+    tx => tx`
+    insert into exchange_rate_check_windows (id, tenant_id, book_id, effective_on, opens_at, deadline_at, approval_ref)
+    values (${id}, ${tenantId}, ${bookId}, ${effectiveOn}::date,
+      coalesce(${opensAt ?? null}::timestamptz, ${effectiveOn}::date::timestamp at time zone 'Europe/Skopje'),
+      coalesce(${deadlineAt ?? null}::timestamptz, (${effectiveOn}::date + 1)::timestamp at time zone 'Europe/Skopje'),
+      'finance/wp07-test')`,
+    TEST_DB_ROLE
+  );
+  return id;
+}
 export type PaymentPortTestTransaction = postgres.TransactionSql;
 
 export { scratchServerMissing } from './pg16/scratch-database';
@@ -153,14 +207,15 @@ export function paymentPortTestSession(
 }
 
 export async function withPaymentPortDatabase(
-  run: (fixture: PaymentPortDatabase) => Promise<void>
+  run: (fixture: PaymentPortDatabase) => Promise<void>,
+  phase: RateMigrationPhase = 'contract'
 ) {
   requireTestRunner();
   // The scratch database owns all append-only rows and disappears after the proof.
   await withScratchDatabase('wp07_payment', admin =>
     withRuntimeLogin(admin, async (username, password) => {
       // Migration 0101 grants privileges to the runtime role when it exists.
-      await migrateJournal(admin, migrations);
+      await migratePaymentPortPhase(admin, phase);
       const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
       const url = new URL(process.env.DATABASE_URL!);
       url.pathname = `/${name}`;
@@ -175,6 +230,11 @@ export async function withPaymentPortDatabase(
       await admin.unsafe(
         `grant truncate on public.membership_sales, public.membership_ledger_entries, public.exchange_rate_verifications to ${quoteIdentifier(TEST_DB_ROLE)}`
       );
+      if (phase !== '0104') {
+        await admin.unsafe(
+          `grant truncate on public.exchange_rate_check_events, public.exchange_rate_check_windows to ${quoteIdentifier(TEST_DB_ROLE)}`
+        );
+      }
       const [acl] = await admin`select
         has_table_privilege(${runtimeRole}, 'exchange_rate_books', 'INSERT') as can_insert_book,
         has_table_privilege(${runtimeRole}, 'exchange_rates', 'INSERT') as can_insert_rate,
@@ -247,7 +307,10 @@ export function withPaymentPortTestTransaction<T>(
   );
 }
 
-export function withExchangeRateFixture(run: (fixture: ExchangeRateFixture) => Promise<void>) {
+export function withExchangeRateFixture(
+  run: (fixture: ExchangeRateFixture) => Promise<void>,
+  phase?: RateMigrationPhase
+) {
   return withPaymentPortDatabase(async ({ admin, peer }) => {
     const fixture = await createFixture(admin);
     const { tenantId, actor } = fixture;
@@ -258,7 +321,7 @@ export function withExchangeRateFixture(run: (fixture: ExchangeRateFixture) => P
       userId = actor.id
     ) => paymentPortTestSession(home, userId, roleName, null, access);
     await run({ ...fixture, peer, session, authority: session() });
-  });
+  }, phase);
 }
 
 async function createFixture(admin: postgres.Sql) {

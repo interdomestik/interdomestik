@@ -4,8 +4,10 @@ import {
   insertRate,
   paymentPortTestScheduledAuthority,
   paymentPortTestSession,
+  provisionRateWindow,
   restricted,
   runSequentially,
+  withLockedBook,
 } from '../../../../database/test/exchange-rates.fixture';
 import { expect, it } from 'vitest';
 
@@ -41,6 +43,92 @@ async function verificationCount(f: SaleFixture) {
 }
 
 export function registerVerificationCases(fixture: AgeFixture) {
+  it('serializes positive and negative terminal outcomes across tables and scopes completion keys', async () => {
+    const f = await fixture();
+    const { evidence } = await ageCandidate(f);
+    const substitute = await f.addUser('admin', null);
+    const negative = {
+      ...f.checkInput(),
+      checkId: evidence.checkId,
+      reason: 'Official source unavailable',
+    };
+    const { result } = await withLockedBook(
+      f.peer,
+      f.admin,
+      f.tenantId,
+      f.bookId,
+      () => Promise.all([f.verify(evidence), f.close(negative, substitute)]),
+      2
+    );
+    expect(result.filter(outcome => outcome.ok)).toHaveLength(1);
+    expect(result.find(outcome => !outcome.ok)).toEqual(refused('conflict'));
+    const [counts] = await f.admin`select
+      (select count(*)::int from exchange_rate_verifications where check_id = ${evidence.checkId ?? null}) +
+      (select count(*)::int from exchange_rate_check_events where check_id = ${evidence.checkId ?? null}) as terminal`;
+    expect(counts.terminal).toBe(1);
+
+    const winner = result[0].ok ? evidence.operationKey : negative.operationKey;
+    const winnerActor = result[0].ok ? f.owner : substitute;
+    const otherActor = result[0].ok ? substitute : f.owner;
+    expect(await f.begin({ ...f.checkInput(), operationKey: winner }, otherActor)).toEqual(
+      refused('not_found')
+    );
+    expect(await f.begin({ ...f.checkInput(), operationKey: winner }, winnerActor)).toEqual(
+      refused('conflict')
+    );
+
+    const next = await f.newEvidence(evidence.rateId);
+    const sameKey = {
+      legalEntityId: f.legalEntityId,
+      operationKey: next.operationKey,
+      checkId: next.checkId,
+      reason: 'Alternate terminal with the same key',
+    };
+    const duplicate = await withLockedBook(
+      f.peer,
+      f.admin,
+      f.tenantId,
+      f.bookId,
+      () => Promise.all([f.verify(next), f.close(sameKey)]),
+      2
+    );
+    expect(duplicate.result.filter(outcome => outcome.ok)).toHaveLength(1);
+    expect(duplicate.result.find(outcome => !outcome.ok)).toEqual(refused('conflict'));
+  }, 15000);
+
+  it('refuses a completion waiting for a same-date replacement and leaves the start recoverable', async () => {
+    const f = await fixture();
+    const { evidence } = await ageCandidate(f);
+    const { result } = await withLockedBook(
+      f.peer,
+      f.admin,
+      f.tenantId,
+      f.bookId,
+      async () => {
+        const replacing = f.correctRate({ id: evidence.rateId, effective_on: f.today }, '62.20');
+        // The holder proves both writers below wait for the exclusive book lock.
+        return Promise.all([replacing, f.verify(evidence)]);
+      },
+      2
+    );
+    const [replacement, completion] = result;
+    if (completion.ok) {
+      expect(completion.verification.rateId).toBe(evidence.rateId);
+      expect(await f.quote()).toEqual(refused('stale_rate'));
+    } else {
+      expect(completion).toEqual(refused('stale_rate'));
+      success(
+        await f.close({
+          ...f.checkInput(),
+          checkId: evidence.checkId,
+          reason: 'Rate replaced during review',
+        })
+      );
+    }
+    const next = await f.newEvidence(replacement.id, '62.20');
+    expect(success(await f.verify(next)).verification.rateId).toBe(replacement.id);
+  }, 15000);
+
   it('admits the two tenant admin roles only and checks session binding and entity scope', async () => {
     const f = await fixture(null);
     const { evidence } = await ageCandidate(f);
@@ -77,7 +165,9 @@ export function registerVerificationCases(fixture: AgeFixture) {
       verifiedBy: f.owner.id,
       tenantId: f.tenantId,
     });
-    const second = success(await f.verify({ ...evidence, operationKey: randomUUID() }, admin));
+    const second = success(
+      await f.verify(await f.newEvidence(evidence.rateId, '61.50', admin), admin)
+    );
     expect(second.verification.verifiedBy).toBe(admin.id);
     await f.admin`update legal_entities set is_active = false where id = ${f.legalEntityId}`;
     expect(await f.verify(evidence)).toEqual(refused('not_found'));
@@ -87,9 +177,6 @@ export function registerVerificationCases(fixture: AgeFixture) {
   it('refuses malformed evidence and replays canonical evidence only to its original actor', async () => {
     const f = await fixture(null);
     const { evidence } = await ageCandidate(f);
-    expect(await f.verify({ ...evidence, observedRate: '61.49' })).toEqual(
-      refused('rate_mismatch')
-    );
     const malformed = [
       { observedRate: '61.500000001' },
       { observedRate: '0' },
@@ -120,7 +207,7 @@ export function registerVerificationCases(fixture: AgeFixture) {
     expect(await f.verify({ ...evidence, legalEntityId: await f.entity() })).toEqual(
       refused('conflict')
     );
-    await f.addUnverifiedRate('62', '2000-01-10');
+    await f.correctRate({ id: evidence.rateId, effective_on: f.today }, '62');
     expect(await f.verify(evidence)).toEqual(original);
     expect(await verificationCount(f)).toBe(1);
   });
@@ -130,7 +217,10 @@ export function registerVerificationCases(fixture: AgeFixture) {
     const { input, evidence } = await ageCandidate(f);
     success(await f.verify(evidence));
     success(await f.quote());
-    const [replacement] = await f.addUnverifiedRate('62.10', '2000-01-10');
+    const replacement = await f.correctRate(
+      { id: evidence.rateId, effective_on: f.today },
+      '62.10'
+    );
     const sale = { ...input, rateId: replacement.id, amountMkdMinor: toMkdMinor(1000n, '62.10') };
 
     const foreignEntity = await f.entity(undefined, f.otherTenantId);
@@ -140,15 +230,22 @@ export function registerVerificationCases(fixture: AgeFixture) {
       tx => tx<{ id: string }[]>`select id from exchange_rate_books`
     );
     const [foreignRate] = await restricted(f.peer, f.otherTenantId, tx =>
-      insertRate(tx, firstRate(f.otherTenantId, foreignBook.id, '2000-01-10'))
+      insertRate(tx, firstRate(f.otherTenantId, foreignBook.id, f.today))
     );
+    await provisionRateWindow(f.admin, f.otherTenantId, foreignBook.id, f.today);
+    const { check } = success(await f.begin(f.checkInput(foreignEntity), f.foreignOwner));
     success(
       await f.verify(
-        { ...f.verificationInput(foreignRate.id), legalEntityId: foreignEntity },
+        { ...f.verificationInput(foreignRate.id, '61.50', check.id), legalEntityId: foreignEntity },
         f.foreignOwner
       )
     );
-    expect(await f.verify(f.verificationInput(foreignRate.id))).toEqual(refused('not_found'));
+    expect(
+      await f.verify({ ...evidence, rateId: foreignRate.id, operationKey: randomUUID() })
+    ).toEqual(refused('not_found'));
+    expect(await f.verify({ ...evidence, checkId: check.id, operationKey: randomUUID() })).toEqual(
+      refused('not_found')
+    );
     await assertClosed(f, sale);
 
     const superseded = { ...evidence, operationKey: randomUUID() };
@@ -162,12 +259,12 @@ export function registerVerificationCases(fixture: AgeFixture) {
         f.tenantId,
         tx => tx`
       insert into exchange_rate_verifications (id, tenant_id, legal_entity_id, book_id, rate_id,
-        base, quote, rate_effective_on, observed_rate, source_ref, verified_by, operation_key)
+        base, quote, rate_effective_on, observed_rate, source_ref, verified_by, operation_key, check_id)
       values (${randomUUID()}, ${f.tenantId}, ${f.legalEntityId}, ${foreignBook.id}, ${replacement.id},
-        'EUR', 'MKD', '2000-01-10', 62.10, 'NBRM/foreign-book', ${f.owner.id}, ${randomUUID()})`
+        'EUR', 'MKD', ${f.today}::date, 62.10, 'NBRM/foreign-book', ${f.owner.id}, ${randomUUID()}, ${check.id})`
       )
     ).rejects.toMatchObject({ code: '23503' });
-    success(await f.verify(f.verificationInput(replacement.id, '62.10')));
+    success(await f.verify(await f.newEvidence(replacement.id, '62.10')));
     success(await f.sale(sale));
     expect(await f.counts(sale.operationKey)).toEqual(completed);
   });
@@ -178,12 +275,12 @@ export function registerVerificationCases(fixture: AgeFixture) {
     success(await f.verify(evidence));
     const official = '62.13';
     const revised = {
-      ...evidence,
+      ...(await f.newEvidence(evidence.rateId, official)),
       observedRate: official,
       sourceRef: 'NBRM/revised',
       operationKey: randomUUID(),
     };
-    expect(await f.verify(revised)).toEqual(refused('rate_mismatch'));
+    expect(await f.verify(revised)).toMatchObject(refused('rate_mismatch'));
     expect(await verificationCount(f)).toBe(1);
     const { rate } = success(
       await f.port.recordExchangeRate(
@@ -192,7 +289,7 @@ export function registerVerificationCases(fixture: AgeFixture) {
           base: 'EUR',
           quote: 'MKD',
           rate: official,
-          effectiveOn: '2000-01-03',
+          effectiveOn: f.today,
           correctsRateId: evidence.rateId,
           correctionReason: 'Revised official value',
         },
@@ -213,7 +310,7 @@ export function registerVerificationCases(fixture: AgeFixture) {
       restricted(f.admin, f.tenantId, tx => insertDirectSale(tx, row))
     ).rejects.toMatchObject(ageViolation);
     expect(await f.counts(sale.operationKey)).toEqual(absent);
-    const { verification } = success(await f.verify({ ...revised, rateId: rate.id }));
+    const { verification } = success(await f.verify(await f.newEvidence(rate.id, official)));
     expect(verification.rateEffectiveOn).toBe(rate.effectiveOn);
     success(await f.sale(sale));
     expect(await f.counts(sale.operationKey)).toEqual(completed);
