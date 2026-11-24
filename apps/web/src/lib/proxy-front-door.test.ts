@@ -223,6 +223,13 @@ describe('proxy ida front-door context', () => {
       '/_next/data/test-build/sq.segments/_tree.segment.rsc',
       '/_next/data/test-build/sq.segments/_tree.segment',
     ],
+    ['/_next/data/test-build/index.rsc', '/_next/data/test-build/index'],
+    [
+      '/_next/data/test-build/index.segments/_tree.segment.rsc',
+      '/_next/data/test-build/index.segments/_tree.segment',
+    ],
+    ['/sq/.rsc', '/sq/'],
+    ['/sq/pricing.rsc', '/sq/pricing'],
     ['/index.rsc', '/index'],
     ['/index.segments/_tree.segment.rsc', '/index.segments/_tree.segment'],
     ['/index.json', '/index.json'],

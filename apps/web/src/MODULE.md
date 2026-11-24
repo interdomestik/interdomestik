@@ -79,7 +79,8 @@ and every hardening header is set in every case (`proxy-secure.ts:97-112`). Regr
 header. It omits only `Set-Cookie` (and Next's `x-middleware-set-cookie`) for `tenantId`, so that response does not renew
 the cookie: a matching cookie keeps its current expiry instead of a fresh 30 days, and `Path=/`, `HttpOnly`,
 `SameSite=Lax` and the request-dependent `Secure` flag are not reapplied (`tenant/tenant-cookie.ts:17-29`). The next
-request that is not skipped, such as any page GET, writes it again. The owner approved this omission.
+request that reaches the cookie write sets it again, for example a page GET on the tenant host; responses that never
+write a tenant cookie (the country-host cutover redirect, `proxy-logic.ts:14-18`) do not. The owner approved this omission.
 
 **Named limit (lead, 2026-11-24, within the owner's approval).** Next 16.4.5 normalizes `/<locale>.rsc` before the proxy
 runs: the adapter rewrites `request.url` and `nextUrl` to the pathname `/<locale>` and passes no original URL or marker
@@ -87,8 +88,11 @@ runs: the adapter rewrites `request.url` and `nextUrl` to the pathname `/<locale
 the proxy sees is the same; the query string can differ, because the adapter also strips `.rsc` from query values. The
 proxy therefore cannot tell `/<locale>.rsc` from `/<locale>`, and the same omission applies to it, under the same
 condition (the incoming cookie already equals the host tenant). The matrix asserts this case through the installed
-adapter. Every other normalized form (`.json`, `/_next/data/…` with or without the router marker, segment prefetch,
-`/index.*`) still writes the cookie.
+adapter. Pages Router data requests (`/_next/data/<build>/<locale>.json`) also reach the proxy as `/<locale>`, but the
+Next router marks them with `x-nextjs-data` before the adapter (`server/lib/router-utils/resolve-routes.js:272`), and a
+marked request writes the cookie; an unmarked one would fall under this same named limit. Every request whose
+proxy-seen pathname is not exactly `/<locale>` writes the cookie: `.json`, segment prefetch, `/index.*`,
+`/_next/data/…` forms that keep their prefix, `/<locale>/.rsc` and `/<locale>/<page>.rsc`.
 
 ## Tests to run
 
