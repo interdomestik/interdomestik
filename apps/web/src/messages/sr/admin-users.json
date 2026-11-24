@@ -178,6 +178,7 @@
         "confirm_current_tenant": "Potvrdi trenutni subjekt",
         "confirmed": "Klasifikacija subjekta je već potvrđena.",
         "confirmed_success": "Klasifikacija subjekta je potvrđena",
+        "EMAIL_NOT_PROVEN": "Vlasnik naloga mora da potvrdi svoju imejl adresu pre nego što možete da potvrdite subjekt.",
         "reassign_label": "Premesti ovaj nalog u drugi subjekt",
         "reassign_tenant": "Preraspodeli subjekt",
         "reassigned_success": "Subjekt je preraspodeljen",

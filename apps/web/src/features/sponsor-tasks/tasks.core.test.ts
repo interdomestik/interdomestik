@@ -1,4 +1,5 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { PaddleClosedError } from '@interdomestik/domain-membership-billing/paddle-closed';
 import { ROLES } from '@interdomestik/shared-auth';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { acknowledgeChargeAction, closeHandoverAction, recordEvidenceAction } from './actions';
@@ -231,6 +232,15 @@ describe('staff-only sponsor reader and actions', () => {
         })
       )
     ).toEqual({ ok: true });
+  });
+
+  it('returns CLOSED when the handover provider read-back is refused', async () => {
+    mocks.close.mockRejectedValue(new PaddleClosedError());
+    expect(
+      await closeHandoverAction(form({ intentId: 'intent-1', disposition: 'canceled' }))
+    ).toEqual({ ok: false, error: 'CLOSED' });
+    expect(mocks.evidence).not.toHaveBeenCalled();
+    expect(mocks.acknowledge).not.toHaveBeenCalled();
   });
 
   describe.each(entries)('$name failures', entry => {

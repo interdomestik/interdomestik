@@ -5,6 +5,7 @@ import {
   revokeAgentClientReadScope,
 } from '@interdomestik/domain-membership-billing';
 import { issueTenantMemberNumber } from '@interdomestik/database';
+import { assertNewSalesOpen, SalesClosedError } from '@interdomestik/database/pilot-switch';
 import { subscriptions, user as userTable } from '@interdomestik/database/schema';
 import {
   readTenantAuthority,
@@ -82,6 +83,15 @@ export async function registerMemberCore(
     const created = await withRetry(
       () =>
         withTenantAuthority(authority, async tx => {
+          try {
+            await assertNewSalesOpen(tx, tenantId);
+          } catch (error) {
+            if (error instanceof SalesClosedError) {
+              throw error;
+            }
+            console.error('Sponsored registration could not read the sales switch:', error);
+            throw new SalesClosedError();
+          }
           const now = joinedAt;
 
           // 1. Create User (Role must be 'member' for the unique index to eventually apply)
@@ -155,6 +165,9 @@ export async function registerMemberCore(
     // employee's own acceptance flow replaces this paused registration in ACQ-3b.
     return { ok: true as const };
   } catch (err) {
+    if (err instanceof SalesClosedError) {
+      return { ok: false as const, code: err.code };
+    }
     console.error('Registration failed:', err);
     return {
       ok: false as const,

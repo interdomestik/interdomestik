@@ -26,6 +26,26 @@
           "verbose_logging_desc": "Aktivizoni loget e detajuara për qëllime korrigjimi."
         }
       },
+      "pilot": {
+        "title": "Kontrollet e pilotit",
+        "description": "Menaxhoni pranimin publik dhe shitjet e reja për organizatën tuaj.",
+        "switch": "Kontrolli",
+        "public_intake": "Pranimi publik",
+        "new_sales": "Shitjet e reja",
+        "open": "Hapur",
+        "closed": "Mbyllur",
+        "reason": "Arsyeja e ndryshimit (të paktën 10 karaktere)",
+        "approval": "Referenca e miratimit të nënshkruar për rifillim",
+        "approval_required": "Shënoni referencën e miratimit të nënshkruar për rifillim.",
+        "open_switch": "Hap",
+        "close_switch": "Mbyll",
+        "unavailable": "Kontrollet e pilotit nuk mund të ngarkoheshin.",
+        "pending": "Ndryshimi po ruhet…",
+        "saved": "Kontrolli i pilotit u përditësua.",
+        "failed": "Ndryshimi nuk u ruajt. Provoni përsëri.",
+        "conflict": "Kontrolli ka ndryshuar. Ringarkoni faqen dhe kontrolloni gjendjen aktuale para se të provoni përsëri.",
+        "reload": "Ringarko kontrollet"
+      },
       "save_changes": "Ruaj Ndryshimet",
       "success_message": "Cilësimet u përditësuan me sukses"
     }

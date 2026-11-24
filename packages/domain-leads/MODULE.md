@@ -8,11 +8,19 @@ The member-lead lifecycle: capture (`create`), payment attempts (`payment`), con
 
 ## Public API
 
-`package.json` exports `.`, `./create`, `./payment`, `./list`, `./convert` and `./member-email-conflict`. From `./list`:
+`package.json` exports `.`, `./create`, `./payment`, `./list`, `./convert`, `./member-email-conflict`, `./agent-status` and `./sales-admission`. From `./list`:
 
 - `listVisibleMemberLeads(actor, authority, input)`: the member leads the actor may see, newest first, at most 100, with their payment attempts. It returns `{ ok: true, leads }` or `{ ok: false, code }`, where `code` is `FORBIDDEN`, `FORBIDDEN_NO_BRANCH` or `VALIDATION_ERROR`.
 - `memberLeadListRefusal(actor, authority)`: the same refusal, decided before any input is parsed, or `null`.
 - `listMemberLeadsSchema`: the strict input (`status`, `branchId`, `search`). An unknown key, such as an identity or a tenant, is a validation error.
+
+## Sales admission (WP-10 closed pilot)
+
+Lead commands use the tenant authority supplied by the caller. `startPayment` takes the tenant's `new_sales` share lock in the transaction that marks payment pending and writes the attempt. `updateScopedAgentLeadStatus` applies the same check in the agent-scoped write transaction when the requested status is `converted`. Both commands throw `SalesClosedError` when admission is closed.
+
+`@interdomestik/domain-leads/sales-admission` exports `assertLeadSalesOpen` for cash approval and resubmission to check admission in their own tenant transactions. The check takes the same share lock and records a failed switch read before throwing `SalesClosedError`.
+
+`convertLeadToMember` requires an admission alongside the lead ID and optional plan. Under the lead lock, `{ kind: 'check' }` requires open sales. `{ kind: 'verified_cash', attemptId }` requires a paid lead and a succeeded, verified cash attempt for that lead in the same tenant. This second path completes a sale admitted before a stop.
 
 ## Owned tables
 

@@ -1,14 +1,14 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import type { RecoveryResult } from '@/actions/different-email-recovery.core';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRouter } from 'next/navigation';
 
-type Stage = 'closed' | 'start' | 'current' | 'replacement' | 'complete';
+type Stage = 'closed' | 'start' | 'current' | 'replacement' | 'complete' | 'intakeClosed';
 // prettier-ignore
 const copyKeys = ['body', 'close', 'codeLabel', 'complete', 'confirm', 'currentBody', 'currentHeading', 'emailLabel', 'error', 'heading', 'open', 'pending', 'replacementBody', 'replacementHeading', 'start', 'submitCurrent'] as const;
 type Copy = Record<(typeof copyKeys)[number], string>;
-type ActionResult = { ok: boolean; stage?: string };
 type RecoverySetters = Record<'failed' | 'pending', (value: boolean) => void> & {
   code: (value: string) => void;
   email: (value: string) => void;
@@ -44,14 +44,21 @@ function submitText(stage: Stage, pending: boolean, copy: Copy) {
 
 function useRecoveryRunner(isPending: boolean, set: RecoverySetters) {
   const router = useRouter();
-  return async (task: () => Promise<ActionResult>) => {
+  return async (task: () => Promise<RecoveryResult>) => {
     if (isPending) return;
     set.pending(true);
     set.failed(false);
     try {
       const result = await task();
-      if (!result.ok) set.failed(true);
-      else if (result.stage === 'current') {
+      if (!result.ok) {
+        if (result.code === 'CLOSED') {
+          set.code('');
+          set.email('');
+          set.stage('intakeClosed');
+        } else {
+          set.failed(true);
+        }
+      } else if (result.stage === 'current') {
         set.code('');
         set.stage('current');
       } else if (result.stage === 'replacement') {
@@ -68,6 +75,60 @@ function useRecoveryRunner(isPending: boolean, set: RecoverySetters) {
       set.pending(false);
     }
   };
+}
+
+function RecoverySteps({
+  body,
+  code,
+  copy,
+  email,
+  failed,
+  onCodeChange,
+  onEmailChange,
+  onStart,
+  onSubmit,
+  pending,
+  stage,
+}: Readonly<{
+  body: string;
+  code: string;
+  copy: Copy;
+  email: string;
+  failed: boolean;
+  onCodeChange: RecoverySetters['code'];
+  onEmailChange: RecoverySetters['email'];
+  onStart: () => void;
+  onSubmit: () => void;
+  pending: boolean;
+  stage: 'start' | 'current' | 'replacement';
+}>) {
+  // prettier-ignore
+  return (
+    <>
+      <p className="mt-2 text-sm leading-6 text-[#526274]">{body}</p>
+      {stage === 'start' ? (
+        <button type="button" disabled={pending} onClick={onStart}
+          className="mt-3 min-h-11 rounded-xl bg-[#006f72] px-4 font-bold text-white disabled:opacity-60">
+          {pending ? copy.pending : copy.start}
+        </button>
+      ) : (
+        <form className="mt-3 space-y-3" onSubmit={event => { event.preventDefault(); onSubmit(); }}>
+          <label className="block text-sm font-bold text-[#001a33]">{copy.codeLabel}
+            <input required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={code} onChange={event => onCodeChange(event.target.value)}
+              className="mt-1 block min-h-11 w-full rounded-xl border border-[#001a33]/25 px-3" />
+          </label>
+          {stage === 'current' ? <label className="block text-sm font-bold text-[#001a33]">{copy.emailLabel}
+            <input required type="email" autoComplete="email" value={email} onChange={event => onEmailChange(event.target.value)}
+              className="mt-1 block min-h-11 w-full rounded-xl border border-[#001a33]/25 px-3" />
+          </label> : null}
+          <button type="submit" disabled={pending} className="min-h-11 rounded-xl bg-[#006f72] px-4 font-bold text-white disabled:opacity-60">
+            {submitText(stage, pending, copy)}
+          </button>
+        </form>
+      )}
+      {failed ? <p role="alert" className="mt-3 text-sm font-semibold text-[#8a2f43]">{copy.error}</p> : null}
+    </>
+  );
 }
 
 export function DifferentEmailRecovery() {
@@ -106,38 +167,47 @@ export function DifferentEmailRecovery() {
     if (stage === 'current') return actions.submitCurrentEmailProof({ code, email, locale });
     return actions.confirmReplacementEmail({ code });
   };
+
+  let content: ReactNode;
+  if (stage === 'intakeClosed') {
+    content = (
+      <output className="mt-2 block text-sm text-[#173b43]">
+        {t('differentEmailRecovery.CLOSED')}
+      </output>
+    );
+  } else if (stage === 'complete') {
+    content = <output className="mt-2 block text-sm text-[#173b43]">{copy.complete}</output>;
+  } else {
+    content = (
+      <RecoverySteps
+        body={body}
+        code={code}
+        copy={copy}
+        email={email}
+        failed={failed}
+        onCodeChange={setCode}
+        onEmailChange={setEmail}
+        onStart={() =>
+          void run(async () =>
+            (await import('@/actions/different-email-recovery')).startDifferentEmailRecovery({
+              locale,
+            })
+          )
+        }
+        onSubmit={() => void run(submit)}
+        pending={pending}
+        stage={stage}
+      />
+    );
+  }
+
   // prettier-ignore
   return (
     <section data-testid="different-email-recovery" aria-labelledby="different-email-recovery-heading"
       className="mt-4 rounded-2xl border border-[#006f72]/25 bg-[#f7fbfa] p-4">
       <h5 ref={heading} tabIndex={-1} id="different-email-recovery-heading" className="font-bold text-[#001a33] outline-none">{title}</h5>
-      {stage === 'complete' ? <output className="mt-2 block text-sm text-[#173b43]">{copy.complete}</output> : (
-        <>
-          <p className="mt-2 text-sm leading-6 text-[#526274]">{body}</p>
-          {stage === 'start' ? (
-            <button type="button" disabled={pending} onClick={() => void run(async () => (await import('@/actions/different-email-recovery')).startDifferentEmailRecovery({ locale }))}
-              className="mt-3 min-h-11 rounded-xl bg-[#006f72] px-4 font-bold text-white disabled:opacity-60">
-              {pending ? copy.pending : copy.start}
-            </button>
-          ) : (
-            <form className="mt-3 space-y-3" onSubmit={event => { event.preventDefault(); void run(submit); }}>
-              <label className="block text-sm font-bold text-[#001a33]">{copy.codeLabel}
-                <input required inputMode="numeric" autoComplete="one-time-code" pattern="[0-9]{6}" value={code} onChange={event => setCode(event.target.value)}
-                  className="mt-1 block min-h-11 w-full rounded-xl border border-[#001a33]/25 px-3" />
-              </label>
-              {stage === 'current' ? <label className="block text-sm font-bold text-[#001a33]">{copy.emailLabel}
-                <input required type="email" autoComplete="email" value={email} onChange={event => setEmail(event.target.value)}
-                  className="mt-1 block min-h-11 w-full rounded-xl border border-[#001a33]/25 px-3" />
-              </label> : null}
-              <button type="submit" disabled={pending} className="min-h-11 rounded-xl bg-[#006f72] px-4 font-bold text-white disabled:opacity-60">
-                {submitText(stage, pending, copy)}
-              </button>
-            </form>
-          )}
-          {failed ? <p role="alert" className="mt-3 text-sm font-semibold text-[#8a2f43]">{copy.error}</p> : null}
-        </>
-      )}
-      {stage !== 'complete' ? <button type="button" disabled={pending} onClick={() => { setCode(''); setEmail(''); setStage('closed'); setFailed(false); }}
+      {content}
+      {stage !== 'complete' && stage !== 'intakeClosed' ? <button type="button" disabled={pending} onClick={() => { setCode(''); setEmail(''); setStage('closed'); setFailed(false); }}
         className="mt-3 min-h-11 px-2 text-sm font-bold text-[#526274] underline">{copy.close}</button> : null}
     </section>
   );

@@ -180,7 +180,7 @@ export const tools = [
   },
   {
     name: 'get_paddle_resource',
-    description: 'Fetch a resource from Paddle (subscription, customer, etc)',
+    description: 'Reports that Paddle resource access is closed',
     inputSchema: withRepoRoot(
       {
         resource: { type: 'string', enum: ['subscriptions', 'customers', 'products', 'prices'] },

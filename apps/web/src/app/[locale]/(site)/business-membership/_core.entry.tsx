@@ -1,9 +1,15 @@
 import { CommercialDisclaimerNotice } from '@/components/commercial/commercial-disclaimer-notice';
 import { BusinessLeadForm } from '@/components/pricing/business-lead-form';
-import { loadPublicOnboardingTenants } from '@/lib/tenant/public-onboarding-tenants.server';
 import { getSupportContacts } from '@/lib/support-contacts';
+import {
+  PUBLIC_ONBOARDING_TENANTS,
+  type PublicOnboardingTenant,
+} from '@/lib/tenant/anonymous-lead-classification';
+import { resolvePublicAdmissionTenant } from '@/lib/tenant/public-admission-tenant';
+import { authorizeOpenPublicIntake } from '@/lib/tenant/public-intake-admission';
 import { getTranslations } from 'next-intl/server';
 import type { Metadata } from 'next';
+import { headers } from 'next/headers';
 
 type BusinessMembershipPageProps = Readonly<{
   params: Promise<{ locale: string }>;
@@ -27,7 +33,10 @@ export default async function BusinessMembershipPage({
   const { locale } = await params;
   const t = await getTranslations({ locale, namespace: 'pricing' });
   const contacts = getSupportContacts({ locale });
-  const tenantOptions = await loadPublicOnboardingTenants();
+  const admissionTenantId = resolvePublicAdmissionTenant(await headers());
+  const tenant = PUBLIC_ONBOARDING_TENANTS.find(id => id === admissionTenantId);
+  const tenantOptions: PublicOnboardingTenant[] =
+    tenant && (await authorizeOpenPublicIntake(tenant)) ? [tenant] : [];
   const hint = (await searchParams)?.default_booking_tenant_id;
   const bookingHints = typeof hint === 'string' ? [hint] : (hint ?? []);
 
@@ -59,11 +68,15 @@ export default async function BusinessMembershipPage({
 
         <p className="mt-6 text-sm font-semibold text-slate-500">{t('businessLead.note')}</p>
 
-        <BusinessLeadForm
-          locale={locale}
-          tenantOptions={tenantOptions}
-          bookingHints={bookingHints}
-        />
+        {tenantOptions.length > 0 ? (
+          <BusinessLeadForm
+            locale={locale}
+            tenantOptions={tenantOptions}
+            bookingHints={bookingHints}
+          />
+        ) : (
+          <p className="mt-6 text-sm font-semibold text-slate-500">{t('businessLead.CLOSED')}</p>
+        )}
 
         <div className="mt-8">
           <CommercialDisclaimerNotice

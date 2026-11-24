@@ -6,6 +6,7 @@ const hoisted = vi.hoisted(() => ({
   updateWhere: vi.fn(),
   writtenRows: vi.fn(),
   startPayment: vi.fn(),
+  assertNewSalesOpen: vi.fn(),
   withTenantContext: vi.fn(),
 }));
 
@@ -22,13 +23,18 @@ vi.mock('@interdomestik/database', () => ({
   withTenantContext: hoisted.withTenantContext,
 }));
 
-vi.mock('@interdomestik/domain-leads', () => ({ startPayment: hoisted.startPayment }));
+vi.mock('./payment', () => ({ startPayment: hoisted.startPayment }));
+vi.mock('@interdomestik/database/pilot-switch', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database/pilot-switch')>()),
+  assertNewSalesOpen: hoisted.assertNewSalesOpen,
+}));
 vi.mock('drizzle-orm', async original => ({
   ...(await original<typeof import('drizzle-orm')>()),
   notInArray: (left: unknown, right: unknown) => ({ op: 'notIn', left, right }),
 }));
 
-import { updateScopedAgentLeadStatus } from './lead-actions';
+import { SalesClosedError } from '@interdomestik/database/pilot-switch';
+import { updateScopedAgentLeadStatus } from './agent-status';
 
 const authority = mintTestTenantAuthority('tenant-1');
 const scope = { agentId: 'agent-1', branchId: 'branch-1', leadId: 'lead-1', authority };
@@ -74,6 +80,7 @@ describe('updateScopedAgentLeadStatus', () => {
       op: 'and',
       args: [scopedWhere, { op: 'notIn', left: 'member_leads.status', right: ['paid'] }],
     });
+    expect(hoisted.assertNewSalesOpen).not.toHaveBeenCalled();
   });
 
   it('denies a lead outside the scope without writing', async () => {
@@ -104,6 +111,20 @@ describe('updateScopedAgentLeadStatus', () => {
       /cash payment in verification/
     );
     expect(hoisted.updateWhere).not.toHaveBeenCalled();
+  });
+
+  it('refuses status-only conversion before writing when new sales are closed', async () => {
+    hoisted.findFirst.mockResolvedValue({ id: 'lead-1', notes: null, status: 'contacted' });
+    hoisted.assertNewSalesOpen.mockRejectedValueOnce(new SalesClosedError());
+
+    await expect(updateScopedAgentLeadStatus({ scope, status: 'converted' })).rejects.toMatchObject(
+      {
+        code: 'CLOSED',
+      }
+    );
+    expect(hoisted.assertNewSalesOpen).toHaveBeenCalledWith(expect.anything(), 'tenant-1');
+    expect(hoisted.updateWhere).not.toHaveBeenCalled();
+    expect(hoisted.startPayment).not.toHaveBeenCalled();
   });
 
   it('re-checks the lock in the write, so a concurrent approval is never overwritten', async () => {

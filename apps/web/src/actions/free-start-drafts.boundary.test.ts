@@ -41,7 +41,10 @@ function lifecycleDeps(
   return {
     createDraft: vi.fn().mockResolvedValue({ ok: false, code: 'limitReached' }),
     deleteDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),
+    hasClaimEntitlement: vi.fn().mockResolvedValue(false),
     listDrafts: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
+    readIntakeOpen: vi.fn().mockResolvedValue(true),
+    readPublicIntakeOpen: vi.fn().mockResolvedValue(false),
     resolveSession: vi.fn().mockResolvedValue({ ok: true, context, emailVerified: true }),
     resumeDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),
     updateDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),

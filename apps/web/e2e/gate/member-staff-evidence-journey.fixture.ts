@@ -13,6 +13,7 @@ import type { Browser, BrowserContext, Locator, Page, TestInfo } from '@playwrig
 import { expect } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import { updateSavedDraftOutcome } from './member-staff-evidence-draft-update.fixture';
 import {
   S3_JOURNEY_INCIDENT_DATE,
   exactClaimDescriptions,
@@ -181,7 +182,7 @@ export async function submitExactDraft(
   await panel.locator(`select:has(option[value="${facts.issue}"])`).selectOption(facts.issue);
   await panel.getByLabel('Kur ndodhi?').fill(facts.date);
   await panel.getByLabel('Me kë po merresh?').fill(journey.counterparty);
-  await panel.locator(`select:has(option[value="${facts.outcome}"])`).selectOption(facts.outcome);
+  await panel.getByLabel('Çfarë dëshiron të rikuperosh?').selectOption('written_response');
   await panel.getByLabel('Përmbledhje e shkurtër').fill(journey.summary);
   await panel.getByRole('button', { name: 'Shikoni përmbledhjen', exact: true }).click();
   await expect(intake.getByTestId('claim-draft-dormant-preview')).toBeVisible();
@@ -197,7 +198,7 @@ export async function submitExactDraft(
       eq(freeStartDrafts.tenantId, E2E_USERS.KS_MEMBER.tenantId),
       eq(freeStartDrafts.summary, journey.summary)
     ),
-    columns: { id: true, ownerUserId: true },
+    columns: { desiredOutcome: true, id: true, ownerUserId: true, version: true },
   });
   if (!draft) throw new Error('Exact saved draft missing before S3 submission');
   expect(draft.ownerUserId).toBe(ownerUserId);
@@ -205,7 +206,7 @@ export async function submitExactDraft(
   expect(sortedIds((await readOwnedDrafts(ownerUserId)).map(row => row.id))).toEqual(
     sortedIds([...retainedDraftIds, draft.id])
   );
-  await exactDraft.locator('[data-testid^="free-start-resume-"]').click();
+  await updateSavedDraftOutcome(intake, exactDraft, draft, facts.outcome);
   const submit = intake.getByTestId('claim-draft-submit');
   await expect(submit).toBeEnabled();
   await submit.click();

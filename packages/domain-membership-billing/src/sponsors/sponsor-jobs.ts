@@ -5,6 +5,7 @@ import {
   issueTenantMemberNumber,
   tenantSettings,
 } from '@interdomestik/database';
+import { SalesClosedError } from '@interdomestik/database/pilot-switch';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -52,7 +53,7 @@ export type ProvisioningRunSummary = {
   disabled?: true;
   processed: number;
   failed: number;
-  outcomes: Partial<Record<ProvisionOutcome, number>>;
+  outcomes: Partial<Record<ProvisionOutcome | 'sales_closed', number>>;
 };
 
 /**
@@ -90,8 +91,14 @@ export async function runSponsorProvisioning(
               joinedAt: options.now,
             });
           }
-        } catch {
-          summary.failed += 1;
+        } catch (error) {
+          if (error instanceof SalesClosedError) {
+            summary.processed += 1;
+            summary.outcomes.sales_closed = (summary.outcomes.sales_closed ?? 0) + 1;
+          } else {
+            summary.failed += 1;
+            console.error('[Sponsors] Provisioning entry failed', error);
+          }
         }
       }),
     Promise.resolve()

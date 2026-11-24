@@ -26,6 +26,9 @@ const runEnv = {
   NEXT_PUBLIC_APP_URL: baseUrl,
   BETTER_AUTH_URL: baseUrl,
   PLAYWRIGHT: '1',
+  INTERDOMESTIK_LOCAL_E2E: '1',
+  IDENTITY_PUBLIC_SIGN_UP: 'open',
+  DEFAULT_PUBLIC_TENANT_ID: process.env.DEFAULT_PUBLIC_TENANT_ID || 'tenant_ks',
 };
 const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'interdomestik-pilot-'));
 const serverLogPath = path.join(tempRoot, 'server.log');

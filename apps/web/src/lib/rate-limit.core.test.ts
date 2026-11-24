@@ -51,6 +51,18 @@ describe('rate-limit.core', () => {
     errorSpy.mockRestore();
   });
 
+  it('uses the configured backend for routes and actions in production even under CI', async () => {
+    process.env.CI = 'true';
+    process.env.PLAYWRIGHT = '1';
+    process.env.INTERDOMESTIK_AUTOMATED = '1';
+    mockLimit.mockResolvedValue({ success: false, reset: Date.now() + 2000 });
+    const options = { name: 'api/auth', limit: 10, windowSeconds: 60, headers: new Headers() };
+
+    expect((await enforceRateLimit(options))?.status).toBe(429);
+    expect(await enforceRateLimitForAction(options)).toMatchObject({ limited: true, status: 429 });
+    expect(mockLimit).toHaveBeenCalledTimes(2);
+  });
+
   describe('enforceRateLimit', () => {
     const mockHeaders = new Headers();
     mockHeaders.set('x-forwarded-for', '127.0.0.1');
