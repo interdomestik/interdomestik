@@ -88,13 +88,14 @@ export async function navigateToPilotSettings(page: Page, info: TestInfo, origin
   await page.getByRole('combobox', { name: 'Switch', exact: true }).selectOption('public_intake');
 }
 
+// Next.js can keep a hidden copy of a prior route tree; getByRole skips it, getByLabel does not.
+const field = (page: Page, label: string) => page.getByLabel(label).filter({ visible: true });
+
 export async function changeIntake(page: Page, enabled: boolean) {
-  await page
-    .getByLabel('Reason for the change (at least 10 characters)')
-    .fill(
-      enabled ? 'Restore intake after the recovery gate' : 'Close intake for the recovery gate'
-    );
-  if (enabled) await page.getByLabel('Signed restart approval reference').fill('E2E recovery gate');
+  await field(page, 'Reason for the change (at least 10 characters)').fill(
+    enabled ? 'Restore intake after the recovery gate' : 'Close intake for the recovery gate'
+  );
+  if (enabled) await field(page, 'Signed restart approval reference').fill('E2E recovery gate');
   await page.getByRole('button', { name: enabled ? 'Open switch' : 'Close switch' }).click();
   await expect(
     page.getByRole('button', { name: enabled ? 'Close switch' : 'Open switch' })
