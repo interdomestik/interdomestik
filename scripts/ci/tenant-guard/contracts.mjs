@@ -89,9 +89,10 @@ const REVIEWED = [
     kinds: {
       execute: 1,
     },
-    sha256: '33ae8abe4e4fb22eaad35da3faedd1cb104fa04dc04a0c599ad45d1b367b83ac',
+    sha256: 'a0a6b15ae60af7aaa66f1bdefed54a6b3c1136351dc77692f7abf40bfcba63b5',
     reason:
-      'Pre-tenant account recovery: share-row-exclusive lock on the user table to serialize the email replacement proof check; fixed SQL, no connection-control.',
+      'Pre-tenant account recovery: share-row-exclusive lock on the user table to serialize the email replacement proof check; fixed SQL, no connection-control. ' +
+      "ACQ-2c: the committed change deletes only that user's reset-password tokens in the same transaction.",
   },
   {
     file: 'apps/web/src/lib/auth/schema.ts',
@@ -288,12 +289,12 @@ function successorOf(file, unit, sha256, note) {
 export const CONTRACTS = deepFreeze([
   ...REVIEWED,
   RATE_VERIFICATION_RELEASE_CONTRACT,
-  // ACQ-2c (Plan070 with Codex): the same lock; a committed change also deletes that user's
-  // outstanding reset tokens in its transaction.
   successorOf(
     'apps/web/src/lib/auth/different-email-recovery-store.ts',
     'confirmReplacementProof',
-    'a0a6b15ae60af7aaa66f1bdefed54a6b3c1136351dc77692f7abf40bfcba63b5',
-    "ACQ-2c: the committed change deletes only that user's reset-password tokens in the same transaction."
+    '96a5f46a3ca9754aa0445af28d8804a1a4a79361881bfec5116d947ca699bcca',
+    'WP-10 B1-a: the mailbox commit holds FOR SHARE on the tenant’s pilot/public_intake row, ' +
+      'serializing close with commit and refusing a closed, absent or malformed row. It deletes ' +
+      'the sign-in codes of the old and new address in the same transaction.'
   ),
 ]);

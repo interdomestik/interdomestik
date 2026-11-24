@@ -28,17 +28,20 @@ test.describe('one-door anonymous business ownership', () => {
             const key = await door.page.locator('[name="_idempotencyKey"]').inputValue();
             keys.push(key);
             await door.page.locator('form button[type="submit"]').click();
-            await expect.poll(async () => (await businessEffects(email, key)).leads.length).toBe(1);
-            const effects = await businessEffects(email, key);
-            expect(effects.leads[0]).toMatchObject({
-              tenantId,
-              captureChannel: 'public_form',
-              leadKind: 'company',
-              agentId: owner.agentId,
-              branchId: owner.branchId,
-            });
-            expect(effects.reservations).toHaveLength(1);
-            expect(effects.reservations[0]).toMatchObject({ tenantId, status: 'completed' });
+            await expect
+              .poll(() => businessEffects(email, key))
+              .toMatchObject({
+                leads: [
+                  {
+                    tenantId,
+                    captureChannel: 'public_form',
+                    leadKind: 'company',
+                    agentId: owner.agentId,
+                    branchId: owner.branchId,
+                  },
+                ],
+                reservations: [{ tenantId, status: 'completed' }],
+              });
           } finally {
             await removeBusinessEffects(email, keys);
           }
