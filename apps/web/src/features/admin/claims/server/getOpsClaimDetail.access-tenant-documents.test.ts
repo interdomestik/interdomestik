@@ -16,12 +16,14 @@ describe('getOpsClaimDetail divergent document signing', () => {
     hoisted.getSession.mockResolvedValue({
       user: { id: 'admin-1', accessTenantId: 'tenant_ks', tenantId: 'tenant_home', role: 'admin' },
     });
-    hoisted.claimsFindFirst.mockResolvedValueOnce({
-      ...createClaim(),
-      agentId: 'agent-1',
-      staffId: 'staff-1',
-      branchId: 'branch-1',
-    });
+    hoisted.visibleClaimFrom.mockResolvedValueOnce([
+      {
+        ...createClaim(),
+        agentId: 'agent-1',
+        staffId: 'staff-1',
+        branchId: 'branch-1',
+      },
+    ]);
     const branchWhere = vi.fn().mockReturnValue({
       limit: async () => [{ id: 'branch-1', code: 'HOME-A', name: 'Home Branch' }],
     });

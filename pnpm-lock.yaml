@@ -741,6 +741,12 @@ importers:
       '@interdomestik/domain-claims':
         specifier: workspace:*
         version: link:../domain-claims
+      '@interdomestik/domain-users':
+        specifier: workspace:*
+        version: link:../domain-users
+      '@interdomestik/shared-auth':
+        specifier: workspace:*
+        version: link:../shared-auth
       '@supabase/supabase-js':
         specifier: ^2.110.9
         version: 2.110.9

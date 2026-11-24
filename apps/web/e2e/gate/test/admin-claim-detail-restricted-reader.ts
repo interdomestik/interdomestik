@@ -1,65 +1,44 @@
-import type { TenantTransaction } from '@interdomestik/database';
-import type { VisibleOpsClaim } from '@interdomestik/domain-claims/admin-claims/visible-ops-claim';
-import { count, eq, sql } from 'drizzle-orm';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import assert from 'node:assert/strict';
-import { performance } from 'node:perf_hooks';
+import { resolve } from 'node:path';
+import { readExpectedLedger } from '../../../../../scripts/ci/runtime-attestation/journal.mjs';
 import {
-  E2E_RUNTIME_ROLE,
   assertE2eRuntimeTarget,
   openGuardedClient,
   resolveE2eRuntimeUrl,
 } from '../../../../../scripts/e2e-runtime-role.mjs';
 import {
-  captureQueries,
   documentId,
   DOCUMENT_BUDGET,
   measureRead,
   type ClaimReadFixture,
 } from './admin-claim-detail-plans';
+import { observeRestrictedPool, type Pool, type RunSql } from './admin-claim-detail-query-probe';
 
 type Controller = typeof import('@interdomestik/database/db').dbRls.$client;
 type FixtureWriter = Parameters<Parameters<Controller['begin']>[1]>[0];
-type Pool = {
-  begin: <T>(callback: (client: unknown) => Promise<T>) => Promise<T>;
-  end: (options: { timeout: number }) => Promise<void>;
-};
 
-async function observeRestrictedPool<T>(
-  connection: Pool,
-  work: (stats: { transactions: number; checkoutAndBeginMs: number }) => Promise<T>
-) {
-  const stats = { transactions: 0, checkoutAndBeginMs: 0 };
-  const originalBegin = connection.begin;
-  connection.begin = function timedBegin<R>(callback: (client: unknown) => Promise<R>) {
-    stats.transactions++;
-    const started = performance.now();
-    return originalBegin<R>(client => {
-      stats.checkoutAndBeginMs = performance.now() - started;
-      return callback(client);
-    });
-  };
-  try {
-    return await work(stats);
-  } finally {
-    connection.begin = originalBegin;
-  }
+async function assertJournalBuilt(controller: Controller) {
+  const { entries } = readExpectedLedger(resolve(process.cwd(), '../..'));
+  const rows = await controller<{ hash: string; createdAt: string }[]>`
+    select hash, created_at::text as "createdAt" from drizzle.__drizzle_migrations order by id
+  `;
+  assert.deepEqual(
+    rows.map(({ hash, createdAt }) => ({ hash, createdAt })),
+    entries.map(({ hash, when }: { hash: string; when: number }) => ({
+      hash,
+      createdAt: String(when),
+    })),
+    'The verification database must match the repository migration journal'
+  );
 }
 
-async function backendPid(tx: TenantTransaction) {
-  const [row] = await tx.execute<{ pid: number }>(sql`select pg_backend_pid() as pid`);
-  assert.ok(row?.pid > 0);
-  return row.pid;
-}
-
-async function assertRestricted(tx: TenantTransaction) {
-  const [row] = await tx.execute<{ restricted: boolean }>(sql`
-    select current_user = ${E2E_RUNTIME_ROLE} and current_user = session_user
-      and rolcanlogin and not rolbypassrls and not rolsuper
-      and row_security_active('public.claim'::regclass)
-      and row_security_active('public.claim_documents'::regclass) as restricted
-    from pg_roles where rolname = current_user
-  `);
-  assert.equal(row?.restricted, true, 'Expected the non-owning restricted LOGIN with active RLS');
+function deferred() {
+  let release!: () => void;
+  const promise = new Promise<void>(resolve => {
+    release = resolve;
+  });
+  return { promise, release };
 }
 
 async function seedPlanData<T>(
@@ -72,6 +51,7 @@ async function seedPlanData<T>(
   const cases = [27, 500].flatMap(size => [
     { claimId: `${base}-null-${size}`, tenant: f.home, size, label: `null-home-${size}` },
     { claimId: `${base}-access-${size}`, tenant: f.access, size, label: `explicit-access-${size}` },
+    { claimId: `${base}-mixed-${size}`, tenant: f.home, size, label: `mixed-${size}` },
   ]);
   const noisePrefix = `${base}-noise-`;
   await controller.begin(async tx => {
@@ -91,7 +71,7 @@ async function seedPlanData<T>(
       from generate_series(1, 1000) as series(n)
       cross join generate_series(0, 99) as documents(d)
     `;
-    for (const { claimId, tenant, size } of cases) {
+    for (const { claimId, tenant, size, label } of cases) {
       const accessTenant = tenant === f.home ? null : tenant;
       const branchId = tenant === f.home ? f.branchA : 'mk_branch_a';
       await tx`
@@ -104,7 +84,8 @@ async function seedPlanData<T>(
         insert into public.claim_documents
           (id, claim_id, tenant_id, access_tenant_id, name, file_path, file_type, file_size, uploaded_by)
         select ${claimId} || '-doc-' || lpad(d::text, 4, '0'), ${claimId}, ${f.home},
-          ${accessTenant}, 'Synthetic document', ${claimId} || '/' || d,
+          case when ${label.startsWith('mixed-')} and d % 2 = 1 then ${f.home} else ${accessTenant} end,
+          'Synthetic document', ${claimId} || '/' || d,
           'application/pdf', 1, ${member}
         from generate_series(0, ${size - 1}) as documents(d)
       `;
@@ -130,26 +111,41 @@ async function seedPlanData<T>(
   }
 }
 
-async function runReader(f: ClaimReadFixture, controller: Controller, pool: () => Pool) {
-  const { claimDocuments, E2E_USER_IDS } = await import('@interdomestik/database');
+async function assertSentinels(run: RunSql, fixture: ClaimReadFixture) {
+  const [counts] = await run<{ explicit: number; fallback: number }[]>(
+    `select count(*) filter (where access_tenant_id = $2)::int as explicit,
+       count(*) filter (where access_tenant_id is null)::int as fallback
+     from public.claim_documents where claim_id = $1`,
+    [fixture.localId, fixture.home]
+  );
+  assert.deepEqual(
+    counts,
+    { explicit: 13, fallback: 14 },
+    'Both document access arms must still have rows under tenant RLS alone'
+  );
+}
+
+async function runReader(f: ClaimReadFixture, controller: Controller, getPool: () => Pool) {
+  const { E2E_USER_IDS } = await import('@interdomestik/database');
   const { assertRlsConnectionRoleReady } = await import('@interdomestik/database/db');
-  const { withTenantAuthority } = await import('@interdomestik/database/tenant-authority-context');
   const { mintTestTenantAuthority } =
     await import('@interdomestik/database/testing/tenant-authority');
-  const { getVisibleOpsClaim } =
-    await import('@interdomestik/domain-claims/admin-claims/visible-ops-claim');
-  const { listVisibleClaimDocuments, OPS_CLAIM_DOCUMENT_PAGE_SIZE } =
+  const { readOpsClaimDetailData: read } =
     await import('@interdomestik/domain-documents/claim-documents');
-  const { searchAssignableStaff } =
-    await import('@interdomestik/domain-users/admin/search-assignable-staff');
 
   await assertRlsConnectionRoleReady();
+  const pool = getPool();
   const session = (tenant: string, userId: string, role: string, branchId?: string) =>
     mintTestTenantAuthority(tenant, { userId, role, branchId, purpose: 'session' });
   const admin = session(f.home, E2E_USER_IDS.KS_ADMIN, 'admin');
   const manager = session(f.home, E2E_USER_IDS.KS_BRANCH_MANAGER, 'branch_manager', f.branchA);
   const current = session(f.access, E2E_USER_IDS.MK_ADMIN, 'admin');
-  const member = session(f.home, E2E_USER_IDS.KS_MEMBER_A2, 'member');
+  const currentManager = session(
+    f.access,
+    E2E_USER_IDS.MK_BRANCH_MANAGER,
+    'branch_manager',
+    'mk_branch_a'
+  );
   const staff = session(f.home, E2E_USER_IDS.KS_STAFF, 'staff');
   const mismatched = mintTestTenantAuthority(f.home, {
     userId: E2E_USER_IDS.KS_ADMIN,
@@ -157,107 +153,169 @@ async function runReader(f: ClaimReadFixture, controller: Controller, pool: () =
     accessTenantId: f.access,
     purpose: 'session',
   });
-
-  const list = (tx: TenantTransaction, visibleClaim: VisibleOpsClaim, afterId?: string) =>
-    listVisibleClaimDocuments(tx, { visibleClaim, afterId, limit: OPS_CLAIM_DOCUMENT_PAGE_SIZE });
-  const rawCount = async (tx: TenantTransaction, claimId: string) => {
-    const [row] = await tx
-      .select({ count: count() })
-      .from(claimDocuments)
-      .where(eq(claimDocuments.claimId, claimId));
-    return row.count;
-  };
-  async function denyProof(tx: TenantTransaction, proof: VisibleOpsClaim) {
-    const queries: { text: string; binds: unknown[] }[] = [];
-    await captureQueries(tx, queries, () =>
-      assert.rejects(list(tx, proof), /Invalid visible claim proof/)
-    );
-    assert.equal(queries.length, 0, 'Invalid proof reached document SQL');
+  const nonSession = mintTestTenantAuthority(f.home, {
+    userId: E2E_USER_IDS.KS_ADMIN,
+    role: 'admin',
+  });
+  const fabricated = Object.freeze({}) as TenantAuthority;
+  const now = Date.now;
+  let expired: TenantAuthority;
+  try {
+    Date.now = () => now() - 60 * 60_000;
+    expired = session(f.home, E2E_USER_IDS.KS_ADMIN, 'admin');
+  } finally {
+    Date.now = now;
   }
 
-  for (const { authority, claimId, readable } of [
-    { authority: member, claimId: f.localId, readable: 27 },
-    { authority: manager, claimId: f.wrongBranchId, readable: 1 },
-    { authority: staff, claimId: f.localId, readable: 27 },
-    { authority: admin, claimId: f.transferredId, readable: 1 },
+  for (const { authority, claimId, claimReads, label } of [
+    {
+      authority: session(f.home, E2E_USER_IDS.KS_MEMBER_A2, 'member'),
+      claimId: f.localId,
+      claimReads: 0,
+      label: 'wrong-user member',
+    },
+    { authority: staff, claimId: f.localId, claimReads: 0, label: 'staff' },
+    {
+      authority: session(f.home, E2E_USER_IDS.KS_BRANCH_MANAGER, 'branch_manager'),
+      claimId: f.localId,
+      claimReads: 0,
+      label: 'branchless manager',
+    },
+    { authority: manager, claimId: f.wrongBranchId, claimReads: 1, label: 'other branch' },
+    { authority: admin, claimId: f.transferredId, claimReads: 1, label: 'former access tenant' },
+    { authority: current, claimId: f.localId, claimReads: 1, label: 'wrong access tenant' },
+    { authority: mismatched, claimId: f.localId, claimReads: 0, label: 'mismatched tenant IDs' },
+    { authority: nonSession, claimId: f.localId, claimReads: 0, label: 'non-session authority' },
   ]) {
-    assert.equal(
-      await getVisibleOpsClaim({ authority, claimId }, async () =>
-        assert.fail('Refused claim opened')
-      ),
-      null
-    );
-    await withTenantAuthority(authority, async tx => {
-      await assertRestricted(tx);
-      assert.equal(
-        await rawCount(tx, claimId),
-        readable,
-        'Denial fixture must be readable by tenant RLS alone'
-      );
-      const fabricated = { documentScope: () => ({ claimId, authority }) };
-      await denyProof(tx, fabricated as unknown as VisibleOpsClaim);
-    });
-  }
-  assert.equal(
-    await getVisibleOpsClaim({ authority: mismatched, claimId: f.localId }, async () =>
-      assert.fail('Mismatched authority entered claim callback')
-    ),
-    null
-  );
-
-  const page = await observeRestrictedPool(pool(), async stats => {
-    const result = await getVisibleOpsClaim(
-      { authority: current, claimId: f.transferredId },
-      async (tx, proof) => {
-        const pid = await backendPid(tx);
-        await assertRestricted(tx);
-        const documents = await list(tx, proof);
-        const staffPage = await searchAssignableStaff(tx, { authority: current, search: f.prefix });
-        assert.equal(staffPage.items.length, 1);
-        assert.equal(await backendPid(tx), pid);
-        return documents;
+    await observeRestrictedPool(
+      pool,
+      async traces => {
+        assert.equal(await read({ authority, claimId }), null, label);
+        assert.equal(traces.length, claimReads, label);
+        assert.deepEqual(
+          traces.flatMap(trace => trace.reads),
+          claimReads ? ['claim'] : [],
+          label
+        );
+      },
+      {
+        afterRead: async (kind, run) => {
+          if (kind !== 'claim') return;
+          const [row] = await run<{ count: number }[]>(
+            'select count(*)::int as count from public.claim_documents where claim_id = $1',
+            [claimId]
+          );
+          assert.equal(row?.count, 1, `${label}: the sentinel must be readable under RLS alone`);
+        },
       }
     );
+  }
+  await observeRestrictedPool(pool, async traces => {
+    await assert.rejects(
+      read({ authority: fabricated, claimId: f.localId }),
+      /Unrecognized tenant authority/
+    );
+    await assert.rejects(
+      read({ authority: expired, claimId: f.localId }),
+      /Expired tenant authority/
+    );
+    assert.deepEqual(traces, []);
+  });
+
+  function assertPage(
+    documents: NonNullable<Awaited<ReturnType<typeof read>>>['documents'],
+    ids: string[],
+    nextCursor: string | null
+  ) {
+    assert.equal(documents.kind, 'page');
+    assert.deepEqual(
+      documents.items.map(item => item.id),
+      ids
+    );
+    assert.equal(documents.nextCursor, nextCursor);
+  }
+
+  const firstIds = (claimId: string) =>
+    Array.from({ length: 25 }, (_, i) => documentId(claimId, i));
+  await observeRestrictedPool(pool, async traces => {
+    const result = await read({
+      authority: current,
+      claimId: f.transferredId,
+      staffSearch: f.prefix,
+    });
+    assert.ok(result);
+    assertPage(result.documents, firstIds(f.transferredId), documentId(f.transferredId, 24));
+    assert.equal(result.staffPage?.items.length, 1);
     assert.equal(
-      stats.transactions,
+      traces.length,
       1,
       'Claim, documents and staff must share one restricted transaction'
     );
-    return result;
+    assert.deepEqual(traces[0].reads, ['claim', 'documents', 'staff']);
   });
-  assert.equal(page?.kind, 'page');
-  assert.deepEqual(
-    page.items.map(item => item.id),
-    Array.from({ length: 25 }, (_, i) => documentId(f.transferredId, i))
-  );
-  assert.equal(page.nextCursor, documentId(f.transferredId, 24));
-  assert.deepEqual(await getVisibleOpsClaim({ authority: manager, claimId: f.localId }, list), {
-    kind: 'summary',
-    count: 27,
+  await observeRestrictedPool(pool, async traces => {
+    const result = await read({ authority: manager, claimId: f.localId, staffSearch: f.prefix });
+    assert.ok(result);
+    assert.deepEqual(result.documents, { kind: 'summary', count: 27 });
+    assert.equal(result.staffPage, null);
+    assert.equal(traces.length, 1);
+    assert.deepEqual(traces[0].reads, ['claim', 'documents']);
   });
 
-  const expired = await getVisibleOpsClaim(
-    { authority: admin, claimId: f.localId },
-    async (tx, proof) => {
-      const originalPid = await backendPid(tx);
-      // The original callback remains live during replay on a second same-tenant connection.
-      await withTenantAuthority(admin, async otherTx => {
-        assert.notEqual(await backendPid(otherTx), originalPid);
-        assert.equal(await rawCount(otherTx, f.localId), 27);
-        await denyProof(otherTx, proof);
-      });
-      const live = await list(tx, proof);
-      assert.equal(live.kind, 'page');
-      assert.equal(live.nextCursor, documentId(f.localId, 24));
-      return { tx, proof };
+  const first = await read({ authority: admin, claimId: f.localId });
+  assert.ok(first);
+  assertPage(first.documents, firstIds(f.localId), documentId(f.localId, 24));
+  assert.equal(first.documents.kind, 'page');
+  const documentsAfter = first.documents.nextCursor;
+  assert.ok(documentsAfter);
+  let pausedOnce = false;
+  const paused = deferred();
+  const resume = deferred();
+  await observeRestrictedPool(
+    pool,
+    async traces => {
+      const authorized = read({ authority: admin, claimId: f.localId, documentsAfter });
+      try {
+        await Promise.race([
+          paused.promise,
+          authorized.then(() => assert.fail('Authorized page did not pause')),
+        ]);
+        const denied = await read({ authority: current, claimId: f.localId, documentsAfter });
+        assert.equal(denied, null);
+        assert.equal(traces.length, 2);
+        assert.notEqual(traces[0].pid, traces[1].pid);
+        assert.deepEqual(traces[1].reads, ['claim']);
+      } finally {
+        resume.release();
+        const continued = await authorized;
+        assert.ok(continued);
+        assertPage(
+          continued.documents,
+          [documentId(f.localId, 25), documentId(f.localId, 26)],
+          null
+        );
+      }
+    },
+    {
+      beforeDocuments: async () => {
+        // A denied regression reaching this hook must fail the trace assertion instead of waiting.
+        if (!pausedOnce) {
+          pausedOnce = true;
+          paused.release();
+          await resume.promise;
+        }
+      },
     }
   );
-  assert.ok(expired);
-  await denyProof(expired.tx, expired.proof);
 
   for (const { label, authority, branchId, accessTenant } of [
-    { label: 'branch', authority: manager, branchId: f.branchB, accessTenant: null },
-    { label: 'access tenant', authority: admin, branchId: f.branchA, accessTenant: f.access },
+    { label: 'branch count', authority: manager, branchId: f.branchB, accessTenant: null },
+    {
+      label: 'access tenant metadata',
+      authority: admin,
+      branchId: f.branchA,
+      accessTenant: f.access,
+    },
     {
       label: 'access tenant count',
       authority: manager,
@@ -265,7 +323,11 @@ async function runReader(f: ClaimReadFixture, controller: Controller, pool: () =
       accessTenant: f.access,
     },
   ]) {
-    const move = async (writer: FixtureWriter) => {
+    const move = async (writer: FixtureWriter, readerPid?: number) => {
+      if (readerPid !== undefined) {
+        const [row] = await writer`select pg_backend_pid() as pid`;
+        assert.notEqual(row.pid, readerPid, label);
+      }
       const changed = await writer`
         update public.claim set branch_id = ${branchId}, access_tenant_id = ${accessTenant}
         where id = ${f.localId} returning id
@@ -277,22 +339,19 @@ async function runReader(f: ClaimReadFixture, controller: Controller, pool: () =
     `;
 
     try {
-      const observed = await getVisibleOpsClaim(
-        { authority, claimId: f.localId },
-        async (tx, proof) => {
-          const readerPid = await backendPid(tx);
-          await assertRestricted(tx);
-          await controller.begin(async writer => {
-            const [row] = await writer`select pg_backend_pid() as pid`;
-            assert.notEqual(row.pid, readerPid, label);
-            await move(writer);
-          });
-          assert.equal(await rawCount(tx, f.localId), 27, label);
-          return list(tx, proof);
+      const observed = await observeRestrictedPool(
+        pool,
+        () => read({ authority, claimId: f.localId }),
+        {
+          beforeDocuments: async (run, pid) => {
+            await controller.begin(writer => move(writer, pid));
+            await assertSentinels(run, f);
+          },
         }
       );
+      assert.ok(observed, label);
       assert.deepEqual(
-        observed,
+        observed.documents,
         authority === manager
           ? { kind: 'summary', count: 0 }
           : { kind: 'page', items: [], nextCursor: null },
@@ -305,128 +364,100 @@ async function runReader(f: ClaimReadFixture, controller: Controller, pool: () =
     try {
       await controller.begin(async writer => {
         const [row] = await writer`select pg_backend_pid() as pid`;
-        const beforeMove = await getVisibleOpsClaim(
-          { authority, claimId: f.localId },
-          async (tx, proof) => {
-            assert.notEqual(await backendPid(tx), row.pid, label);
-            assert.equal(await rawCount(tx, f.localId), 27, label);
-            return list(tx, proof);
+        await move(writer);
+        // READ COMMITTED sees the original row while the move remains uncommitted.
+        const beforeCommit = await observeRestrictedPool(
+          pool,
+          () => read({ authority, claimId: f.localId }),
+          {
+            beforeDocuments: async (run, pid) => {
+              assert.notEqual(pid, row.pid, label);
+              await assertSentinels(run, f);
+            },
           }
         );
+        assert.ok(beforeCommit, label);
         if (authority === manager) {
-          assert.deepEqual(beforeMove, { kind: 'summary', count: 27 }, label);
+          assert.deepEqual(beforeCommit.documents, { kind: 'summary', count: 27 }, label);
         } else {
-          assert.equal(beforeMove?.kind, 'page', label);
-          assert.equal(beforeMove.items.length, 25, label);
-          assert.equal(beforeMove.nextCursor, documentId(f.localId, 24), label);
+          assertPage(beforeCommit.documents, firstIds(f.localId), documentId(f.localId, 24));
         }
-        await move(writer);
       });
-      await withTenantAuthority(authority, async tx => {
-        assert.equal(await rawCount(tx, f.localId), 27, label);
+      await observeRestrictedPool(pool, async traces => {
+        assert.equal(await read({ authority, claimId: f.localId }), null, label);
+        assert.deepEqual(
+          traces.map(trace => trace.reads),
+          [['claim']],
+          label
+        );
       });
-      assert.equal(
-        await getVisibleOpsClaim({ authority, claimId: f.localId }, async () => assert.fail(label)),
-        null
-      );
     } finally {
       await restore();
     }
   }
 
   if (process.env.WP19_EXPLAIN !== '1') return { restricted: true, misses: [] };
-  const plans = await seedPlanData(controller, f, E2E_USER_IDS.KS_MEMBER, cases =>
-    observeRestrictedPool(pool(), async stats => {
-      const evidence = [];
-      for (const { claimId, tenant, size, label } of [
-        ...cases,
-        { claimId: f.localId, tenant: f.home, size: 27, label: 'mixed-27' },
-      ]) {
-        const metadataAuthority = tenant === f.home ? admin : current;
-        const countAuthority =
-          tenant === f.home
-            ? manager
-            : session(f.access, E2E_USER_IDS.MK_BRANCH_MANAGER, 'branch_manager', 'mk_branch_a');
-        const measuredDocumentId = (index: number) =>
-          documentId(claimId, index, label === 'mixed-27' ? 2 : 4);
-
-        const first = await getVisibleOpsClaim(
-          { authority: metadataAuthority, claimId },
-          async (tx, proof) => {
-            await assertRestricted(tx);
-            return measureRead(
-              tx,
-              `${label}/first`,
-              'claim_documents',
-              stats.checkoutAndBeginMs,
-              () => list(tx, proof)
-            );
-          }
-        );
-        assert.equal(first?.result.kind, 'page', label);
-        assert.deepEqual(
-          first.result.items.map(item => item.id),
-          Array.from({ length: 25 }, (_, i) => measuredDocumentId(i))
-        );
-        assert.equal(first.result.nextCursor, measuredDocumentId(24), label);
-        evidence.push(first.evidence);
-
-        const skip = size === 500 ? 474 : 24;
-        const continued = await getVisibleOpsClaim(
-          { authority: metadataAuthority, claimId },
-          async (tx, proof) => {
-            await assertRestricted(tx);
-            return measureRead(
-              tx,
-              `${label}/continuation`,
-              'claim_documents',
-              stats.checkoutAndBeginMs,
-              () => list(tx, proof, measuredDocumentId(skip))
-            );
-          }
-        );
-        assert.equal(continued?.result.kind, 'page', label);
-        assert.deepEqual(
-          continued.result.items.map(item => item.id),
-          Array.from({ length: size - skip - 1 }, (_, i) => measuredDocumentId(skip + 1 + i))
-        );
-        assert.equal(continued.result.nextCursor, null, label);
-        evidence.push(continued.evidence);
-
-        const summary = await getVisibleOpsClaim(
-          { authority: countAuthority, claimId },
-          async (tx, proof) => {
-            await assertRestricted(tx);
-            return measureRead(
-              tx,
-              `${label}/count`,
-              'claim_documents',
-              stats.checkoutAndBeginMs,
-              () => list(tx, proof)
-            );
-          }
-        );
-        assert.deepEqual(summary?.result, { kind: 'summary', count: size }, label);
-        assert.ok(summary);
-        evidence.push(summary.evidence);
-      }
-      for (const [label, afterId] of [
-        ['staff/first', undefined],
-        ['staff/continuation', f.staffAfter],
+  const plans = await seedPlanData(controller, f, E2E_USER_IDS.KS_MEMBER, async cases => {
+    const evidence: Awaited<ReturnType<typeof measureRead>>[] = [];
+    for (const { claimId, tenant, size, label } of cases) {
+      const metadataAuthority = tenant === f.home ? admin : current;
+      const countAuthority = tenant === f.home ? manager : currentManager;
+      const id = (index: number) => documentId(claimId, index, 4);
+      const skip = size === 500 ? 474 : 24;
+      for (const [phase, authority, after] of [
+        ['first', metadataAuthority, undefined],
+        ['continuation', metadataAuthority, id(skip)],
+        ['count', countAuthority, undefined],
       ] as const) {
-        const measured = await withTenantAuthority(admin, async tx => {
-          await assertRestricted(tx);
-          return measureRead(tx, label, 'user', stats.checkoutAndBeginMs, () =>
-            searchAssignableStaff(tx, { authority: admin, search: f.prefix, afterId })
+        const start = evidence.length;
+        const result = await observeRestrictedPool(
+          pool,
+          () => read({ authority, claimId, documentsAfter: after }),
+          {
+            afterRead: async (kind, run, query, checkoutAndBeginMs) => {
+              if (kind === 'documents') {
+                evidence.push(
+                  await measureRead(run, query, `${label}/${phase}`, checkoutAndBeginMs)
+                );
+              }
+            },
+          }
+        );
+        assert.equal(evidence.length, start + 1);
+        assert.ok(result, label);
+        if (phase === 'count') {
+          assert.deepEqual(result.documents, { kind: 'summary', count: size }, label);
+        } else {
+          const offset = phase === 'first' ? 0 : skip + 1;
+          assertPage(
+            result.documents,
+            Array.from({ length: Math.min(25, size - offset) }, (_, i) => id(offset + i)),
+            phase === 'first' ? id(24) : null
           );
-        });
-        assert.equal(measured.result.items.length, afterId ? 1 : 25);
-        assert.equal(measured.result.nextCursor, afterId ? null : f.staffAfter);
-        evidence.push(measured.evidence);
+        }
       }
-      return evidence;
-    })
-  );
+    }
+    for (const [label, staffAfter] of [
+      ['staff/first', undefined],
+      ['staff/continuation', f.staffAfter],
+    ] as const) {
+      const start = evidence.length;
+      const result = await observeRestrictedPool(
+        pool,
+        () => read({ authority: admin, claimId: f.localId, staffSearch: f.prefix, staffAfter }),
+        {
+          afterRead: async (kind, run, query, checkoutAndBeginMs) => {
+            if (kind === 'staff')
+              evidence.push(await measureRead(run, query, label, checkoutAndBeginMs));
+          },
+        }
+      );
+      assert.equal(evidence.length, start + 1);
+      assert.equal(result?.staffPage?.items.length, staffAfter ? 1 : 25);
+      assert.equal(result.staffPage.nextCursor, staffAfter ? null : f.staffAfter);
+    }
+    return evidence;
+  });
   return {
     restricted: true,
     caseVolume: { unrelatedClaims: 1000, unrelatedDocuments: 100_000 },
@@ -459,6 +490,7 @@ async function main() {
     return globals.queryClientRls;
   };
   try {
+    await assertJournalBuilt(controller);
     const result = await runReader(fixture, controller, pool);
     process.stdout.write(`WP19_RESULT ${JSON.stringify(result)}\n`);
   } finally {

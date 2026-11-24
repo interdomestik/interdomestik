@@ -10,7 +10,6 @@ import {
 } from '@interdomestik/database';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import { randomUUID } from 'node:crypto';
-import { openGuardedClient } from '../../../../scripts/e2e-runtime-role.mjs';
 import { expect, loginAtDoor, test } from '../fixtures/one-door.fixture';
 import { gotoApp } from '../utils/navigation';
 import {
@@ -21,6 +20,7 @@ import {
 
 const home = 'tenant_ks';
 const access = 'tenant_mk';
+const RUNTIME_ROLE_MODULE: string = '../../../../scripts/e2e-runtime-role.mjs';
 
 const pagingTest = test.extend<{
   claimFixture: ClaimReadFixture & { staff: { id: string; name: string; email: string }[] };
@@ -46,6 +46,10 @@ const pagingTest = test.extend<{
         updatedAt: now,
       };
     });
+    // The guarded role script is native ESM and Playwright loads this spec as CommonJS.
+    const { openGuardedClient } = (await import(
+      RUNTIME_ROLE_MODULE
+    )) as typeof import('../../../../scripts/e2e-runtime-role.mjs');
     const client: typeof import('@interdomestik/database/db').dbRls.$client =
       await openGuardedClient(
         process.env.E2E_DATABASE_URL ?? process.env.DATABASE_URL ?? '',
@@ -140,7 +144,7 @@ const pagingTest = test.extend<{
 });
 
 pagingTest(
-  'WP-19 restricted exports enforce claim proof and current document visibility',
+  'WP-19 restricted reader enforces session scope and current document visibility',
   async ({ claimFixture: { staff: _staff, ...fixture } }, info) => {
     test.setTimeout(120_000);
     await runRestrictedClaimReader(info, fixture);
@@ -271,7 +275,7 @@ pagingTest(
     await expect(picker).toHaveCount(0);
     await denied(path(wrongBranchId, `?branchId=${branchB}`));
 
-    const injectedAdmin = `?userId=${E2E_USER_IDS.KS_ADMIN}&role=admin&tenantId=${home}&documentsAfter=${localAfter}`;
+    const injectedAdmin = `?userId=${E2E_USER_IDS.KS_ADMIN}&role=admin&tenantId=${home}&branchId=${branchB}&documentsAfter=${localAfter}`;
     await actor('KS_STAFF');
     await denied(path(localId, injectedAdmin));
     await actor('KS_MEMBER_A2');

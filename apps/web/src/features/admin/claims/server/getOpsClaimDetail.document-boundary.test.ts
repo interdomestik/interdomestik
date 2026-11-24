@@ -3,6 +3,7 @@ import {
   hoisted,
   mockSelectChains,
   resetOpsClaimDetailMocks,
+  sqlOf,
 } from './getOpsClaimDetail.test-fixtures';
 import { getOpsClaimDetail } from './getOpsClaimDetail';
 
@@ -18,7 +19,7 @@ describe('D1 Ops document boundary', () => {
         branchId: 'branch-a',
       },
     });
-    const { docsUnion } = mockSelectChains();
+    const { docsUnion, docsWhere } = mockSelectChains();
     docsUnion.mockResolvedValueOnce([{ count: 1 }, { count: 1 }]);
 
     const result = await getOpsClaimDetail('claim-1');
@@ -33,6 +34,22 @@ describe('D1 Ops document boundary', () => {
       .slice(1, 3)
       .map(([fields]) => Object.keys(fields));
     expect(projections).toEqual([['count'], ['count']]);
+    const scopes = docsWhere.mock.calls.map(([where]) => sqlOf(where));
+    expect(scopes).toHaveLength(2);
+    expect(scopes[0].sql).toContain('"claim_documents"."access_tenant_id" =');
+    expect(scopes[1].sql).toContain('"claim_documents"."access_tenant_id" is null');
+    for (const scope of scopes) {
+      expect(scope.sql).toContain('exists (select');
+      expect(scope.sql).toContain('"claim"."branch_id" =');
+      expect(scope.params).toEqual([
+        'tenant_ks',
+        'claim-1',
+        'tenant_ks',
+        'tenant_ks',
+        'claim-1',
+        'branch-a',
+      ]);
+    }
   });
 
   it('isolates invalid legacy and failed signatures without leaking document data', async () => {

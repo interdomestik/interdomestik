@@ -1,4 +1,3 @@
-import type { TenantTransaction } from '@interdomestik/database';
 import type { TestInfo } from '@playwright/test';
 import { execFile } from 'node:child_process';
 import { createRequire } from 'node:module';
@@ -17,7 +16,7 @@ export type ClaimReadFixture = {
   staffAfter: string;
 };
 
-type CapturedQuery = { text: string; binds: unknown[] };
+export type CapturedQuery = { text: string; binds: unknown[] };
 type ExplainNode = {
   'Actual Rows': number;
   'Actual Loops': number;
@@ -25,38 +24,6 @@ type ExplainNode = {
   'Shared Read Blocks': number;
 };
 type Explain = { Plan: ExplainNode; 'Execution Time': number; 'Planning Time': number };
-
-type ReaderSession = {
-  logger: { logQuery: (text: string, binds: unknown[]) => void };
-  client: {
-    unsafe(text: string, binds: unknown[]): PromiseLike<{ 'QUERY PLAN': Explain[] }[]>;
-  };
-};
-
-function readerSession(tx: TenantTransaction): ReaderSession {
-  // Drizzle gives each postgres-js transaction its own session. Scope instrumentation to that
-  // session and restore its logger even on failure. No app process installs this instrumentation.
-  const session: unknown = Reflect.get(tx, 'session');
-  if (!session || typeof session !== 'object' || !('logger' in session) || !('client' in session)) {
-    throw new Error('WP-19 could not instrument the restricted Drizzle transaction');
-  }
-  return session as ReaderSession;
-}
-
-export async function captureQueries<T>(
-  tx: TenantTransaction,
-  queries: CapturedQuery[],
-  work: () => Promise<T>
-): Promise<T> {
-  const session = readerSession(tx);
-  const original = session.logger;
-  session.logger = { logQuery: (text, binds) => queries.push({ text, binds: [...binds] }) };
-  try {
-    return await work();
-  } finally {
-    session.logger = original;
-  }
-}
 
 export const documentId = (claimId: string, index: number, width = 2) =>
   `${claimId}-doc-${String(index).padStart(width, '0')}`;
@@ -69,28 +36,16 @@ const DOCUMENT_BUDGET = {
   maxSharedBlocks: 128,
 };
 
-export async function measureRead<T>(
-  tx: TenantTransaction,
+export async function measureRead(
+  run: (text: string, binds: unknown[]) => PromiseLike<{ 'QUERY PLAN': Explain[] }[]>,
+  query: CapturedQuery,
   label: string,
-  table: 'claim_documents' | 'user',
-  checkoutAndBeginMs: number,
-  action: () => Promise<T>
+  checkoutAndBeginMs: number
 ) {
-  const queries: CapturedQuery[] = [];
-  const result = await captureQueries(tx, queries, action);
-  const [query] = queries;
-  if (queries.length !== 1 || !query.text.includes(`from "${table}"`)) {
-    throw new Error(`WP-19 ${label} did not issue one captured ${table} statement`);
-  }
-
-  const client = readerSession(tx).client;
   const explain = async () => {
     // Replay the driver's captured statement and untouched binds on the same checked-out
     // connection, role and transaction-local settings that produced the original result.
-    const [row] = await client.unsafe(
-      `explain (analyze, buffers, format json) ${query.text}`,
-      query.binds
-    );
+    const [row] = await run(`explain (analyze, buffers, format json) ${query.text}`, query.binds);
     const plan = row?.['QUERY PLAN']?.[0];
     if (
       !plan ||
@@ -114,13 +69,10 @@ export async function measureRead<T>(
     ...plans.map(({ Plan: node }) => node['Shared Hit Blocks'] + node['Shared Read Blocks'])
   );
   const passed =
-    table !== 'claim_documents' ||
+    label.startsWith('staff/') ||
     (p75Ms <= DOCUMENT_BUDGET.p75ExecutionMs && sharedBlocks <= DOCUMENT_BUDGET.maxSharedBlocks);
 
-  return {
-    result,
-    evidence: { label, passed, p75Ms, sharedBlocks, checkoutAndBeginMs, query, plans },
-  };
+  return { label, passed, p75Ms, sharedBlocks, checkoutAndBeginMs, query, plans };
 }
 
 export async function runRestrictedClaimReader(info: TestInfo, fixture: ClaimReadFixture) {

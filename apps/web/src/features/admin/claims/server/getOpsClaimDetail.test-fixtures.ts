@@ -7,20 +7,12 @@ import { PgDialect, QueryBuilder } from 'drizzle-orm/pg-core';
 import { type SQL } from 'drizzle-orm';
 import { vi } from 'vitest';
 const hoisted = vi.hoisted(() => {
-  const claimsFindFirst = vi.fn();
+  const visibleClaimFrom = vi.fn();
   const dbSelect = vi.fn();
   const getSession = vi.fn();
   const headersFn = vi.fn(() => Promise.resolve(new Headers([['host', 'ks.localhost:3000']])));
   const withTenantContext = vi.fn(
-    async (_ctx: unknown, action: (tx: unknown) => unknown) =>
-      await action({
-        query: {
-          claims: {
-            findFirst: claimsFindFirst,
-          },
-        },
-        select: dbSelect,
-      })
+    async (_ctx: unknown, action: (tx: unknown) => unknown) => await action({ select: dbSelect })
   );
   const mapClaimToOperationalRow = vi.fn(() => ({
     id: 'claim-1',
@@ -34,7 +26,7 @@ const hoisted = vi.hoisted(() => {
     diasporaCountry: null,
   }));
   return {
-    claimsFindFirst,
+    visibleClaimFrom,
     dbSelect,
     delegateClaimHomeTenantRead: vi.fn(),
     getSession,
@@ -84,6 +76,10 @@ export function sqlOf(value: SQL) {
   return new PgDialect().sqlToQuery(value);
 }
 
+export function visibleClaimSql() {
+  return new QueryBuilder().select().from(hoisted.visibleClaimFrom.mock.lastCall?.[0]).toSQL();
+}
+
 export function createClaim() {
   const now = new Date('2026-02-22T00:00:00.000Z');
   return {
@@ -128,7 +124,6 @@ export function mockSelectChains(branchWhere?: ReturnType<typeof vi.fn>) {
     limit: vi.fn().mockReturnThis(),
     unionAll: docsUnion,
   });
-  hoisted.dbSelect.mockImplementationOnce(fields => new QueryBuilder().select(fields));
   const peopleWhere = vi
     .fn()
     .mockResolvedValue([
@@ -165,7 +160,8 @@ export function resetOpsClaimDetailMocks(): void {
       role: 'admin',
     },
   });
-  hoisted.claimsFindFirst.mockResolvedValue(createClaim());
+  hoisted.visibleClaimFrom.mockResolvedValue([createClaim()]);
+  hoisted.dbSelect.mockImplementationOnce(() => ({ from: hoisted.visibleClaimFrom }));
   hoisted.searchAssignableStaff.mockResolvedValue({ items: [], nextCursor: null });
   // Delegates to the claim's home tenant with the caller's principal, as the kernel producer does.
   hoisted.delegateClaimHomeTenantRead.mockImplementation((authority: TenantAuthority) => {
@@ -179,14 +175,7 @@ export function resetOpsClaimDetailMocks(): void {
   });
   hoisted.withTenantContext.mockImplementation(
     async (_ctx: unknown, action: (tx: unknown) => unknown) =>
-      await action({
-        query: {
-          claims: {
-            findFirst: hoisted.claimsFindFirst,
-          },
-        },
-        select: hoisted.dbSelect,
-      })
+      await action({ select: hoisted.dbSelect })
   );
 }
 

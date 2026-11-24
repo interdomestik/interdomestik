@@ -6,7 +6,7 @@ import {
   mockSelectChains,
   readContexts,
   resetOpsClaimDetailMocks,
-  sqlOf,
+  visibleClaimSql,
 } from './getOpsClaimDetail.test-fixtures';
 import { getOpsClaimDetail } from './getOpsClaimDetail';
 
@@ -32,13 +32,13 @@ function signInAs(user: { role: string; branchId?: string }): void {
 
 function expectDeniedBeforeSql(result: unknown): void {
   expect(result).toEqual({ kind: 'not_found' });
-  expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
+  expect(hoisted.visibleClaimFrom).not.toHaveBeenCalled();
   expect(hoisted.withTenantContext).not.toHaveBeenCalled();
 }
 
 function expectAccessThenHomeTenantReads(): void {
   expect(readContexts().map(context => context.tenantId)).toEqual(['tenant_ks', 'tenant_home']);
-  expect(sqlOf(hoisted.claimsFindFirst.mock.lastCall?.[0].where).params).toContain('tenant_ks');
+  expect(visibleClaimSql().params).toContain('tenant_ks');
 }
 
 describe('getOpsClaimDetail host admission', () => {
@@ -165,14 +165,15 @@ describe('getOpsClaimDetail host admission', () => {
 
   it('fails closed in SQL for a foreign claim on an IDA host', async () => {
     requestFrom('ida.interdomestik.com');
-    hoisted.claimsFindFirst.mockResolvedValueOnce(undefined);
+    hoisted.visibleClaimFrom.mockResolvedValueOnce([]);
 
     const result = await loadClaim();
 
     expect(result).toEqual({ kind: 'not_found' });
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(sqlOf(hoisted.claimsFindFirst.mock.lastCall?.[0].where).params).toContain('tenant_ks');
-    expect(hoisted.dbSelect).not.toHaveBeenCalled();
+    expect(visibleClaimSql().params).toContain('tenant_ks');
+    expect(hoisted.dbSelect).toHaveBeenCalledTimes(1);
+    expect(hoisted.searchAssignableStaff).not.toHaveBeenCalled();
   });
 
   it('scopes branch managers to their own branch on an IDA host', async () => {
@@ -184,19 +185,19 @@ describe('getOpsClaimDetail host admission', () => {
     const result = await loadClaim();
 
     expect(result.kind).toBe('ok');
-    expect(sqlOf(hoisted.claimsFindFirst.mock.lastCall?.[0].where).params).toContain('branch-1');
+    expect(visibleClaimSql().params).toContain('branch-1');
   });
 
   it('denies another branch in SQL on an IDA host', async () => {
     requestFrom('ida.interdomestik.com');
     signInAs({ role: 'branch_manager', branchId: 'branch-2' });
-    hoisted.claimsFindFirst.mockResolvedValueOnce(undefined);
+    hoisted.visibleClaimFrom.mockResolvedValueOnce([]);
 
     const result = await loadClaim();
 
     expect(result).toEqual({ kind: 'not_found' });
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(sqlOf(hoisted.claimsFindFirst.mock.lastCall?.[0].where).params).toContain('branch-2');
+    expect(visibleClaimSql().params).toContain('branch-2');
   });
 
   it('denies a branch manager without a branch before SQL on an IDA host', async () => {

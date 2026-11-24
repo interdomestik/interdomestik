@@ -1,11 +1,16 @@
 # Domain documents
 
-`listVisibleClaimDocuments(tx, { visibleClaim, afterId, limit })` reads claim
-documents under the restricted transaction that selected the visible claim.
-The claim owner validates the live transaction-bound proof before document
-SQL and supplies the claim visibility check included in each document
-statement. Effective access uses the document's access tenant and falls back
-to its home tenant when the access tenant is null. Branch managers receive
-a count only. Admin metadata pages merge the two access modes by ID and
+`./claim-documents` exports `readOpsClaimDetailData({ authority, claimId,
+documentsAfter, staffAfter, staffSearch })`. It opens one restricted
+transaction with the session authority validated by the claims owner. The
+claims-owned SELECT admits the exact claim. An empty selection returns null
+before document or staff reads.
+
+The private document reader applies that same SELECT as an EXISTS in both
+access arms for counts and metadata. Each arm matches the requested claim
+and either the document's explicit access tenant or its home tenant when
+the access tenant is null. Branch managers receive a count and a null
+staff page. Admin metadata pages merge the two access modes by ID and
 return up to 25 rows. The next cursor is the last emitted ID when an extra
-row exists. Storage targets use the selected row's home tenant.
+row exists. Storage targets use the selected row's home tenant. Only admins
+reach the users-owned assignable staff query, in the same transaction.

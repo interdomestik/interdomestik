@@ -1,29 +1,56 @@
 import { type TenantTransaction } from '@interdomestik/database';
 import { claimDocuments } from '@interdomestik/database/schema';
-import { withAccessTenant, withTenant } from '@interdomestik/database/tenant-security';
 import {
-  readVisibleOpsClaimDocumentScope,
-  type VisibleOpsClaim,
-} from '@interdomestik/domain-claims/admin-claims/visible-ops-claim';
-import { and, asc, count, eq, gt, isNull, type SQL } from 'drizzle-orm';
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { withAccessTenant, withTenant } from '@interdomestik/database/tenant-security';
+import { selectVisibleOpsClaim } from '@interdomestik/domain-claims/admin-claims/visible-ops-claim';
+import { searchAssignableStaff } from '@interdomestik/domain-users/admin/search-assignable-staff';
+import { isSuperAdmin, isTenantAdmin, ROLES } from '@interdomestik/shared-auth';
+import { and, asc, count, eq, exists, gt, isNull, type SQL } from 'drizzle-orm';
 
-export const OPS_CLAIM_DOCUMENT_PAGE_SIZE = 25;
+const OPS_CLAIM_DOCUMENT_PAGE_SIZE = 25;
 
-export async function listVisibleClaimDocuments(
+type VisibleClaimSelect = NonNullable<ReturnType<typeof selectVisibleOpsClaim>>;
+
+function selectDocumentPageArm(tx: TenantTransaction, scope: SQL, afterId?: string) {
+  const cursor = afterId === undefined ? undefined : gt(claimDocuments.id, afterId);
+  return tx
+    .select({
+      id: claimDocuments.id,
+      tenantId: claimDocuments.tenantId,
+      name: claimDocuments.name,
+      fileSize: claimDocuments.fileSize,
+      fileType: claimDocuments.fileType,
+      createdAt: claimDocuments.createdAt,
+      filePath: claimDocuments.filePath,
+      bucket: claimDocuments.bucket,
+    })
+    .from(claimDocuments)
+    .where(and(scope, cursor))
+    .orderBy(asc(claimDocuments.id))
+    .limit(OPS_CLAIM_DOCUMENT_PAGE_SIZE + 1);
+}
+
+async function readClaimDocuments(
   tx: TenantTransaction,
   {
     visibleClaim,
+    claimId,
+    accessTenantId,
+    countOnly,
     afterId,
-    limit,
   }: {
-    visibleClaim: VisibleOpsClaim;
+    visibleClaim: VisibleClaimSelect;
+    claimId: string;
+    accessTenantId: string;
+    countOnly: boolean;
     afterId?: string;
-    limit: typeof OPS_CLAIM_DOCUMENT_PAGE_SIZE;
   }
 ) {
-  const { claimId, accessTenantId, countOnly, claimStillVisible } =
-    readVisibleOpsClaimDocumentScope(tx, visibleClaim);
-  const claimScope = and(eq(claimDocuments.claimId, claimId), claimStillVisible);
+  const claimScope = and(eq(claimDocuments.claimId, claimId), exists(visibleClaim));
   const explicitAccess = withAccessTenant({ accessTenantId }, claimDocuments, claimScope);
   const homeFallback = withTenant(
     accessTenantId,
@@ -40,27 +67,9 @@ export async function listVisibleClaimDocuments(
     return { kind: 'summary', count: counts.reduce((total, row) => total + row.count, 0) } as const;
   }
 
-  if (limit !== OPS_CLAIM_DOCUMENT_PAGE_SIZE) throw new Error('Invalid claim document page size');
-  const cursor = afterId === undefined ? undefined : gt(claimDocuments.id, afterId);
-  const page = (scope: SQL) =>
-    tx
-      .select({
-        id: claimDocuments.id,
-        tenantId: claimDocuments.tenantId,
-        name: claimDocuments.name,
-        fileSize: claimDocuments.fileSize,
-        fileType: claimDocuments.fileType,
-        createdAt: claimDocuments.createdAt,
-        filePath: claimDocuments.filePath,
-        bucket: claimDocuments.bucket,
-      })
-      .from(claimDocuments)
-      .where(and(scope, cursor))
-      .orderBy(asc(claimDocuments.id))
-      .limit(limit + 1);
-
-  const rows = await page(explicitAccess)
-    .unionAll(page(homeFallback))
+  const limit = OPS_CLAIM_DOCUMENT_PAGE_SIZE;
+  const rows = await selectDocumentPageArm(tx, explicitAccess, afterId)
+    .unionAll(selectDocumentPageArm(tx, homeFallback, afterId))
     .orderBy(({ id }) => asc(id))
     .limit(limit + 1);
 
@@ -70,4 +79,41 @@ export async function listVisibleClaimDocuments(
     items,
     nextCursor: rows.length > limit ? items.at(-1)!.id : null,
   } as const;
+}
+
+export async function readOpsClaimDetailData({
+  authority,
+  claimId,
+  documentsAfter,
+  staffAfter,
+  staffSearch,
+}: {
+  authority: TenantAuthority;
+  claimId: string;
+  documentsAfter?: string;
+  staffAfter?: string;
+  staffSearch?: string;
+}) {
+  const visibleClaim = selectVisibleOpsClaim({ authority, claimId });
+  if (!visibleClaim) return null;
+  const { accessTenantId, principal } = readTenantAuthority(authority);
+  const countOnly = principal?.role === ROLES.branch_manager;
+
+  return withTenantAuthority(authority, async tx => {
+    const [claim] = await tx.select().from(visibleClaim.as('visible_ops_claim'));
+    if (!claim) return null;
+
+    const documents = await readClaimDocuments(tx, {
+      visibleClaim,
+      claimId: claim.id,
+      accessTenantId,
+      countOnly,
+      afterId: documentsAfter,
+    });
+    const staffPage =
+      isTenantAdmin(principal?.role) || isSuperAdmin(principal?.role)
+        ? await searchAssignableStaff(tx, { authority, search: staffSearch, afterId: staffAfter })
+        : null;
+    return { claim, documents, staffPage };
+  });
 }

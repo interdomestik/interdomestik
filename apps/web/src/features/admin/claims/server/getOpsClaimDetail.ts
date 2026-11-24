@@ -1,21 +1,13 @@
 import 'server-only';
 
-import { isAdmin } from '@/lib/roles';
 import { authorizeSessionTenant, type AuthorizedSession } from '@/lib/tenant-authority.server';
 import { isExactIdaFrontDoorHost } from '@/lib/tenant/tenant-front-door';
 import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
-import {
-  canViewAdminClaims,
-  getVisibleOpsClaim,
-} from '@interdomestik/domain-claims/admin-claims/visible-ops-claim';
-import {
-  listVisibleClaimDocuments,
-  OPS_CLAIM_DOCUMENT_PAGE_SIZE,
-} from '@interdomestik/domain-documents/claim-documents';
-import { searchAssignableStaff } from '@interdomestik/domain-users/admin/search-assignable-staff';
+import { canViewAdminClaims } from '@interdomestik/domain-claims/admin-claims/visible-ops-claim';
+import { readOpsClaimDetailData } from '@interdomestik/domain-documents/claim-documents';
 import { MissingTenantError } from '@interdomestik/shared-auth/errors';
 import { headers } from 'next/headers';
 import { mapClaimToOperationalRow, type RawClaimRow } from '../mappers/mapClaimToOperationalRow';
@@ -36,7 +28,7 @@ export type OpsClaimDetailResult =
       data: ClaimOpsDetail;
       authorized: AuthorizedSession;
       documentsNextCursor: string | null;
-      staffPage: Awaited<ReturnType<typeof searchAssignableStaff>> | null;
+      staffPage: NonNullable<Awaited<ReturnType<typeof readOpsClaimDetailData>>>['staffPage'];
     };
 
 const NEUTRAL_DEPLOYMENT_HOSTS = new Set(['interdomestik-web.vercel.app']);
@@ -116,16 +108,12 @@ export async function getOpsClaimDetail(
     return { kind: 'not_found' };
   }
 
-  const result = await getVisibleOpsClaim({ authority, claimId }, async (tx, visibleClaim) => {
-    const documents = await listVisibleClaimDocuments(tx, {
-      visibleClaim,
-      afterId: documentsAfter,
-      limit: OPS_CLAIM_DOCUMENT_PAGE_SIZE,
-    });
-    const staffPage = isAdmin(session.user.role)
-      ? await searchAssignableStaff(tx, { authority, search: staffSearch, afterId: staffAfter })
-      : null;
-    return { claim: visibleClaim.claim, documents, staffPage };
+  const result = await readOpsClaimDetailData({
+    authority,
+    claimId,
+    documentsAfter,
+    staffAfter,
+    staffSearch,
   });
 
   if (!result) return { kind: 'not_found' };

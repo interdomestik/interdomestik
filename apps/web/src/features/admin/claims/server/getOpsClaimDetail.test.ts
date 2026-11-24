@@ -6,6 +6,7 @@ import {
   readContexts,
   resetOpsClaimDetailMocks,
   sqlOf,
+  visibleClaimSql,
 } from './getOpsClaimDetail.test-fixtures';
 import { getOpsClaimDetail } from './getOpsClaimDetail';
 
@@ -35,7 +36,7 @@ describe('getOpsClaimDetail', () => {
     const result = await getOpsClaimDetail('claim-1');
 
     expect(result).toEqual({ kind: 'not_found' });
-    expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.visibleClaimFrom).not.toHaveBeenCalled();
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
@@ -45,7 +46,7 @@ describe('getOpsClaimDetail', () => {
     const result = await getOpsClaimDetail('claim-1');
 
     expect(result).toEqual({ kind: 'not_found' });
-    expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.visibleClaimFrom).not.toHaveBeenCalled();
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
@@ -55,7 +56,7 @@ describe('getOpsClaimDetail', () => {
     const result = await getOpsClaimDetail('claim-1');
 
     expect(result).toEqual({ kind: 'not_found' });
-    expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.visibleClaimFrom).not.toHaveBeenCalled();
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
@@ -71,7 +72,7 @@ describe('getOpsClaimDetail', () => {
     const result = await getOpsClaimDetail('claim-1');
 
     expect(result).toEqual({ kind: 'not_found' });
-    expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.visibleClaimFrom).not.toHaveBeenCalled();
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
@@ -84,20 +85,20 @@ describe('getOpsClaimDetail', () => {
         branchId: 'branch-2',
       },
     });
-    hoisted.claimsFindFirst.mockResolvedValueOnce(undefined);
+    hoisted.visibleClaimFrom.mockResolvedValueOnce([]);
 
     const result = await getOpsClaimDetail('claim-1');
 
     expect(result).toEqual({ kind: 'not_found' });
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(sqlOf(hoisted.claimsFindFirst.mock.lastCall?.[0].where).params).toContain('branch-2');
+    expect(visibleClaimSql().params).toContain('branch-2');
   });
 
   it('applies access tenant predicate on claim and document reads', async () => {
     const { docsWhere, noteWhere } = mockSelectChains();
     const result = await getOpsClaimDetail('claim-1');
     expect(result.kind).toBe('ok');
-    const claimWhere = sqlOf(hoisted.claimsFindFirst.mock.lastCall?.[0].where);
+    const claimWhere = visibleClaimSql();
     expect(claimWhere.sql).toMatch(/"access_tenant_id" is null/);
     expect(claimWhere.params).toEqual(['tenant_ks', 'tenant_ks', 'claim-1']);
     const documentScopes = docsWhere.mock.calls.map(([where]) => sqlOf(where));
@@ -105,7 +106,8 @@ describe('getOpsClaimDetail', () => {
     expect(documentScopes[0].sql).toContain('"claim_documents"."access_tenant_id" =');
     expect(documentScopes[1].sql).toContain('"claim_documents"."access_tenant_id" is null');
     for (const scope of documentScopes) {
-      expect(scope.sql).toContain('exists (select "id" from "claim"');
+      expect(scope.sql).toContain('exists (select "id",');
+      expect(scope.sql).toContain('from "claim"');
       expect(scope.params).toEqual(['tenant_ks', 'claim-1', ...claimWhere.params]);
     }
     expect(sqlOf(noteWhere.mock.lastCall?.[0]).params).toEqual(['claim-1', 'tenant_home']);
@@ -131,7 +133,7 @@ describe('getOpsClaimDetail', () => {
       role: 'admin',
     };
     await expect(getOpsClaimDetail('claim-1', injected)).resolves.toEqual({ kind: 'not_found' });
-    expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
+    expect(hoisted.visibleClaimFrom).not.toHaveBeenCalled();
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
