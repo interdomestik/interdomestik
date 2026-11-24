@@ -178,5 +178,6 @@ export async function cleanupCrossAgentClaim(result: CrossAgentClaimResult): Pro
       `[agent-workspace-e2e] Failed to cleanup cross-agent claim ${result.claimId}:`,
       error instanceof Error ? error.message : String(error)
     );
+    throw error;
   }
 }
