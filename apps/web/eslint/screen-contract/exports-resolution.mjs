@@ -42,9 +42,12 @@ export default rule('An import reaches a package only through its exports (CHK-1
 
   function checkPathEdge(resolver, ownDir, edge, key) {
     units.add(`edge:${edge.kind}`);
-    const file = resolver.resolveFile(rel, edge.specifier);
-    const dir = file && resolver.packageDirOf(file);
-    if (dir && dir !== ownDir)
+    // Every file the path can name (the WP-05 flip, D-1), reported once per edge.
+    const dir = resolver
+      .resolveTargets(rel, edge.specifier, edge.kind)
+      .map(file => resolver.packageDirOf(file))
+      .find(found => found && found !== ownDir);
+    if (dir)
       report(context, edge.node, key, `${edge.specifier} reaches into ${dir} past its exports`);
   }
 
@@ -53,7 +56,10 @@ export default rule('An import reaches a package only through its exports (CHK-1
       const resolver = resolverOf(context);
       const ownDir = resolver.packageDirOf(rel);
       units.add('file');
-      for (const edge of edgesOfProgram(program, context.sourceCode.visitorKeys)) {
+      for (const edge of edgesOfProgram(program, context.sourceCode.visitorKeys, {
+        rel,
+        sourceCode: context.sourceCode,
+      })) {
         const kind = kindOfSpecifier(edge.specifier);
         const key = `CHK-15b|${rel}|${edge.specifier}`;
         if (kind === 'workspace') checkWorkspaceEdge(resolver, ownDir, edge, key);
