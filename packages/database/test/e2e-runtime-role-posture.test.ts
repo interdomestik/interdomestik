@@ -196,6 +196,36 @@ test('the E2E runtime role fails closed on every row-security bypass', async t =
     }
     assert.equal(await provision(), runtimeUrl, 'reprovisioning keeps the same credential');
 
+    await t.test('late provisioning preserves the rate verification ACLs', async () => {
+      await admin.unsafe(`
+        create table public.exchange_rate_verifications(id text);
+        create table public.exchange_rate_verification_limits(tenant_id text);
+        alter table public.exchange_rate_verifications enable row level security;
+        alter table public.exchange_rate_verification_limits enable row level security;
+        grant insert, update, delete, truncate on public.exchange_rate_verifications,
+          public.exchange_rate_verification_limits to ${ROLE};`);
+      await provision();
+      const rows = await admin`
+        select name, has_table_privilege(${ROLE}, name, 'SELECT') as can_read,
+          has_table_privilege(${ROLE}, name, 'INSERT') as can_insert,
+          has_table_privilege(${ROLE}, name, 'UPDATE, DELETE, TRUNCATE') as can_mutate
+        from (values ('public.exchange_rate_verifications'),
+          ('public.exchange_rate_verification_limits')) as tables(name)
+        order by name`;
+      assert.deepEqual(
+        rows.map(({ name, can_read, can_insert, can_mutate }) => [
+          name,
+          can_read,
+          can_insert,
+          can_mutate,
+        ]),
+        [
+          ['public.exchange_rate_verification_limits', true, false, false],
+          ['public.exchange_rate_verifications', true, true, false],
+        ]
+      );
+    });
+
     const [{ superuser }] = await admin<{ superuser: boolean }[]>`
       select rolsuper as superuser from pg_roles where rolname = current_user`;
     for (const bypass of BYPASSES) {
