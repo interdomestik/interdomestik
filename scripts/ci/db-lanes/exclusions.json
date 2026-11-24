@@ -1,0 +1,50 @@
+[
+  {
+    "file": "apps/web/src/features/admin/lead-duplicates/server/lead-duplicates.integration.test.ts",
+    "reason": "The CRM proof requires separate admin and restricted-role URLs and its opt-in flag. The advisory service does not provision that credential pair.",
+    "owner": "Web CRM",
+    "removeWhen": "A reviewed disposable CI fixture supplies both credentials and verifies the restricted role."
+  },
+  {
+    "file": "packages/database/test/admin-connection-preflight.test.ts",
+    "reason": "The admin preflight fixture starts a private PostgreSQL container and asserts its generated owner and non-owner identities.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supplies the preflight roles and lifecycle assertions."
+  },
+  {
+    "file": "packages/database/test/migration-execution-boundary.test.ts",
+    "reason": "The migration execution harness starts a private container and changes its catalog to exercise ownership boundaries.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supports the catalog collision checks."
+  },
+  {
+    "file": "packages/database/test/migration-execution-faults.test.ts",
+    "reason": "The execution fault harness starts a private container whose migration state it resets between scenarios.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supports the execution faults and resets."
+  },
+  {
+    "file": "packages/database/test/migration-execution-kernel.test.ts",
+    "reason": "The kernel suite creates and mutates a private migration ledger in its own container.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supports the kernel's migration ledger and role setup."
+  },
+  {
+    "file": "packages/database/test/migration-ledger-inspection.test.ts",
+    "reason": "The ledger inspection harness starts a private container and drops and rebuilds its migration ledger.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supports ledger resets and ownership checks."
+  },
+  {
+    "file": "packages/database/test/migration-ledger-lock-order.test.ts",
+    "reason": "The lock-order harness starts a private container and coordinates multiple connections against its own ledger.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supports the competing ledger connections and cleanup."
+  },
+  {
+    "file": "packages/database/test/pg16/migration-runtime-role-fixture.test.ts",
+    "reason": "This opt-in proof owns a separate labelled Docker container and its lifecycle instead of using the CI PostgreSQL service.",
+    "owner": "Database migrations",
+    "removeWhen": "A CI lane can execute the container lifecycle proof with its required isolation."
+  }
+]
