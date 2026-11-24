@@ -168,9 +168,10 @@ test.describe('Paddle closure preserves the saved-draft entitlement boundary', (
     } finally {
       const activeSession = session;
       const activePage = page;
+      const cleanedIds = new Set<string>();
       await teardown(
         [
-          () => cleanupS5(claimId, journey),
+          () => cleanupS5(claimId, journey, cleanedIds),
           ...(activeSession ? [() => signOut(activeSession)] : []),
           ...(activePage ? [() => activePage.context().close()] : []),
           () =>
@@ -180,7 +181,7 @@ test.describe('Paddle closure preserves the saved-draft entitlement boundary', (
               tenantId: owner.tenantId,
               userId: owner.ownerUserId,
             }),
-          () => expectJourneyClean(claimId, journey),
+          () => expectJourneyClean(claimId, journey, cleanedIds),
           () =>
             expectActivationClean({
               eventId,

@@ -4,14 +4,7 @@ import {
   E2E_RUNTIME_ROLES,
   E2E_USERS,
 } from '@interdomestik/database';
-import {
-  expect,
-  test,
-  type Locator,
-  type Page,
-  type Request,
-  type TestInfo,
-} from '@playwright/test';
+import { expect, type Locator, type Page, type Request, type TestInfo } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
 import { getProjectUrlInfo } from '../fixtures/auth.project';
 import { routes } from '../routes';
@@ -35,6 +28,7 @@ import {
 } from './nine-role-message-notes.fixture';
 import { expectPreviewBoundaries } from './nine-role-preview-probes';
 import { withPreviewSentinels } from './nine-role-preview.fixture';
+import { signalTest as test } from './signal-wait.fixture';
 
 function messages(key: MessageCaseKey) {
   return Object.values(E2E_DISCOVERY_THREADS[key]).flatMap(message =>
@@ -212,10 +206,10 @@ function matrix(
   cases: readonly MessageActorCases[],
   key: MessageCaseKey
 ) {
-  test(`${key} nine-role messaging boundaries`, async ({ page }, info) => {
+  test(`${key} nine-role messaging boundaries`, async ({ page, waitForSignal }, info) => {
     requireSeededHost(info, project, 240_000);
     // Existing isolated fixture discovers this build's real mounted action ids and cleans up.
-    await withMessagingFixture(page, info, async (_fixture, ids) => {
+    await withMessagingFixture(page, info, waitForSignal, async (_fixture, ids) => {
       for (const [index, row] of cases.entries()) {
         await test.step(row.actor, async () => {
           await leaveActorPage(page);
