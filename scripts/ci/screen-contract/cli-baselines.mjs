@@ -84,11 +84,19 @@ function rebuiltAuthority(repo, root, baseSha, scope, { base, head }) {
 }
 
 // The base's registry and rebuilt list come from the trusted base commit, or, for a replay of a
-// pre-adoption pair, from its extracted and synthesized base tree.
+// pre-adoption pair, from its extracted and synthesized base tree. Adoption creates the baseline,
+// the registry and the rebuilt list together: a base that has the baseline but lacks either of the
+// others is an input error, never an empty input (r5-S3).
 export function readTrustedInputs(repo, root, baseSha, baseRoot = null) {
   const atBase = rel => (baseRoot ? readInside(baseRoot, rel) : showAt(repo, baseSha, rel));
   const baseRegistryText = atBase(REGISTRY_PATH);
   const baseRebuiltText = atBase(REBUILT_PATH);
+  if (atBase(BASELINE_PATH) !== null)
+    for (const [rel, text] of [
+      [REGISTRY_PATH, baseRegistryText],
+      [REBUILT_PATH, baseRebuiltText],
+    ])
+      if (text === null) throw new ScanError(`base has the baseline but no ${rel}`);
   return {
     baseRegistry:
       baseRegistryText === null ? null : parseRegistry(baseRegistryText, 'base consent registry'),
