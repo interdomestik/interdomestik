@@ -119,7 +119,7 @@ test('WP-07 verification invariants on PostgreSQL 16 under the restricted role',
       );
     });
 
-    await t.test('WITH CHECK rejects a foreign insert after its parents are visible', async () => {
+    async function assertForeignInsertRefused(message: string, isolatePolicy: boolean) {
       const candidate = { ...foreign, id: randomUUID(), operation_key: randomUUID() };
       const countEvidence = async () => {
         const [{ count }] = await admin<{ count: number }[]>`
@@ -134,19 +134,35 @@ test('WP-07 verification invariants on PostgreSQL 16 under the restricted role',
           async tx => {
             await assertForeignVerificationParentsVisible(tx, candidate);
             await tx`insert into public.exchange_rate_verifications ${tx(candidate)}`;
+            assert.fail('Foreign verification insert was accepted');
           },
           runtimeRole,
           'read committed',
           {
-            beforeRole: tx => showForeignVerificationParents(tx, candidate),
+            beforeRole: async tx => {
+              await showForeignVerificationParents(tx, candidate);
+              if (isolatePolicy) {
+                // Isolate WITH CHECK in this rollback-only scratch transaction.
+                await tx`alter table public.exchange_rate_verifications
+                  disable trigger exchange_rate_verifications_insert_guard`;
+              }
+            },
           }
         ),
-        {
-          code: '42501',
-          message: 'Rate verification requires bound tenant',
-        }
+        { code: '42501', message }
       );
       assert.equal(await countEvidence(), before);
+    }
+
+    await t.test('WITH CHECK rejects a foreign insert after its parents are visible', async () => {
+      await assertForeignInsertRefused(
+        'new row violates row-level security policy for table "exchange_rate_verifications"',
+        true
+      );
+    });
+
+    await t.test('the insert guard independently refuses a foreign tenant', async () => {
+      await assertForeignInsertRefused('Rate verification requires bound tenant', false);
     });
 
     await t.test(

@@ -5,6 +5,7 @@ import { realpathSync } from 'node:fs';
 import test from 'node:test';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
+import { legacyRevision } from '../../../scripts/ci/run-wp07-legacy-upgrade.mjs';
 
 import {
   makeVerification,
@@ -25,8 +26,6 @@ import {
 import { seedSalePlan } from '../../database/test/exchange-rates-sale.fixture';
 import type { SaleInput } from '../src/port/sale-input';
 import { quoteIdentifier } from '../../database/test/rls-test-connection';
-
-const legacyRevision = 'bc19469b5479f47b63eab258249984a974d26199';
 
 function requireLegacySource(source: string | undefined) {
   assert.ok(source, 'WP07_LEGACY_SOURCE must name the pinned old checkout');
@@ -96,7 +95,10 @@ test('upgrades 0104 through expand and contract on PostgreSQL 16', async t => {
     const session = oldFixtures.paymentPortTestSession(tenantId, actor.id, 'tenant_admin');
     const deniedSession = oldFixtures.paymentPortTestSession(tenantId, actor.id, 'staff');
     const original = await makeVerification(f, tenantId, actor.id);
-    await restricted(f.peer, tenantId, tx => insertVerification(tx, original));
+    const [legacyVerification] = await restricted(f.peer, tenantId, tx =>
+      insertVerification(tx, original)
+    );
+    assert.deepEqual(legacyVerification, { server_stamp: true });
     const { planId, buyerId } = await admin.begin(tx => seedSalePlan(tx, f));
     const offer = await old.getSaleOffer(session, { planId }, actor);
     assert.ok(offer.ok);

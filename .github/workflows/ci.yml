@@ -218,12 +218,7 @@ jobs:
         env:
           REQUIRE_RLS_INTEGRATION: '1'
           REQUIRE_RLS_COVERAGE: '1'
-        run: |
-          legacy_source="$(mktemp -d "${RUNNER_TEMP}/wp07-legacy.XXXXXX")"
-          git clone --quiet --shared --no-checkout "$GITHUB_WORKSPACE" "$legacy_source"
-          git -C "$legacy_source" checkout --quiet --detach bc19469b5479f47b63eab258249984a974d26199
-          pnpm --dir "$legacy_source" install --frozen-lockfile --prefer-offline --ignore-scripts
-          WP07_LEGACY_SOURCE="$legacy_source" pnpm db:rls:test
+        run: pnpm db:rls:test
       - name: E2E Gate Suite
         if: github.event_name != 'pull_request' && needs.validation-surface.outputs.main_e2e_reuse != '1'
         env:

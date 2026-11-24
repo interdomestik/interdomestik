@@ -100,6 +100,62 @@ export function registerVerificationCases(fixture: AgeFixture) {
     15000
   );
 
+  it.each(['verification', 'start'] as const)(
+    'refuses a concurrent cross-table operation key when the %s holds the book lock first',
+    async first => {
+      const f = await fixture();
+      const { evidence } = await ageCandidate(f);
+      const verificationFirst = first === 'verification';
+      const operationKey = randomUUID();
+      const startId = randomUUID();
+      if (!verificationFirst) {
+        // Close the prior check so the holder can insert a new start for the waiting verification.
+        success(await f.verify(evidence));
+      }
+
+      const verification = (tx: Parameters<typeof insertEvidence>[1]) =>
+        insertEvidence(f, tx, {
+          ...evidence,
+          operationKey,
+          checkId: verificationFirst ? evidence.checkId : startId,
+        });
+      const start = (tx: Parameters<typeof insertEvidence>[1]) => tx`
+        insert into exchange_rate_check_events
+          (id, tenant_id, book_id, legal_entity_id, actor_id, kind, operation_key)
+        values (${startId}, ${f.tenantId}, ${f.bookId}, ${f.legalEntityId}, ${f.owner.id},
+          'start', ${operationKey}) returning id`;
+      const [winner, loser] = verificationFirst ? [verification, start] : [start, verification];
+      const { second } = await race(
+        f,
+        holdingChange(f, async tx => {
+          expect(await winner(tx)).toHaveLength(1);
+        }),
+        () =>
+          restricted(f.peer, f.tenantId, async tx => {
+            expect(await loser(tx)).toHaveLength(1);
+          }).then(
+            () => ({ committed: true }),
+            (error: unknown) => error
+          )
+      );
+      expect(second).toMatchObject({
+        code: '23505',
+        constraint_name: 'exchange_rate_check_operation_guard',
+      });
+      const [counts] = await restricted(
+        f.peer,
+        f.tenantId,
+        tx => tx`
+          select (select count(*)::int from exchange_rate_verifications where operation_key = ${operationKey}) as verifications,
+            (select count(*)::int from exchange_rate_check_events where operation_key = ${operationKey}) as events`
+      );
+      expect(counts).toEqual(
+        verificationFirst ? { verifications: 1, events: 0 } : { verifications: 0, events: 1 }
+      );
+    },
+    15000
+  );
+
   it('refuses cross-table operation-key reuse across distinct checks', async () => {
     const f = await fixture();
     const { evidence: first } = await ageCandidate(f);

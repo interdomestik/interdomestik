@@ -110,11 +110,13 @@ export async function proveOfficialCheckConstraints(f: ExchangeRateFixture) {
       table_name: 'exchange_rate_check_events',
     }
   );
+  // Supply a valid but stale timestamp so the raw client can send it and the trigger must replace it.
+  const injectedTimestamp = '2000-01-03T00:00:00Z';
   const injected = {
     ...newStart(),
     rate_id: foreign.id,
     window_id: window,
-    occurred_at: 'infinity',
+    occurred_at: injectedTimestamp,
     start_order: 999,
   };
   const [check] = await asTenant(tx => start(tx, injected));
@@ -129,16 +131,17 @@ export async function proveOfficialCheckConstraints(f: ExchangeRateFixture) {
     asTenant(tx => start(tx)),
     { code: '23514', constraint_name: 'exchange_rate_check_pending' }
   );
+  type VisibleRows = { windows: number; checks: number; rates: number };
   for (const scope of [undefined, otherTenant]) {
-    const [counts] = await restricted(
+    const rows: VisibleRows[] = await restricted(
       peer,
       scope,
-      tx => tx`
+      (tx): Promise<VisibleRows[]> => tx<VisibleRows[]>`
       select (select count(*)::int from exchange_rate_check_windows where id = ${window}) as windows,
         (select count(*)::int from exchange_rate_check_events where id = ${check.id}) as checks,
         (select count(*)::int from membership_sale_rate_at(${tenantId}, ${book.id})) as rates`
     );
-    assert.deepEqual(counts, { windows: 0, checks: 0, rates: 0 });
+    assert.deepEqual(rows[0], { windows: 0, checks: 0, rates: 0 });
   }
 
   const positive = {
@@ -155,7 +158,7 @@ export async function proveOfficialCheckConstraints(f: ExchangeRateFixture) {
     source_ref: 'NBRM/contract',
     verified_by: actor.id,
     check_id: check.id,
-    verified_at: 'infinity',
+    verified_at: injectedTimestamp,
   };
   for (const [change, constraint_name] of [
     [{ observed_rate: '61.52' }, 'exchange_rate_verifications_exact_rate_fk'],
