@@ -10,8 +10,12 @@ import { CONTRACT_PATH } from '../track-audit.mjs';
 import { root } from './track-audit-fixtures.mjs';
 
 const contract = yaml.load(fs.readFileSync(path.join(root, CONTRACT_PATH), 'utf8'));
-const check = contract.checks.find(({ id }) => id === 'seeding.no_seed_imports_outside_database');
-assert.ok(check, 'the contract must include the seed import rule');
+function seedImportRule() {
+  const rule = contract.checks.find(({ id }) => id === 'seeding.no_seed_imports_outside_database');
+  assert.ok(rule, 'the contract must include the seed import rule');
+  return rule;
+}
+const check = seedImportRule();
 
 const classifier = '@interdomestik/database/seed-target-classification';
 const quotes = ["'", '"'];
