@@ -13,6 +13,8 @@ import {
   freeStartDrafts,
   inArray,
   notifications,
+  sql,
+  type TenantTransaction,
 } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import de from '../../src/messages/de/freeStart.json';
@@ -21,6 +23,7 @@ import mk from '../../src/messages/mk/freeStart.json';
 import sq from '../../src/messages/sq/freeStart.json';
 import sr from '../../src/messages/sr/freeStart.json';
 import { expect } from '../fixtures/auth.fixture';
+import { inSequence } from './in-sequence';
 
 export type S3JourneyIdentity = { counterparty: string; summary: string };
 export const S3_JOURNEY_INCIDENT_DATE = '2026-09-16';
@@ -66,122 +69,139 @@ export function exactClaimDescriptions(journey: S3JourneyIdentity): string[] {
 
 async function claimIdsForJourney(
   claimId: string | null,
-  journey: S3JourneyIdentity
+  journey: S3JourneyIdentity,
+  client: Pick<TenantTransaction, 'query'> = db
 ): Promise<string[]> {
-  const matches = await db.query.claims.findMany({
+  const matches = await client.query.claims.findMany({
     where: and(
       eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
       inArray(claims.description, exactClaimDescriptions(journey))
     ),
     columns: { id: true },
   });
-  return [...new Set([claimId, ...matches.map(row => row.id)].filter(Boolean))] as string[];
-}
-
-async function drainJourneyNotifications(ids: string[]): Promise<void> {
-  for (const claimId of ids) {
-    const claim = await db.query.claims.findFirst({
-      where: and(eq(claims.id, claimId), eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)),
-      columns: { caseLifecycleState: true, recoveryLifecycleState: true },
-    });
-    if (!claim) continue;
-    const types = ['claim_submitted'];
-    if (claimStatusFromLifecycleFields(claim) !== 'submitted') {
-      types.unshift('claim_status_changed');
-    }
-    await expect
-      .poll(
-        async () => {
-          const r = await db.query.notifications.findMany({
-            where: and(
-              eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-              eq(notifications.actionUrl, `/member/claims/${claimId}`),
-              inArray(notifications.type, types)
-            ),
-            columns: { type: true },
-            orderBy: notifications.type,
-          });
-          return r.map(row => row.type);
-        },
-        { timeout: 15_000 }
-      )
-      .toEqual(types);
-  }
+  return [...new Set([...(claimId ? [claimId] : []), ...matches.map(row => row.id)])];
 }
 
 export async function cleanupJourney(
   claimId: string | null,
   journey: S3JourneyIdentity
-): Promise<void> {
-  const ids = await claimIdsForJourney(claimId, journey);
-  try {
-    await drainJourneyNotifications(ids);
-  } finally {
-    await db.transaction(async tx => {
-      if (ids.length) {
-        const journeyClaims = and(
-          eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-          inArray(claims.id, ids)
-        );
-        // A status write holds the claim lock before it appends events in the same transaction.
-        await tx.select({ id: claims.id }).from(claims).where(journeyClaims).for('update');
-        const events = await tx.query.domainEvents.findMany({
-          where: and(
-            inArray(domainEvents.entityId, ids),
-            eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-          ),
-          columns: { id: true },
-        });
-        const eventIds = events.map(event => event.id);
-        if (eventIds.length) {
-          await tx
-            .delete(domainEventDeliveries)
-            .where(inArray(domainEventDeliveries.eventId, eventIds));
-          await tx.delete(domainEvents).where(inArray(domainEvents.id, eventIds));
-        }
+): Promise<string[]> {
+  return db.transaction(async tx => {
+    // Each notification read must see commits made after the claim lock was taken.
+    await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL READ COMMITTED`);
+    await tx.execute(sql`SET LOCAL statement_timeout = '5s'`);
+    const ids = await claimIdsForJourney(claimId, journey, tx);
+    if (ids.length) {
+      const journeyClaims = and(
+        eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+        inArray(claims.id, ids)
+      );
+      // A committed status write is visible under the lock. A later writer cannot pass its
+      // claim update once this transaction deletes the row. Keep the lock through deletion.
+      const lockedClaims = await tx
+        .select({
+          id: claims.id,
+          caseLifecycleState: claims.caseLifecycleState,
+          recoveryLifecycleState: claims.recoveryLifecycleState,
+        })
+        .from(claims)
+        .where(journeyClaims)
+        .for('update');
+      await drainJourneyNotifications(tx, lockedClaims);
+      const events = await tx.query.domainEvents.findMany({
+        where: and(
+          inArray(domainEvents.entityId, ids),
+          eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+        ),
+        columns: { id: true },
+      });
+      const eventIds = events.map(event => event.id);
+      if (eventIds.length) {
         await tx
-          .delete(auditLog)
-          .where(
-            and(
-              eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-              inArray(auditLog.entityId, ids)
-            )
-          );
-        await tx.delete(notifications).where(
-          and(
+          .delete(domainEventDeliveries)
+          .where(inArray(domainEventDeliveries.eventId, eventIds));
+        await tx.delete(domainEvents).where(inArray(domainEvents.id, eventIds));
+      }
+      await tx
+        .delete(auditLog)
+        .where(
+          and(eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId), inArray(auditLog.entityId, ids))
+        );
+      await tx.delete(notifications).where(
+        and(
+          eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+          inArray(
+            notifications.actionUrl,
+            ids.map(id => `/member/claims/${id}`)
+          )
+        )
+      );
+      await inSequence([claimStageHistory, claimDocuments, claimMessages] as const, table =>
+        tx
+          .delete(table)
+          .where(and(eq(table.tenantId, E2E_USERS.KS_MEMBER.tenantId), inArray(table.claimId, ids)))
+      );
+      await tx.delete(claims).where(journeyClaims);
+    }
+    await tx
+      .delete(freeStartDrafts)
+      .where(
+        and(
+          eq(freeStartDrafts.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+          eq(freeStartDrafts.summary, journey.summary)
+        )
+      );
+    return ids;
+  });
+}
+
+async function drainJourneyNotifications(
+  tx: TenantTransaction,
+  lockedClaims: Pick<
+    typeof claims.$inferSelect,
+    'id' | 'caseLifecycleState' | 'recoveryLifecycleState'
+  >[]
+): Promise<void> {
+  if (lockedClaims.length === 0) return;
+
+  const expected = lockedClaims.map(claim => ({
+    url: `/member/claims/${claim.id}`,
+    types:
+      claimStatusFromLifecycleFields(claim) === 'submitted'
+        ? ['claim_submitted']
+        : ['claim_status_changed', 'claim_submitted'],
+  }));
+  await expect
+    .poll(
+      async () => {
+        const rows = await tx.query.notifications.findMany({
+          where: and(
             eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
             inArray(
               notifications.actionUrl,
-              ids.map(id => `/member/claims/${id}`)
-            )
-          )
-        );
-        for (const table of [claimStageHistory, claimDocuments, claimMessages] as const) {
-          await tx
-            .delete(table)
-            .where(
-              and(eq(table.tenantId, E2E_USERS.KS_MEMBER.tenantId), inArray(table.claimId, ids))
-            );
-        }
-        await tx.delete(claims).where(journeyClaims);
-      }
-      await tx
-        .delete(freeStartDrafts)
-        .where(
-          and(
-            eq(freeStartDrafts.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-            eq(freeStartDrafts.summary, journey.summary)
-          )
-        );
-    });
-  }
+              expected.map(({ url }) => url)
+            ),
+            inArray(notifications.type, ['claim_status_changed', 'claim_submitted'])
+          ),
+          columns: { actionUrl: true, type: true },
+          orderBy: notifications.type,
+        });
+        return expected.map(({ url }) => ({
+          url,
+          types: rows.filter(row => row.actionUrl === url).map(row => row.type),
+        }));
+      },
+      { message: 'Drain committed journey notifications before deleting residue', timeout: 15_000 }
+    )
+    .toEqual(expected);
 }
 
 export async function expectJourneyClean(
   claimId: string | null,
-  journey: S3JourneyIdentity
+  journey: S3JourneyIdentity,
+  cleanedIds: string[] = []
 ): Promise<void> {
-  const ids = await claimIdsForJourney(claimId, journey);
+  const ids = [...new Set([...cleanedIds, ...(await claimIdsForJourney(claimId, journey))])];
   const selection = { columns: { id: true } } as const;
   const [claimRows, draftRows, eventRows, historyRows, notificationRows, auditRows] =
     await Promise.all([

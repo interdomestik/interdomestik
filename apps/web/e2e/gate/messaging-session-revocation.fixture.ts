@@ -23,11 +23,12 @@ import {
   sanitizeTransport,
   type ActionResult,
 } from './messaging-session-transport';
-import { createSignal, type WaitForSignal } from './signal-wait.fixture';
+import { createSignal, withSignalTimeout, type WaitForSignal } from './signal-wait.fixture';
 
 export type Operation = 'history' | 'send' | 'receipt';
 export type ActionIds = Record<Operation, string>;
 const transports = new WeakMap<Page, MessagingSessionTransport>();
+const DISCOVERY_TEARDOWN_TIMEOUT_MS = 5_000;
 
 export function transportFor(page: Page, info: TestInfo): MessagingSessionTransport {
   let transport = transports.get(page);
@@ -121,22 +122,37 @@ async function captureActions(
     const historyId = await waitForSignal('Discover messaging history request', history.promise);
     const receiptId = await waitForSignal('Discover messaging receipt request', receipt.promise);
     await panel.getByTestId('message-input').fill(content);
-    await panel.getByTestId('send-message-button').click();
-    await expect(panel).toContainText(content);
-    const sent = await waitForSignal('Discover messaging send request', send.promise);
-    const result = await waitForSignal(
-      'Complete messaging send response',
-      readSendResult(sent.request)
+    const sendId = await waitForSignal(
+      'Send discovery message and complete its response',
+      async remaining => {
+        const timeout = remaining();
+        const result = send.promise.then(async ({ id, request }) => {
+          const action = await readSendResult(request);
+          expect(action.success, 'messaging discovery send succeeded').toBe(true);
+          return id;
+        });
+        const [id] = await Promise.all([
+          result,
+          panel.getByTestId('send-message-button').click({ timeout }),
+          expect(panel).toContainText(content, { timeout }),
+        ]);
+        expect(
+          (await messagingSnapshot(fixture)).audits.length,
+          'messaging discovery audit count'
+        ).toBe(1);
+        return id;
+      }
     );
-    expect(result.success, 'messaging discovery send succeeded').toBe(true);
-    expect(
-      (await messagingSnapshot(fixture)).audits.length,
-      'messaging discovery audit count'
-    ).toBe(1);
-    await page.goto('about:blank');
-    return { history: historyId, send: sent.id, receipt: receiptId };
-  } finally {
+    await page.goto('about:blank', { timeout: DISCOVERY_TEARDOWN_TIMEOUT_MS });
     page.off('request', observe);
+    return { history: historyId, send: sendId, receipt: receiptId };
+  } catch (error) {
+    // Cancel in-flight browser work while the discovery observer is still attached.
+    await withSignalTimeout('Cancel messaging discovery', DISCOVERY_TEARDOWN_TIMEOUT_MS, () =>
+      page.close()
+    );
+    page.off('request', observe);
+    throw error;
   }
 }
 
@@ -221,7 +237,9 @@ export function withMessagingFixture(
       await run(fixture, await captureActions(page, info, fixture, waitForSignal));
     } finally {
       try {
-        await page.goto('about:blank');
+        if (!page.isClosed()) {
+          await page.goto('about:blank', { timeout: DISCOVERY_TEARDOWN_TIMEOUT_MS });
+        }
       } finally {
         const cleanup = [
           () =>

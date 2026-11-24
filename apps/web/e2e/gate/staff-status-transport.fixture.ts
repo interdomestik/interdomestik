@@ -1,9 +1,42 @@
 import { expect, type Locator, type Page, type Route } from '@playwright/test';
-import { createSignal, type WaitForSignal } from './signal-wait.fixture';
+import { createSignal, withSignalTimeout, type WaitForSignal } from './signal-wait.fixture';
 
 const SAVE_CLICK_TIMEOUT_MS = 10_000;
 const SAVE_RESPONSE_TIMEOUT_MS = 15_000;
 const SAVE_RECOVERY_TIMEOUT_MS = 10_000;
+const ROUTE_TEARDOWN_TIMEOUT_MS = 5_000;
+
+async function withHistoryPopup(
+  page: Page,
+  historyLink: Locator,
+  waitForSignal: WaitForSignal,
+  phase: string,
+  inspect: (popup: Page, remaining: () => number) => Promise<void>
+): Promise<void> {
+  const opened = createSignal<Page>();
+  page.once('popup', opened.resolve);
+  try {
+    const popup = await waitForSignal(phase, async remaining => {
+      const [popup] = await Promise.all([
+        opened.promise,
+        historyLink.click({ timeout: remaining() }),
+      ]);
+      await inspect(popup, remaining);
+      return popup;
+    });
+    await withSignalTimeout('Close staff history popup', ROUTE_TEARDOWN_TIMEOUT_MS, () =>
+      popup.close()
+    );
+  } catch (error) {
+    // Closing the owning context cancels a click that could still open a popup and closes
+    // any popup whose event arrives while the context shuts down.
+    await withSignalTimeout('Cancel staff history popup', ROUTE_TEARDOWN_TIMEOUT_MS, () =>
+      page.context().close()
+    );
+    page.off('popup', opened.resolve);
+    throw error;
+  }
+}
 
 async function inspectFailedHistory(
   page: Page,
@@ -13,12 +46,8 @@ async function inspectFailedHistory(
 ): Promise<void> {
   const target = new URL(page.url());
   const aborted = createSignal<void>();
-  const opened = createSignal<void>();
-  let failedPopup: Page | undefined;
-  const observePopup = (popup: Page) => {
-    failedPopup = popup;
-    opened.resolve();
-  };
+  // Observe an abort failure even if it arrives before the popup event.
+  void aborted.promise.catch(() => undefined);
   let failedHistoryReads = 0;
   const failHistory = async (route: Route) => {
     const request = route.request();
@@ -43,21 +72,19 @@ async function inspectFailedHistory(
   };
   const context = page.context();
   await context.route(pattern, failHistory);
-  page.once('popup', observePopup);
-  try {
-    await waitForSignal(
-      'Open staff status-history popup and abort its navigation',
-      Promise.all([opened.promise, aborted.promise, historyLink.click()])
-    );
-    expect(failedHistoryReads).toBe(1);
-  } finally {
-    page.off('popup', observePopup);
-    try {
-      await context.unroute(pattern, failHistory);
-    } finally {
-      await failedPopup?.close();
+  await withHistoryPopup(
+    page,
+    historyLink,
+    waitForSignal,
+    'Open staff status-history popup and abort its navigation',
+    async () => {
+      await aborted.promise;
+      expect(failedHistoryReads).toBe(1);
     }
-  }
+  );
+  await withSignalTimeout('Remove failed staff history route', ROUTE_TEARDOWN_TIMEOUT_MS, () =>
+    context.unroute(pattern, failHistory)
+  );
 }
 
 /** Exercise both unknown outcomes and inspect history without navigating the retained form. */
@@ -109,23 +136,22 @@ export async function verifyStatusTransportRecovery(
   const saveWithRecovery = async (phase: string) => {
     const aborted = createSignal<void>();
     saveAborted = aborted;
-    const click = save.click({ timeout: SAVE_CLICK_TIMEOUT_MS });
     try {
-      await waitForSignal(
-        phase,
-        Promise.all([aborted.promise, click]).then(() =>
-          expect(recovery).toBeVisible({ timeout: SAVE_RECOVERY_TIMEOUT_MS })
-        )
+      await waitForSignal(phase, async remaining => {
+        await Promise.all([
+          aborted.promise,
+          save.click({ timeout: Math.min(remaining(), SAVE_CLICK_TIMEOUT_MS) }),
+        ]);
+        await expect(recovery).toBeVisible({
+          timeout: Math.min(remaining(), SAVE_RECOVERY_TIMEOUT_MS),
+        });
+      });
+    } catch (error) {
+      await withSignalTimeout('Cancel staff status save', ROUTE_TEARDOWN_TIMEOUT_MS, () =>
+        page.context().close()
       );
-    } finally {
-      // Let an already-started click settle before the save route is removed.
-      await Promise.allSettled([click]);
+      throw error;
     }
-  };
-  const inspectHistory = async () => {
-    const popup = page.waitForEvent('popup');
-    await historyLink.click();
-    return popup;
   };
   await page.route(pattern, intercept);
   try {
@@ -135,34 +161,59 @@ export async function verifyStatusTransportRecovery(
     await inspectFailedHistory(page, historyLink, pattern, waitForSignal);
     await expect(detail.getByLabel('Shënim statusi')).toHaveValue(publicNote);
     await expect(save).toBeDisabled();
-    const firstHistory = await inspectHistory();
-    const firstDetail = firstHistory.getByTestId('staff-claim-detail-ready').first();
-    await expect(firstDetail).toBeVisible();
-    await expect(firstDetail.getByTestId('staff-status-history')).not.toContainText(publicNote);
-    await firstHistory.close();
+    await withHistoryPopup(
+      page,
+      historyLink,
+      waitForSignal,
+      'Verify staff history after the unforwarded save',
+      async (popup, remaining) => {
+        const firstDetail = popup.getByTestId('staff-claim-detail-ready').first();
+        await expect(firstDetail).toBeVisible({ timeout: remaining() });
+        await expect(firstDetail.getByTestId('staff-status-history')).not.toContainText(
+          publicNote,
+          { timeout: remaining() }
+        );
+      }
+    );
     await detail.getByTestId('staff-status-history-checked').click();
     await expect(save).toBeEnabled();
     expect(writes).toBe(1);
     await saveWithRecovery('Recover after dropping the staff status save response');
     await expect(save).toBeDisabled();
     const newerNote = await beforeCommittedHistory();
-    const committedHistory = await inspectHistory();
-    const committedDetail = committedHistory.getByTestId('staff-claim-detail-ready').first();
-    await expect(committedDetail.getByTestId('staff-claim-detail-note')).toContainText(newerNote);
-    await expect(committedDetail.getByTestId('staff-claim-detail-note')).not.toContainText(
-      publicNote
+    await withHistoryPopup(
+      page,
+      historyLink,
+      waitForSignal,
+      'Verify staff history after the committed save',
+      async (popup, remaining) => {
+        const committedDetail = popup.getByTestId('staff-claim-detail-ready').first();
+        const note = committedDetail.getByTestId('staff-claim-detail-note');
+        const history = committedDetail.getByTestId('staff-status-history');
+        await expect(note).toContainText(newerNote, { timeout: remaining() });
+        await expect(note).not.toContainText(publicNote, { timeout: remaining() });
+        await expect(history).toContainText(publicNote, { timeout: remaining() });
+        await expect(history).toContainText(newerNote, { timeout: remaining() });
+      }
     );
-    await expect(committedDetail.getByTestId('staff-status-history')).toContainText(publicNote);
-    await expect(committedDetail.getByTestId('staff-status-history')).toContainText(newerNote);
-    await committedHistory.close();
     await expect(detail.getByLabel('Shënim statusi')).toHaveValue(publicNote);
     await expect(detail.locator('#claim-status-select')).toContainText('Verifikim');
     await expect(save).toBeDisabled();
     expect(writes).toBe(2);
     expect(refreshReads).toBe(0);
   } finally {
-    // This staff fixture owns the page routes. Let the forwarded write finish before cleanup.
-    await page.unrouteAll({ behavior: 'wait' });
+    if (!page.isClosed()) {
+      try {
+        await withSignalTimeout('Drain staff status routes', ROUTE_TEARDOWN_TIMEOUT_MS, () =>
+          page.unrouteAll({ behavior: 'wait' })
+        );
+      } catch (error) {
+        await withSignalTimeout('Cancel staff status routes', ROUTE_TEARDOWN_TIMEOUT_MS, () =>
+          page.context().close()
+        );
+        throw error;
+      }
+    }
   }
 }
 

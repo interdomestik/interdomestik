@@ -18,6 +18,7 @@ import { randomUUID } from 'node:crypto';
 import { expect, test as authTest } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import { inSequence } from './in-sequence';
 import {
   saveInterveningPublicNote,
   verifyStatusTransportRecovery,
@@ -49,8 +50,8 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
     try {
       await residue.memberSession?.context.close();
     } finally {
-      await cleanupJourney(residue.claimId, residue);
-      await expectJourneyClean(residue.claimId, residue);
+      const cleanedIds = await cleanupJourney(residue.claimId, residue);
+      await expectJourneyClean(residue.claimId, residue, cleanedIds);
       residue = null;
     }
   });
@@ -107,29 +108,32 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       })
       .toBe('submitted');
 
-    for (const seeded of [E2E_USERS.KS_MEMBER, E2E_USERS.KS_AGENT, E2E_USERS.KS_BRANCH_MANAGER]) {
-      const actor = await db.query.user.findFirst({
-        where: and(eq(user.email, seeded.email), eq(user.tenantId, E2E_USERS.KS_MEMBER.tenantId)),
-        columns: { branchId: true, id: true, role: true, tenantId: true },
-      });
-      expect(actor).toMatchObject({
-        branchId: seeded.branchId,
-        role: seeded.dbRole,
-        tenantId: seeded.tenantId,
-      });
-      if (!actor) throw new Error(`Seeded ${seeded.dbRole} actor missing`);
-      const probeNote = `S3 unauthorized ${seeded.dbRole} ${randomUUID()}`;
-      unauthorizedNotes.push(probeNote);
-      const result = await updateClaimStatusCore({
-        authority: mintTestTenantAuthority(actor.tenantId),
-        claimId: submitted.claimId,
-        newStatus: 'verification',
-        note: probeNote,
-        isPublicChange: false,
-        session: { user: actor },
-      });
-      expect(result).toEqual({ success: false, error: 'Unauthorized' });
-    }
+    await inSequence(
+      [E2E_USERS.KS_MEMBER, E2E_USERS.KS_AGENT, E2E_USERS.KS_BRANCH_MANAGER],
+      async seeded => {
+        const actor = await db.query.user.findFirst({
+          where: and(eq(user.email, seeded.email), eq(user.tenantId, E2E_USERS.KS_MEMBER.tenantId)),
+          columns: { branchId: true, id: true, role: true, tenantId: true },
+        });
+        expect(actor).toMatchObject({
+          branchId: seeded.branchId,
+          role: seeded.dbRole,
+          tenantId: seeded.tenantId,
+        });
+        if (!actor) throw new Error(`Seeded ${seeded.dbRole} actor missing`);
+        const probeNote = `S3 unauthorized ${seeded.dbRole} ${randomUUID()}`;
+        unauthorizedNotes.push(probeNote);
+        const result = await updateClaimStatusCore({
+          authority: mintTestTenantAuthority(actor.tenantId),
+          claimId: submitted.claimId,
+          newStatus: 'verification',
+          note: probeNote,
+          isPublicChange: false,
+          session: { user: actor },
+        });
+        expect(result).toEqual({ success: false, error: 'Unauthorized' });
+      }
+    );
 
     const stillSubmitted = await db.query.claims.findFirst({
       where: and(
