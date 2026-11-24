@@ -3,7 +3,7 @@
 // the app's DATABASE_URL_RLS uses it, so tenant-scoped gate queries run under real RLS. Its password
 // is derived from the admin credential and cluster, so every admin-capable process agrees on it.
 import { createHmac } from 'node:crypto';
-import { grantRuntimeRelations } from './e2e-runtime-role-grants.mjs';
+import { grantE2eRuntimePrivileges } from './e2e-runtime-role-grants.mjs';
 
 export { NARROWED_TABLE_GRANTS } from './e2e-runtime-role-grants.mjs';
 
@@ -123,15 +123,7 @@ async function provisionRole(sql, role, password) {
     const [{ db }] = await tx`select quote_ident(current_database()) as db`;
     await tx.unsafe(`GRANT CONNECT ON DATABASE ${db} TO ${role}`);
     await tx.unsafe(`GRANT USAGE ON SCHEMA public TO ${role}`);
-    // Base tables get DML only; RLS decides rows. Views are readable only when they run with
-    // the invoker's rights, so their base-table policies still apply.
-    const relations = await tx`
-      select quote_ident(c.relname) as name, c.relkind as kind
-      from pg_class c join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public' and (c.relkind in ('r', 'p', 'S')
-        or (c.relkind = 'v' and 'security_invoker=true' = any(coalesce(c.reloptions, '{}'))))
-      order by c.relname`;
-    await grantRuntimeRelations(tx, role, relations);
+    await grantE2eRuntimePrivileges(tx, role);
   });
 }
 

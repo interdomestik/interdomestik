@@ -12,3 +12,5 @@ export {
   validateSaleBuyer,
   withdrawPlanVersionInputSchema,
 } from './port/sale-input';
+export { recordRateVerification } from './port/record-rate-verification';
+export { recordRateVerificationInputSchema } from './port/rate-input';

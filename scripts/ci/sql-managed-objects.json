@@ -39,17 +39,17 @@
     {
       "key": "fk [\"public\",\"claim_authorities\",[\"tenant_id\",\"claim_id\",\"evidence_document_id\"],\"public\",\"claim_documents\",[\"tenant_id\",\"claim_id\",\"id\"]]",
       "value": "delete=restrict update=restrict match=s",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "fk [\"public\",\"claim_case_fields\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "fk [\"public\",\"claim_correspondence_documents\",[\"tenant_id\",\"claim_id\",\"claim_document_id\"],\"public\",\"claim_documents\",[\"tenant_id\",\"claim_id\",\"id\"]]",
       "value": "delete=restrict update=restrict match=s",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "fk [\"public\",\"crm_deals\",[\"membership_plan_id\"],\"public\",\"membership_plans\",[\"id\"]]",
@@ -84,67 +84,67 @@
     {
       "key": "function [\"public\",\"claim_authorities_insert_guard_fn()\"]",
       "value": "e7658d7caa35d769a3568ccf20d69e48",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_authorities_revoke_guard_fn()\"]",
       "value": "9d1e3f79cc96869201fd5dcca3fe7fb7",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_basis_jurisdiction_appropriate(p_tenant_id text, p_claim_id text, p_authority_id uuid)\"]",
       "value": "989b89bb1ee82d4cdac9ddf6f3f05c18",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_category_open_for_intake(p_category text)\"]",
       "value": "c3ee05a3a0eaa7901cb77cdc28a378b5",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_citation_copy_check_fn()\"]",
       "value": "8f1c8871fd12670272a343a8f2dbf1d0",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_correspondence_document_count_fn()\"]",
       "value": "a7a58f922cbacbece11c85aafa353d6c",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_correspondence_documents_insert_guard_fn()\"]",
       "value": "2a24e0a749fcc9194d48c781e829caa5",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_correspondence_follow_up_guard_fn()\"]",
       "value": "276f5449e1b858ec078e96dc5a6bab70",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_correspondence_insert_guard_fn()\"]",
       "value": "7c16ee5518fdeb5c50d4496de09b246c",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_document_provenance_ok(p_tenant_id text, p_claim_id text, p_document_id text)\"]",
       "value": "d859840df999d592f6d8c280e7975a7c",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_documents_coordinates_frozen_fn()\"]",
       "value": "fe46a2eabc405c74ada092fdfe340c6c",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_intake_category_guard_fn()\"]",
       "value": "434008e412a5c0cca0844c3a85c28151",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"claim_register_reject_mutation_fn()\"]",
       "value": "dcd8ff03175482585a5906e727c234d1",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "function [\"public\",\"exchange_rate_insert_guard_fn()\"]",
@@ -155,6 +155,11 @@
       "key": "function [\"public\",\"exchange_rate_reject_mutation_fn()\"]",
       "value": "65b15cebb1b4c09c93901c0ba573b79e",
       "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "function [\"public\",\"exchange_rate_verifications_insert_guard_fn()\"]",
+      "value": "9095311059a73978ebb7a44278f9c9b0",
+      "migration": "0104_wp07_rate_verification_age"
     },
     {
       "key": "function [\"public\",\"member_leads_legacy_consent_guard_fn()\"]",
@@ -205,6 +210,11 @@
       "key": "function [\"public\",\"membership_sale_post_charge_fn()\"]",
       "value": "46997334c330b97977ff8c29c5e3ab84",
       "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "function [\"public\",\"membership_sale_rate_verification_age_fn()\"]",
+      "value": "743b37b4e73606d28bb7c555f91a7b5e",
+      "migration": "0104_wp07_rate_verification_age"
     },
     {
       "key": "function [\"public\",\"membership_sale_require_charge_fn()\"]",
@@ -274,7 +284,7 @@
     {
       "key": "index [\"public\",\"claim\",\"claim_tenant_id_id_uq\"]",
       "value": "unique btree (tenant_id, id)",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "index [\"public\",\"claim\",\"idx_claim_tenant_id\"]",
@@ -284,7 +294,7 @@
     {
       "key": "index [\"public\",\"claim_correspondence\",\"claim_correspondence_follow_up_idx\"]",
       "value": "btree (tenant_id, follow_up_at) WHERE ((direction = 'outbound'::text) AND (follow_up_at IS NOT NULL))",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "index [\"public\",\"claim_documents\",\"idx_claim_documents_tenant_id\"]",
@@ -1424,27 +1434,37 @@
     {
       "key": "rls-force [\"public\",\"claim_authorities\"]",
       "value": "forced",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "rls-force [\"public\",\"claim_case_fields\"]",
       "value": "forced",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "rls-force [\"public\",\"claim_correspondence\"]",
       "value": "forced",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "rls-force [\"public\",\"claim_correspondence_documents\"]",
       "value": "forced",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "rls-force [\"public\",\"exchange_rate_books\"]",
       "value": "forced",
       "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "rls-force [\"public\",\"exchange_rate_verification_limits\"]",
+      "value": "forced",
+      "migration": "0104_wp07_rate_verification_age"
+    },
+    {
+      "key": "rls-force [\"public\",\"exchange_rate_verifications\"]",
+      "value": "forced",
+      "migration": "0104_wp07_rate_verification_age"
     },
     {
       "key": "rls-force [\"public\",\"exchange_rates\"]",
@@ -1544,77 +1564,87 @@
     {
       "key": "trigger [\"public\",\"claim\",\"claim_intake_category_guard\"]",
       "value": "CREATE TRIGGER claim_intake_category_guard BEFORE INSERT OR UPDATE OF category, case_lifecycle_state ON public.claim FOR EACH ROW EXECUTE FUNCTION claim_intake_category_guard_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_authorities\",\"claim_authorities_citation_copy_check\"]",
       "value": "CREATE TRIGGER claim_authorities_citation_copy_check AFTER INSERT ON public.claim_authorities FOR EACH ROW EXECUTE FUNCTION claim_citation_copy_check_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_authorities\",\"claim_authorities_insert_guard\"]",
       "value": "CREATE TRIGGER claim_authorities_insert_guard BEFORE INSERT ON public.claim_authorities FOR EACH ROW EXECUTE FUNCTION claim_authorities_insert_guard_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_authorities\",\"claim_authorities_no_delete\"]",
       "value": "CREATE TRIGGER claim_authorities_no_delete BEFORE DELETE ON public.claim_authorities FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_authorities\",\"claim_authorities_revoke_guard\"]",
       "value": "CREATE TRIGGER claim_authorities_revoke_guard BEFORE UPDATE ON public.claim_authorities FOR EACH ROW EXECUTE FUNCTION claim_authorities_revoke_guard_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_correspondence\",\"claim_correspondence_document_count\"]",
       "value": "CREATE CONSTRAINT TRIGGER claim_correspondence_document_count AFTER INSERT ON public.claim_correspondence DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION claim_correspondence_document_count_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_correspondence\",\"claim_correspondence_follow_up_guard\"]",
       "value": "CREATE TRIGGER claim_correspondence_follow_up_guard BEFORE UPDATE ON public.claim_correspondence FOR EACH ROW EXECUTE FUNCTION claim_correspondence_follow_up_guard_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_correspondence\",\"claim_correspondence_insert_guard\"]",
       "value": "CREATE TRIGGER claim_correspondence_insert_guard BEFORE INSERT ON public.claim_correspondence FOR EACH ROW EXECUTE FUNCTION claim_correspondence_insert_guard_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_correspondence\",\"claim_correspondence_no_delete\"]",
       "value": "CREATE TRIGGER claim_correspondence_no_delete BEFORE DELETE ON public.claim_correspondence FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_correspondence_documents\",\"claim_correspondence_documents_citation_copy_check\"]",
       "value": "CREATE TRIGGER claim_correspondence_documents_citation_copy_check AFTER INSERT ON public.claim_correspondence_documents FOR EACH ROW EXECUTE FUNCTION claim_citation_copy_check_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_correspondence_documents\",\"claim_correspondence_documents_document_count\"]",
       "value": "CREATE CONSTRAINT TRIGGER claim_correspondence_documents_document_count AFTER INSERT ON public.claim_correspondence_documents DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION claim_correspondence_document_count_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_correspondence_documents\",\"claim_correspondence_documents_immutable\"]",
       "value": "CREATE TRIGGER claim_correspondence_documents_immutable BEFORE DELETE OR UPDATE ON public.claim_correspondence_documents FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_correspondence_documents\",\"claim_correspondence_documents_insert_guard\"]",
       "value": "CREATE TRIGGER claim_correspondence_documents_insert_guard BEFORE INSERT ON public.claim_correspondence_documents FOR EACH ROW EXECUTE FUNCTION claim_correspondence_documents_insert_guard_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"claim_documents\",\"claim_documents_coordinates_frozen\"]",
       "value": "CREATE TRIGGER claim_documents_coordinates_frozen AFTER UPDATE ON public.claim_documents FOR EACH ROW EXECUTE FUNCTION claim_documents_coordinates_frozen_fn()",
-      "migration": "0104_wp12_claim_correspondence"
+      "migration": "0105_wp12_claim_correspondence"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_books\",\"exchange_rate_books_append_only\"]",
       "value": "CREATE TRIGGER exchange_rate_books_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_books FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
       "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "trigger [\"public\",\"exchange_rate_verifications\",\"exchange_rate_verifications_append_only\"]",
+      "value": "CREATE TRIGGER exchange_rate_verifications_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_verifications FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
+      "migration": "0104_wp07_rate_verification_age"
+    },
+    {
+      "key": "trigger [\"public\",\"exchange_rate_verifications\",\"exchange_rate_verifications_insert_guard\"]",
+      "value": "CREATE TRIGGER exchange_rate_verifications_insert_guard BEFORE INSERT ON public.exchange_rate_verifications FOR EACH ROW EXECUTE FUNCTION exchange_rate_verifications_insert_guard_fn()",
+      "migration": "0104_wp07_rate_verification_age"
     },
     {
       "key": "trigger [\"public\",\"exchange_rates\",\"exchange_rates_append_only\"]",
@@ -1690,6 +1720,11 @@
       "key": "trigger [\"public\",\"membership_sales\",\"membership_sales_void_state\"]",
       "value": "CREATE TRIGGER membership_sales_void_state BEFORE INSERT OR UPDATE ON public.membership_sales FOR EACH ROW EXECUTE FUNCTION membership_sale_void_state_fn()",
       "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_sales\",\"membership_sales_z_rate_verification_age\"]",
+      "value": "CREATE TRIGGER membership_sales_z_rate_verification_age BEFORE INSERT ON public.membership_sales FOR EACH ROW WHEN ((new.kind = 'individual'::text)) EXECUTE FUNCTION membership_sale_rate_verification_age_fn()",
+      "migration": "0104_wp07_rate_verification_age"
     },
     {
       "key": "trigger [\"public\",\"sponsor_handover_cancel_attempts\",\"sponsor_handover_cancel_attempts_guard\"]",
