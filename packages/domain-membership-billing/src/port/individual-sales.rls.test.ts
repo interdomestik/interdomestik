@@ -21,6 +21,10 @@ import { registerInvariantCases } from '../test/individual-sales/individual-sale
 import { registerOfferCases } from '../test/individual-sales/individual-sale-offers.test-support';
 import { registerRaceCases } from '../test/individual-sales/individual-sale-races.test-support';
 import { registerScopeCases } from '../test/individual-sales/individual-sale-scope.test-support';
+import { registerRateAgeCases } from '../test/individual-sales/rate-age.test-support';
+import { registerRateAgeRaceCases } from '../test/individual-sales/rate-age-races.test-support';
+import { registerLimitReleaseCases } from '../test/individual-sales/rate-limit-release.test-support';
+import { registerVerificationCases } from '../test/individual-sales/rate-verification.test-support';
 import {
   absent,
   accepted,
@@ -47,9 +51,10 @@ describe.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       });
       await Promise.race([ready.promise, running]);
 
-      const [{ name }] = await database.admin<
-        { name: string }[]
-      >`select current_database() as name`;
+      const [{ name, version }] = await database.admin<{ name: string; version: string }[]>`
+        select current_database() as name, current_setting('server_version_num') as version`;
+      expect(name).toMatch(/^wp07_payment_/u);
+      expect(Math.floor(Number(version) / 10000)).toBe(16);
       const { withTenantAuthority } =
         await import('@interdomestik/database/tenant-authority-context');
       const authority = paymentPortTestSession(randomUUID(), randomUUID(), 'tenant_admin');
@@ -66,7 +71,7 @@ describe.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       await running;
     });
 
-    const fixture = () => saleFixture(database);
+    const fixture = (maxAgeSeconds?: number | null) => saleFixture(database, maxAgeSeconds);
 
     it('publishes only eligible catalogue values and keeps the exact stored price per plan', async () => {
       const f = await fixture();
@@ -120,5 +125,9 @@ describe.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
     registerScopeCases(fixture);
     registerRaceCases(fixture);
     registerCoverageCases(fixture);
+    registerVerificationCases(fixture);
+    registerRateAgeCases(fixture);
+    registerRateAgeRaceCases(fixture);
+    registerLimitReleaseCases(fixture);
   }
 );

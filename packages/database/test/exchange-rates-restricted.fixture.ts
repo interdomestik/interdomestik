@@ -9,7 +9,7 @@ export function restricted<T>(
   accessTenant: string | undefined,
   run: (tx: postgres.TransactionSql) => Promise<T>,
   roleName = runtimeRole,
-  isolation: 'read committed' | 'repeatable read' = 'read committed',
+  isolation: 'read committed' | 'repeatable read' | 'serializable' = 'read committed',
   options: {
     homeTenant?: string;
     beforeRole?: (tx: postgres.TransactionSql) => Promise<void>;

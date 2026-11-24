@@ -10,6 +10,10 @@ import {
   runtimeRole,
   type PaymentPortDatabase,
 } from '../../../../database/test/exchange-rates.fixture';
+import {
+  setRateVerificationLimit,
+  withPaymentPortReleaseClient,
+} from '../../../../database/test/exchange-rates-release.fixture';
 import { expect } from 'vitest';
 
 import type { SaleInput } from '../../port/sale-input';
@@ -52,7 +56,7 @@ export function success<T extends { ok: boolean }>(result: T): Extract<T, { ok: 
   return result as Extract<T, { ok: true }>;
 }
 
-export async function saleFixture(db: PaymentPortDatabase) {
+export async function saleFixture(db: PaymentPortDatabase, maxAgeSeconds: number | null = 86400) {
   const { admin } = db;
   const port: PaymentPort = await import('../../payment-port');
   const tenantId = randomUUID();
@@ -111,10 +115,10 @@ export async function saleFixture(db: PaymentPortDatabase) {
     terms: 'v1' as string | null,
     active: true,
   };
-  const entity = async (legal = defaultEntity) => {
+  const entity = async (legal = defaultEntity, tenant = tenantId) => {
     const id = randomUUID();
     await admin`insert into legal_entities (id, tenant_id, legal_name, country_code, governing_law,
-      terms_version, is_active) values (${id}, ${tenantId}, 'Synthetic Entity', 'MK',
+      terms_version, is_active) values (${id}, ${tenant}, 'Synthetic Entity', 'MK',
         ${legal.governingLaw}, ${legal.terms}, ${legal.active})`;
     return id;
   };
@@ -146,10 +150,36 @@ export async function saleFixture(db: PaymentPortDatabase) {
     tenantId,
     tx => tx<{ id: string }[]>`select id from exchange_rate_books`
   );
-  const addRate = (rate = '61.50', effectiveOn = '2000-01-03') =>
+  const addUnverifiedRate = (rate = '61.50', effectiveOn = '2000-01-03') =>
     restricted(db.peer, tenantId, tx =>
       insertRate(tx, { ...firstRate(tenantId, book.id, effectiveOn), rate })
     );
+  const limitRequest = (seconds: number | null, tenant = tenantId) => ({
+    tenantId: tenant,
+    maxAgeSeconds: seconds,
+    operationId: randomUUID(),
+    approvalReference: 'test-approval',
+    releaseIdentity: 'test-release',
+  });
+  const setLimit = (seconds: number | null) =>
+    withPaymentPortReleaseClient(admin, client =>
+      setRateVerificationLimit(client, limitRequest(seconds))
+    );
+  if (maxAgeSeconds !== null) await setLimit(maxAgeSeconds);
+  const verificationInput = (rateId: string, observedRate = '61.50') => ({
+    legalEntityId,
+    rateId,
+    observedRate,
+    sourceRef: 'NBRM/test-entry',
+    operationKey: randomUUID(),
+  });
+  const verify = (input: ReturnType<typeof verificationInput>, who = owner) =>
+    port.recordRateVerification(who.authority, input, who);
+  const addRate = async (rate = '61.50', effectiveOn = '2000-01-03') => {
+    const rows = await addUnverifiedRate(rate, effectiveOn);
+    success(await verify(verificationInput(rows[0].id, rate)));
+    return rows;
+  };
   const publishInput = { planId, legalEntityId };
   const publish = (input = publishInput) => port.publishPlanVersion(owner.authority, input, owner);
   const withdraw = (planVersionId: string) =>
@@ -192,6 +222,11 @@ export async function saleFixture(db: PaymentPortDatabase) {
     planId,
     bookId: book.id,
     addRate,
+    addUnverifiedRate,
+    limitRequest,
+    setLimit,
+    verificationInput,
+    verify,
     publish,
     withdraw,
     quote,
