@@ -1,68 +1,163 @@
-import { claimDocuments, dbAdmin, user } from '@interdomestik/database';
+import type { TenantTransaction } from '@interdomestik/database';
 import type { TestInfo } from '@playwright/test';
-import { sql } from 'drizzle-orm';
+import { execFile } from 'node:child_process';
+import { createRequire } from 'node:module';
+import { dirname, resolve } from 'node:path';
+import { promisify } from 'node:util';
 
-type ClaimPlanScope = { tenant: string; claimId: string; afterId: string };
+export type ClaimReadFixture = {
+  prefix: string;
+  home: string;
+  access: string;
+  branchA: string;
+  branchB: string;
+  localId: string;
+  transferredId: string;
+  wrongBranchId: string;
+  staffAfter: string;
+};
 
-/** Capture plans on the same synthetic database and restricted role as the browser. */
-export async function attachAdminClaimReadPlans(
-  info: TestInfo,
-  scopes: readonly ClaimPlanScope[],
-  staffSearch: string,
-  staffAfter: string
-) {
-  for (const [index, scope] of scopes.entries()) {
-    const plans = await dbAdmin.transaction(async tx => {
-      await tx.execute(sql`set local role interdomestik_e2e_runtime`);
-      await tx.execute(sql`set local row_security = on`);
-      await tx.execute(sql`select set_config('app.current_tenant_id', ${scope.tenant}, true)`);
-      await tx.execute(
-        sql`select set_config('app.current_access_tenant_id', ${scope.tenant}, true)`
-      );
-      const [role] = await tx.execute<{ restricted: boolean }>(sql`
-        select not rolbypassrls and not rolsuper as restricted
-        from pg_roles where rolname = current_user
-      `);
-      if (role?.restricted !== true) throw new Error('WP-19 plans require restricted RLS');
+type CapturedQuery = { text: string; binds: unknown[] };
+type ExplainNode = {
+  'Actual Rows': number;
+  'Actual Loops': number;
+  'Shared Hit Blocks': number;
+  'Shared Read Blocks': number;
+};
+type Explain = { Plan: ExplainNode; 'Execution Time': number; 'Planning Time': number };
 
-      // Keep projections and predicates aligned with the bounded domain queries.
-      const documentScope = sql`
-        (${claimDocuments.accessTenantId} = ${scope.tenant}
-        or (${claimDocuments.tenantId} = ${scope.tenant} and ${claimDocuments.accessTenantId} is null))
-        and ${claimDocuments.claimId} = ${scope.claimId}
-      `;
-      const documentPage = (afterId?: string) => sql`
-        select id, tenant_id, name, file_size, file_type, created_at, file_path, bucket
-        from ${claimDocuments}
-        where ${documentScope} ${afterId ? sql`and ${claimDocuments.id} > ${afterId}` : sql.empty()}
-        order by id asc limit 26
-      `;
-      const staff = (afterId?: string) => sql`
-        select id, name, email from ${user}
-        where ${user.tenantId} = ${scope.tenant} and ${user.role} = 'staff'
-        and (${user.name} ilike ${`%${staffSearch}%`} or ${user.email} ilike ${`%${staffSearch}%`})
-        ${afterId ? sql`and ${user.id} > ${afterId}` : sql.empty()}
-        order by id asc limit 26
-      `;
-      return {
-        documentsFirst: await tx.execute(
-          sql`explain (analyze, buffers, format json) ${documentPage()}`
-        ),
-        documentsContinuation: await tx.execute(
-          sql`explain (analyze, buffers, format json) ${documentPage(scope.afterId)}`
-        ),
-        documentsCount: await tx.execute(sql`
-          explain (analyze, buffers, format json) select count(*) from ${claimDocuments} where ${documentScope}
-        `),
-        staffFirst: await tx.execute(sql`explain (analyze, buffers, format json) ${staff()}`),
-        staffContinuation: await tx.execute(
-          sql`explain (analyze, buffers, format json) ${staff(staffAfter)}`
-        ),
-      };
-    });
-    await info.attach(index === 0 ? 'wp19-null-access-plans' : 'wp19-transfer-plans', {
-      body: JSON.stringify(plans),
-      contentType: 'application/json',
-    });
+type ReaderSession = {
+  logger: { logQuery: (text: string, binds: unknown[]) => void };
+  client: {
+    unsafe(text: string, binds: unknown[]): PromiseLike<{ 'QUERY PLAN': Explain[] }[]>;
+  };
+};
+
+function readerSession(tx: TenantTransaction): ReaderSession {
+  // Drizzle gives each postgres-js transaction its own session. Scope instrumentation to that
+  // session and restore its logger even on failure. No app process installs this instrumentation.
+  const session: unknown = Reflect.get(tx, 'session');
+  if (!session || typeof session !== 'object' || !('logger' in session) || !('client' in session)) {
+    throw new Error('WP-19 could not instrument the restricted Drizzle transaction');
+  }
+  return session as ReaderSession;
+}
+
+export async function captureQueries<T>(
+  tx: TenantTransaction,
+  queries: CapturedQuery[],
+  work: () => Promise<T>
+): Promise<T> {
+  const session = readerSession(tx);
+  const original = session.logger;
+  session.logger = { logQuery: (text, binds) => queries.push({ text, binds: [...binds] }) };
+  try {
+    return await work();
+  } finally {
+    session.logger = original;
   }
 }
+
+export const documentId = (claimId: string, index: number, width = 2) =>
+  `${claimId}-doc-${String(index).padStart(width, '0')}`;
+
+// Fixed before the run. Both ceilings apply to every document case. One warm-up is discarded.
+// The buffer ceiling detects scans in a warm cache. The execution budget is per SQL statement.
+const DOCUMENT_BUDGET = {
+  measuredRuns: 5,
+  p75ExecutionMs: 10,
+  maxSharedBlocks: 128,
+};
+
+export async function measureRead<T>(
+  tx: TenantTransaction,
+  label: string,
+  table: 'claim_documents' | 'user',
+  checkoutAndBeginMs: number,
+  action: () => Promise<T>
+) {
+  const queries: CapturedQuery[] = [];
+  const result = await captureQueries(tx, queries, action);
+  const [query] = queries;
+  if (queries.length !== 1 || !query.text.includes(`from "${table}"`)) {
+    throw new Error(`WP-19 ${label} did not issue one captured ${table} statement`);
+  }
+
+  const client = readerSession(tx).client;
+  const explain = async () => {
+    // Replay the driver's captured statement and untouched binds on the same checked-out
+    // connection, role and transaction-local settings that produced the original result.
+    const [row] = await client.unsafe(
+      `explain (analyze, buffers, format json) ${query.text}`,
+      query.binds
+    );
+    const plan = row?.['QUERY PLAN']?.[0];
+    if (
+      !plan ||
+      !Number.isFinite(plan['Execution Time']) ||
+      !Number.isFinite(plan.Plan['Shared Hit Blocks']) ||
+      !Number.isFinite(plan.Plan['Shared Read Blocks'])
+    ) {
+      throw new Error(`WP-19 ${label} returned incomplete EXPLAIN metrics`);
+    }
+    return plan;
+  };
+
+  await explain();
+  const plans: Explain[] = [];
+  for (let index = 0; index < DOCUMENT_BUDGET.measuredRuns; index++) {
+    plans.push(await explain());
+  }
+  const timings = plans.map(plan => plan['Execution Time']).sort((a, b) => a - b);
+  const p75Ms = timings[Math.ceil(timings.length * 0.75) - 1];
+  const sharedBlocks = Math.max(
+    ...plans.map(({ Plan: node }) => node['Shared Hit Blocks'] + node['Shared Read Blocks'])
+  );
+  const passed =
+    table !== 'claim_documents' ||
+    (p75Ms <= DOCUMENT_BUDGET.p75ExecutionMs && sharedBlocks <= DOCUMENT_BUDGET.maxSharedBlocks);
+
+  return {
+    result,
+    evidence: { label, passed, p75Ms, sharedBlocks, checkoutAndBeginMs, query, plans },
+  };
+}
+
+export async function runRestrictedClaimReader(info: TestInfo, fixture: ClaimReadFixture) {
+  if (!info.config.configFile) throw new Error('WP-19 requires the web Playwright config');
+  const webRoot = dirname(info.config.configFile);
+  const tsx = createRequire(resolve(webRoot, '../../package.json')).resolve('tsx/cli');
+  const reader = resolve(webRoot, 'e2e/gate/test/admin-claim-detail-restricted-reader.ts');
+  const command = promisify(execFile);
+  let stdout: string;
+  try {
+    ({ stdout } = await command(process.execPath, [tsx, reader, JSON.stringify(fixture)], {
+      cwd: webRoot,
+      env: { ...process.env, NODE_ENV: 'test' },
+      timeout: 100_000,
+      maxBuffer: 8 * 1024 * 1024,
+    }));
+  } catch (error) {
+    // Never forward the child command, driver errors, bind dumps or environment.
+    const stderr = (error as { stderr?: string }).stderr ?? '';
+    const location = /WP19_ERROR [\w.-]+\.ts:\d+:\d+/u.exec(stderr)?.[0];
+    throw new Error(location ?? 'WP-19 restricted reader did not complete');
+  }
+  const reportLine = stdout.split('\n').find(line => line.startsWith('WP19_RESULT '));
+  if (!reportLine) throw new Error('WP-19 restricted reader produced no result');
+  const body = reportLine.slice('WP19_RESULT '.length);
+  const report = JSON.parse(body);
+  if (
+    report.restricted !== true ||
+    !Array.isArray(report.misses) ||
+    !report.misses.every((miss: unknown) => typeof miss === 'string')
+  ) {
+    throw new Error('WP-19 restricted reader produced an invalid result');
+  }
+  await info.attach('wp19-restricted-read-evidence', { body, contentType: 'application/json' });
+  if (report.misses.length) {
+    throw new Error(`WP-19 document query budget missed: ${report.misses.join(', ')}`);
+  }
+}
+
+export { DOCUMENT_BUDGET };

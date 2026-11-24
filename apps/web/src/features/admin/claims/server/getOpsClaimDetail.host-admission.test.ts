@@ -178,8 +178,8 @@ describe('getOpsClaimDetail host admission', () => {
   it('scopes branch managers to their own branch on an IDA host', async () => {
     requestFrom('ida.interdomestik.com');
     signInAs({ role: 'branch_manager', branchId: 'branch-1' });
-    const { docsWhere } = mockSelectChains();
-    docsWhere.mockResolvedValueOnce([{ count: 0 }]);
+    const { docsUnion } = mockSelectChains();
+    docsUnion.mockResolvedValueOnce([{ count: 0 }, { count: 0 }]);
 
     const result = await loadClaim();
 

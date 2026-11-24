@@ -18,8 +18,8 @@ describe('D1 Ops document boundary', () => {
         branchId: 'branch-a',
       },
     });
-    const { docsWhere } = mockSelectChains();
-    docsWhere.mockResolvedValueOnce([{ count: 2 }]);
+    const { docsUnion } = mockSelectChains();
+    docsUnion.mockResolvedValueOnce([{ count: 1 }, { count: 1 }]);
 
     const result = await getOpsClaimDetail('claim-1');
     expect(hoisted.searchAssignableStaff).not.toHaveBeenCalled();
@@ -29,8 +29,10 @@ describe('D1 Ops document boundary', () => {
       data: { docs: [], documentSummary: { count: 2, evidenceComplete: null } },
     });
     expect(hoisted.signDocument).not.toHaveBeenCalled();
-    const projection = hoisted.dbSelect.mock.calls[0]?.[0];
-    expect(Object.keys(projection)).toEqual(['count']);
+    const projections = hoisted.dbSelect.mock.calls
+      .slice(1, 3)
+      .map(([fields]) => Object.keys(fields));
+    expect(projections).toEqual([['count'], ['count']]);
   });
 
   it('isolates invalid legacy and failed signatures without leaking document data', async () => {

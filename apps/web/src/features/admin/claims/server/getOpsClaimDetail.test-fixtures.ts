@@ -3,7 +3,7 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { PgDialect } from 'drizzle-orm/pg-core';
+import { PgDialect, QueryBuilder } from 'drizzle-orm/pg-core';
 import { type SQL } from 'drizzle-orm';
 import { vi } from 'vitest';
 const hoisted = vi.hoisted(() => {
@@ -117,12 +117,18 @@ export function createClaim() {
   };
 }
 
-export function mockSelectChains() {
-  const docsWhere = vi.fn().mockImplementation(() => docsRows);
-  const docsRows = Object.assign(Promise.resolve([]), {
+export function mockSelectChains(branchWhere?: ReturnType<typeof vi.fn>) {
+  const docsRows = {
     orderBy: vi.fn().mockReturnThis(),
     limit: vi.fn().mockResolvedValue([]),
+  };
+  const docsUnion = vi.fn().mockReturnValue(docsRows);
+  const docsWhere = vi.fn().mockReturnValue({
+    orderBy: vi.fn().mockReturnThis(),
+    limit: vi.fn().mockReturnThis(),
+    unionAll: docsUnion,
   });
+  hoisted.dbSelect.mockImplementationOnce(fields => new QueryBuilder().select(fields));
   const peopleWhere = vi
     .fn()
     .mockResolvedValue([
@@ -132,11 +138,12 @@ export function mockSelectChains() {
     orderBy: vi.fn().mockReturnValue({ limit: vi.fn().mockResolvedValue([]) }),
   });
 
-  for (const where of [docsWhere, peopleWhere, noteWhere]) {
+  for (const where of [docsWhere, docsWhere, peopleWhere, branchWhere, noteWhere]) {
+    if (!where) continue;
     hoisted.dbSelect.mockImplementationOnce(() => ({ from: () => ({ where }) }));
   }
 
-  return { docsWhere, docsRows, peopleWhere, noteWhere };
+  return { docsWhere, docsRows, docsUnion, peopleWhere, noteWhere };
 }
 
 /** Tenant and principal role of every authority the reads ran under, in order. */

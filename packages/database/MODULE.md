@@ -8,6 +8,8 @@ Declares the schema (46 schema files, 99 `pgTable` calls — MEASURED, `rg -c 'p
 
 ## Public API
 
+Under test runners, `./testing/tenant-authority` can mint a synthetic session authority with a branch and access tenant for restricted-role integration tests. The default remains a test-purpose authority.
+
 `package.json:7-30` declares 22 subpath exports (recounted in R3) (root `./src/index.ts`, plus `./schema`, `./db`, `./tenant-authority`, `./tenant-security`, `./ingress`, `./testing/tenant-authority`, …). The entries other code should use: `withTenantAuthority` (`src/tenant-authority-context.ts:12-18`), `withTenantContext` / `withTenantDb` (`src/tenant.ts:23-55`), `dbAdmin` and `dbRls` (`src/db.ts:244-251`), `withTenant` (`src/tenant-security.ts:22-37`). Transaction-scoped advisory locks live here so their raw statements stay inside the database package: `./branch-policy-lock`, `./sponsor-locks` and `./claim-evidence-object-lock` (`lockClaimEvidenceObjects`, one lock per stored evidence object of a tenant, taken in ascending order of the 64-bit lock ids; it refuses a transaction that is not READ COMMITTED, since its callers' re-read must see the previous holder's commit).
 
 ## Owned tables

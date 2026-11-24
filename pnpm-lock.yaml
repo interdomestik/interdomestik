@@ -738,6 +738,9 @@ importers:
       '@interdomestik/database':
         specifier: workspace:*
         version: link:../database
+      '@interdomestik/domain-claims':
+        specifier: workspace:*
+        version: link:../domain-claims
       '@supabase/supabase-js':
         specifier: ^2.110.9
         version: 2.110.9

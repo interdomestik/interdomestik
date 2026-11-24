@@ -1,9 +1,13 @@
+import { ClaimDetailPageLinks } from '@/features/admin/claims/components/detail/ClaimDetailReadControls';
+import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import AdminClaimDetailPage from './page';
 
 vi.mock('@/features/admin/claims/components/AdminClaimDetailV2Page', () => ({
   AdminClaimDetailV2Page: () => null,
 }));
+vi.mock('@/i18n/routing', async () => ({ Link: (await import('next/link')).default }));
+vi.mock('next-intl/server', () => ({ getTranslations: async () => (key: string) => key }));
 vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
@@ -31,6 +35,25 @@ describe('admin claim detail search params', () => {
       locale: 'en',
       search: { documentsAfter: 'doc-25', staffAfter: 'staff-25', staffSearch: 'Alex' },
     });
+  });
+
+  it.each([
+    ['documentsAfter', { staffAfter: 'staff-25' }],
+    ['staffAfter', { documentsAfter: 'doc-25' }],
+  ] as const)('opens the first page after clearing %s', async (cursorKey, otherCursor) => {
+    const search = { documentsAfter: 'doc-25', staffAfter: 'staff-25', staffSearch: 'Alex' };
+    render(await ClaimDetailPageLinks({ claimId: 'claim-1', cursorKey, search, nextCursor: null }));
+
+    const href = screen.getByRole('link', { name: 'first_page' }).getAttribute('href');
+    const url = new URL(href!, 'http://localhost');
+    const element = await AdminClaimDetailPage({
+      params,
+      searchParams: Promise.resolve(Object.fromEntries(url.searchParams)),
+    });
+
+    expect(url.pathname).toBe('/admin/claims/claim-1');
+    expect(url.searchParams.has(cursorKey)).toBe(false);
+    expect(element.props.search).toEqual({ ...otherCursor, staffSearch: 'Alex' });
   });
 
   it.each([

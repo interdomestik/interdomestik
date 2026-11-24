@@ -98,10 +98,15 @@ describe('getOpsClaimDetail', () => {
     const result = await getOpsClaimDetail('claim-1');
     expect(result.kind).toBe('ok');
     const claimWhere = sqlOf(hoisted.claimsFindFirst.mock.lastCall?.[0].where);
-    const documentsWhere = sqlOf(docsWhere.mock.lastCall?.[0]);
-    for (const scoped of [claimWhere, documentsWhere]) {
-      expect(scoped.sql).toMatch(/"access_tenant_id" is null/);
-      expect(scoped.params).toEqual(['tenant_ks', 'tenant_ks', 'claim-1']);
+    expect(claimWhere.sql).toMatch(/"access_tenant_id" is null/);
+    expect(claimWhere.params).toEqual(['tenant_ks', 'tenant_ks', 'claim-1']);
+    const documentScopes = docsWhere.mock.calls.map(([where]) => sqlOf(where));
+    expect(documentScopes).toHaveLength(2);
+    expect(documentScopes[0].sql).toContain('"claim_documents"."access_tenant_id" =');
+    expect(documentScopes[1].sql).toContain('"claim_documents"."access_tenant_id" is null');
+    for (const scope of documentScopes) {
+      expect(scope.sql).toContain('exists (select "id" from "claim"');
+      expect(scope.params).toEqual(['tenant_ks', 'claim-1', ...claimWhere.params]);
     }
     expect(sqlOf(noteWhere.mock.lastCall?.[0]).params).toEqual(['claim-1', 'tenant_home']);
   });
@@ -181,8 +186,8 @@ describe('getOpsClaimDetail', () => {
     const result = await getOpsClaimDetail('claim-1');
 
     expect(result.kind).toBe('ok');
-    expect(docsWhere).toHaveBeenCalledTimes(1);
+    expect(docsWhere).toHaveBeenCalledTimes(2);
     expect(readContexts()).toEqual([{ tenantId: 'tenant_ks', role: 'admin' }]);
-    expect(hoisted.dbSelect).toHaveBeenCalledTimes(1);
+    expect(hoisted.dbSelect).toHaveBeenCalledTimes(3);
   });
 });

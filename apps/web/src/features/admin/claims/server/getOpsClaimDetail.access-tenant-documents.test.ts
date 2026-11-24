@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   createClaim,
   hoisted,
@@ -22,7 +22,10 @@ describe('getOpsClaimDetail divergent document signing', () => {
       staffId: 'staff-1',
       branchId: 'branch-1',
     });
-    const { docsRows, peopleWhere } = mockSelectChains();
+    const branchWhere = vi.fn().mockReturnValue({
+      limit: async () => [{ id: 'branch-1', code: 'HOME-A', name: 'Home Branch' }],
+    });
+    const { docsRows, peopleWhere, noteWhere } = mockSelectChains(branchWhere);
     docsRows.limit.mockResolvedValueOnce([
       {
         id: 'doc-1',
@@ -37,31 +40,15 @@ describe('getOpsClaimDetail divergent document signing', () => {
       { id: 'agent-1', name: 'Agent Home' },
       { id: 'staff-1', name: 'Staff Home', email: 'staff-home@example.test' },
     ]);
-    // Insert the branch before the note without adding one SQL round trip per person.
-    hoisted.dbSelect
-      .mockReset()
-      .mockImplementationOnce(() => ({ from: () => ({ where: () => docsRows }) }))
-      .mockImplementationOnce(() => ({ from: () => ({ where: peopleWhere }) }))
-      .mockImplementationOnce(() => ({
-        from: () => ({
-          where: () => ({
-            limit: async () => [{ id: 'branch-1', code: 'HOME-A', name: 'Home Branch' }],
-          }),
-        }),
-      }))
-      .mockImplementationOnce(() => ({
-        from: () => ({
-          where: () => ({
-            orderBy: () => ({
-              limit: async () => [
-                {
-                  note: 'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
-                },
-              ],
-            }),
-          }),
-        }),
-      }));
+    noteWhere.mockReturnValueOnce({
+      orderBy: () => ({
+        limit: async () => [
+          {
+            note: 'Started from Diaspora / Green Card quickstart. Country: IT. Incident location: abroad.',
+          },
+        ],
+      }),
+    });
 
     const result = await getOpsClaimDetail('claim-1');
 

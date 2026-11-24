@@ -17,28 +17,31 @@ export async function ClaimDetailPageLinks({
   nextCursor,
   cursorKey,
 }: PageProps & { cursorKey: 'staffAfter' | 'documentsAfter' }) {
-  if (!search[cursorKey] && !nextCursor) return null;
+  const { [cursorKey]: currentCursor, ...firstPageQuery } = search;
+  if (!currentCursor && !nextCursor) return null;
   const [t, claims] = await Promise.all([
     getTranslations('common'),
     getTranslations('admin.claims_page'),
   ]);
   const pathname = `/admin/claims/${encodeURIComponent(claimId)}`;
-  const href = (cursor?: string) => ({ pathname, query: { ...search, [cursorKey]: cursor } });
   return (
     <nav
       aria-label={claims(cursorKey === 'staffAfter' ? 'assignment.label' : 'evidence.title')}
       className="flex flex-wrap gap-2"
     >
-      {search[cursorKey] && (
+      {currentCursor && (
         <Button asChild variant="outline" size="sm">
-          <Link href={href()} prefetch={false}>
+          <Link href={{ pathname, query: firstPageQuery }} prefetch={false}>
             {claims('first_page')}
           </Link>
         </Button>
       )}
       {nextCursor && (
         <Button asChild variant="outline" size="sm">
-          <Link href={href(nextCursor)} prefetch={false}>
+          <Link
+            href={{ pathname, query: { ...firstPageQuery, [cursorKey]: nextCursor } }}
+            prefetch={false}
+          >
             {t('next')}
           </Link>
         </Button>

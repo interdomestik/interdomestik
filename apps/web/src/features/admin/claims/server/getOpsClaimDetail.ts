@@ -7,7 +7,6 @@ import { resolveTenantFromHost } from '@/lib/tenant/tenant-hosts';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
-import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import {
   canViewAdminClaims,
   getVisibleOpsClaim,
@@ -117,10 +116,7 @@ export async function getOpsClaimDetail(
     return { kind: 'not_found' };
   }
 
-  const result = await withTenantAuthority(authority, async tx => {
-    const visibleClaim = await getVisibleOpsClaim(tx, { authority, claimId });
-    if (!visibleClaim) return null;
-
+  const result = await getVisibleOpsClaim({ authority, claimId }, async (tx, visibleClaim) => {
     const documents = await listVisibleClaimDocuments(tx, {
       visibleClaim,
       afterId: documentsAfter,

@@ -12,7 +12,13 @@ function isTestRunner(): boolean {
 
 export function mintTestTenantAuthority(
   tenantId: string,
-  options: { accessTenantId?: string; userId?: string; role?: string | null } = {}
+  options: {
+    accessTenantId?: string;
+    userId?: string;
+    role?: string | null;
+    branchId?: string;
+    purpose?: 'test' | 'session';
+  } = {}
 ): TenantAuthority {
   if (!isTestRunner()) {
     throw new Error('Test tenant authority is available only under a test runner');
@@ -20,9 +26,14 @@ export function mintTestTenantAuthority(
   return mintTenantAuthority({
     tenantId,
     accessTenantId: options.accessTenantId,
-    purpose: 'test',
+    purpose: options.purpose ?? 'test',
     principal: options.userId
-      ? { userId: options.userId, role: options.role ?? null, branchId: null, agentId: null }
+      ? {
+          userId: options.userId,
+          role: options.role ?? null,
+          branchId: options.branchId ?? null,
+          agentId: null,
+        }
       : null,
   });
 }
