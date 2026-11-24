@@ -169,7 +169,7 @@ describe('ClaimsFilters search coalescing', () => {
 
     typeSearch('claim 2');
 
-    expect(statusChip('draft')).toBeDisabled();
+    expect(statusChip('draft')).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(statusChip('draft'));
     expect(memberClaimsNav.push).not.toHaveBeenCalled();
 
@@ -187,13 +187,15 @@ describe('ClaimsFilters search coalescing', () => {
 
     typeSearch('claim 2');
     settleSearch();
-    expect(statusChip('draft')).toBeDisabled();
+    expect(statusChip('draft')).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(statusChip('draft'));
+    expect(pushedUrls()).toEqual(['/member/claims?search=claim+2']);
 
     setMemberClaimsUrl('search=claim+2');
     rerender(<ClaimsFilters />);
 
     expect(pending()).not.toBeInTheDocument();
-    expect(statusChip('draft')).not.toBeDisabled();
+    expect(statusChip('draft')).toHaveAttribute('aria-disabled', 'false');
 
     fireEvent.click(statusChip('draft'));
 
@@ -230,13 +232,18 @@ describe('ClaimsFilters search coalescing', () => {
     settleSearch();
 
     expect(pending()).toBeInTheDocument();
-    expect(statusChip('draft')).toBeDisabled();
+    expect(statusChip('draft')).toHaveAttribute('aria-disabled', 'true');
+    fireEvent.click(statusChip('draft'));
+    expect(pushedUrls()).toEqual(['/member/claims?search=claim']);
 
     advance(10_000);
 
     expect(pending()).not.toBeInTheDocument();
-    expect(statusChip('draft')).not.toBeDisabled();
+    expect(statusChip('draft')).toHaveAttribute('aria-disabled', 'false');
     expect(pushedUrls()).toEqual(['/member/claims?search=claim']);
+
+    fireEvent.click(statusChip('draft'));
+    expect(pushedUrls()).toEqual(['/member/claims?search=claim', '/member/claims?status=draft']);
   });
 
   it('cancels a scheduled commit on unmount and stays single-commit in StrictMode', () => {
@@ -259,14 +266,15 @@ describe('ClaimsFilters search coalescing', () => {
     expect(pushedUrls()).toEqual(['/member/claims?search=claim+9']);
   });
 
-  it('keeps existing filter guards and disabled controls unchanged', () => {
+  it('keeps existing filter guards with focusable chips and a read-only search', () => {
     render(<ClaimsFilters />);
 
     fireEvent.click(statusChip('draft'));
 
     expect(pushedUrls()).toEqual(['/member/claims?status=draft']);
-    expect(searchInput()).toBeDisabled();
-    expect(statusChip('submitted')).toBeDisabled();
+    expect(searchInput()).toHaveAttribute('readonly');
+    expect(searchInput()).not.toBeDisabled();
+    expect(statusChip('submitted')).toHaveAttribute('aria-disabled', 'true');
 
     fireEvent.click(statusChip('submitted'));
     advance(1_000);

@@ -46,19 +46,25 @@ describe('member claim cards', () => {
     );
     const link = screen.getByRole('link');
     expect(link).toHaveAttribute('href', '/member/claims/claim-1');
-    expect(link).toHaveClass('break-words', 'min-h-11', 'md:min-h-0', 'md:truncate');
+    expect(link).toHaveClass('font-semibold', 'min-h-11', '[overflow-wrap:anywhere]');
+    expect(link).not.toHaveClass('md:truncate');
+    expect(link).not.toHaveClass('bg-[hsl(var(--primary))]');
     const cells = screen.getAllByRole('cell');
     expect(cells).toHaveLength(6);
-    for (const [i, label] of ['company', 'category', 'status', 'amount', 'created'].entries()) {
-      expect(cells[i + 1]).toHaveAttribute(
-        'data-label',
-        messages.claims.table[label as keyof typeof messages.claims.table]
-      );
-      expect(cells[i + 1]).toHaveClass('flex', 'md:table-cell', 'md:before:hidden');
+    for (const [i, label] of (
+      ['status', 'company', 'category', 'amount', 'created'] as const
+    ).entries()) {
+      const phoneLabel = cells[i + 1]?.querySelector('[aria-hidden="true"]');
+      expect(phoneLabel).toHaveTextContent(messages.claims.table[label]);
+      expect(phoneLabel).toHaveClass('md:hidden');
+      expect(cells[i + 1]).toHaveClass('flex', 'md:table-cell');
     }
     expect(screen.getByText('Company with a long name')).toBeInTheDocument();
     expect(screen.getByText(messages.claims.status.submitted)).toBeInTheDocument();
     expect(cells[4]).toHaveTextContent('-');
     expect(cells[5]).toHaveTextContent('-');
+    for (const cell of [cells[4], cells[5]]) {
+      expect(cell).toHaveAccessibleName(messages.claims.table.unavailable);
+    }
   });
 });

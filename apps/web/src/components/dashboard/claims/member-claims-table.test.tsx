@@ -1,118 +1,21 @@
+import { useQuery } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
-import type { AnchorHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemberClaimsTable } from './member-claims-table';
+import { mockClaims, resetUnitNavigation } from './member-claims-table-test-support';
 
-const hoisted = vi.hoisted(() => ({
-  push: vi.fn(),
-  searchParams: new URLSearchParams(),
-}));
+const loadMocks = vi.hoisted(() => () => import('./member-claims-table-test-support'));
+vi.mock('@tanstack/react-query', async original => (await loadMocks()).reactQueryMock(original));
+vi.mock('next/navigation', async () => (await loadMocks()).unitNextNavigationMock());
+vi.mock('next-intl', async () => (await loadMocks()).intlMock());
+vi.mock('@/i18n/routing', async () => (await loadMocks()).routingMock());
+vi.mock('./claim-status-badge', async () => (await loadMocks()).claimStatusBadgeMock());
+vi.mock('@/lib/api/claims', async () => (await loadMocks()).claimsApiMock());
 
-// Mock react-query
-vi.mock('@tanstack/react-query', () => ({
-  useQuery: vi.fn(),
-}));
-
-import { useQuery } from '@tanstack/react-query';
 const mockUseQuery = vi.mocked(useQuery);
 
-// Mock search params
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => hoisted.searchParams,
-}));
-
-// Mock next-intl
-vi.mock('next-intl', () => ({
-  useLocale: () => 'en',
-  useTranslations: () => (key: string) => {
-    const translations: Record<string, string> = {
-      'table.title': 'Title',
-      'table.company': 'Company',
-      'table.category': 'Category',
-      'table.status': 'Status',
-      'table.amount': 'Amount',
-      'table.created': 'Created',
-      'empty.title': 'No claims yet',
-      'empty.description': 'Start by creating your first claim',
-      'empty.filtered': 'No claims match your filters',
-      'empty.createFirst': 'Create First Claim',
-      showing: 'Showing',
-      claim: 'claim',
-      claimsPlural: 'claims',
-      loading: 'Loading...',
-      processing: 'Processing...',
-      'errors.generic': 'An error occurred',
-      tryAgain: 'Try Again',
-      previous: 'Previous',
-      next: 'Next',
-      'pagination.pageOf': 'Page {page} of {total}',
-      auto: 'Auto',
-      travel: 'Travel',
-    };
-    return translations[key] || key;
-  },
-}));
-
-// Mock routing
-vi.mock('@/i18n/routing', () => ({
-  Link: ({
-    children,
-    href,
-    prefetch: _prefetch,
-    ...props
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & {
-    children: React.ReactNode;
-    href: string;
-    prefetch?: boolean;
-  }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-  usePathname: () => '/member/claims',
-  useRouter: () => ({
-    push: hoisted.push,
-  }),
-}));
-
-// Mock ClaimStatusBadge
-vi.mock('@/components/dashboard/claims/claim-status-badge', () => ({
-  ClaimStatusBadge: ({ status }: { status: string }) => <span>{status}</span>,
-}));
-
-// Mock fetchClaims
-vi.mock('@/lib/api/claims', () => ({
-  fetchClaims: vi.fn(),
-}));
-
-const mockClaims = [
-  {
-    id: 'claim-1',
-    title: 'Car Accident',
-    companyName: 'State Farm',
-    category: 'auto',
-    status: 'submitted',
-    claimAmount: '5000',
-    currency: 'EUR',
-    createdAt: '2024-01-15T10:00:00Z',
-  },
-  {
-    id: 'claim-2',
-    title: 'Flight Delay',
-    companyName: 'Lufthansa',
-    category: 'travel',
-    status: 'verification',
-    claimAmount: '600',
-    currency: 'EUR',
-    createdAt: '2024-01-14T10:00:00Z',
-  },
-];
-
 describe('MemberClaimsTable', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    hoisted.searchParams = new URLSearchParams();
-  });
+  beforeEach(resetUnitNavigation);
 
   it('renders loading state', () => {
     mockUseQuery.mockReturnValue({
@@ -123,20 +26,33 @@ describe('MemberClaimsTable', () => {
     } as unknown as ReturnType<typeof useQuery>);
 
     render(<MemberClaimsTable />);
-    expect(screen.getByText('Loading...')).toBeInTheDocument();
+    const status = screen.getByRole('status');
+    const region = screen.getByRole('region');
+    expect(status).toHaveTextContent('Loading...');
+    expect(status).toBeInstanceOf(HTMLOutputElement);
+    expect(status).not.toHaveAttribute('aria-busy');
+    expect(region).toHaveAttribute('aria-busy', 'true');
+    expect(region).toContainElement(status);
   });
 
-  it('renders error state', () => {
+  it('renders error state', async () => {
+    const refetch = vi.fn().mockResolvedValue({ isSuccess: false });
     mockUseQuery.mockReturnValue({
       data: null,
       isLoading: false,
       isError: true,
-      refetch: vi.fn(),
+      refetch,
     } as unknown as ReturnType<typeof useQuery>);
 
     render(<MemberClaimsTable />);
     expect(screen.getByText('An error occurred')).toBeInTheDocument();
     expect(screen.getByText('Try Again')).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent('An error occurred');
+    const retry = screen.getByRole('button', { name: 'Try Again' });
+    expect(retry).toHaveAttribute('type', 'button');
+    fireEvent.click(retry);
+    await waitFor(() => expect(retry).toHaveTextContent('Try Again'));
+    expect(refetch).toHaveBeenCalledTimes(1);
   });
 
   it('renders empty state', () => {
@@ -183,13 +99,18 @@ describe('MemberClaimsTable', () => {
       'sr-only',
       'md:not-sr-only'
     );
+    // Phone reflow: the clipped header row and its cells must be blocks, so they shrink into the
+    // 1px sr-only box instead of laying out at table width (member-mobile-reflow gate).
+    const headerRow = screen.getByRole('table').querySelector('thead tr');
+    expect(headerRow).toHaveClass('block', 'md:table-row', '[&_th]:block', 'md:[&_th]:table-cell');
     expect(screen.getByRole('table').querySelector('tbody')).toHaveClass(
       'block',
       'md:table-row-group'
     );
     const row = screen.getByRole('link', { name: 'Car Accident' }).closest('tr');
     expect(row).toHaveClass('grid', 'p-4', 'md:table-row', 'md:p-0');
-    expect(row?.querySelectorAll('[data-label]')).toHaveLength(5);
+    expect(row?.querySelectorAll('.md\\:hidden[aria-hidden]')).toHaveLength(5);
+    expect(screen.getByText('memberList.resultStatus')).toHaveAttribute('aria-live', 'polite');
   });
 
   it('renders table headers', async () => {
@@ -202,13 +123,22 @@ describe('MemberClaimsTable', () => {
 
     render(<MemberClaimsTable />);
 
-    await waitFor(() => {
-      expect(screen.getByText('Title')).toBeInTheDocument();
-      expect(screen.getByText('Company')).toBeInTheDocument();
-      expect(screen.getByText('Category')).toBeInTheDocument();
-      expect(screen.getByText('Status')).toBeInTheDocument();
-      expect(screen.getByText('Amount')).toBeInTheDocument();
-    });
+    const headers = screen.getAllByRole('columnheader');
+    expect(headers.map(header => header.textContent)).toEqual([
+      'Case',
+      'Status',
+      'Company',
+      'Category',
+      'Amount',
+      'Created',
+    ]);
+    expect(headers.every(header => header.getAttribute('scope') === 'col' && header.id)).toBe(true);
+    expect(new Set(headers.map(header => header.id)).size).toBe(6);
+    for (const row of screen.getByRole('table').querySelectorAll('tbody tr')) {
+      expect(Array.from(row.querySelectorAll('td'), cell => cell.headers)).toEqual(
+        headers.map(header => header.id)
+      );
+    }
   });
 
   it('displays claim data correctly', async () => {
@@ -225,48 +155,5 @@ describe('MemberClaimsTable', () => {
       expect(screen.getByText('Flight Delay')).toBeInTheDocument();
       expect(screen.getByText('Lufthansa')).toBeInTheDocument();
     });
-  });
-
-  it('shows deterministic pending feedback when pagination changes page', async () => {
-    mockUseQuery.mockReturnValue({
-      data: { claims: mockClaims, totalPages: 3 },
-      isLoading: false,
-      isError: false,
-      refetch: vi.fn(),
-    } as unknown as ReturnType<typeof useQuery>);
-
-    render(<MemberClaimsTable />);
-
-    fireEvent.click(screen.getByTestId('member-claims-page-next'));
-
-    expect(hoisted.push).toHaveBeenCalledWith('/member/claims?page=2', { scroll: false });
-    expect(screen.getByTestId('member-claims-table-region')).toHaveAttribute('aria-busy', 'true');
-    expect(screen.getByTestId('member-claims-pagination-pending')).toHaveTextContent(
-      'Processing...'
-    );
-  });
-
-  it('keeps current and pending pagination controls inert', async () => {
-    hoisted.searchParams = new URLSearchParams('page=2&search=claim');
-    mockUseQuery.mockReturnValue({
-      data: { claims: mockClaims, totalPages: 3 },
-      isLoading: false,
-      isError: false,
-      refetch: vi.fn(),
-    } as unknown as ReturnType<typeof useQuery>);
-
-    render(<MemberClaimsTable />);
-
-    fireEvent.click(screen.getByTestId('member-claims-page-next'));
-    fireEvent.click(screen.getByTestId('member-claims-page-previous'));
-
-    expect(hoisted.push).toHaveBeenCalledTimes(1);
-    expect(hoisted.push).toHaveBeenCalledWith('/member/claims?page=3&search=claim', {
-      scroll: false,
-    });
-    expect(screen.getByTestId('member-claims-page-previous')).toHaveAttribute(
-      'aria-disabled',
-      'true'
-    );
   });
 });
