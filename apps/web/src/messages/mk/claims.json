@@ -15,7 +15,14 @@
       "filtered": "Обидете се да ги прилагодите филтрите или пребарувањето.",
       "createFirst": "Креирај Прво Барање"
     },
+    "memberList": {
+      "searchPlaceholder": "Барај...",
+      "resultStatus": "Страница {page} од {pages}: {count, plural, one {# случај} other {# случаи}}",
+      "updating": "Претходните резултати се прикажуваат додека трае ажурирањето…",
+      "pageEmpty": "Нема случаи на оваа страница."
+    },
     "table": {
+      "unavailable": "Недостапно",
       "title": "Наслов",
       "company": "Компанија",
       "category": "Категорија",
