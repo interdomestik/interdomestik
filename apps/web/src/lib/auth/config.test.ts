@@ -17,6 +17,18 @@ describe('authConfig', () => {
     expect(authConfig.rateLimit?.max).toBe(100);
   });
 
+  it('ignores CI and the automation flags for production releases', async () => {
+    vi.stubEnv('INTERDOMESTIK_PRODUCTION', '1');
+    vi.stubEnv('CI', 'true');
+    vi.stubEnv('PLAYWRIGHT', '1');
+    vi.stubEnv('INTERDOMESTIK_AUTOMATED', '1');
+    vi.resetModules();
+
+    const { authConfig: productionAuthConfig } = await import('./config');
+
+    expect(productionAuthConfig.rateLimit.enabled).toBe(true);
+  });
+
   it('does not fall back to localhost for production auth base URL', async () => {
     vi.stubEnv('NODE_ENV', 'production');
     vi.stubEnv('VERCEL', '');

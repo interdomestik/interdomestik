@@ -1,3 +1,6 @@
+import { readDisposableTargetClass } from '@interdomestik/database/seed-target-classification';
+import { hostedAuthEnvironmentOf, isHostedDeployment } from './auth/deployment-hosts';
+
 export function isAutomatedRuntime(env: NodeJS.ProcessEnv = process.env): boolean {
   return (
     env.NODE_ENV === 'test' ||
@@ -15,7 +18,7 @@ export function isProductionDeployment(env: NodeJS.ProcessEnv = process.env): bo
   );
 }
 
-export function isLocalE2ERuntime(env: NodeJS.ProcessEnv = process.env): boolean {
+export function isLocalE2ERuntime(env: Readonly<NodeJS.Dict<string>> = process.env): boolean {
   return (
     env.INTERDOMESTIK_LOCAL_E2E === '1' &&
     env.PLAYWRIGHT === '1' &&
@@ -36,4 +39,45 @@ export function isBillingTestActivationEnabled(env: NodeJS.ProcessEnv = process.
     env.BILLING_TEST_MODE === '1' &&
     (env.NODE_ENV !== 'production' || isLocalE2ERuntime(env))
   );
+}
+
+export function hasPositiveProductionSignal(
+  env: Readonly<NodeJS.Dict<string>> = process.env
+): boolean {
+  return (
+    env.VERCEL_ENV?.trim().toLowerCase() === 'production' ||
+    env.VERCEL_TARGET_ENV?.trim().toLowerCase() === 'production' ||
+    env.INTERDOMESTIK_PRODUCTION === '1' ||
+    env.INTERDOMESTIK_DEPLOY_ENV?.trim().toLowerCase() === 'production'
+  );
+}
+
+export function releaseClass(
+  env: Readonly<NodeJS.Dict<string>> = process.env
+): 'local-e2e' | 'development' | 'staging' | 'production' {
+  if (hasPositiveProductionSignal(env)) {
+    return 'production';
+  }
+
+  const target = env.INTERDOMESTIK_DEPLOY_ENV;
+  if (isHostedDeployment(env)) {
+    if (
+      hostedAuthEnvironmentOf(env) === 'staging' &&
+      (target === undefined || target === 'staging' || target === 'preview')
+    ) {
+      return 'staging';
+    }
+    return 'production';
+  }
+
+  if (!readDisposableTargetClass(env)) {
+    return 'production';
+  }
+  if (isLocalE2ERuntime(env) && (target === undefined || target === 'development')) {
+    return 'local-e2e';
+  }
+  if (env.NODE_ENV === 'development' || env.NODE_ENV === 'test') {
+    return 'development';
+  }
+  return 'production';
 }

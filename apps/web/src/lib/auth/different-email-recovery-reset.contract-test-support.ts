@@ -12,7 +12,9 @@ import * as store from './different-email-recovery-store';
 import {
   cleanupRecoveryRows,
   createRecoveryOwner,
+  openRecoveryContractIntake,
   recoverySql,
+  recoveryTenant,
   stageReplacement,
 } from './different-email-recovery-store.contract-test-support';
 import { databaseHooks } from './hooks';
@@ -151,8 +153,18 @@ export async function resetRows(userId: string) {
 export async function changeEmail(userId: string, currentEmail: string, target: string) {
   const tag = randomUUID();
   await stageReplacement(userId, currentEmail, target, tag);
-  const { ok } = await store.confirmReplacementProof(userId, () => `${tag}-r`, new Date(0));
-  return ok;
+  const restore = await openRecoveryContractIntake();
+  try {
+    const { ok } = await store.confirmReplacementProof(
+      userId,
+      recoveryTenant,
+      () => `${tag}-r`,
+      new Date(0)
+    );
+    return ok;
+  } finally {
+    await restore();
+  }
 }
 
 const TRAPS = {

@@ -5,6 +5,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const hoisted = vi.hoisted(() => ({ convertLeadToMember: vi.fn() }));
 
 vi.mock('@/lib/notifications', () => ({ notifyPaymentVerificationUpdate: vi.fn() }));
+vi.mock('@interdomestik/database/pilot-switch', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database/pilot-switch')>()),
+  assertNewSalesOpen: vi.fn(),
+}));
 vi.mock('@interdomestik/domain-leads/convert', () => ({
   convertLeadToMember: hoisted.convertLeadToMember,
 }));
@@ -29,7 +33,7 @@ function createTx() {
     select: () => chain,
     update: () => ({
       set: () => ({
-        where: () => Object.assign(Promise.resolve(), { returning: async () => [{ id: 'att-1' }] }),
+        where: () => ({ returning: async () => [{ id: 'att-1' }] }),
       }),
     }),
     insert: () => ({ values: async () => undefined }),

@@ -1,4 +1,4 @@
-import { afterAll, afterEach, describe, expect, it } from 'vitest';
+import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   activateCurrentProof,
   activateReplacementProof,
@@ -15,6 +15,46 @@ afterAll(() => support.recoverySql.end());
 describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
   'IDA-UI03b real PostgreSQL recovery store',
   () => {
+    beforeEach(async () => {
+      // Ensure the fixture tenant exists before opening its switch.
+      await support.createRecoveryOwner('intake');
+      return support.openRecoveryContractIntake();
+    });
+
+    it('restores an existing open switch as a JSON object with its original revision', async () => {
+      const original = { enabled: true, revision: 7 };
+      await support.recoverySql`
+        update tenant_settings set value = ${JSON.stringify(original)}::text::jsonb
+        where tenant_id = ${support.recoveryTenant} and category = 'pilot' and key = 'public_intake'
+      `;
+      const restore = await support.openRecoveryContractIntake();
+      await restore();
+
+      const [restored] = await support.recoverySql<{ value: unknown }[]>`
+        select value from tenant_settings
+        where tenant_id = ${support.recoveryTenant} and category = 'pilot' and key = 'public_intake'
+      `;
+      expect(restored?.value).toEqual(original);
+    });
+
+    it('restores a stored switch revision beyond JavaScript integer precision exactly', async () => {
+      const [original] = await support.recoverySql<{ value: string }[]>`
+        update tenant_settings set value = '{"enabled":true,"revision":9007199254740993}'::jsonb
+        where tenant_id = ${support.recoveryTenant} and category = 'pilot' and key = 'public_intake'
+        returning value::text as value
+      `;
+      expect(original?.value).toContain('9007199254740993');
+
+      const restore = await support.openRecoveryContractIntake();
+      await restore();
+
+      const [restored] = await support.recoverySql<{ value: string }[]>`
+        select value::text as value from tenant_settings
+        where tenant_id = ${support.recoveryTenant} and category = 'pilot' and key = 'public_intake'
+      `;
+      expect(restored).toEqual(original);
+    });
+
     it('preserves a committed proof on preflight drift and disables superseded reservations', async () => {
       const owner = await support.createRecoveryOwner('reservation');
       const first = nonce();
@@ -75,10 +115,14 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       ).toEqual({ ok: true });
       expect(await activateReplacementProof(owner.id, replacement, now)).toBe(true);
       for (let attempt = 0; attempt < 3; attempt += 1) {
-        expect(await confirmReplacementProof(owner.id, () => 'wrong', now)).toEqual({ ok: false });
+        expect(
+          await confirmReplacementProof(owner.id, support.recoveryTenant, () => 'wrong', now)
+        ).toEqual({ ok: false });
       }
       expect(await support.challengeRows(owner.id)).toHaveLength(0);
-      expect(await confirmReplacementProof(owner.id, () => 'replacement-ok', now)).toEqual({
+      expect(
+        await confirmReplacementProof(owner.id, support.recoveryTenant, () => 'replacement-ok', now)
+      ).toEqual({
         ok: false,
       });
     });
@@ -127,8 +171,8 @@ describe.runIf(process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT === '1')(
       });
       await activateReplacementProof(owner.id, replacement, now);
       const results = await Promise.all([
-        confirmReplacementProof(owner.id, () => 'r2', now),
-        confirmReplacementProof(owner.id, () => 'r2', now),
+        confirmReplacementProof(owner.id, support.recoveryTenant, () => 'r2', now),
+        confirmReplacementProof(owner.id, support.recoveryTenant, () => 'r2', now),
       ]);
       expect(results.filter(result => result.ok)).toHaveLength(1);
       expect(await support.ownerSnapshot(owner.id)).toEqual({

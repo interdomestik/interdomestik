@@ -88,8 +88,10 @@ test('every de catalog file has an explicit owner-registry entry', () => {
     assert.ok(catalogNames('de').includes(key.slice(3)), `${key} names no de catalog`);
     assert.ok(!keys.has(key.slice(3)), `${key} duplicates a locale-wide entry`);
   }
-  // Staff correspondence has an exact entry for each locale.
-  assert.equal(LOCALE_CATALOG_OWNER_KEYS.filter(entry => entry.startsWith('de/')).length, 47);
+  // Toolkit and entity disclosure now have shared five-locale feature ownership; admin-settings
+  // moved to the five-locale WP-10 pilot-switch owner; staff correspondence has an exact entry
+  // for each locale.
+  assert.equal(LOCALE_CATALOG_OWNER_KEYS.filter(entry => entry.startsWith('de/')).length, 46);
 });
 
 test('unknown de catalogs and unknown locales stay unowned', () => {

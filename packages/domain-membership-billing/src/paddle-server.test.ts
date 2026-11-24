@@ -1,8 +1,10 @@
-import { afterAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
+import { PaddleClosedError } from './paddle-closed';
 import {
   assertBillingEntityEnvConfigured,
   assertPublicBillingEntityAlignment,
   getPaddle,
+  getPaddleAndConfigForEntity,
   getPaddleForEntity,
   getPublicBillingCheckoutConfig,
   resetPaddleClientCacheForTests,
@@ -11,6 +13,13 @@ import {
   resolveBillingEntityForTenantId,
   resolveBillingTenantIdForEntity,
 } from './paddle-server';
+
+const { constructClient } = vi.hoisted(() => ({ constructClient: vi.fn() }));
+
+vi.mock('@paddle/paddle-node-sdk', async importOriginal => ({
+  ...(await importOriginal<typeof import('@paddle/paddle-node-sdk')>()),
+  Paddle: constructClient,
+}));
 
 const ORIGINAL_ENV = { ...process.env };
 
@@ -56,6 +65,7 @@ function clearBillingEnv(): void {
 
 describe('paddle-server billing entity mapping', () => {
   beforeEach(() => {
+    constructClient.mockClear();
     process.env = { ...ORIGINAL_ENV };
     clearBillingEnv();
     resetPaddleClientCacheForTests();
@@ -199,54 +209,41 @@ describe('paddle-server billing entity mapping', () => {
     );
   });
 
-  it('reuses cached paddle client until credentials change', () => {
-    setEnv('NODE_ENV', 'test');
-    setEnv('NEXT_PUBLIC_PADDLE_ENV', 'sandbox');
-    setEnv('PADDLE_API_KEY_KS', 'pdl_api_ks_1');
-    setEnv('PADDLE_WEBHOOK_SECRET_KEY_KS', 'whsec_ks_1');
+  it.each(['sandbox', 'production'])(
+    'refuses every outbound client with %s configuration',
+    mode => {
+      setEnv('NEXT_PUBLIC_PADDLE_ENV', mode);
+      setEnv('PADDLE_DEFAULT_BILLING_ENTITY', 'ks');
+      setEnv('NEXT_PUBLIC_PADDLE_BILLING_ENTITY', 'ks');
+      for (const suffix of ['', '_KS', '_MK', '_AL']) {
+        setEnv(`PADDLE_API_KEY${suffix}`, 'paddle-api-key-fixture');
+        setEnv(`PADDLE_WEBHOOK_SECRET_KEY${suffix}`, 'paddle-webhook-key-fixture');
+        setEnv(`NEXT_PUBLIC_PADDLE_CLIENT_TOKEN${suffix}`, 'paddle-client-token-fixture');
+        setEnv(`NEXT_PUBLIC_PADDLE_PRICE_STANDARD_YEAR${suffix}`, 'pri_standard');
+        setEnv(`NEXT_PUBLIC_PADDLE_PRICE_FAMILY_YEAR${suffix}`, 'pri_family');
+        setEnv(`NEXT_PUBLIC_PADDLE_PRICE_BUSINESS_YEAR${suffix}`, 'pri_business');
+      }
 
-    const first = getPaddleForEntity('ks');
-    const second = getPaddleForEntity('ks');
-    expect(second).toBe(first);
+      const clients = [
+        () => getPaddle({ tenantId: 'tenant_mk' }),
+        () => getPaddleForEntity('ks'),
+        () => getPaddleAndConfigForEntity('al', { allowLegacyFallback: false }),
+      ];
+      for (const load of clients) {
+        expect(load).toThrow(PaddleClosedError);
+        expect(load).toThrow(expect.objectContaining({ code: 'PADDLE_CLOSED' }));
+      }
+      expect(constructClient).not.toHaveBeenCalled();
+    }
+  );
 
-    setEnv('PADDLE_API_KEY_KS', 'pdl_api_ks_2');
-    const third = getPaddleForEntity('ks');
-    expect(third).not.toBe(first);
-  });
+  it('refuses before requiring an entity or credentials', () => {
+    setEnv('VERCEL_ENV', 'production');
+    setEnv('NEXT_PUBLIC_PADDLE_ENV', 'invalid');
 
-  it('getPaddle resolves entity from tenant context in production-like mode without legacy key', () => {
-    setEnv('NEXT_PUBLIC_PADDLE_ENV', 'production');
-    setEnv('PADDLE_API_KEY_KS', 'pdl_api_ks');
-    setEnv('PADDLE_WEBHOOK_SECRET_KEY_KS', 'whsec_ks');
-    setEnv('PADDLE_API_KEY_MK', 'pdl_api_mk');
-    setEnv('PADDLE_WEBHOOK_SECRET_KEY_MK', 'whsec_mk');
-    setEnv('PADDLE_API_KEY_AL', 'pdl_api_al');
-    setEnv('PADDLE_WEBHOOK_SECRET_KEY_AL', 'whsec_al');
-
-    expect(() => getPaddle({ tenantId: 'tenant_mk' })).not.toThrow();
-  });
-
-  it('getPaddle fails closed in production-like mode without resolvable entity context', () => {
-    setEnv('NEXT_PUBLIC_PADDLE_ENV', 'production');
-    setEnv('PADDLE_API_KEY_KS', 'pdl_api_ks');
-    setEnv('PADDLE_WEBHOOK_SECRET_KEY_KS', 'whsec_ks');
-    setEnv('PADDLE_API_KEY_MK', 'pdl_api_mk');
-    setEnv('PADDLE_WEBHOOK_SECRET_KEY_MK', 'whsec_mk');
-    setEnv('PADDLE_API_KEY_AL', 'pdl_api_al');
-    setEnv('PADDLE_WEBHOOK_SECRET_KEY_AL', 'whsec_al');
-
-    expect(() => getPaddle()).toThrow(
-      'Unable to resolve billing entity. Provide tenant/entity context or set PADDLE_DEFAULT_BILLING_ENTITY.'
-    );
-  });
-
-  it('throws clear error for invalid NEXT_PUBLIC_PADDLE_ENV values', () => {
-    setEnv('PADDLE_API_KEY_KS', 'pdl_api_ks');
-    setEnv('PADDLE_WEBHOOK_SECRET_KEY_KS', 'whsec_ks');
-    setEnv('NEXT_PUBLIC_PADDLE_ENV', 'staging');
-
-    expect(() => getPaddleForEntity('ks')).toThrow(
-      'NEXT_PUBLIC_PADDLE_ENV must be "sandbox" or "production"'
-    );
+    expect(() => getPaddle()).toThrow(PaddleClosedError);
+    expect(() => getPaddleForEntity('ks')).toThrow(PaddleClosedError);
+    expect(() => getPaddleAndConfigForEntity('mk')).toThrow(PaddleClosedError);
+    expect(constructClient).not.toHaveBeenCalled();
   });
 });

@@ -1,7 +1,7 @@
 import {
   and,
   auditLog,
-  db,
+  dbAdmin,
   domainEventDeliveries,
   domainEvents,
   eq,
@@ -46,16 +46,12 @@ export async function postKsWebhook(page: Page, origin: string, payload: Record<
 }
 
 export async function cleanupActivation(args: S6ActivationIdentity) {
-  const receipts = await db.query.webhookEvents.findMany({
+  const receipts = await dbAdmin.query.webhookEvents.findMany({
     columns: { id: true },
-    where: and(
-      eq(webhookEvents.provider, 'paddle'),
-      eq(webhookEvents.processingScopeKey, 'entity:ks'),
-      eq(webhookEvents.eventId, args.eventId)
-    ),
+    where: and(eq(webhookEvents.provider, 'paddle'), eq(webhookEvents.eventId, args.eventId)),
   });
   const receiptIds = receipts.map(receipt => receipt.id);
-  const events = await db.query.domainEvents.findMany({
+  const events = await dbAdmin.query.domainEvents.findMany({
     columns: { id: true },
     where: and(
       eq(domainEvents.tenantId, args.tenantId),
@@ -64,7 +60,7 @@ export async function cleanupActivation(args: S6ActivationIdentity) {
   });
   const eventIds = events.map(event => event.id);
 
-  await db.transaction(async tx => {
+  await dbAdmin.transaction(async tx => {
     if (eventIds.length) {
       await tx
         .delete(domainEventDeliveries)
@@ -100,7 +96,7 @@ export async function cleanupActivation(args: S6ActivationIdentity) {
 
 export async function expectActivationClean(args: S6ActivationIdentity) {
   const [membership, receipt, event, audit] = await Promise.all([
-    db.query.subscriptions.findMany({
+    dbAdmin.query.subscriptions.findMany({
       columns: { id: true },
       where: and(
         eq(subscriptions.tenantId, args.tenantId),
@@ -108,22 +104,18 @@ export async function expectActivationClean(args: S6ActivationIdentity) {
         eq(subscriptions.providerSubscriptionId, args.providerSubscriptionId)
       ),
     }),
-    db.query.webhookEvents.findMany({
+    dbAdmin.query.webhookEvents.findMany({
       columns: { id: true },
-      where: and(
-        eq(webhookEvents.provider, 'paddle'),
-        eq(webhookEvents.processingScopeKey, 'entity:ks'),
-        eq(webhookEvents.eventId, args.eventId)
-      ),
+      where: and(eq(webhookEvents.provider, 'paddle'), eq(webhookEvents.eventId, args.eventId)),
     }),
-    db.query.domainEvents.findMany({
+    dbAdmin.query.domainEvents.findMany({
       columns: { id: true },
       where: and(
         eq(domainEvents.tenantId, args.tenantId),
         eq(domainEvents.entityId, args.providerSubscriptionId)
       ),
     }),
-    db.query.auditLog.findMany({
+    dbAdmin.query.auditLog.findMany({
       columns: { id: true },
       where: or(
         and(
