@@ -159,6 +159,8 @@ function describeCopies({ kind, text, anchor, contains }: CopyQuery) {
     const visible = node.checkVisibility({ visibilityProperty: true, opacityProperty: true });
     return {
       index,
+      // React's streaming staging segment: hidden server HTML that $RS moves into place.
+      staging: node.closest('div[hidden][id^="S:"]') !== null,
       settled: visible && ancestors.includes(anchor) && !!node.textContent?.includes(contains),
       inRoleShell: node.closest('[data-testid="role-shell"]') !== null,
       visible,
@@ -173,6 +175,10 @@ function describeCopies({ kind, text, anchor, contains }: CopyQuery) {
  * Waits until one DOM sample holds the settled copy (visible, in place, with the expected
  * text), then judges that same sample: React's hidden streaming copy cannot stand in for
  * it, a duplicate cannot be waited out, and the message names where each copy sits.
+ * A copy inside React's staging segment (div[hidden][id^="S:"]) is not a render: it is
+ * excluded from the count, but it must then disappear, so a staging copy that persists
+ * after the page settles still fails, and the count is judged again once it is gone.
+ * Every other copy, hidden or visible, counts.
  */
 export async function expectSingle(page: Page, query: CopyQuery, label: string) {
   let copies: ReturnType<typeof describeCopies> = [];
@@ -185,7 +191,22 @@ export async function expectSingle(page: Page, query: CopyQuery, label: string) 
       { message: `${label} never rendered visibly in ${query.anchor}` }
     )
     .toBe(true);
-  expect(copies, `${label} must render once; copies: ${JSON.stringify(copies)}`).toHaveLength(1);
+  const rendered = copies.filter(entry => !entry.staging);
+  expect(rendered, `${label} must render once; copies: ${JSON.stringify(copies)}`).toHaveLength(1);
+  await expect
+    .poll(
+      async () => {
+        copies = await page.evaluate(describeCopies, query);
+        return copies.filter(entry => entry.staging).length;
+      },
+      { message: `${label}: React staging copy persisted after settle` }
+    )
+    .toBe(0);
+  // $RS moves the staging content into place, so judge the sample in which it cleared, too.
+  expect(
+    copies,
+    `${label} must render once after staging cleared; copies: ${JSON.stringify(copies)}`
+  ).toHaveLength(1);
 }
 
 export async function expectRegisterSectionsOnce(page: Page, listText: string) {
