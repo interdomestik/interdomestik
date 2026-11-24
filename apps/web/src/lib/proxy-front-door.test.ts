@@ -171,12 +171,15 @@ describe('proxy ida front-door context', () => {
   });
 
   it.each([
-    ['ks.localhost:3000', '/sq', 'tenant_ks'],
-    ['mk.localhost:3000', '/mk', 'tenant_mk'],
+    ['ks.localhost:3000', '/sq', 'tenant_ks', '/sq'],
+    ['mk.localhost:3000', '/mk', 'tenant_mk', '/mk'],
+    // Named limit: Next.js normalizes /<locale>.rsc into the same /<locale> request (MODULE.md).
+    ['ks.localhost:3000', '/sq.rsc', 'tenant_ks', '/sq'],
+    ['ks.localhost:3000', '/sq.rsc?probe=1', 'tenant_ks', '/sq'],
   ])(
     'keeps hardening without reissuing an identical cookie on %s%s',
-    async (host, path, tenant) => {
-      const { response } = await runActionThroughAdapter(host, path, tenant);
+    async (host, path, tenant, proxyPath) => {
+      const { response } = await runActionThroughAdapter(host, path, tenant, proxyPath);
 
       expectProxyContext(response, { tenant, context: 'compatibility_alias', setCookie: null });
       expect(response.headers.get('x-middleware-set-cookie')).toBeNull();
@@ -215,6 +218,11 @@ describe('proxy ida front-door context', () => {
     // Next.js sets x-nextjs-data in the router before the adapter receives the request.
     ['/_next/data/test-build/sq.json', '/sq', { 'x-nextjs-data': '1' }],
     ['/_next/data/test-build/sq.rsc', '/_next/data/test-build/sq'],
+    ['/_next/data/test-build/index.json', '/', { 'x-nextjs-data': '1' }],
+    [
+      '/_next/data/test-build/sq.segments/_tree.segment.rsc',
+      '/_next/data/test-build/sq.segments/_tree.segment',
+    ],
     ['/index.rsc', '/index'],
     ['/index.segments/_tree.segment.rsc', '/index.segments/_tree.segment'],
     ['/index.json', '/index.json'],

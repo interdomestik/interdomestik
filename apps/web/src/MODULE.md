@@ -75,13 +75,20 @@ A caller **without a session** reaches, per `A/raw/R2b/entry/public-entry-invent
 revalidate the dynamic homepage after a Free Start or claim-pack action. Every other request writes the cookie as before,
 and every hardening header is set in every case (`proxy-secure.ts:97-112`). Regression matrix: `proxy-front-door.test.ts`.
 
-**Named limit (lead, 2026-11-24, within the owner's approval).** Next 16.4.5 normalizes `/<locale>.rsc` (with or without a
-query) into the same `/<locale>` homepage request before the proxy runs: the adapter rewrites `request.url` and `nextUrl`
-and passes no original URL or marker (`node_modules/next/dist/server/web/adapter.js:113`; matcher
-`build/analysis/get-page-static-info.js:364`). The proxy therefore cannot tell `/<locale>.rsc` from `/<locale>`, and the skip
-also applies to it. The effect is nil: the skip happens only when the cookie already equals the host tenant, so no tenant,
-authority or header changes. Every other normalized form (`.json`, `/_next/data/…`, segment prefetch, `/index.*`) still
-writes the cookie (the matrix goes through the installed adapter).
+**What the skip omits.** It keeps the host-resolved tenant, the session authority and every configured hardening
+header. It omits only `Set-Cookie` (and Next's `x-middleware-set-cookie`) for `tenantId`, so that response does not renew
+the cookie: a matching cookie keeps its current expiry instead of a fresh 30 days, and `Path=/`, `HttpOnly`,
+`SameSite=Lax` and the request-dependent `Secure` flag are not reapplied (`tenant/tenant-cookie.ts:17-29`). The next
+request that is not skipped, such as any page GET, writes it again. The owner approved this omission.
+
+**Named limit (lead, 2026-11-24, within the owner's approval).** Next 16.4.5 normalizes `/<locale>.rsc` before the proxy
+runs: the adapter rewrites `request.url` and `nextUrl` to the pathname `/<locale>` and passes no original URL or marker
+(`node_modules/next/dist/server/web/adapter.js:113`; matcher `build/analysis/get-page-static-info.js:364`). The pathname
+the proxy sees is the same; the query string can differ, because the adapter also strips `.rsc` from query values. The
+proxy therefore cannot tell `/<locale>.rsc` from `/<locale>`, and the same omission applies to it, under the same
+condition (the incoming cookie already equals the host tenant). The matrix asserts this case through the installed
+adapter. Every other normalized form (`.json`, `/_next/data/…` with or without the router marker, segment prefetch,
+`/index.*`) still writes the cookie.
 
 ## Tests to run
 
