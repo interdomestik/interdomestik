@@ -32,6 +32,7 @@ import {
   cleanupJourney,
   expectJourneyClean,
 } from './member-staff-evidence-journey-cleanup.fixture';
+import { expectMemberClaimContinuity } from './member-staff-evidence-journey-member-view.fixture';
 import {
   establishDraftTenantContext,
   idaBaseURL,
@@ -280,19 +281,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       baseURL: memberBaseURL,
       marker: 'member-claim-progress-summary',
     });
-    const memberPage = residue.memberSession.page;
-    await expect(memberPage.getByTestId('member-claim-current-state').first()).toHaveText(
-      'Verifikim'
-    );
-    // Member summary reads status-change events; same-status notes only append staff history.
-    await expect(memberPage.getByTestId('member-claim-latest-update-note').first()).toHaveText(
-      publicNote
-    );
-    await expect(
-      memberPage.getByTestId('ops-timeline-item').filter({ hasText: publicNote }).first()
-    ).toBeVisible();
-    await expect(memberPage.locator('body')).not.toContainText(privateNote);
-    await expect(memberPage.getByTestId('member-claim-sla-status-phase').first()).toBeVisible();
+    await expectMemberClaimContinuity(residue.memberSession.page, publicNote, privateNote);
 
     testInfo.annotations.push({
       type: 'isolated-task-db-cleanup',
