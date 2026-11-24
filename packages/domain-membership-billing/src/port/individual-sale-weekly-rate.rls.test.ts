@@ -181,18 +181,8 @@ describe.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       );
       expect(await f.begin(begin)).toEqual(start);
       await allPathsClosed(f, fresh);
+      await replay(f, initial, original);
       const substitute = await f.addUser('admin', null);
-      const later = success(await f.begin()).check;
-      success(
-        await f.close(
-          { ...f.checkInput(), checkId: later.id, reason: 'Bulletin unavailable' },
-          substitute
-        )
-      );
-      await allPathsClosed(f, fresh);
-      expect(await f.verify(f.verificationInput(rate.id, '61.50', later.id))).toEqual(
-        refused('conflict')
-      );
       const disputed = await f.newEvidence(rate.id);
       expect(await f.verify(disputed)).toEqual(refused('stale_rate'));
       success(
@@ -210,6 +200,70 @@ describe.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       expect(await f.counts(updated.operationKey)).toEqual(completed);
       await replay(f, initial, original);
     }, 60000);
+
+    it('keeps fresh paths closed after the database clock moves behind a committed recheck', async () => {
+      const f = await saleFixture(db, 86400, false);
+      const day = '2026-03-24';
+      await f.window(day);
+      await clock(`${day}T09:00:00+01:00`);
+      success(await f.publish());
+      const [rate] = await f.addRate('61.50', day);
+      const initial = accepted(await f.offer(), { memberUserId: f.member.id });
+      const original = success(await f.sale(initial));
+      const fresh = { ...initial, operationKey: randomUUID() };
+
+      await clock(`${day}T10:00:00+01:00`);
+      const { check } = success(await f.begin());
+      await clock(`${day}T09:59:59+01:00`);
+      await allPathsClosed(f, fresh);
+      await replay(f, initial, original);
+
+      await clock(`${day}T10:00:01+01:00`);
+      expect(await f.verify(f.verificationInput(rate.id, '62.20', check.id))).toMatchObject(
+        refused('rate_mismatch')
+      );
+      await clock(`${day}T09:59:59+01:00`);
+      await allPathsClosed(f, fresh);
+      await replay(f, initial, original);
+    }, 60000);
+
+    it.each(['inconclusive', 'crash'] as const)(
+      'closes a sellable undisputed rate after a recheck ends in %s and preserves both replays',
+      async outcome => {
+        const f = await saleFixture(db, 86400, false);
+        const day = '2026-03-24';
+        await f.window(day);
+        await clock(`${day}T09:00:00+01:00`);
+        success(await f.publish());
+        const [rate] = await f.addRate('61.50', day);
+        const initial = accepted(await f.offer(), { memberUserId: f.member.id });
+        const original = success(await f.sale(initial));
+        const buyer = await f.addUser('member', f.homeBranch);
+        const fresh = { ...initial, buyer: { memberUserId: buyer.id }, operationKey: randomUUID() };
+
+        await clock(`${day}T10:00:00+01:00`);
+        const begin = f.checkInput();
+        const { check } = success(await f.begin(begin));
+        await allPathsClosed(f, fresh);
+        await replay(f, initial, original);
+        if (outcome === 'inconclusive') {
+          const substitute = await f.addUser('admin', null);
+          const refusal = { ...f.checkInput(), checkId: check.id, reason: 'Bulletin unavailable' };
+          const terminal = success(await f.close(refusal, substitute));
+          expect(await f.close(refusal, substitute)).toEqual(terminal);
+          expect(await f.verify(f.verificationInput(rate.id, '61.50', check.id))).toEqual(
+            refused('conflict')
+          );
+        } else {
+          await clock(`${day}T11:00:00+01:00`);
+          expect(await f.begin()).toEqual(refused('conflict'));
+          expect(success(await f.begin(begin)).check).toEqual(check);
+        }
+        await allPathsClosed(f, fresh);
+        await replay(f, initial, original);
+      },
+      60000
+    );
 
     it('closes an unchecked window at its exclusive deadline across Skopje’s DST transition', async () => {
       const f = await saleFixture(db, 86400, false);
@@ -229,7 +283,6 @@ describe.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       await clock(deadline);
       await allPathsClosed(f, fresh); // No verifier started the second window.
       const abandoned = await f.newEvidence(rate.id);
-      await allPathsClosed(f, fresh); // Verifier crashed after begin committed.
       await clock('2026-03-29T04:00:00+02:00');
       expect(await f.verify(abandoned)).toEqual(refused('stale_rate'));
       await allPathsClosed(f, fresh);

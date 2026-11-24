@@ -21,7 +21,14 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   const rls = findStep(workflow.jobs['e2e-gate'].steps, 'RLS Integration Test');
   assert.equal(rls.env.REQUIRE_RLS_INTEGRATION, '1');
   assert.equal(rls.env.REQUIRE_RLS_COVERAGE, '1');
-  assert.equal(rls.run, 'pnpm db:rls:test');
+  const checkout = workflow.jobs['e2e-gate'].steps.find(
+    step => step.uses === 'actions/checkout@v5'
+  );
+  assert.equal(checkout.with['fetch-depth'], 0);
+  assert.match(
+    rls.run,
+    /checkout --quiet --detach bc19469b5479f47b63eab258249984a974d26199\npnpm --dir "\$legacy_source" install --frozen-lockfile --prefer-offline --ignore-scripts\nWP07_LEGACY_SOURCE="\$legacy_source" pnpm db:rls:test\n$/u
+  );
   assert.equal(
     workflow.jobs['e2e-gate'].env.DATABASE_URL,
     'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test'
@@ -45,6 +52,6 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   );
   assert.equal(
     billingScripts['test:rls'],
-    'BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts src/port/individual-sale-age-boundary.rls.test.ts src/port/individual-sale-weekly-rate.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test test/exchange-rates-port.test.ts'
+    'BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts src/port/individual-sale-age-boundary.rls.test.ts src/port/individual-sale-weekly-rate.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test --test-concurrency=1 test/exchange-rates-port.test.ts test/exchange-rates-upgrade.test.ts'
   );
 });

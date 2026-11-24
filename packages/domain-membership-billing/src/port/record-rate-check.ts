@@ -1,21 +1,30 @@
 import { exchangeRateCheckEvents } from '@interdomestik/database/schema';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
-import { checkOperation, checkReceipt, readRateCheck, withRateCheck } from './rate-check-context';
+import {
+  checkOperation,
+  checkReceipt,
+  readRateCheck,
+  lockRateCheckScope,
+  parseRateCheck,
+  rateCheckFailure,
+} from './rate-check-context';
 import { beginRateCheckInputSchema, recordRateCheckInconclusiveInputSchema } from './rate-input';
 import type { SaleActor } from './sale-authority';
 
 export async function beginRateCheck(authority: TenantAuthority, input: unknown, actor: SaleActor) {
-  return withRateCheck(
-    authority,
-    input,
-    actor,
-    beginRateCheckInputSchema,
-    async (context, request) => {
-      const { tx, tenantId, userId, bookId, legalEntityId } = context;
-      const prior = await checkOperation(context, request.operationKey);
+  const check = parseRateCheck(authority, input, actor, beginRateCheckInputSchema);
+  if (!check.ok) return check;
+  const { principal, request } = check;
+  try {
+    return await withTenantAuthority(authority, async tx => {
+      const scope = await lockRateCheckScope(tx, principal, request.legalEntityId);
+      if (!scope.ok) return scope;
+      const { tenantId, userId, bookId, legalEntityId } = scope;
+      const prior = await checkOperation(tx, scope, request.operationKey);
       if (prior.event) {
         if (prior.event.actorId !== userId) return { ok: false, code: 'not_found' } as const;
         if (prior.event.kind !== 'start' || prior.event.legalEntityId !== legalEntityId) {
@@ -45,8 +54,10 @@ export async function beginRateCheck(authority: TenantAuthority, input: unknown,
         .returning();
 
       return { ok: true, check: checkReceipt(start) } as const;
-    }
-  );
+    });
+  } catch (error) {
+    return rateCheckFailure(error);
+  }
 }
 
 export async function recordRateCheckInconclusive(
@@ -54,14 +65,15 @@ export async function recordRateCheckInconclusive(
   input: unknown,
   actor: SaleActor
 ) {
-  return withRateCheck(
-    authority,
-    input,
-    actor,
-    recordRateCheckInconclusiveInputSchema,
-    async (context, request) => {
-      const { tx, tenantId, userId, bookId, legalEntityId } = context;
-      const prior = await checkOperation(context, request.operationKey);
+  const check = parseRateCheck(authority, input, actor, recordRateCheckInconclusiveInputSchema);
+  if (!check.ok) return check;
+  const { principal, request } = check;
+  try {
+    return await withTenantAuthority(authority, async tx => {
+      const scope = await lockRateCheckScope(tx, principal, request.legalEntityId);
+      if (!scope.ok) return scope;
+      const { tenantId, userId, bookId, legalEntityId } = scope;
+      const prior = await checkOperation(tx, scope, request.operationKey);
       if (prior.event) {
         if (prior.event.actorId !== userId) return { ok: false, code: 'not_found' } as const;
         if (
@@ -80,7 +92,7 @@ export async function recordRateCheckInconclusive(
           code: prior.verification.verifiedBy === userId ? 'conflict' : 'not_found',
         } as const;
 
-      const start = await readRateCheck(context, request.checkId);
+      const start = await readRateCheck(tx, scope, request.checkId);
       if (!start || start.legalEntityId !== legalEntityId)
         return { ok: false, code: 'not_found' } as const;
       const [outcome] = await tx
@@ -103,6 +115,8 @@ export async function recordRateCheckInconclusive(
         .returning();
 
       return { ok: true, outcome: checkReceipt(outcome) } as const;
-    }
-  );
+    });
+  } catch (error) {
+    return rateCheckFailure(error);
+  }
 }

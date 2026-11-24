@@ -158,7 +158,7 @@
     },
     {
       "key": "function [\"public\",\"membership_sale_rate_at(p_tenant text, p_book text, p_at timestamp with time zone)\"]",
-      "value": "2774e5287024b84fdba6fc3438d39728",
+      "value": "77a5faff48c724a9cfe3e6fe3cc44adf",
       "migration": "0105_wp07_rate_check_expand"
     },
     {

@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type postgres from 'postgres';
+import { grantE2eRuntimePrivileges } from '../../../scripts/e2e-runtime-role-grants.mjs';
 
 import {
   firstRate,
@@ -79,6 +80,34 @@ export async function proveOfficialCheckConstraints(f: ExchangeRateFixture) {
     {
       code: '23503',
       constraint_name: 'exchange_rate_check_events_window_fk',
+    }
+  );
+  // Isolate the actual FK in a rolled-back scratch transaction. The insert guard would
+  // reject this same foreign ID before PostgreSQL checks the constraint.
+  await assert.rejects(
+    restricted(
+      peer,
+      tenantId,
+      async tx => {
+        await tx`insert into exchange_rate_check_events ${tx({
+          ...wrongWindow,
+          occurred_at: new Date().toISOString(),
+          start_order: 1,
+        })}`;
+        assert.fail('The window FK accepted a foreign window');
+      },
+      runtimeRole,
+      'read committed',
+      {
+        beforeRole: async tx => {
+          await tx`alter table exchange_rate_check_events disable trigger exchange_rate_check_events_insert_guard`;
+        },
+      }
+    ),
+    {
+      code: '23503',
+      constraint_name: 'exchange_rate_check_events_window_fk',
+      table_name: 'exchange_rate_check_events',
     }
   );
   const injected = {
@@ -191,12 +220,19 @@ export async function proveOfficialCheckConstraints(f: ExchangeRateFixture) {
       }
     );
   }
-  await assert.rejects(
-    asTenant(
-      tx => tx`insert into exchange_rate_check_windows select * from exchange_rate_check_windows`
-    ),
-    { code: '42501' }
-  );
+  const insertWindow = (tx: postgres.TransactionSql) => tx`
+    insert into exchange_rate_check_windows
+      (id, tenant_id, book_id, effective_on, opens_at, deadline_at, approval_ref)
+    values (${randomUUID()}, ${tenantId}, ${book.id}, ${day}::date + 1,
+      (${day}::date + 1)::timestamp at time zone 'Europe/Skopje',
+      (${day}::date + 2)::timestamp at time zone 'Europe/Skopje', 'finance/wp07-test')`;
+  const noWindowInsert = {
+    code: '42501',
+    message: 'permission denied for table exchange_rate_check_windows',
+  };
+  await assert.rejects(asTenant(insertWindow), noWindowInsert);
+  await admin.begin(tx => grantE2eRuntimePrivileges(tx, quoteIdentifier(runtimeRole)));
+  await assert.rejects(asTenant(insertWindow), noWindowInsert);
   await assert.rejects(
     asTenant(tx => tx`delete from exchange_rate_verification_limits`),
     { code: '42501' }

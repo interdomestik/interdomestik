@@ -399,10 +399,10 @@ AS $$
   SELECT head.id, head.effective_on = (p_at AT TIME ZONE 'Europe/Skopje')::date AND EXISTS (
     SELECT 1 FROM public.exchange_rate_check_windows AS w
     JOIN LATERAL (
-      SELECT event.id, event.window_id, event.rate_id
+      -- Choose the committed start by order. A backward clock step cannot hide it.
+      SELECT event.id, event.window_id, event.rate_id, event.occurred_at
       FROM public.exchange_rate_check_events AS event
       WHERE event.tenant_id = p_tenant AND event.book_id = p_book AND event.kind = 'start'
-        AND event.occurred_at <= p_at
       ORDER BY event.start_order DESC LIMIT 1
     ) AS last_start ON last_start.window_id = w.id AND last_start.rate_id = head.id
     JOIN public.exchange_rate_verifications AS v
@@ -411,12 +411,13 @@ AS $$
     JOIN public.exchange_rate_verification_limits AS policy ON policy.tenant_id = p_tenant
     WHERE w.tenant_id = p_tenant AND w.book_id = p_book AND w.effective_on = head.effective_on
       AND w.opens_at <= p_at AND p_at < w.deadline_at
+      AND last_start.occurred_at <= p_at
       AND v.verified_at <= p_at
       AND extract(epoch FROM (p_at - v.verified_at)) <= policy.max_age_seconds
       AND NOT EXISTS (
         SELECT 1 FROM public.exchange_rate_check_events AS dispute
         WHERE dispute.tenant_id = p_tenant AND dispute.book_id = p_book
-          AND dispute.rate_id = head.id AND dispute.kind = 'mismatch' AND dispute.occurred_at <= p_at
+          AND dispute.rate_id = head.id AND dispute.kind = 'mismatch'
       )
   )
   FROM public.exchange_rate_books AS book

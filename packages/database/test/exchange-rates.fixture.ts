@@ -179,10 +179,11 @@ function requireTestRunner() {
 }
 
 export function mintPaymentPortTestIngress<T extends 'cron' | 'inngest'>(
-  kind: T
+  kind: T,
+  issuedAt?: number
 ): IngressCapability<T> {
   requireTestRunner();
-  return mintIngressCapability(kind);
+  return mintIngressCapability(kind, issuedAt);
 }
 
 export function paymentPortTestScheduledAuthority(tenantId: string): TenantAuthority {

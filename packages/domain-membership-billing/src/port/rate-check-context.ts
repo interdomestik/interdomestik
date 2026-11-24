@@ -5,7 +5,6 @@ import {
   exchangeRateVerifications,
 } from '@interdomestik/database/schema';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ROLES } from '@interdomestik/shared-auth';
 import { and, eq, sql } from 'drizzle-orm';
@@ -13,14 +12,18 @@ import type { z } from 'zod';
 
 import { lockLegalEntity } from './plan-versions';
 import { rateConstraint } from './rate-db-error';
-import { matchesSaleActor, sessionPrincipal, type SaleActor } from './sale-authority';
+import {
+  matchesSaleActor,
+  sessionPrincipal,
+  type SaleActor,
+  type SalePrincipal,
+} from './sale-authority';
 
 type Refusal = 'forbidden' | 'not_found' | 'invalid' | 'conflict' | 'stale_rate';
-export type CheckRefusal = { ok: false; code: Refusal };
-export type CheckEvent = typeof exchangeRateCheckEvents.$inferSelect;
+type CheckRefusal = { ok: false; code: Refusal };
+type CheckEvent = typeof exchangeRateCheckEvents.$inferSelect;
 
-export type CheckContext = {
-  tx: TenantTransaction;
+type CheckScope = {
   tenantId: string;
   userId: string;
   bookId: string;
@@ -59,53 +62,59 @@ function triggerRefusal(error: unknown): Refusal | undefined {
   return undefined;
 }
 
-export async function withRateCheck<Input extends { legalEntityId: string }, Result>(
+export function parseRateCheck<Input extends { legalEntityId: string }>(
   authority: TenantAuthority,
   input: unknown,
   actor: SaleActor,
-  schema: z.ZodType<Input>,
-  run: (context: CheckContext, input: Input) => Promise<Result>
-): Promise<Result | CheckRefusal> {
+  schema: z.ZodType<Input>
+) {
   const principal = sessionPrincipal(authority, [ROLES.tenant_admin, ROLES.admin]);
   if (!principal || !actor || !matchesSaleActor(principal, actor)) {
-    return { ok: false, code: 'forbidden' };
+    return { ok: false, code: 'forbidden' } as const;
   }
   const parsed = schema.safeParse(input);
-  if (!parsed.success) return { ok: false, code: 'invalid' };
-
-  const { tenantId, userId } = principal;
-  try {
-    return await withTenantAuthority<Result | CheckRefusal>(authority, async tx => {
-      const [{ isolation }] = await tx.execute<{ isolation: string }>(
-        sql`select current_setting('transaction_isolation') as isolation`
-      );
-      if (isolation !== 'read committed') return { ok: false, code: 'invalid' };
-
-      const [book] = await tx
-        .select({ id: exchangeRateBooks.id })
-        .from(exchangeRateBooks)
-        .where(
-          withTenant(
-            tenantId,
-            exchangeRateBooks.tenantId,
-            and(eq(exchangeRateBooks.base, 'EUR'), eq(exchangeRateBooks.quote, 'MKD'))
-          )
-        )
-        .for('update');
-      if (!book) return { ok: false, code: 'not_found' };
-      const entity = await lockLegalEntity(tx, tenantId, parsed.data.legalEntityId);
-      if (!entity?.isActive) return { ok: false, code: 'not_found' };
-
-      return run({ tx, tenantId, userId, bookId: book.id, legalEntityId: entity.id }, parsed.data);
-    });
-  } catch (error) {
-    const code = triggerRefusal(error);
-    if (code) return { ok: false, code };
-    throw error;
-  }
+  if (!parsed.success) return { ok: false, code: 'invalid' } as const;
+  return { ok: true, principal, request: parsed.data } as const;
 }
 
-export async function checkOperation({ tx, tenantId, bookId }: CheckContext, operationKey: string) {
+export async function lockRateCheckScope(
+  tx: TenantTransaction,
+  { tenantId, userId }: SalePrincipal,
+  entityId: string
+): Promise<({ ok: true } & CheckScope) | CheckRefusal> {
+  const [{ isolation }] = await tx.execute<{ isolation: string }>(
+    sql`select current_setting('transaction_isolation') as isolation`
+  );
+  if (isolation !== 'read committed') return { ok: false, code: 'invalid' };
+
+  const [book] = await tx
+    .select({ id: exchangeRateBooks.id })
+    .from(exchangeRateBooks)
+    .where(
+      withTenant(
+        tenantId,
+        exchangeRateBooks.tenantId,
+        and(eq(exchangeRateBooks.base, 'EUR'), eq(exchangeRateBooks.quote, 'MKD'))
+      )
+    )
+    .for('update');
+  if (!book) return { ok: false, code: 'not_found' };
+  const entity = await lockLegalEntity(tx, tenantId, entityId);
+  if (!entity?.isActive) return { ok: false, code: 'not_found' };
+  return { ok: true, tenantId, userId, bookId: book.id, legalEntityId: entity.id };
+}
+
+export function rateCheckFailure(error: unknown): CheckRefusal {
+  const code = triggerRefusal(error);
+  if (code) return { ok: false, code };
+  throw error;
+}
+
+export async function checkOperation(
+  tx: TenantTransaction,
+  { tenantId, bookId }: CheckScope,
+  operationKey: string
+) {
   const [event] = await tx
     .select()
     .from(exchangeRateCheckEvents)
@@ -137,7 +146,11 @@ export async function checkOperation({ tx, tenantId, bookId }: CheckContext, ope
   return { verification };
 }
 
-export async function readRateCheck({ tx, tenantId, bookId }: CheckContext, checkId: string) {
+export async function readRateCheck(
+  tx: TenantTransaction,
+  { tenantId, bookId }: CheckScope,
+  checkId: string
+) {
   const [start] = await tx
     .select()
     .from(exchangeRateCheckEvents)
