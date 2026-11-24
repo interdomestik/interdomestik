@@ -3,41 +3,10 @@ import { updateSupportHandoffPublicResponseCore as updateDomainPublicResponse } 
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import { logAuditEvent } from '@/lib/audit';
-import { notifySupportHandoffPublicResponse } from '@/lib/notifications';
 import { revalidatePath } from 'next/cache';
 
 import type { Session } from './context';
-import {
-  eachSupportHandoffActionLocale,
-  resolveSupportHandoffActionLocale,
-  type SupportHandoffActionLocale,
-} from './request-locale';
-
-const SUPPORT_HANDOFF_PUBLIC_RESPONSE_NOTIFICATION_COPY: Record<
-  SupportHandoffActionLocale,
-  { content: string; title: string }
-> = {
-  en: {
-    content: 'A staff update is available on your support request.',
-    title: 'Staff update available',
-  },
-  mk: {
-    content: 'Достапно е ажурирање од персоналот за вашето барање за поддршка.',
-    title: 'Достапно е ажурирање од персоналот',
-  },
-  sq: {
-    content: 'Një përditësim nga stafi është i disponueshëm për kërkesën tuaj të mbështetjes.',
-    title: 'Përditësim nga stafi',
-  },
-  sr: {
-    content: 'Dostupno je ažuriranje osoblja za vaš zahtev za podršku.',
-    title: 'Dostupno je ažuriranje osoblja',
-  },
-  de: {
-    content: 'Zu Ihrer Supportanfrage liegt eine Aktualisierung des Teams vor.',
-    title: 'Aktualisierung des Teams verfügbar',
-  },
-};
+import { eachSupportHandoffActionLocale } from './request-locale';
 
 function revalidatePathForAllLocales(path: string) {
   eachSupportHandoffActionLocale(locale => revalidatePath(`/${locale}${path}`));
@@ -63,38 +32,15 @@ export async function updateSupportHandoffPublicResponseCore(params: {
 
   if (result.success) {
     try {
-      if (!params.authority) throw new Error('Missing tenant authority');
-      const locale = resolveSupportHandoffActionLocale(params.requestHeaders);
-      const notificationCopy = SUPPORT_HANDOFF_PUBLIC_RESPONSE_NOTIFICATION_COPY[locale];
-      const notificationResult = await notifySupportHandoffPublicResponse(
-        result.data.memberId,
-        {
-          id: result.data.handoffId,
-          publicResponseVersion: result.data.publicResponseVersion,
-        },
-        {
-          actionUrl: `/${locale}/member/help?handoffId=${encodeURIComponent(result.data.handoffId)}`,
-          content: notificationCopy.content,
-          authority: params.authority,
-          title: notificationCopy.title,
-        }
-      );
-
-      if (!notificationResult.success) {
-        console.error('Failed to create support handoff public response notification:', {
-          error: notificationResult.error,
-          handoffId: result.data.handoffId,
-        });
-      }
+      revalidateSupportHandoffPaths();
     } catch (error) {
-      console.error('Failed to create support handoff public response notification:', {
-        error,
-        handoffId: result.data.handoffId,
-      });
+      console.error('Staff handoff refresh failed after commit', error);
     }
-
-    revalidateSupportHandoffPaths();
-    revalidateMemberHelpPaths();
+    try {
+      revalidateMemberHelpPaths();
+    } catch (error) {
+      console.error('Member handoff refresh failed after commit', error);
+    }
   }
 
   return result;

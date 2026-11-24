@@ -94,7 +94,40 @@
     "updateOn": "Aktualisierung zu: {claim}",
     "yourClaim": "Ihren Schadensfall",
     "updateBody": "Eine neue Aktualisierung ist verfügbar. Öffnen Sie die Benachrichtigung für weitere Angaben.",
+    "staff": {
+      "claimWithoutNumber": "Fall ohne Nummer",
+      "content": "{event} · {category}",
+      "categories": {
+        "consumer": "Verbraucher",
+        "consumer_rights": "Verbraucherrechte",
+        "housing": "Wohnen",
+        "insurance": "Versicherung",
+        "employment": "Arbeit",
+        "contracts": "Verträge",
+        "utilities": "Versorgungsleistungen",
+        "auto": "Fahrzeug",
+        "vehicle": "Fahrzeug",
+        "travel": "Reisen",
+        "retail": "Einzelhandel",
+        "real_estate": "Immobilien",
+        "property": "Eigentum",
+        "flight_delay": "Flugverspätung",
+        "damaged_goods": "Beschädigte Waren",
+        "service_issue": "Problem mit einer Dienstleistung",
+        "liability": "Haftung",
+        "medical": "Medizinisch",
+        "test": "Test",
+        "other": "Sonstiges",
+        "injury": "Personenschaden"
+      }
+    },
     "events": {
+      "staff_claim_submitted": {
+        "title": "Neuer Fall eingereicht"
+      },
+      "staff_member_message": {
+        "title": "Neue Nachricht vom Mitglied"
+      },
       "claimSubmitted": {
         "title": "Anspruch eingereicht"
       },

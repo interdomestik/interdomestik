@@ -1,5 +1,18 @@
 {
   "common": {
+    "claimStatusErrors": {
+      "forbidden": "You do not have permission to update this claim.",
+      "notFound": "Claim not found or access denied.",
+      "declineReason": "Select a decline reason before rejecting the claim.",
+      "draft": "Submit a new claim to continue from a draft.",
+      "conflict": "The claim changed. Refresh the page and try again.",
+      "transition": "The claim cannot move to the selected status.",
+      "recovery": "Complete the recovery prerequisites before changing the status.",
+      "evidence": "Review the evidence and authorizations required for this status.",
+      "failed": "The claim status could not be saved.",
+      "assignmentTarget": "Staff member not found or out of scope.",
+      "assignmentFailed": "The assignment could not be saved."
+    },
     "pwa": {
       "offlineHeading": "Help Now — offline",
       "offlinePrivacy": "Public scene checklist only. No account records, saved photo notes or queued changes.",
@@ -92,6 +105,8 @@
       }
     },
     "toastRegion": "Notifications",
+    "localeSaveError": "Couldn’t save your language preference. Try again.",
+    "localeSwitchUnsaved": "Your language preference couldn’t be saved in this session.",
     "membershipStatus": {
       "active": "Active",
       "past_due": "Past due",

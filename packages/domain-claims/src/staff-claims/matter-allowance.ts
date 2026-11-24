@@ -82,6 +82,16 @@ type UsageWindow = {
   subscriptionId: string;
 };
 
+export async function lockRecoveryMatterAllowance(
+  scope: MatterAllowanceScope,
+  subscriptionId: string
+): Promise<void> {
+  const key = JSON.stringify(['recovery', scope.tenantId, subscriptionId]);
+  await scope.tx
+    .select({ locked: sql`pg_advisory_xact_lock(hashtextextended(${key}, 0))` })
+    .from(sql`(values (1)) as allowance_lock(once)`);
+}
+
 export async function countRecoveryMatterUsageInWindow(
   params: MatterAllowanceScope & {
     lockUsage?: boolean;
@@ -133,9 +143,10 @@ async function countUsageInWindow(scope: MatterAllowanceScope, window: UsageWind
 export function getMatterAllowanceSubscriptionContextForUser(
   params: MatterAllowanceScope & {
     userId: string;
-  }
+  },
+  now?: Date
 ): Promise<MatterAllowanceSubscriptionContext | null> {
-  return subscriptionContextForUser(params, params.userId);
+  return subscriptionContextForUser(params, params.userId, now);
 }
 
 async function subscriptionContextForUser(

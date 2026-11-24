@@ -4,8 +4,7 @@ import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/clai
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
 import type { CreateClaimValues } from '@/lib/validators/claims';
 import { createClaimCore } from './claims/create';
-import { cancelClaimCore, updateDraftClaimCore } from './claims/draft';
-import { updateClaimStatusCore } from './claims/status';
+import { updateDraftClaimCore } from './claims/draft';
 import { submitClaimCore } from './claims/submit';
 
 // Note: We need runAuthenticatedAction to handle FormData if we pass it directly.
@@ -83,33 +82,5 @@ export async function updateDraftClaim(claimId: string, data: CreateClaimValues)
     });
     if (limit.limited) return { success: false, error: 'Too many requests' };
     return updateDraftClaimCore({ session, authority, requestHeaders, claimId, data });
-  });
-}
-
-export async function cancelClaim(claimId: string) {
-  return runAuthenticatedAction(async ({ session, authority, requestHeaders }) => {
-    const limit = await enforceRateLimitForAction({
-      name: 'action:cancel-claim',
-      limit: 10,
-      windowSeconds: 600,
-      headers: requestHeaders,
-      productionSensitive: true,
-    });
-    if (limit.limited) return { success: false, error: 'Too many requests' };
-    return cancelClaimCore({ session, authority, requestHeaders, claimId });
-  });
-}
-
-export async function updateClaimStatus(claimId: string, newStatus: string) {
-  return runAuthenticatedAction(async ({ session, authority, requestHeaders }) => {
-    const limit = await enforceRateLimitForAction({
-      name: 'action:update-status',
-      limit: 100,
-      windowSeconds: 600,
-      headers: requestHeaders,
-      productionSensitive: true,
-    });
-    if (limit.limited) return { success: false, error: 'Too many requests' };
-    return updateClaimStatusCore({ session, authority, requestHeaders, claimId, newStatus });
   });
 }

@@ -14,6 +14,8 @@ Sponsor term approvals and new roster provisioning check `pilot/new_sales` in th
 
 `package.json:7-62` declares 54 subpath exports (recounted in R3). The ones other code uses for entitlement and coverage: `.` (`src/index.ts`), `./subscription`, `./sponsor-coverage`, `./annual-membership`, `./membership-hierarchy`, `./billing-snapshot`, the 16 `./sponsors/*` entries and the 12 entries that begin with `./paddle-webhooks`. The provider surface is exported directly (`./paddle`, `./paddle-server`, `./paddle-webhooks`), which is the opposite of a port: **no provider-neutral interface exists**, and billing-entity resolution is a table in code (`src/paddle-server.ts:59-68`, cited by `docs/engineering/DIRECTION.md:72`).
 
+`./sponsor-coverage` exports `lockPersonCoverageInputs(tx, tenantId, userId)` for the claim recovery command's existing tenant transaction. It takes the sponsor worker's advisory person lock, then locks the person's terms `FOR SHARE` and roster entries `FOR UPDATE` in ID order.
+
 ## Owned tables
 
 `subscriptions`, `membership_plans`, `billing` (invoices and ledger), `sponsors`, `sponsor_roster`, `sponsor_handover`, `sponsor_mail_outbox`, the commission tables (`packages/database/src/schema/subscriptions.ts`, `membership-plans.ts`, `billing.ts`, `sponsors.ts`, `sponsor-roster.ts`, `sponsor-handover.ts`). Written from outside the owner: R1 measured 237 Drizzle call sites in the membership-billing stratum — 206 hand-scoped, 31 with no tenant token, 0 using the scoped helper (`A/modules/tenancy.md:90`); the count of those sites that live outside this package is `NOT MEASURED` here. `docs/engineering/DIRECTION.md:53` records that 124 of 348 write sites overall sit in the web app and 24 of 81 written tables have more than one writer (MAIN-07).
