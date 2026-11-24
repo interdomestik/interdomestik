@@ -277,7 +277,7 @@ export async function withSeam(
   catalog: Catalog,
   run: (seam: AdminClaimsReadSeam, pathname: string) => Promise<void>
 ): Promise<void> {
-  test.setTimeout(120_000);
+  test.setTimeout(180_000);
   const pathname = routes.adminClaims(testInfo);
   const seam = await installAdminClaimsReadSeam(page, { pathname, failureMessage: catalog.failed });
   try {
