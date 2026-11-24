@@ -1,5 +1,7 @@
 // Source-bound operation contracts, filled from the measured inventory (see tenant-guard-contract.mjs).
 // A module, not JSON, so the protected required workflow loads it through its closed .mjs closure.
+import { RATE_VERIFICATION_RELEASE_CONTRACT } from './rate-verification-release-admissions.mjs';
+
 const deepFreeze = value => {
   if (value && typeof value === 'object') {
     for (const child of Object.values(value)) deepFreeze(child);
@@ -286,7 +288,7 @@ function successorOf(file, unit, sha256, note) {
 
 export const CONTRACTS = deepFreeze([
   ...REVIEWED,
-  // WP-10 B1-a: ACQ-2c stays as the predecessor until main carries this postimage.
+  RATE_VERIFICATION_RELEASE_CONTRACT,
   successorOf(
     'apps/web/src/lib/auth/different-email-recovery-store.ts',
     'confirmReplacementProof',

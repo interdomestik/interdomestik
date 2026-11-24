@@ -1,27 +1,30 @@
 import { z } from 'zod';
 
 // PostgreSQL text cannot preserve NUL or an unpaired UTF-16 surrogate.
-const text = z
+export const preservableText = z
   .string()
   .min(1)
   .regex(/^[^\0\uD800-\uDFFF]+$/u);
 
 export const publishPlanVersionInputSchema = z.strictObject({
-  planId: text,
-  legalEntityId: text,
+  planId: preservableText,
+  legalEntityId: preservableText,
 });
 
-export const withdrawPlanVersionInputSchema = z.strictObject({ planVersionId: text });
-export const getSaleOfferInputSchema = z.strictObject({ planId: text });
+export const withdrawPlanVersionInputSchema = z.strictObject({ planVersionId: preservableText });
+export const getSaleOfferInputSchema = z.strictObject({ planId: preservableText });
 
 export const recordSaleInputSchema = z.strictObject({
-  buyer: z.strictObject({ leadId: text.optional(), memberUserId: text.optional() }),
-  planVersionId: text,
-  termsVersion: text,
-  rateId: text,
+  buyer: z.strictObject({
+    leadId: preservableText.optional(),
+    memberUserId: preservableText.optional(),
+  }),
+  planVersionId: preservableText,
+  termsVersion: preservableText,
+  rateId: preservableText,
   amountMkdMinor: z.bigint().gt(0n).lte(9_223_372_036_854_775_807n),
   channel: z.enum(['cash', 'bank_transfer']),
-  operationKey: text.max(255),
+  operationKey: preservableText.max(255),
 });
 
 export type SaleInput = Omit<z.output<typeof recordSaleInputSchema>, 'buyer'> & {

@@ -1,5 +1,7 @@
 import type { TenantTransaction } from '@interdomestik/database';
 import {
+  exchangeRateVerificationLimits,
+  exchangeRateVerifications,
   exchangeRates,
   legalEntities,
   membershipPlans,
@@ -58,6 +60,23 @@ export async function readSaleOffer(
     .orderBy(desc(exchangeRates.effectiveOn), desc(exchangeRates.revision))
     .limit(1);
 
+  const latestVerification = tx
+    .select({ verifiedAt: exchangeRateVerifications.verifiedAt })
+    .from(exchangeRateVerifications)
+    .where(
+      withTenant(
+        tenantId,
+        exchangeRateVerifications.tenantId,
+        and(
+          eq(exchangeRateVerifications.bookId, exchangeRates.bookId),
+          eq(exchangeRateVerifications.rateId, exchangeRates.id),
+          sql`${exchangeRateVerifications.verifiedAt} <= statement_timestamp()`
+        )
+      )
+    )
+    .orderBy(desc(exchangeRateVerifications.verifiedAt))
+    .limit(1);
+
   const [snapshot] = await tx
     .select({
       planId: membershipPlans.id,
@@ -80,6 +99,10 @@ export async function readSaleOffer(
         quote: exchangeRates.quote,
         effectiveOn: exchangeRates.effectiveOn,
       },
+      rateVerified: sql<boolean>`coalesce(
+        extract(epoch from (statement_timestamp() - (${latestVerification})))
+          <= ${exchangeRateVerificationLimits.maxAgeSeconds}, false
+      )`,
     })
     .from(user)
     .leftJoin(
@@ -106,6 +129,10 @@ export async function readSaleOffer(
       exchangeRates,
       withTenant(tenantId, exchangeRates.tenantId, eq(exchangeRates.id, rateInForceId))
     )
+    .leftJoin(
+      exchangeRateVerificationLimits,
+      withTenant(tenantId, exchangeRateVerificationLimits.tenantId)
+    )
     .where(withTenant(tenantId, user.tenantId, eq(user.id, userId)));
 
   if (!snapshot) return { ok: false, code: 'forbidden' } as const;
@@ -126,6 +153,7 @@ export async function readSaleOffer(
     ok: true,
     version,
     rate,
+    rateVerified: snapshot.rateVerified,
     governingLaw: entity.governingLaw,
     termsVersion: entity.termsVersion,
   } as const;
@@ -145,6 +173,7 @@ export async function getSaleOffer(authority: TenantAuthority, input: unknown, a
     if (!rate) return { ok: false, code: 'rate_unavailable' } as const;
     const amountMkdMinor = toMkdMinor(version.listPriceMinor, rate.rate);
     if (amountMkdMinor <= 0n) return { ok: false, code: 'rate_unavailable' } as const;
+    if (!result.rateVerified) return { ok: false, code: 'stale_rate' } as const;
     return {
       ok: true,
       offer: {

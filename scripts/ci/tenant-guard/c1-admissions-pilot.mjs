@@ -1,4 +1,4 @@
-// WP-10 U1 postimages at 55bd7ff12. The owner authorized R-37 items 1–6 and 18 on 2026-11-22.
+// WP-10 U1 postimages at 0396babc9. The owner authorized R-37 items 1–6 and 18 on 2026-11-22.
 const LIB = 'apps/web/src/lib';
 const AUTH = `${LIB}/auth`;
 const AUTH_ROUTE = 'apps/web/src/app/api/auth/[...all]';
