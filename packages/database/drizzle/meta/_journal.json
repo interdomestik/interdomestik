@@ -736,6 +736,13 @@
       "when": 1795347018768,
       "tag": "0104_wp07_rate_verification_age",
       "breakpoints": true
+    },
+    {
+      "idx": 105,
+      "version": "7",
+      "when": 1795536633000,
+      "tag": "0105_perf_read_path_indexes",
+      "breakpoints": true
     }
   ]
 }

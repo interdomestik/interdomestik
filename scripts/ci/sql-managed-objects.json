@@ -207,14 +207,29 @@
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"claim\",\"idx_claims_tenant_updated\"]",
+      "value": "btree (tenant_id, \"updatedAt\" DESC, id DESC)",
+      "migration": "0105_perf_read_path_indexes"
+    },
+    {
       "key": "index [\"public\",\"claim_documents\",\"idx_claim_documents_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"claim_messages\",\"idx_claim_messages_tenant_claim_created\"]",
+      "value": "btree (tenant_id, claim_id, created_at)",
+      "migration": "0105_perf_read_path_indexes"
+    },
+    {
       "key": "index [\"public\",\"claim_messages\",\"idx_claim_messages_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"claim_stage_history\",\"idx_claim_stage_history_tenant_claim_created\"]",
+      "value": "btree (tenant_id, claim_id, created_at DESC, id DESC)",
+      "migration": "0105_perf_read_path_indexes"
     },
     {
       "key": "index [\"public\",\"claim_stage_history\",\"idx_claim_stage_history_tenant_id\"]",
@@ -280,6 +295,11 @@
       "key": "index [\"public\",\"notifications\",\"idx_notifications_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"notifications\",\"idx_notifications_tenant_user_created\"]",
+      "value": "btree (tenant_id, user_id, created_at DESC)",
+      "migration": "0105_perf_read_path_indexes"
     },
     {
       "key": "index [\"public\",\"nps_survey_responses\",\"idx_nps_survey_responses_tenant_id\"]",
