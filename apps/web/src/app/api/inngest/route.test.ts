@@ -1,4 +1,5 @@
 // @vitest-environment node
+import publicEntries from '@/lib/public-entry-points.json';
 import { createHmac } from 'node:crypto';
 import { headerKeys } from 'inngest';
 import { NextRequest } from 'next/server';
@@ -94,7 +95,7 @@ function expectNoEffects() {
 
 async function expectNoIntrospection(response: Response) {
   expect(response.status).toBe(401);
-  expect(response.headers.get('Cache-Control')).toBe('no-store');
+  expect(response.headers.get('Cache-Control')).toBe('private, no-store');
   expect(await response.json()).toEqual({ error: 'Unauthorized' });
 }
 
@@ -167,6 +168,26 @@ it.each(['invalid', 'expired'] as const)(
   }
 );
 
+it.each(['invalid', 'expired'] as const)(
+  'returns HTTP 401 for %s POST signatures when streaming is forced',
+  async kind => {
+    vi.stubEnv('INNGEST_STREAMING', 'force');
+    vi.resetModules();
+    const fresh = await import('./route');
+
+    const response = await fresh.POST(
+      request('POST', {
+        key: kind === 'invalid' ? unrelated : primary,
+        timestamp: kind === 'expired' ? String(Math.floor(Date.now() / 1000) - 301) : undefined,
+      })
+    );
+    // Wait for the full response so the denial also proves no deferred side effects.
+    await response.text();
+    expectNoEffects();
+    expect(response.status).toBe(401);
+  }
+);
+
 it('requires signing configuration on a fresh handler', async () => {
   vi.stubEnv('INNGEST_SIGNING_KEY', undefined);
   vi.stubEnv('INNGEST_SIGNING_KEY_FALLBACK', undefined);
@@ -213,19 +234,27 @@ it.each([
 });
 
 it.each([
-  ['primary', primary],
-  ['fallback', fallback],
-])('serves signed extraction and registration with the %s key', async (_keyName, key) => {
-  const get = await GET(request('GET', { key }));
+  ['primary', primary, undefined],
+  ['fallback', fallback, undefined],
+  ['fallback under forced streaming', fallback, 'force'],
+] as const)('serves the signed %s flow', async (_case, key, streaming) => {
+  vi.stubEnv('INNGEST_STREAMING', streaming);
+  vi.resetModules();
+  const fresh = await import('./route');
+
+  const get = await fresh.GET(request('GET', { key }));
   expect(get.status).toBe(200);
+  expect(get.headers.get('Cache-Control')).toBe('private, no-store');
+  expect(get.headers.get('Vary')).toContain(headerKeys.Signature);
   expect(await signedResponseBody(get, key)).toMatchObject({
     app_id: 'interdomestik-web',
     authentication_succeeded: true,
+    extra: { is_streaming: false },
     function_count: 3,
     mode: 'cloud',
   });
 
-  const put = await PUT(request('PUT', { key, syncKind: 'in_band' }));
+  const put = await fresh.PUT(request('PUT', { key, syncKind: 'in_band' }));
   expect(put.status).toBe(200);
   expect(put.headers.get(headerKeys.InngestSyncKind)).toBe('in_band');
   expect(await signedResponseBody(put, key)).toMatchObject({
@@ -238,7 +267,7 @@ it.each([
   });
   expectNoEffects();
 
-  const post = await POST(request('POST', { key }));
+  const post = await fresh.POST(request('POST', { key }));
   expect(post.status).toBe(206);
   expect(await signedResponseBody(post, key)).toMatchObject([{ data: { status: 'completed' } }]);
   expect(effects.mintIngressCapability).toHaveBeenCalledExactlyOnceWith('inngest');
@@ -251,4 +280,10 @@ it.each([
   expect(effects.processEmailSequences).not.toHaveBeenCalled();
   expect(effects.processSeasonalCampaigns).not.toHaveBeenCalled();
   expect(effects.fetch).not.toHaveBeenCalled();
+});
+
+it('registers Inngest PUT as read-only', () => {
+  expect(publicEntries.entries.find(entry => entry.id === 'inngest-put')).toMatchObject({
+    writes: false,
+  });
 });

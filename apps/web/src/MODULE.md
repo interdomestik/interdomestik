@@ -44,7 +44,7 @@ The origin check protects browsers against cross-site writes. Every client needs
 
 The forecast snapshot schedule is `15 5 * * *` in the Vercel configuration wherever WP-15 enables that runner. WP-15 owns last-success storage and monitoring. Its forecast input is the completed scheduler response. `lib/cron/forecast-snapshot-last-success.ts` supplies a completion timestamp only for a valid completed run in which every considered item succeeded, with zero failures, deferrals and version conflicts. A timeout counts as a work-item failure. The existing HTTP 200 response can also report a partial run.
 
-`/api/inngest` serves the three event-driven extraction registrations in cloud mode. GET returns authenticated SDK introspection or a generic 401. POST uses the cloud SDK's execution signature validation. PUT allows only signed in-band sync, with the SDK's primary and fallback signing keys, and refuses out-of-band and environment-forced fallback before delegation. The registry records the three methods separately.
+`/api/inngest` serves the three event-driven extraction registrations in cloud mode. GET returns authenticated SDK introspection with `Cache-Control: private, no-store` and `Vary: x-inngest-signature`, or an uncacheable generic 401. POST uses the SDK's signature validation and returns HTTP 401 for invalid or expired signatures even when `INNGEST_STREAMING=force`. The receiver's SDK adapter omits the streaming response transform. PUT returns a signed, read-only manifest for in-band sync and refuses out-of-band and environment-forced fallback before delegation. The SDK accepts its primary and fallback signing keys. The registry records the three methods separately.
 
 ## Owned tables
 

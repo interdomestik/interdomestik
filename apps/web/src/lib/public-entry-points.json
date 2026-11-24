@@ -252,7 +252,7 @@
         "path": "apps/web/src/app/api/inngest/route.test.ts",
         "title": "refuses unsigned PUT without side effects"
       },
-      "writes": true,
+      "writes": false,
       "closedBy": null,
       "source": "WP-14 PR 1 (cloud SDK machine route)"
     },

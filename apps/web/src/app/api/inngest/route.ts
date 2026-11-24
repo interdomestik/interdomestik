@@ -1,8 +1,23 @@
 import { inngest } from '@/lib/inngest/client';
 import { inngestFunctions } from '@/lib/inngest/functions';
-import { Inngest, headerKeys } from 'inngest';
-import { serve } from 'inngest/next';
-import type { NextRequest } from 'next/server';
+import { Inngest, InngestCommHandler, headerKeys, type ServeHandlerOptions } from 'inngest';
+import { frameworkName } from 'inngest/next';
+
+function serve(options: ServeHandlerOptions) {
+  const receiver = new InngestCommHandler({
+    ...options,
+    frameworkName,
+    // Omit transformStreamingResponse so INNGEST_STREAMING cannot mask the SDK's HTTP status.
+    handler: (request: Request, method: 'GET' | 'POST' | 'PUT') => ({
+      method: () => method,
+      url: () => new URL(request.url),
+      headers: name => request.headers.get(name),
+      body: () => request.text(),
+      transformResponse: ({ body, status, headers }) => new Response(body, { status, headers }),
+    }),
+  });
+  return { handle: receiver.createHandler() };
+}
 
 const handler = serve({
   // Pin the public receiver independently of the event producer's environment.
@@ -10,16 +25,18 @@ const handler = serve({
   functions: inngestFunctions,
 });
 
+const privateCacheControl = 'private, no-store';
+
 function unauthorized() {
   return Response.json(
     { error: 'Unauthorized' },
-    { status: 401, headers: { 'Cache-Control': 'no-store' } }
+    { status: 401, headers: { 'Cache-Control': privateCacheControl } }
   );
 }
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
-    const response = await handler.GET(request, undefined);
+    const response = await handler.handle(request, 'GET');
     if (!response.ok) return unauthorized();
 
     const introspection: unknown = await response.clone().json();
@@ -31,6 +48,8 @@ export async function GET(request: NextRequest) {
       'authentication_succeeded' in introspection &&
       introspection.authentication_succeeded === true
     ) {
+      response.headers.set('Cache-Control', privateCacheControl);
+      response.headers.append('Vary', headerKeys.Signature);
       return response;
     }
   } catch {
@@ -40,12 +59,12 @@ export async function GET(request: NextRequest) {
   return unauthorized();
 }
 
-export function POST(request: NextRequest) {
+export function POST(request: Request) {
   if (!request.headers.get(headerKeys.Signature)) return unauthorized();
-  return handler.POST(request, undefined);
+  return handler.handle(request, 'POST');
 }
 
-export function PUT(request: NextRequest) {
+export function PUT(request: Request) {
   // Inngest 3 treats any other configured value as false and falls back to outbound registration.
   const inBandSetting = process.env.INNGEST_ALLOW_IN_BAND_SYNC?.trim().toLowerCase();
   const inBandAllowed =
@@ -60,5 +79,5 @@ export function PUT(request: NextRequest) {
   ) {
     return unauthorized();
   }
-  return handler.PUT(request, undefined);
+  return handler.handle(request, 'PUT');
 }
