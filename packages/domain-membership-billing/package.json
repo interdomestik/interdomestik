@@ -10,6 +10,7 @@
     "./billing-snapshot": "./src/billing-snapshot.ts",
     "./membership-hierarchy": "./src/membership-hierarchy.ts",
     "./payment-port": "./src/payment-port.ts",
+    "./payment-port/compose": "./src/payment-port-compose.ts",
     "./paddle": "./src/paddle.ts",
     "./paddle-closed": "./src/paddle-closed.ts",
     "./paddle-server": "./src/paddle-server.ts",
@@ -63,6 +64,7 @@
     "./entity-migration-readiness": "./src/entity-migration-readiness/index.ts"
   },
   "scripts": {
+    "test:rls": "BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts src/port/individual-sale-age-boundary.rls.test.ts src/port/individual-sale-weekly-rate.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test test/exchange-rates-port.test.ts",
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit"

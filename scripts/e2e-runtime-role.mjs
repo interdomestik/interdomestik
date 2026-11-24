@@ -4,6 +4,8 @@
 // is derived from the admin credential and cluster, so every admin-capable process agrees on it.
 import { createHmac } from 'node:crypto';
 
+import { grantE2eRuntimePrivileges } from './e2e-runtime-role-grants.mjs';
+
 export const E2E_RUNTIME_ROLE = 'interdomestik_e2e_runtime';
 // Probe suites pass a suffixed role so their adversarial catalog edits never touch the lane role.
 const ROLE_PATTERN = /^interdomestik_e2e_runtime(?:_[a-z\d]{1,24})?$/u;
@@ -120,26 +122,7 @@ async function provisionRole(sql, role, password) {
     const [{ db }] = await tx`select quote_ident(current_database()) as db`;
     await tx.unsafe(`GRANT CONNECT ON DATABASE ${db} TO ${role}`);
     await tx.unsafe(`GRANT USAGE ON SCHEMA public TO ${role}`);
-    // Base tables get DML only; RLS decides rows. Views are readable only when they run with
-    // the invoker's rights, so their base-table policies still apply.
-    const relations = await tx`
-      select quote_ident(c.relname) as name, c.relkind as kind
-      from pg_class c join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public' and (c.relkind in ('r', 'p', 'S')
-        or (c.relkind = 'v' and 'security_invoker=true' = any(coalesce(c.reloptions, '{}'))))
-      order by c.relname`;
-    const names = kinds =>
-      relations.filter(r => kinds.includes(r.kind)).map(r => `public.${r.name}`);
-    const grants = [
-      ['SELECT, INSERT, UPDATE, DELETE ON TABLE', names(['r', 'p'])],
-      ['USAGE, SELECT ON SEQUENCE', names(['S'])],
-      ['SELECT ON TABLE', names(['v'])],
-    ].filter(([, targets]) => targets.length > 0);
-    await Promise.all(
-      grants.map(([privileges, targets]) =>
-        tx.unsafe(`GRANT ${privileges} ${targets.join(', ')} TO ${role}`)
-      )
-    );
+    await grantE2eRuntimePrivileges(tx, role);
   });
 }
 

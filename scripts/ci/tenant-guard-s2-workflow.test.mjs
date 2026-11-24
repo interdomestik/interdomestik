@@ -164,7 +164,7 @@ test(
     );
     assert.match(
       result.stderr,
-      /resolution-config apps\/web\/next\.config\.mjs:1 .*differs from the trusted tree/u
+      /pin packages\/database\/src\/db\.ts:0 \[db\] .*candidate: resolver input changed apps\/web\/next\.config\.mjs/u
     );
   }
 );

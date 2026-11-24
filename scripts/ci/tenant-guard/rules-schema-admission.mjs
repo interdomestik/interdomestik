@@ -5,6 +5,7 @@ import { LEGACY } from './manifest.mjs';
 import { hasParallelTarget } from './modules.mjs';
 import { retainedConsumerProblem } from './rules-schema-consumers.mjs';
 import { schemaDestructuringExports } from './rules-schema-destructuring.mjs';
+import { resolverComparison, resolverRecordProblem } from './rules-resolver-state.mjs';
 import { comparePublicExports, forwardInventory } from './rules-schema-public.mjs';
 import { kernelWalk } from './rules-trust.mjs';
 import { proveBuilderModule } from './schema-builder-forms.mjs';
@@ -215,7 +216,7 @@ function retainedKernelProblem(before, after) {
   return null;
 }
 
-function compare(before, after, anchor, role, inventoryOf) {
+function compare(before, after, anchor, role, inventoryOf, record) {
   const reject = reason => `${role}: ${reason}`;
   const retained = retainedKernelProblem(before, after);
   if (retained) return reject(retained);
@@ -226,11 +227,13 @@ function compare(before, after, anchor, role, inventoryOf) {
   if (closure) return reject(closure);
   if (after.resolution.violations.length)
     return reject(`unmodeled resolver input ${after.resolution.violations[0].file}`);
+  const resolver = resolverComparison(before, after, accumulated, record);
+  if (resolver) return reject(resolver);
   const oldInventory = inventoryOf(before, accumulated ? 'anchor' : 'base');
   const newInventory = inventoryOf(after, role);
   if (oldInventory.reason || newInventory.reason) return oldInventory.reason ?? newInventory.reason;
   if (added.length === 0 && before.reachable.size === anchor.reachable.size) return null;
-  const provenance = provenanceProblem(anchor, before, after);
+  const provenance = provenanceProblem(before, after);
   if (provenance) return reject(provenance);
   const destructuring = schemaDestructuringExports(after, newInventory).next().value;
   if (destructuring)
@@ -260,9 +263,11 @@ function checkoutProblem(candidate, scanGraph, sources) {
 }
 
 /** One proof result governs all three entries. Any failure leaves their exact digest in force. */
-export function proveSchemaAdmission(input, pins, scanGraph, sources) {
+export function proveSchemaAdmission(input, pins, scanGraph, sources, record) {
   const fail = reason => ({ version: 2, ok: false, reason });
   if (input?.reason) return fail(input.reason);
+  const recordProblem = resolverRecordProblem(record);
+  if (recordProblem) return fail(recordProblem);
   const anchor = image(input?.anchor, 'anchor');
   if (anchor.reason) return fail(anchor.reason);
   const base = image(input?.base, 'base');
@@ -284,8 +289,8 @@ export function proveSchemaAdmission(input, pins, scanGraph, sources) {
       : inventory;
   };
   const reason =
-    compare(anchor, base, anchor, 'base', inventoryOf) ??
-    compare(base, candidate, anchor, 'candidate', inventoryOf) ??
+    compare(anchor, base, anchor, 'base', inventoryOf, record) ??
+    compare(base, candidate, anchor, 'candidate', inventoryOf, record) ??
     checkoutProblem(candidate, scanGraph, sources);
   if (reason) return fail(reason);
   return { version: 2, ok: true, reason: 'anchor and protected base verified' };
