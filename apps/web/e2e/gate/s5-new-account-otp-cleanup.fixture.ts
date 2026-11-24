@@ -11,6 +11,7 @@ import {
   user,
 } from '@interdomestik/database';
 import { expect, type Page } from '@playwright/test';
+import { fixtureLegalAcceptance, type FixtureMember } from '../fixtures/legal-acceptance.fixture';
 import { deleteMail, type OtpMail, redact } from './s5-otp-mailbox.fixture';
 import { teardown } from './s5-saved-draft.fixture';
 
@@ -28,41 +29,50 @@ export async function redactOtpFailure(error: unknown, mails: OtpMail[], pages: 
 }
 
 export async function cleanupOtpJourney(args: {
-  emails: string[];
+  absentEmail: string;
+  fixtureMember: FixtureMember;
   failure: unknown;
   pages: Page[];
   seen: Set<string>;
 }) {
-  const userRows = () => db.query.user.findMany({ where: inArray(user.email, args.emails) });
-  const owners = await userRows().catch(() => []);
+  const emails = [args.absentEmail, args.fixtureMember.email];
+  const userRows = () => db.query.user.findMany({ where: inArray(user.email, emails) });
   await teardown(
     [
-      ...owners.map(owner => async () => {
-        const ids = (
-          await db.query.freeStartDrafts.findMany({
-            columns: { id: true },
-            where: eq(freeStartDrafts.ownerUserId, owner.id),
-          })
-        ).map(row => row.id);
-        const audit = or(
-          eq(auditLog.actorId, owner.id),
-          ids.length ? inArray(auditLog.entityId, ids) : undefined
+      () => fixtureLegalAcceptance('clean', [args.fixtureMember]),
+      async () => {
+        const owners = await userRows();
+        await teardown(
+          owners.flatMap(owner => [
+            async () => {
+              const ids = (
+                await db.query.freeStartDrafts.findMany({
+                  columns: { id: true },
+                  where: eq(freeStartDrafts.ownerUserId, owner.id),
+                })
+              ).map(row => row.id);
+              const audit = or(
+                eq(auditLog.actorId, owner.id),
+                ids.length ? inArray(auditLog.entityId, ids) : undefined
+              );
+              await db.delete(auditLog).where(audit);
+            },
+            async () => db.delete(freeStartDrafts).where(eq(freeStartDrafts.ownerUserId, owner.id)),
+            async () => db.delete(authSession).where(eq(authSession.userId, owner.id)),
+            async () => db.execute(sql`delete from account where "userId" = ${owner.id}`),
+            async () => db.delete(user).where(eq(user.id, owner.id)),
+          ])
         );
-        await db.delete(auditLog).where(audit);
-        await db.delete(freeStartDrafts).where(eq(freeStartDrafts.ownerUserId, owner.id));
-        await db.delete(authSession).where(eq(authSession.userId, owner.id));
-        await db.execute(sql`delete from account where "userId" = ${owner.id}`);
-        await db.delete(user).where(eq(user.id, owner.id));
-      }),
-      ...args.emails.map(email => () => {
+      },
+      ...emails.map(email => async () => {
         const identifierPattern = `%${email}`;
         return db.execute(sql`delete from verification where identifier like ${identifierPattern}`);
       }),
       () => deleteMail(args.seen),
-      ...args.pages.map(page => () => page.context().close()),
+      ...args.pages.map(page => async () => page.context().close()),
       async () => {
         expect(await userRows(), 'the task-owned accounts are removed').toEqual([]);
-        expect(await db.$count(crmLeads, inArray(crmLeads.email, args.emails))).toBe(0);
+        expect(await db.$count(crmLeads, inArray(crmLeads.email, emails))).toBe(0);
       },
     ],
     args.failure
