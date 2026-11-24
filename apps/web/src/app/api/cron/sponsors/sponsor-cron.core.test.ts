@@ -49,7 +49,7 @@ const run = (iso: string) => runSponsorCronCore({ ingress: {} as never, now: new
 describe('sponsor cron core', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    h.provisioning.mockResolvedValue({ processed: 2, failed: 0 });
+    h.provisioning.mockResolvedValue({ processed: 2, failed: 0, outcomes: {} });
     h.handovers.mockResolvedValue({ processed: 1, failed: 0 });
     h.outbox.mockResolvedValue({ claimed: 3, outcomes: {} });
     h.deps.mockReturnValue({});
@@ -74,6 +74,20 @@ describe('sponsor cron core', () => {
     expect(h.cache).not.toHaveBeenCalled();
     expect(h.retention).not.toHaveBeenCalled();
     expect(h.outbox).toHaveBeenCalledTimes(2);
+  });
+
+  it('reports closed sales as skipped provisioning while other work continues', async () => {
+    h.provisioning.mockResolvedValueOnce({
+      processed: 2,
+      failed: 0,
+      outcomes: { seated: 1, sales_closed: 1 },
+    });
+    const results = await run('2027-01-01T10:30:00Z');
+    expect(results[0]).toMatchObject({
+      provisioning: { processed: 2, failed: 0, disabled: false, salesClosed: 1 },
+      failedSteps: [],
+    });
+    expect(results[0].handovers).toEqual({ processed: 1, failed: 0 });
   });
 
   it('reports a failing step and keeps running the other steps and tenants', async () => {

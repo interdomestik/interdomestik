@@ -716,7 +716,9 @@ checks:
       # Every package file except the owning package; `*` keeps files directly under packages/.
       - packages/{*,!(database)/**/*}.{ts,tsx,js,mjs}
     must_not_match:
-      - "from ['\"][^'\"]*@interdomestik/database(?:/src)?/(seed(?:-|/|\\.)|seed-packs)[^'\"]*['\"]"
+      # @interdomestik/database/seed-target-classification (#2124) only classifies targets.
+      # Its only import is a type from ./seed-target-binding, so it loads no seed code.
+      - "from (['\"])(?!@interdomestik/database/seed-target-classification\\1)[^'\"]*@interdomestik/database(?:/src)?/(seed(?:-|/|\\.)|seed-packs)[^'\"]*['\"]"
       - "from ['\"][^'\"]*packages/database/src/(seed(?:-|/|\\.)|seed-packs)[^'\"]*['\"]"
       - "require\\(['\"][^'\"]*(/seed(?:-|/|\\.)|/seed-packs)[^'\"]*['\"]\\)"
     exclude:

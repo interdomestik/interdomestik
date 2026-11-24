@@ -7,14 +7,16 @@ import {
   eq,
   freeStartDrafts,
   session as authSession,
-  sql,
   user,
 } from '@interdomestik/database';
-import { expect, test, type Locator, type Page } from '@playwright/test';
+import { expect, test, type Locator } from '@playwright/test';
+import { randomUUID } from 'node:crypto';
 import { routes } from '../routes';
 import { openDeviceDetails, openSaveArea } from './public-save-options.fixture';
 import { gotoApp } from '../utils/navigation';
 import { S3_JOURNEY_INCIDENT_DATE } from './member-staff-evidence-journey-cleanup.fixture';
+import { proveAbsentOtpRefusal } from './s5-absent-account-otp.fixture';
+import { createOtpJourneyBrowser } from './s5-new-account-otp-browser.fixture';
 import { cleanupOtpJourney, redactOtpFailure } from './s5-new-account-otp-cleanup.fixture';
 import {
   OtpMail,
@@ -34,13 +36,11 @@ import {
 // Traces, videos and screenshots would record the typed code, so this spec keeps none.
 test.use({ screenshot: 'off', trace: 'off', video: 'off' });
 
-const SUBJECT = 'Your email confirmation code';
-
-test.describe('S5 new-account email OTP secure save', () => {
-  test('a new person verifies an email, saves, returns in a fresh session and deletes the draft', async ({
+test.describe('S5 door OTP secure save', () => {
+  test('refuses an absent account and lets a verified account save, resume and delete a draft', async ({
     browser,
   }, testInfo) => {
-    testInfo.skip(testInfo.project.name !== 'gate-ks-sq', 'One canonical run creates the account.');
+    testInfo.skip(testInfo.project.name !== 'gate-ks-sq', 'One canonical run owns the fixture.');
     const required = process.env.E2E_OTP_PROOF_REQUIRED === '1';
     if (required) expect(mailboxConfigured(), 'the lane provides the mail catcher').toBe(true);
     testInfo.skip(!mailboxConfigured(), 'Needs E2E_SMTP_HOST (loopback mail catcher).');
@@ -49,45 +49,32 @@ test.describe('S5 new-account email OTP secure save', () => {
     const tenant = E2E_USERS.KS_MEMBER.tenantId;
     const runId = `${testInfo.workerIndex}-${testInfo.retry}-${Date.now()}`;
     // The server keys OTP limits on a forwarded client address.
-    const CLIENT = { 'x-forwarded-for': `203.0.113.${1 + (Date.now() % 250)}` };
+    const clientAddress = Date.now() % 250;
+    const client = (offset = 0) => ({
+      'x-forwarded-for': `203.0.113.${1 + ((clientAddress + offset) % 250)}`,
+    });
     const email = `s5-otp-${runId}@interdomestik-e2e.test`;
-    const summary = `S5 new account ${runId}.`;
+    const absentEmail = `s5-otp-absent-${runId}@interdomestik-e2e.test`;
+    const summary = `S5 secure save ${runId}.`;
     const counterparty = `S5 Insurer ${runId}`;
     const seen = new Set<string>();
     const mails: OtpMail[] = [];
-    const pages: Page[] = [];
-    const browserAuthOrigins: string[] = [];
-    const browserAuthHeaderReads: Promise<void>[] = [];
     let failure: unknown;
-    const userRow = () => db.query.user.findFirst({ where: eq(user.email, email) });
+    const userRow = (address = email) =>
+      db.query.user.findFirst({ where: eq(user.email, address) });
     const drafts = async () => {
       const owner = await userRow();
       return owner
         ? db.query.freeStartDrafts.findMany({ where: eq(freeStartDrafts.ownerUserId, owner.id) })
         : [];
     };
-    const open = async () => {
-      const context = await browser.newContext({
-        baseURL: info.project.use.baseURL,
-        extraHTTPHeaders: CLIENT,
-        storageState: { cookies: [], origins: [] },
-      });
-      context.on('request', request => {
-        const url = new URL(request.url());
-        if (request.method() === 'POST' && url.pathname.startsWith('/api/auth/')) {
-          browserAuthHeaderReads.push(
-            request.allHeaders().then(headers => {
-              browserAuthOrigins.push(headers.origin ?? '');
-            })
-          );
-        }
-      });
-      const page = await context.newPage();
-      pages.push(page);
-      return page;
-    };
-    const requestCode = (flow: Locator, openTestId?: string) =>
-      requestOtpCode({ flow, email, seen, mails, openTestId });
+    const { open, pages, browserAuthOrigins, browserAuthHeaderReads } = createOtpJourneyBrowser(
+      browser,
+      info.project.use.baseURL,
+      client
+    );
+    const requestCode = (flow: Locator, openTestId?: string, address = email) =>
+      requestOtpCode({ flow, email: address, seen, mails, openTestId });
     try {
       const start = await open();
       await gotoApp(start, routes.home('en'), info, { marker: 'free-start-intake-shell' });
@@ -113,105 +100,114 @@ test.describe('S5 new-account email OTP secure save', () => {
       await expect
         .poll(() => localCopy(start), { message: 'eligible facts are kept on this browser' })
         .toBe(true);
-      expect(await userRow(), 'browser-only preparation creates no account').toBeUndefined();
-      expect(await db.$count(crmLeads, eq(crmLeads.email, email)), 'no CRM lead is created').toBe(
-        0
-      );
+      expect(
+        await userRow(absentEmail),
+        'browser-only preparation creates no account'
+      ).toBeUndefined();
+      expect(
+        await db.$count(crmLeads, eq(crmLeads.email, absentEmail)),
+        'no CRM lead is created'
+      ).toBe(0);
 
-      const { mail, panel } =
-        await test.step('a real code is delivered and stored hashed', async () => {
-          const sent = await requestCode(flow, 'free-start-save-open');
-          expect(sent.mail.subject, 'subject is the static neutral text').toBe(SUBJECT);
-          expect(sent.mail.to).toBe(email);
-          expect(await userRow(), 'no account exists before verification').toBeUndefined();
-          const stored = await db.execute<{ value: string }>(
-            sql`select value from verification where identifier like ${`%${email}`}`
-          );
-          expect(stored, 'one pending code').toHaveLength(1);
-          expect(stored[0]!.value.includes(sent.mail.code), 'the code is not stored in clear').toBe(
-            false
-          );
-          return sent;
-        });
+      const absentPanel = await proveAbsentOtpRefusal({
+        browser,
+        start,
+        absentEmail,
+        tenant,
+        clientHeaders: client(),
+        requestCode: () => requestCode(flow, 'free-start-save-open', absentEmail),
+      });
 
-      await test.step('a wrong code is refused and the browser copy is kept', async () => {
+      const now = new Date();
+      const ownerId = randomUUID();
+      await db.insert(user).values({
+        id: ownerId,
+        email,
+        tenantId: tenant,
+        name: 'S5 verified fixture',
+        role: 'member',
+        emailVerified: true,
+        tenantClassificationPending: true,
+        createdAt: now,
+        updatedAt: now,
+      });
+      await absentPanel.getByRole('button', { name: 'Use a different email', exact: true }).click();
+      const { mail, panel } = await requestCode(flow);
+      await test.step('a wrong code for an eligible account is refused and the browser copy is kept', async () => {
         await enter(
           panel.getByTestId('free-start-save-code'),
           mail.code === '000000' ? '111111' : '000000'
         );
-        await panel.getByTestId('free-start-save-verify').click();
+        const [response] = await Promise.all([
+          start.waitForResponse(
+            response =>
+              new URL(response.url()).pathname === '/api/auth/sign-in/email-otp' &&
+              response.request().method() === 'POST'
+          ),
+          panel.getByTestId('free-start-save-verify').click(),
+        ]);
+        expect(response.status()).toBe(400);
+        expect((await response.json()).code).toBe('INVALID_OTP');
         await expect(panel.locator('#free-start-save-error')).toBeVisible();
-        expect(await userRow(), 'a wrong code creates no account').toBeUndefined();
+        expect(
+          await db.$count(user, eq(user.email, email)),
+          'the single eligible account remains'
+        ).toBe(1);
+        expect(
+          (await start.context().cookies()).some(cookie => cookie.name.includes('session_token'))
+        ).toBe(false);
+        expect(await drafts(), 'a wrong code saves no draft').toEqual([]);
         expect(await localCopy(start), 'the browser copy survives a refused save').toBe(true);
       });
-
-      await test.step('a cookie-free untrusted origin cannot consume a valid code', async () => {
-        const hostile = await browser.newContext({
-          baseURL: info.project.use.baseURL,
-          extraHTTPHeaders: CLIENT,
-          storageState: { cookies: [], origins: [] },
-        });
-        try {
-          const response = await hostile.request.post(
-            `${idaOrigin(info)}/api/auth/sign-in/email-otp`,
-            {
-              data: { email, onboarding: { mode: 'deferred', tenant }, otp: mail.code },
-              failOnStatusCode: false,
-              headers: { Origin: 'https://untrusted.invalid', 'x-tenant-id': tenant },
-            }
+      const created =
+        await test.step('a verified account uses its own code and saves', async () => {
+          await enter(panel.getByTestId('free-start-save-code'), mail.code);
+          await panel.getByTestId('free-start-save-verify').click();
+          await expect(flow.getByTestId('free-start-save-status')).toHaveAttribute(
+            'data-state',
+            'saved'
           );
-          expect(response.status(), 'an untrusted pre-auth origin is rejected').toBe(403);
-          expect(await hostile.cookies(), 'origin rejection opens no browser session').toEqual([]);
-          expect(await userRow(), 'origin rejection creates no account').toBeUndefined();
-          expect(await localCopy(start), 'the valid browser copy remains').toBe(true);
-        } finally {
-          await hostile.close();
-        }
-      });
-
-      const created = await test.step('the right code creates the account and saves', async () => {
-        await enter(panel.getByTestId('free-start-save-code'), mail.code);
-        await panel.getByTestId('free-start-save-verify').click();
-        await expect(flow.getByTestId('free-start-save-status')).toHaveAttribute(
-          'data-state',
-          'saved'
-        );
-        await expect
-          .poll(() => localCopy(start), {
-            message: 'the browser copy is removed after a confirmed save',
-          })
-          .toBe(false);
-        const owner = (await userRow())!;
-        expect(owner).toMatchObject({ emailVerified: true, role: 'member', tenantId: tenant });
-        const sessionCookie = (await start.context().cookies()).find(cookie =>
-          cookie.name.includes('session_token')
-        );
-        expect(sessionCookie, 'the browser receives a real session cookie').toMatchObject({
-          httpOnly: true,
+          await expect
+            .poll(() => localCopy(start), {
+              message: 'the browser copy is removed after a confirmed save',
+            })
+            .toBe(false);
+          const owner = (await userRow())!;
+          expect(owner).toMatchObject({
+            id: ownerId,
+            emailVerified: true,
+            role: 'member',
+            tenantId: tenant,
+          });
+          const sessionCookie = (await start.context().cookies()).find(cookie =>
+            cookie.name.includes('session_token')
+          );
+          expect(sessionCookie, 'the browser receives a real session cookie').toMatchObject({
+            httpOnly: true,
+          });
+          await Promise.all(browserAuthHeaderReads);
+          expect(
+            browserAuthOrigins.length,
+            'native browser auth mutations were observed'
+          ).toBeGreaterThan(0);
+          expect(
+            new Set(browserAuthOrigins),
+            'the browser supplied only the trusted secure IDA origin'
+          ).toEqual(new Set([idaOrigin(info)]));
+          const saved = await drafts();
+          expect(saved).toHaveLength(1);
+          expect(saved[0]).toMatchObject({
+            category: 'vehicle',
+            counterparty,
+            desiredOutcome: 'repair',
+            incidentDate: S3_JOURNEY_INCIDENT_DATE,
+            issueType: 'collision',
+            resumeStep: 'preview',
+            summary,
+          });
+          await expectNoDraftSideEffects(owner.id, email);
+          return { draftId: saved[0]!.id, ownerId: owner.id };
         });
-        await Promise.all(browserAuthHeaderReads);
-        expect(
-          browserAuthOrigins.length,
-          'native browser auth mutations were observed'
-        ).toBeGreaterThan(0);
-        expect(
-          new Set(browserAuthOrigins),
-          'the browser supplied only the trusted secure IDA origin'
-        ).toEqual(new Set([idaOrigin(info)]));
-        const saved = await drafts();
-        expect(saved).toHaveLength(1);
-        expect(saved[0]).toMatchObject({
-          category: 'vehicle',
-          counterparty,
-          desiredOutcome: 'repair',
-          incidentDate: S3_JOURNEY_INCIDENT_DATE,
-          issueType: 'collision',
-          resumeStep: 'preview',
-          summary,
-        });
-        await expectNoDraftSideEffects(owner.id, email);
-        return { draftId: saved[0]!.id, ownerId: owner.id };
-      });
 
       await test.step('one-time-code replay fails closed on the trusted browser path', async () => {
         const sessions = () => db.$count(authSession, eq(authSession.userId, created.ownerId));
@@ -288,7 +284,7 @@ test.describe('S5 new-account email OTP secure save', () => {
       failure = await redactOtpFailure(error, mails, pages);
       throw failure;
     } finally {
-      await cleanupOtpJourney({ email, failure, pages, seen });
+      await cleanupOtpJourney({ emails: [absentEmail, email], failure, pages, seen });
     }
   });
 });

@@ -8,7 +8,7 @@ import en from '../../src/messages/en/messaging.json';
 import mk from '../../src/messages/mk/messaging.json';
 import sq from '../../src/messages/sq/messaging.json';
 import sr from '../../src/messages/sr/messaging.json';
-import { expect, test } from '../fixtures/auth.fixture';
+import { expect, test } from '../../e2e-mac/closed-services.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import { withMemberMessageFixture } from './member-case-messages.fixture';

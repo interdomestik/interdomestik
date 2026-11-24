@@ -1,8 +1,10 @@
 'use client';
 
 import { getPaymentUpdateUrl } from '@/actions/subscription.core';
+import { PADDLE_CLOSED } from '@interdomestik/domain-membership-billing/paddle-closed';
 import { Button } from '@interdomestik/ui';
 import { CreditCard, Loader2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
@@ -20,6 +22,9 @@ export function UpdatePaymentButton({
   variant = 'default',
 }: UpdatePaymentButtonProps) {
   const [loading, setLoading] = useState(false);
+  const t = useTranslations('membership');
+
+  if (PADDLE_CLOSED) return <p className="text-sm text-muted-foreground">{t('CLOSED')}</p>;
 
   const handleUpdate = async () => {
     setLoading(true);

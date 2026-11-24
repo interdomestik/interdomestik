@@ -145,28 +145,40 @@ test.describe('Authentication', () => {
           marker: 'pricing-page-ready',
         });
 
-        await expect(page).toHaveURL(new RegExp(`${routes.publicMembershipEntry(testInfo)}$`));
-        await expect(page.getByTestId('pricing-table-root')).toBeVisible();
+        await expect(page).toHaveURL(
+          url =>
+            url.pathname === routes.publicMembershipEntry(testInfo) &&
+            url.searchParams.get('entry') === 'register'
+        );
+        await expect(page.getByTestId('plan-card-standard')).toBeVisible();
+        await expect(page.getByTestId('pricing-checkout-closed')).toBeVisible();
       });
     });
   });
 
   test.describe('Public Membership Entry', () => {
-    test('should show the OTP onboarding step after plan confirmation', async ({
+    test('should show plan information without offering checkout or OTP onboarding', async ({
       browser,
     }, testInfo) => {
       await withAnonymousPage(browser, testInfo, async page => {
-        await gotoApp(page, routes.publicMembershipEntry(testInfo), testInfo, {
+        let paddleRequests = 0;
+        await page.route('https://cdn.paddle.com/**', async route => {
+          paddleRequests += 1;
+          await route.abort();
+        });
+        await gotoApp(page, `${routes.publicMembershipEntry(testInfo)}?plan=standard`, testInfo, {
           marker: 'pricing-page-ready',
         });
+        await page.waitForLoadState('load');
 
-        await page.getByTestId('plan-cta-standard').click();
-        await expect(page.getByTestId('pricing-precheckout-confirmation')).toBeVisible();
-        await page.getByTestId('precheckout-continue-cta').click();
-
-        await expect(page.getByTestId('pricing-otp-step')).toBeVisible();
-        await expect(page.getByTestId('pricing-otp-email-input')).toBeVisible();
-        await expect(page.getByTestId('pricing-otp-code-input')).toBeVisible();
+        await expect(page.getByTestId('plan-card-standard').getByRole('heading')).toBeVisible();
+        await expect(page.getByTestId('pricing-checkout-closed')).toBeVisible();
+        await expect(page.getByTestId(/^plan-cta-/)).toHaveCount(0);
+        await expect(page.getByTestId('pricing-precheckout-confirmation')).toHaveCount(0);
+        await expect(page.getByTestId('precheckout-continue-cta')).toHaveCount(0);
+        await expect(page.getByTestId(/^pricing-otp-/)).toHaveCount(0);
+        await expect(page.locator('script[src*="paddle.com"]')).toHaveCount(0);
+        expect(paddleRequests).toBe(0);
       });
     });
   });

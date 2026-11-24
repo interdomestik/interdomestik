@@ -13,7 +13,7 @@ export const freeStartOutcomeSchema = z.enum(FREE_START_OUTCOME_IDS);
 export const freeStartIssueSchema = z.enum(FREE_START_ISSUE_IDS);
 
 export const submitFreeStartIntakeSchema = z
-  .object({
+  .strictObject({
     category: freeStartCategorySchema,
     counterparty: z.string().trim().min(1, 'Counterparty is required.'),
     desiredOutcome: freeStartOutcomeSchema,

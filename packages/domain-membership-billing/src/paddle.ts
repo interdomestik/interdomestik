@@ -1,4 +1,5 @@
-import { initializePaddle, type Paddle } from '@paddle/paddle-js';
+import type { Paddle } from '@paddle/paddle-js';
+import { PADDLE_CLOSED } from './paddle-closed';
 
 let paddleInstance: Paddle | null = null;
 let paddleInstanceCacheKey: string | null = null;
@@ -9,6 +10,10 @@ export type PublicPaddleInitConfig = Readonly<{
 }>;
 
 export async function getPaddleInstance(config?: PublicPaddleInitConfig) {
+  if (PADDLE_CLOSED) {
+    return null;
+  }
+
   const clientToken = config?.clientToken ?? process.env.NEXT_PUBLIC_PADDLE_CLIENT_TOKEN;
   const environment =
     config?.environment ??
@@ -25,6 +30,7 @@ export async function getPaddleInstance(config?: PublicPaddleInitConfig) {
   }
 
   try {
+    const { initializePaddle } = await import('@paddle/paddle-js');
     const paddle = await initializePaddle({
       environment,
       token: clientToken,
