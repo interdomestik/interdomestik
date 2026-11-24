@@ -1,20 +1,10 @@
 'use server';
 
-import {
-  resolveTenantClassification as resolveTenantClassificationAction,
-  updateUserAgent as updateUserAgentAction,
+export {
+  getAgents,
+  getStaff,
+  getUserChoices,
+  getUsers,
+  resolveTenantClassification,
+  updateUserAgent,
 } from './admin-users.core';
-
-export { getAgents, getStaff, getUserChoices, getUsers } from './admin-users.core';
-
-export async function resolveTenantClassification(
-  ...args: Parameters<typeof resolveTenantClassificationAction>
-): ReturnType<typeof resolveTenantClassificationAction> {
-  return resolveTenantClassificationAction(...args);
-}
-
-export async function updateUserAgent(
-  ...args: Parameters<typeof updateUserAgentAction>
-): ReturnType<typeof updateUserAgentAction> {
-  return updateUserAgentAction(...args);
-}
