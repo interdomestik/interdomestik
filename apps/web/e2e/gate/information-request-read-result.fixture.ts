@@ -155,7 +155,9 @@ export async function installInformationRequestReadSeam(
     const response = await fetchRsc(route);
     let body: string | undefined;
     if (slot.mode.kind === 'failure') {
-      body = failInformationRequestRead(await response.text(), target);
+      const text = await response.text();
+      requireListedInformationRequestRead(text, target);
+      body = failInformationRequestRead(text, target);
     } else if (slot.mode.verifyEmpty) {
       verifyEmptyInformationRequestRead(await response.text(), target);
     }

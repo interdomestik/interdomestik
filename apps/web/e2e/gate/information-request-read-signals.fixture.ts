@@ -1,5 +1,17 @@
 import { ReadSeamError } from './information-request-read-projection.fixture';
 
+export async function waitForReadSignal(signal: Promise<void>, deadline: number): Promise<boolean> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<false>(resolve => {
+    timer = setTimeout(() => resolve(false), Math.max(0, deadline - performance.now()));
+  });
+  try {
+    return await Promise.race([signal.then(() => true), timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function createGate() {
   let opened = false;
   let resolveGate: () => void = () => undefined;

@@ -1,5 +1,5 @@
 import type { Locator, Page, TestInfo } from '@playwright/test';
-import { expect, test } from '../fixtures/auth.fixture';
+import { expect } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import en from '../../src/messages/en/claims.json';
@@ -8,6 +8,11 @@ import sq from '../../src/messages/sq/claims.json';
 import sr from '../../src/messages/sr/claims.json';
 import { withInformationRequestFixture } from './information-request.fixture';
 import {
+  READ_RECOVERY_TIMEOUT_MS,
+  test,
+  type ExpectRead,
+} from './information-request-read-assertion.fixture';
+import {
   installInformationRequestReadSeam,
   settleFrames,
   watchPostBodies,
@@ -15,7 +20,6 @@ import {
   type ReadResultAudience,
   type ReadSeamCounts,
   type ReadSeamMode,
-  type ReadSeamPhase,
 } from './information-request-read-result.fixture';
 import { activateRootFontScale, visible } from './staff-case-workspace-presentation';
 
@@ -63,20 +67,6 @@ const SCENARIOS: Record<ReadResultAudience, Scenario> = {
     messaging: page => visible(page, 'staff-claim-detail-messaging'),
   },
 };
-
-async function expectRead(
-  seam: InformationRequestReadSeam,
-  label: string,
-  matches: (counts: ReadSeamCounts) => boolean,
-  phase: ReadSeamPhase = 'settled'
-): Promise<void> {
-  await test.step(label, async () => {
-    await seam.waitForRead(phase);
-    seam.assertNoError();
-    const counts = seam.counts();
-    expect(matches(counts), `${label} (${JSON.stringify(counts)})`).toBe(true);
-  });
-}
 
 async function fillDrafts(page: Page, audience: ReadResultAudience): Promise<Draft[]> {
   const messaging = SCENARIOS[audience].messaging(page);
@@ -128,7 +118,8 @@ async function openFailedDetail(
   testInfo: TestInfo,
   audience: ReadResultAudience,
   detailPath: string,
-  seam: InformationRequestReadSeam
+  seam: InformationRequestReadSeam,
+  expectRead: ExpectRead
 ): Promise<void> {
   const scenario = SCENARIOS[audience];
   const marker = audience === 'member' ? 'member-claims-table-region' : 'staff-page-ready';
@@ -219,9 +210,10 @@ async function expectRecoveryContained(ctx: Context, testInfo: TestInfo): Promis
 async function runScenario(
   page: Page,
   testInfo: TestInfo,
-  audience: ReadResultAudience
+  audience: ReadResultAudience,
+  expectRead: ExpectRead
 ): Promise<void> {
-  test.setTimeout(180_000);
+  test.setTimeout(READ_RECOVERY_TIMEOUT_MS);
   test.skip(testInfo.project.name !== PROJECT, 'The Albanian KS fixture owns this packet');
   expect(routes.getLocale(testInfo)).toBe('sq');
   await withInformationRequestFixture(async ({ claimId }) => {
@@ -229,7 +221,7 @@ async function runScenario(
     const seam = await installInformationRequestReadSeam(page, { audience, claimId, pathname });
     const draftPosts = watchPostBodies(page, DRAFT_PREFIX);
     try {
-      await openFailedDetail(page, testInfo, audience, pathname, seam);
+      await openFailedDetail(page, testInfo, audience, pathname, seam, expectRead);
       const recovery = visible(page, 'information-request-read-recovery');
       const region = visible(page, 'information-request-read-region');
       const parts = {
@@ -291,10 +283,16 @@ async function runScenario(
 }
 
 test.describe('S7 information request read recovery', () => {
-  test('member retries a failed read and keeps drafts', async ({ authenticatedPage }, testInfo) => {
-    await runScenario(authenticatedPage, testInfo, 'member');
+  test('member retries a failed read and keeps drafts', async ({
+    authenticatedPage,
+    expectRead,
+  }, testInfo) => {
+    await runScenario(authenticatedPage, testInfo, 'member', expectRead);
   });
-  test('staff retries a failed read and keeps drafts', async ({ staffPage }, testInfo) => {
-    await runScenario(staffPage, testInfo, 'staff');
+  test('staff retries a failed read and keeps drafts', async ({
+    staffPage,
+    expectRead,
+  }, testInfo) => {
+    await runScenario(staffPage, testInfo, 'staff', expectRead);
   });
 });

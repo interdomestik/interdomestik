@@ -109,7 +109,7 @@ export function verifyEmptyInformationRequestRead(body: string, target: ReadResu
   }
 }
 
-/** Initial-phase guard: EXACTLY ONE target props object with an actual requests list. */
+/** Failure-injection guard: EXACTLY ONE target props object with an actual requests list. */
 export function requireListedInformationRequestRead(body: string, target: ReadResultTarget): void {
   if (!Array.isArray(readInformationRequests(body, target))) {
     throw new ReadSeamError(
