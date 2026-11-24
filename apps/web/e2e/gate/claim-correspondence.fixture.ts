@@ -124,6 +124,39 @@ export async function saveFollowUp(row: Locator, date: string) {
   await expect(row.getByRole('status')).toHaveText(copy.feedback.saved);
 }
 
+/**
+ * Asserts one copy without waiting a duplicate out, and names where each copy sits.
+ * A hidden copy counts: the gate treats any duplicate render as a defect.
+ */
+export async function expectSingle(locator: Locator, label: string) {
+  await expect(locator.first()).toBeAttached();
+  const copies = await locator.evaluateAll(nodes =>
+    nodes.map(node => ({
+      inRoleShell: node.closest('[data-testid="role-shell"]') !== null,
+      visible: node.getClientRects().length > 0,
+      container:
+        node.parentElement?.closest('[data-testid]')?.getAttribute('data-testid') ?? 'document',
+    }))
+  );
+  expect(copies, `${label} must render once; copies: ${JSON.stringify(copies)}`).toHaveLength(1);
+}
+
+export async function expectRegisterSectionsOnce(page: Page) {
+  await expectSingle(page.getByTestId('staff-correspondence-list'), 'Correspondence list');
+  // The heading's own text names it, so a copy with a stale aria-labelledby still counts.
+  const caseFieldsHeading = page.getByRole('heading', {
+    level: 2,
+    name: copy.caseFields.title,
+    exact: true,
+    includeHidden: true,
+  });
+  await expectSingle(caseFieldsHeading, 'Case fields section');
+}
+
+// Counts every queue row carrying the claim's title, with or without its view link.
+export const queueRows = (page: Page, claimId: string) =>
+  page.getByTestId('staff-claims-row').filter({ hasText: claimId });
+
 export async function openQueue(
   page: Page,
   claimId: string,
@@ -135,6 +168,7 @@ export async function openQueue(
     baseURL: origin,
     marker: 'staff-page-ready',
   });
+  await expectSingle(queueRows(page, claimId), `Queue row for ${claimId}`);
   const row = page.getByTestId('staff-claims-row').filter({
     has: page
       .getByTestId('staff-claims-view')
@@ -142,5 +176,5 @@ export async function openQueue(
   });
   const shellRow = page.getByTestId('role-shell').getByTestId('staff-claims-row').and(row);
   await expect(shellRow).toBeVisible();
-  return { row, overdue: shellRow.getByTestId('staff-claim-overdue-follow-up') };
+  return shellRow.getByTestId('staff-claim-overdue-follow-up');
 }
