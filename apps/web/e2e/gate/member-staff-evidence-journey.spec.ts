@@ -14,8 +14,13 @@ import {
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { changeClaimStatus } from '@interdomestik/domain-claims/claims/change-status';
+import { mergeTests } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { CLOSED_SERVICES_PROJECT, expect, test } from '../../e2e-mac/closed-services.fixture';
+import {
+  CLOSED_SERVICES_PROJECT,
+  expect,
+  test as closedServicesTest,
+} from '../../e2e-mac/closed-services.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import { verifyOtherRolesCannotChangeStatus } from './member-staff-evidence-journey-access.fixture';
@@ -27,12 +32,18 @@ import {
   cleanupJourney,
   expectJourneyClean,
 } from './member-staff-evidence-journey-cleanup.fixture';
+import { expectMemberClaimContinuity } from './member-staff-evidence-journey-member-view.fixture';
 import {
   establishDraftTenantContext,
   idaBaseURL,
   openMemberContext,
   submitExactDraft,
 } from './member-staff-evidence-journey.fixture';
+
+import { teardown } from './s5-saved-draft.fixture';
+import { signalTest } from './signal-wait.fixture';
+
+const test = mergeTests(closedServicesTest, signalTest);
 
 test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
   let residue: {
@@ -43,16 +54,25 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
   } | null = null;
 
   test.afterEach(async () => {
-    if (!residue) return;
-    await residue.memberSession?.context.close();
-    await cleanupJourney(residue.claimId, residue);
-    await expectJourneyClean(residue.claimId, residue);
-    residue = null;
+    const run = residue;
+    if (!run) return;
+    const cleanedIds = new Set<string>();
+    const context = run.memberSession?.context;
+    try {
+      await teardown([
+        ...(context ? [() => context.close()] : []),
+        () => cleanupJourney(run.claimId, run, cleanedIds),
+        () => expectJourneyClean(run.claimId, run, cleanedIds),
+      ]);
+    } finally {
+      residue = null;
+    }
   });
 
   test('persists submission, staff verification, and member-safe continuity', async ({
     browser,
     staffPage,
+    waitForSignal,
   }, testInfo) => {
     // Only the serial KS runs may own S3 residue.
     test.skip(
@@ -126,22 +146,28 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       role: E2E_USERS.KS_STAFF.dbRole,
       tenantId: E2E_USERS.KS_STAFF.tenantId,
     });
-    await verifyStatusTransportRecovery(staffPage, submitted.claimId, publicNote, async () => {
-      const assignedClaim = await db.query.claims.findFirst({
-        where: and(
-          eq(claims.id, submitted.claimId),
-          eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-        ),
-        columns: { assignedAt: true, staffId: true, updatedAt: true },
-      });
-      expect(assignedClaim?.staffId).toBe(staffActor.id);
-      expect(assignedClaim?.assignedAt).toBeInstanceOf(Date);
-      expect(assignedClaim?.assignedAt?.toISOString()).toBe(
-        assignedClaim?.updatedAt?.toISOString()
-      );
-      await saveInterveningPublicNote(staffPage, newerNote);
-      return newerNote;
-    });
+    await verifyStatusTransportRecovery(
+      staffPage,
+      submitted.claimId,
+      publicNote,
+      waitForSignal,
+      async () => {
+        const assignedClaim = await db.query.claims.findFirst({
+          where: and(
+            eq(claims.id, submitted.claimId),
+            eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+          ),
+          columns: { assignedAt: true, staffId: true, updatedAt: true },
+        });
+        expect(assignedClaim?.staffId).toBe(staffActor.id);
+        expect(assignedClaim?.assignedAt).toBeInstanceOf(Date);
+        expect(assignedClaim?.assignedAt?.toISOString()).toBe(
+          assignedClaim?.updatedAt?.toISOString()
+        );
+        await saveInterveningPublicNote(staffPage, newerNote);
+        return newerNote;
+      }
+    );
     const staffAuthority = mintTestTenantAuthority(staffActor.tenantId, {
       userId: staffActor.id,
       role: staffActor.role,
@@ -255,19 +281,7 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       baseURL: memberBaseURL,
       marker: 'member-claim-progress-summary',
     });
-    const memberPage = residue.memberSession.page;
-    await expect(memberPage.getByTestId('member-claim-current-state').first()).toHaveText(
-      'Verifikim'
-    );
-    // Member summary reads status-change events; same-status notes only append staff history.
-    await expect(memberPage.getByTestId('member-claim-latest-update-note').first()).toHaveText(
-      publicNote
-    );
-    await expect(
-      memberPage.getByTestId('ops-timeline-item').filter({ hasText: publicNote }).first()
-    ).toBeVisible();
-    await expect(memberPage.locator('body')).not.toContainText(privateNote);
-    await expect(memberPage.getByTestId('member-claim-sla-status-phase').first()).toBeVisible();
+    await expectMemberClaimContinuity(residue.memberSession.page, publicNote, privateNote);
 
     testInfo.annotations.push({
       type: 'isolated-task-db-cleanup',

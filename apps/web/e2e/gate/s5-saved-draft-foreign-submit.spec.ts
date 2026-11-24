@@ -155,14 +155,16 @@ test.describe('S5 saved-draft foreign submission', () => {
     } finally {
       const signedIn = session;
       const opened = page;
+      const targetCleanedIds = new Set<string>();
+      const ownCleanedIds = new Set<string>();
       await teardown(
         [
-          () => cleanupS5(null, target),
-          () => cleanupS5(actorClaimId, own),
+          () => cleanupS5(null, target, targetCleanedIds),
+          () => cleanupS5(actorClaimId, own, ownCleanedIds),
           ...(signedIn ? [() => signOut(signedIn)] : []),
           ...(opened ? [() => opened.context().close()] : []),
-          () => expectJourneyClean(null, target),
-          () => expectJourneyClean(actorClaimId, own),
+          () => expectJourneyClean(null, target, targetCleanedIds),
+          () => expectJourneyClean(actorClaimId, own, ownCleanedIds),
         ],
         failure
       );

@@ -36,6 +36,7 @@ export interface AgentMessageFixture {
   inactiveMemberId: string;
   unassignedMemberId: string;
   claimIds: string[];
+  incomingMessageId: string;
   deniedIds: string[];
   /**
    * Rightful own-member notes in expected read order: pinned internal first, then the newer
@@ -99,6 +100,7 @@ export async function withAgentMessageFixture<T>(
     createdAt: date(index),
     ...overrides,
   });
+  const incomingMessage = message(claimIds[0], 'S1 public incoming', 4);
   const note = (
     index: number,
     memberId: string,
@@ -194,7 +196,7 @@ export async function withAgentMessageFixture<T>(
       .values([
         message(claimIds[0], 'S1 old internal', 1, { isInternal: true }),
         message(claimIds[0], 'S1 public read', 2, { readAt: date(3) }),
-        message(claimIds[0], 'S1 public incoming', 4),
+        incomingMessage,
         message(claimIds[0], 'S1 public agent reply', 5, { senderId: agent.id }),
         message(claimIds[0], 'S1 newest internal secret', 6, { isInternal: true }),
         message(claimIds[1], 'S1 internal only secret', 7, { isInternal: true }),
@@ -248,6 +250,7 @@ export async function withAgentMessageFixture<T>(
       inactiveMemberId: memberIds[1],
       unassignedMemberId: memberIds[2],
       claimIds,
+      incomingMessageId: incomingMessage.id,
       deniedIds,
       rightfulNoteIds: [noteIds[0], children.staffNoteId, noteIds[1]],
       foreignNoteId: noteIds[4],
