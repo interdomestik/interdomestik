@@ -11,6 +11,7 @@ import claims from '@/messages/en/claims.json';
 import common from '@/messages/en/common.json';
 import claimsSq from '@/messages/sq/claims.json';
 import commonSq from '@/messages/sq/common.json';
+import { PENDING_FEEDBACK_TIMEOUT_MS, SEARCH_COMMIT_DELAY_MS } from '@/hooks/use-responsive-search';
 
 const catalogues = {
   en: { ...claims, ...common },
@@ -281,6 +282,46 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     expect(draft).toHaveFocus();
   });
 
+  it('retains the first successful rows when an already-pending search commits', async () => {
+    const firstPage = wireResponse([wireRow()]);
+    mockFetch(firstPage);
+    const finishFirstPage = deferFetch();
+    const { commit } = renderTable('en', true);
+    const region = screen.getByRole('region', { name: claims.claims.title });
+    expect(within(region).getByText(common.common.loading)).toBeVisible();
+    const finishSearch = deferFetch();
+
+    vi.useFakeTimers();
+    try {
+      fireEvent.change(screen.getByRole('textbox', { name: common.common.search }), {
+        target: { value: 'flight' },
+      });
+      act(() => vi.advanceTimersByTime(SEARCH_COMMIT_DELAY_MS));
+      expect(navigation.push).toHaveBeenCalledWith('/member/claims?search=flight', {
+        scroll: false,
+      });
+      expect(screen.getByTestId('member-claims-pending')).toBeVisible();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    finishFirstPage(new Response(JSON.stringify(firstPage)));
+    const firstRow = await screen.findByRole('link', { name: 'Flight Delay' });
+    const live = region.parentElement?.querySelector('[aria-live="polite"]');
+    expect(live).toBeEmptyDOMElement();
+
+    commit('search=flight');
+    expect(firstRow).toBeVisible();
+    expect(within(region).getByText(claims.claims.memberList.updating)).toBeVisible();
+    expect(within(region).queryByText(common.common.loading)).not.toBeInTheDocument();
+    expect(region.querySelector('.motion-safe\\:animate-pulse')).not.toBeInTheDocument();
+    expect(live).toBeEmptyDOMElement();
+
+    finishSearch(new Response(JSON.stringify(wireResponse([wireRow({ title: 'Search result' })]))));
+    expect(await screen.findByRole('link', { name: 'Search result' })).toBeVisible();
+    expect(live).toHaveTextContent('Page 1 of 1: 1 case');
+  });
+
   it('releases pagination immediately on Back after a page commits with placeholder rows', async () => {
     const firstPage = { ...wireResponse([wireRow()]), totalPages: 2 };
     mockFetch(firstPage);
@@ -373,6 +414,9 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     const { commit } = renderTable();
     const previous = await screen.findByRole('link', { name: common.common.previous });
     const region = screen.getByRole('region', { name: claims.claims.title });
+    const live = screen.getByText(claims.claims.memberList.pageEmpty, {
+      selector: '[aria-live="polite"]',
+    });
     const finish = deferFetch();
     previous.focus();
     fireEvent.click(previous);
@@ -384,6 +428,10 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     expect(previous).toHaveAttribute('aria-disabled', 'true');
     expect(region).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByTestId('member-claims-empty')).not.toBeInTheDocument();
+    expect(within(region).queryByText(claims.claims.memberList.pageEmpty)).not.toBeInTheDocument();
+    expect(within(region).getByText(claims.claims.memberList.updating)).toBeVisible();
+    expect(live).toHaveTextContent(claims.claims.memberList.pageEmpty);
+    expect(live).toHaveClass('sr-only');
     expect(fireEvent.click(previous, { ctrlKey: true })).toBe(false);
     const middleClick = new MouseEvent('auxclick', { button: 1, bubbles: true, cancelable: true });
     expect(fireEvent(previous, middleClick)).toBe(false);
@@ -393,6 +441,34 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     expect(await screen.findByRole('link', { name: 'Flight Delay' })).toBeVisible();
     expect(region).toHaveFocus();
     expect(previous).not.toBeInTheDocument();
+  });
+
+  it('keeps focus on a control or the labelled region when an empty-page return commits late', async () => {
+    navigation.query = 'page=3';
+    mockFetch({ ...wireResponse([]), page: 3, totalPages: 1 });
+    const { commit } = renderTable();
+    const previous = await screen.findByRole('link', { name: common.common.previous });
+    const region = screen.getByRole('region', { name: claims.claims.title });
+    const finish = deferFetch();
+
+    vi.useFakeTimers();
+    try {
+      previous.focus();
+      fireEvent.click(previous);
+      expect(navigation.push).toHaveBeenCalledWith('/member/claims', { scroll: false });
+      act(() => vi.advanceTimersByTime(PENDING_FEEDBACK_TIMEOUT_MS + 1));
+      expect(previous).not.toHaveAttribute('aria-disabled', 'true');
+      expect(previous).toHaveFocus();
+      commit('');
+      expect(region).toHaveAttribute('aria-busy', 'true');
+      expect(document.activeElement).not.toBe(document.body);
+      expect([previous, region]).toContain(document.activeElement);
+    } finally {
+      vi.useRealTimers();
+    }
+
+    finish(new Response(JSON.stringify(wireResponse([wireRow()]))));
+    expect(await screen.findByRole('link', { name: 'Flight Delay' })).toBeVisible();
   });
 
   it('uses the page returned by the server for both page labels', async () => {

@@ -47,7 +47,8 @@ describe('member claim cards', () => {
     const link = screen.getByRole('link');
     expect(link).toHaveAttribute('href', '/member/claims/claim-1');
     expect(link).toHaveClass('font-semibold', 'min-h-11', '[overflow-wrap:anywhere]');
-    expect(link).not.toHaveClass('md:truncate', 'bg-[hsl(var(--primary))]');
+    expect(link).not.toHaveClass('md:truncate');
+    expect(link).not.toHaveClass('bg-[hsl(var(--primary))]');
     const cells = screen.getAllByRole('cell');
     expect(cells).toHaveLength(6);
     for (const [i, label] of (

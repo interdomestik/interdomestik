@@ -2,7 +2,7 @@
 
 import { PENDING_FEEDBACK_TIMEOUT_MS } from '@/hooks/use-responsive-search';
 import { Link, usePathname, useRouter } from '@/i18n/routing';
-import { fetchClaims } from '@/lib/api/claims';
+import { fetchClaims, type ClaimsListResponse } from '@/lib/api/claims';
 import { formatNumber } from '@/lib/utils/number';
 import { TableBody, TableHead, TableHeader, TableRow } from '@interdomestik/ui';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
@@ -147,6 +147,37 @@ function useMemberClaimsRetry(requestKey: string, refetch: () => Promise<unknown
   return { isRetrying, retry };
 }
 
+function useMemberClaimsRetainedResult(
+  requestKey: string,
+  data: ClaimsListResponse | undefined,
+  isPlaceholderData: boolean,
+  isError: boolean
+) {
+  const [lastSuccess, setLastSuccess] = useState<{ key: string; data: ClaimsListResponse } | null>(
+    null
+  );
+
+  // The query observer can still offer old placeholder data after a failed key.
+  if (isError) {
+    if (lastSuccess) {
+      setLastSuccess(null);
+    }
+    return null;
+  }
+  if (
+    !isPlaceholderData &&
+    data &&
+    (lastSuccess?.key !== requestKey || lastSuccess.data !== data)
+  ) {
+    setLastSuccess({ key: requestKey, data });
+  }
+
+  if (isPlaceholderData && lastSuccess?.data === data) {
+    return lastSuccess;
+  }
+  return null;
+}
+
 function useMemberClaimsListState(locale: string, t: ReturnType<typeof useTranslations<'claims'>>) {
   const searchParams = useSearchParams();
   const statusFilter = searchParams.get('status') || undefined;
@@ -155,6 +186,7 @@ function useMemberClaimsListState(locale: string, t: ReturnType<typeof useTransl
   const page = Number.isSafeInteger(requestedPage) && requestedPage > 0 ? requestedPage : 1;
   const currentParams = searchParams.toString();
   const request = { statusFilter, searchQuery, page };
+  const requestKey = JSON.stringify(request);
 
   const { data, isError, isPlaceholderData, refetch } = useQuery({
     queryKey: ['claims', 'member', request],
@@ -179,14 +211,22 @@ function useMemberClaimsListState(locale: string, t: ReturnType<typeof useTransl
     isPlaceholderData,
     isEmptyLaterPage
   );
-  const { isRetrying, retry } = useMemberClaimsRetry(JSON.stringify(request), refetch);
+  const { isRetrying, retry } = useMemberClaimsRetry(requestKey, refetch);
+  const retainedResult = useMemberClaimsRetainedResult(
+    requestKey,
+    data,
+    isPlaceholderData,
+    isError
+  );
 
   const [resultStatus, setResultStatus] = useState('');
   const totalPages = Math.max(1, data?.totalPages ?? 1);
   const pageLabel = formatNumber(effectivePage, locale) ?? '';
   const totalPagesLabel = formatNumber(totalPages, locale) ?? '';
   let pageEmptyMessage: string | undefined;
-  if (isEmptyLaterPage || navigation.keepsEmptyPage) {
+  if (navigation.keepsEmptyPage) {
+    pageEmptyMessage = t('memberList.updating');
+  } else if (isEmptyLaterPage) {
     pageEmptyMessage = t('memberList.pageEmpty');
   }
 
@@ -213,6 +253,7 @@ function useMemberClaimsListState(locale: string, t: ReturnType<typeof useTransl
     isRetrying,
     pageEmptyMessage,
     pageLabel,
+    retainedResult,
     resultStatus,
     retry,
     showsError: isError || isRetrying,
@@ -242,6 +283,7 @@ export function MemberClaimsTable({
     keepsEmptyPage,
     pageEmptyMessage,
     pageLabel,
+    retainedResult,
     resultStatus,
     retry,
     showsError,
@@ -258,16 +300,16 @@ export function MemberClaimsTable({
     };
   }, []);
   useLayoutEffect(() => {
-    if (isPending || isRetrying || !removedFocusedControl.current) return;
+    if (!removedFocusedControl.current) {
+      return;
+    }
     if (!removedFocusedControl.current.isConnected && document.activeElement === document.body) {
       regionRef.current?.focus();
     }
     removedFocusedControl.current = null;
   });
 
-  // A placeholder can outlive a failed key in the query observer. Only a
-  // successful last completion can supply rows for the next request.
-  const showsUpdating = isPlaceholderData && resultStatus !== '' && Boolean(data?.claims.length);
+  const showsUpdating = Boolean(retainedResult?.data.claims.length);
   const showsLoading =
     !showsError && !keepsEmptyPage && (!data || (isPlaceholderData && !showsUpdating));
   const showsSettledEmpty = !showsError && !isPlaceholderData && data?.claims.length === 0;
@@ -281,6 +323,11 @@ export function MemberClaimsTable({
   let emptyTestId: string | undefined;
   if (showsSettledEmpty) {
     emptyTestId = 'member-claims-empty';
+  }
+  let announcementClassName = 'text-sm text-foreground/70';
+  if (keepsEmptyPage) {
+    // Keep the completion announcement mounted without showing the old empty-page copy.
+    announcementClassName = 'sr-only';
   }
 
   function pageControl(direction: 'previous' | 'next', target: number, isEnd: boolean) {
@@ -437,7 +484,7 @@ export function MemberClaimsTable({
           </output>
         )}
       </section>
-      <p aria-live="polite" className="text-sm text-foreground/70">
+      <p aria-live="polite" className={announcementClassName}>
         {resultStatus}
       </p>
     </div>
