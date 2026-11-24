@@ -237,13 +237,18 @@ test('a selected parallel run starts only shards with selected files', async t =
   assert.doesNotMatch(output.join(''), /contract shard core/u);
 });
 
-test('required audit context runs every contract shard inside Run Audits', () => {
+test('required audit context invokes the contract suite runner exactly once', () => {
   const workflow = yaml.load(fs.readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8'));
-  const step = workflow.jobs.audit.steps.find(item => item?.name === 'Run Audits');
-  assert.equal(step.if, "needs.validation-surface.outputs.run_broad == 'true'");
-  const commands = step.run.split('\n').map(line => line.trim());
-  assert.equal(commands.filter(line => line === 'pnpm test:ci:contracts:parallel').length, 1);
-  assert.equal(commands.filter(line => /^pnpm test:ci:contracts\b/u.test(line)).length, 1);
+  const { audit } = workflow.jobs;
+  const step = audit.steps.find(item => item?.name === 'Run Audits');
+  assert.equal(step.run.split('\n')[0], 'node scripts/ci/contract-suite-run.mjs');
+  const suiteCommands = audit.steps.flatMap(
+    item =>
+      item.run?.match(
+        /\b(?:test:ci:contracts[\w:-]*|contract-suite-run\.mjs|contract-test-shards\.mjs)\b/gu
+      ) ?? []
+  );
+  assert.deepEqual(suiteCommands, ['contract-suite-run.mjs']);
   assert.ok(!('continue-on-error' in step));
-  assert.equal(workflow.jobs.audit.if, undefined, 'audit must never be skipped by a shard');
+  assert.equal(audit.if, undefined, 'audit must never be skipped by a shard');
 });
