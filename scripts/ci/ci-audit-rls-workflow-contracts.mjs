@@ -11,9 +11,67 @@ const releaseCandidate = yaml.load(
   fs.readFileSync(path.join(root, '.github/workflows/release-candidate.yml'), 'utf8')
 );
 const findStep = (steps, name) => steps.find(step => step?.name === name);
+const releaseHostVerifier = {
+  name: 'RC check - pr:verify:hosts',
+  command: 'pr:verify:hosts',
+  receipt: 'pr_verify_hosts',
+};
+const releaseUpgrade = {
+  name: 'RC check - WP-07 legacy upgrade',
+  command: 'db:wp07:legacy-upgrade',
+  receipt: 'wp07_legacy_upgrade',
+  env: { DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' },
+};
+const legacyLockfileBlob = '30c68285cd04754daed56c49bc8fad334dee72b9';
 
 function assertRlsRun(command) {
   assert.equal(command, 'pnpm db:rls:test');
+}
+
+function assertRequiredRcStep(step, { name, command, receipt, env }) {
+  const logDir = '${RC_LOGS_DIR}';
+  const run = [
+    'set -euo pipefail',
+    `log_file="${logDir}/${receipt}.log"`,
+    'set +e',
+    `pnpm ${command} 2>&1 | tee "\${log_file}"`,
+    'exit_code=${PIPESTATUS[0]}',
+    'set -e',
+    `printf '%s\\n' "\${exit_code}" > "${logDir}/${receipt}.exit"`,
+    'exit "${exit_code}"',
+    '',
+  ].join('\n');
+  assert.deepEqual(step, { name, shell: 'bash', ...(env && { env }), run });
+}
+
+for (const contract of [releaseHostVerifier, releaseUpgrade]) {
+  test(`${contract.name} rejects skipped, malformed, and fail-open steps`, () => {
+    const step = findStep(releaseCandidate.jobs['rc-gate'].steps, contract.name);
+    const invalid = [
+      ['missing step', undefined],
+      ['empty command', { ...step, run: '' }],
+      ['unparseable command', { ...step, run: 'if' }],
+      ['valid but empty step', {}],
+      ['successful exit before the command', { ...step, run: `exit 0\n${step.run}` }],
+      [
+        'exit status from tee',
+        { ...step, run: step.run.replace('PIPESTATUS[0]', 'PIPESTATUS[1]') },
+      ],
+      [
+        'hardcoded successful exit',
+        { ...step, run: step.run.replace('exit "${exit_code}"', 'exit 0') },
+      ],
+      ['skipped by workflow condition', { ...step, if: 'false' }],
+      ['ignored failure', { ...step, 'continue-on-error': true }],
+    ];
+    for (const [reason, candidate] of invalid) {
+      assert.throws(
+        () => assertRequiredRcStep(candidate, contract),
+        { code: 'ERR_ASSERTION' },
+        reason
+      );
+    }
+  });
 }
 
 test('CI RLS contract rejects an early successful exit', () => {
@@ -62,27 +120,43 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   );
   assert.equal(
     billingScripts['test:rls'],
-    'BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts src/port/individual-sale-age-boundary.rls.test.ts src/port/individual-sale-weekly-rate.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test --test-concurrency=1 test/exchange-rates-port.test.ts && pnpm test:rls:upgrade'
+    'BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts src/port/individual-sale-age-boundary.rls.test.ts src/port/individual-sale-weekly-rate.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test --test-concurrency=1 test/exchange-rates-port.test.ts'
   );
-  assert.equal(
-    billingScripts['test:rls:upgrade'],
-    'node ../../scripts/ci/run-wp07-legacy-upgrade.mjs'
+  assert.equal(billingScripts['test:rls:upgrade'], undefined);
+});
+
+test('release candidate requires the host verifier and a separate PG16 legacy upgrade', () => {
+  const rc = releaseCandidate.jobs['rc-gate'];
+  assert.equal(rc.if, undefined);
+  assert.equal(rc['continue-on-error'], undefined);
+  assert.equal(rc.services.postgres.image, 'postgres:16');
+  const checkout = rc.steps.find(step => step.uses === 'actions/checkout@v5');
+  assert.equal(checkout?.with?.['fetch-depth'], 0);
+  assertRequiredRcStep(findStep(rc.steps, releaseHostVerifier.name), releaseHostVerifier);
+  assertRequiredRcStep(findStep(rc.steps, releaseUpgrade.name), releaseUpgrade);
+  assert.deepEqual(releaseCandidate.on, {
+    push: { branches: ['rc/*'] },
+    workflow_dispatch: null,
+  });
+  assert.doesNotMatch(
+    JSON.stringify(workflow.jobs),
+    /db:wp07:legacy-upgrade|run-wp07-legacy-upgrade/u
   );
 });
 
-test('release candidate and Mac verification both reach the required legacy upgrade lane', () => {
-  const rc = Object.values(releaseCandidate.jobs).find(job =>
-    findStep(job.steps ?? [], 'RC check - pr:verify:hosts')
-  );
-  assert.ok(rc);
-  const checkout = rc.steps.find(step => step.uses === 'actions/checkout@v5');
-  assert.equal(checkout?.with?.['fetch-depth'], 0);
-  assert.match(findStep(rc.steps, 'RC check - pr:verify:hosts').run, /^pnpm pr:verify:hosts\b/mu);
-
+test('Mac verification runs shared RLS coverage independently of the legacy install', () => {
   const rootScripts = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8')).scripts;
   const hosts = fs.readFileSync(path.join(root, 'scripts/pr-verify-hosts.sh'), 'utf8');
   assert.equal(rootScripts['pr:verify:hosts'], 'bash scripts/pr-verify-hosts.sh');
+  assert.equal(
+    rootScripts['db:wp07:legacy-upgrade'],
+    'node scripts/ci/run-wp07-legacy-upgrade.mjs'
+  );
   assert.match(hosts, /^pnpm pr:verify$/mu);
+  assert.doesNotMatch(
+    [hosts, rootScripts['pr:verify'], rootScripts['db:rls:test:required']].join('\n'),
+    /db:wp07:legacy-upgrade|test:rls:upgrade|run-wp07-legacy-upgrade/u
+  );
   assert.ok(rootScripts['pr:verify'].split(' && ').includes('pnpm db:rls:test:required'));
   assert.equal(
     rootScripts['db:rls:test:required'],
@@ -94,13 +168,16 @@ test('legacy upgrade lane provisions the pinned source and passes it only to the
   const { runLegacyUpgrade } = await import('./run-wp07-legacy-upgrade.mjs');
   const originalSource = process.env.WP07_LEGACY_SOURCE;
   const calls = [];
-  runLegacyUpgrade((command, args, options) => calls.push({ command, args, options }));
+  runLegacyUpgrade((command, args, options) => {
+    calls.push({ command, args, options });
+    return `${legacyLockfileBlob}\n`;
+  });
 
-  const [clone, checkout, install, proof] = calls;
+  const [clone, checkout, lockfile, install, proof] = calls;
   const source = clone.args.at(-1);
   assert.deepEqual(
     calls.map(call => call.command),
-    ['git', 'git', 'pnpm', 'tsx']
+    ['git', 'git', 'git', 'pnpm', 'tsx']
   );
   assert.deepEqual(clone.args, ['clone', '--quiet', '--shared', '--no-checkout', root, source]);
   assert.deepEqual(checkout.args, [
@@ -111,6 +188,8 @@ test('legacy upgrade lane provisions the pinned source and passes it only to the
     '--detach',
     'bc19469b5479f47b63eab258249984a974d26199',
   ]);
+  assert.deepEqual(lockfile.args, ['hash-object', '--no-filters', 'pnpm-lock.yaml']);
+  assert.equal(lockfile.options.cwd, source);
   assert.deepEqual(install.args, [
     '--dir',
     source,
@@ -135,8 +214,9 @@ test('legacy upgrade lane fails closed on missing source, dependencies or a fail
   const { runLegacyUpgrade } = await import('./run-wp07-legacy-upgrade.mjs');
   for (const [failedCall, phase] of [
     [2, /checking out the pinned revision/u],
-    [3, /installing the legacy dependencies/u],
-    [4, /running the PostgreSQL 16 upgrade proof/u],
+    [3, /verifying the pinned lockfile/u],
+    [4, /installing the legacy dependencies/u],
+    [5, /running the PostgreSQL 16 upgrade proof/u],
   ]) {
     let calls = 0;
     let source;
@@ -146,12 +226,27 @@ test('legacy upgrade lane fails closed on missing source, dependencies or a fail
           calls++;
           if (calls === 1) source = args.at(-1);
           if (calls === failedCall) throw new Error('simulated failure');
+          return legacyLockfileBlob;
         }),
       phase
     );
     assert.equal(calls, failedCall);
     assert.equal(fs.existsSync(source), false);
   }
+});
+
+test('legacy upgrade rejects the wrong lockfile before installing dependencies', async () => {
+  const { runLegacyUpgrade } = await import('./run-wp07-legacy-upgrade.mjs');
+  const calls = [];
+  assert.throws(
+    () =>
+      runLegacyUpgrade(command => {
+        calls.push(command);
+        return '0000000000000000000000000000000000000000\n';
+      }),
+    /verifying the pinned lockfile/u
+  );
+  assert.deepEqual(calls, ['git', 'git', 'git']);
 });
 
 test('legacy upgrade command exits nonzero when it cannot provision source', () => {

@@ -98,6 +98,23 @@ jobs:
           pnpm seed:e2e
           pnpm seed:assert-e2e
 
+      # Require and retain this proof before contract. Retire it after the
+      # expand/contract migration's contract step, once old writers are drained
+      # and post-contract validation passes.
+      - name: RC check - WP-07 legacy upgrade
+        shell: bash
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+        run: |
+          set -euo pipefail
+          log_file="${RC_LOGS_DIR}/wp07_legacy_upgrade.log"
+          set +e
+          pnpm db:wp07:legacy-upgrade 2>&1 | tee "${log_file}"
+          exit_code=${PIPESTATUS[0]}
+          set -e
+          printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/wp07_legacy_upgrade.exit"
+          exit "${exit_code}"
+
       - name: Build web standalone artifact
         run: pnpm --filter @interdomestik/web run build:ci
 
