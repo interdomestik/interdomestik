@@ -124,10 +124,16 @@ export async function saveFollowUp(row: Locator, date: string) {
   await expect(row.getByRole('status')).toHaveText(copy.feedback.saved);
 }
 
-type CopyQuery = { kind: 'list' | 'caseFields' | 'queueRow'; text: string };
+type CopyQuery = {
+  kind: 'list' | 'caseFields' | 'queueRow';
+  text: string;
+  // A copy is the settled render only when visible inside this test id, with this text.
+  anchor: string;
+  contains: string;
+};
 
 // Runs in the browser: finds and describes every copy in one synchronous DOM pass.
-function describeCopies({ kind, text }: CopyQuery) {
+function describeCopies({ kind, text, anchor, contains }: CopyQuery) {
   const exact = (element: Element | null) => element?.textContent?.trim() === text;
   const selector = {
     list: '[data-testid="staff-correspondence-list"]',
@@ -150,10 +156,12 @@ function describeCopies({ kind, text }: CopyQuery) {
       const testId = at.getAttribute('data-testid');
       if (testId) ancestors.push(testId);
     }
+    const visible = node.checkVisibility({ visibilityProperty: true, opacityProperty: true });
     return {
       index,
+      settled: visible && ancestors.includes(anchor) && !!node.textContent?.includes(contains),
       inRoleShell: node.closest('[data-testid="role-shell"]') !== null,
-      visible: node.checkVisibility({ visibilityProperty: true, opacityProperty: true }),
+      visible,
       id: node.id || null,
       labelledBy: node.getAttribute('aria-labelledby'),
       ancestors,
@@ -162,8 +170,9 @@ function describeCopies({ kind, text }: CopyQuery) {
 }
 
 /**
- * Waits for the first copy, then judges that same DOM sample: a duplicate cannot be
- * waited out, and the message names where each copy sits, hidden copies included.
+ * Waits until one DOM sample holds the settled copy (visible, in place, with the expected
+ * text), then judges that same sample: React's hidden streaming copy cannot stand in for
+ * it, a duplicate cannot be waited out, and the message names where each copy sits.
  */
 export async function expectSingle(page: Page, query: CopyQuery, label: string) {
   let copies: ReturnType<typeof describeCopies> = [];
@@ -171,24 +180,32 @@ export async function expectSingle(page: Page, query: CopyQuery, label: string) 
     .poll(
       async () => {
         copies = await page.evaluate(describeCopies, query);
-        return copies.length;
+        return copies.some(entry => entry.settled);
       },
-      { message: `${label} never rendered` }
+      { message: `${label} never rendered visibly in ${query.anchor}` }
     )
-    .toBeGreaterThan(0);
+    .toBe(true);
   expect(copies, `${label} must render once; copies: ${JSON.stringify(copies)}`).toHaveLength(1);
 }
 
-export async function expectRegisterSectionsOnce(page: Page) {
-  await expectSingle(page, { kind: 'list', text: '' }, 'Correspondence list');
-  await expectSingle(page, { kind: 'caseFields', text: copy.caseFields.title }, 'Case fields');
+export async function expectRegisterSectionsOnce(page: Page, listText: string) {
+  const anchor = 'staff-case-register';
+  await expectSingle(
+    page,
+    { kind: 'list', text: '', anchor, contains: listText },
+    'Correspondence list'
+  );
+  await expectSingle(
+    page,
+    { kind: 'caseFields', text: copy.caseFields.title, anchor, contains: '' },
+    'Case fields'
+  );
 }
 
-// Waits, duplicate-tolerant, for the claim's row in the shell, then counts copies page-wide.
+// Waits for the claim's visible row in the shell, then counts its copies page-wide.
 export async function expectQueueRowOnce(page: Page, claimId: string, when: string) {
-  const title = page.getByTestId('role-shell').getByTestId('staff-claim-title');
-  await expect(title.filter({ hasText: claimId }).first()).toBeVisible();
-  await expectSingle(page, { kind: 'queueRow', text: claimId }, `Queue row ${when}`);
+  const query = { kind: 'queueRow', text: claimId, anchor: 'role-shell', contains: '' } as const;
+  await expectSingle(page, query, `Queue row ${when}`);
 }
 
 export async function openQueue(
