@@ -141,7 +141,11 @@ test.describe('premium Free Start result', () => {
       await neutral.close();
     }
 
-    const noJs = await browser.newContext({ javaScriptEnabled: false, storageState: undefined });
+    const noJs = await browser.newContext({
+      javaScriptEnabled: false,
+      storageState: undefined,
+      extraHTTPHeaders: {},
+    });
     try {
       const page = await noJs.newPage();
       await gotoOrigin(page, neutralUrl, info, 'free-start-trust-boundary');
