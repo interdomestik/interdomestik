@@ -33,7 +33,13 @@ async function runAdvisoryTooling() {
   const contracts = new Set(filesIn('advisory/contracts'));
   if (contracts.size) {
     const select = files => files.filter(file => contracts.has(file));
-    if ((await runParallel({ root: repoRoot, select })) !== 0) process.exitCode = 1;
+    const testArgs = [
+      '--test-reporter=spec',
+      '--test-reporter-destination=stdout',
+      `--test-reporter=${join(import.meta.dirname, 'contract-reporter.mjs')}`,
+      '--test-reporter-destination=stderr',
+    ];
+    if ((await runParallel({ root: repoRoot, select, testArgs })) !== 0) process.exitCode = 1;
   }
   if (filesIn('advisory/release-gate').length) {
     await runNode('advisory/release-gate', repoRoot);

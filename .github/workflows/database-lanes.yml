@@ -26,7 +26,7 @@ jobs:
     needs: [advisory-validation-surface]
     if: needs.advisory-validation-surface.outputs.run_broad == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 40 # Includes long-running contracts and serial PG16 suites.
     continue-on-error: true
     services:
       postgres:
@@ -53,6 +53,8 @@ jobs:
     steps:
       - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
         with:
+          # Contract fixtures need the historical adoption commit and the source on its own branch.
+          fetch-depth: 0
           persist-credentials: false
       - uses: ./.github/actions/setup
       - name: Check database inventory contract

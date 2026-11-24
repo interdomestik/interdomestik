@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -71,6 +71,11 @@ test('PG16 refuses to run without a successful journal build', () => {
   }
 });
 
+test('the advisory execution job checks out the history required by the contract fixtures', () => {
+  const checkout = job.steps.find(step => step.uses?.startsWith('actions/checkout@'));
+  assert.equal(checkout.with['fetch-depth'], 0);
+});
+
 test('the advisory summary reports each execution and fails on failed or missing lanes', t => {
   const scratch = mkdtempSync(join(tmpdir(), 'db-lane-summary-'));
   t.after(() => rmSync(scratch, { recursive: true, force: true }));
@@ -101,7 +106,7 @@ const toolingOnly = 'scripts/ci/db-access-closed-data-source.test.mjs';
 const everyMode = 'scripts/ci/contract-always.test.mjs';
 const release = 'scripts/release-gate/env-log-redaction.test.ts';
 
-function contractFixture(t) {
+function contractFixture(t, extra = []) {
   const planFiles = [...Object.values(GUARD_TRUST_SHARDS).flat(), ...RETIRED_LEGACY_FILES];
   return inventoryFixture(t, [
     ...planFiles.map(file => [
@@ -115,8 +120,64 @@ function contractFixture(t) {
     [release, 'void process.env;'],
     ['scripts/ci/contract-tooling-only.json', JSON.stringify({ files: [toolingOnly] })],
     ['scripts/check-modularity-guard.test.mjs', ''],
+    ...extra,
   ]);
 }
+
+test('advisory unit fails for each selected contract with zero executed cases', t => {
+  const legacy = 'scripts/ci/db-access-guard.test.mjs';
+  const sibling = 'scripts/ci/contract-sibling.test.mjs';
+  const imports = "import test from 'node:test'; void process.env.DATABASE_URL;\n";
+  const passing = `${imports}test('active proof', () => {});`;
+  const root = contractFixture(t, [
+    [everyMode, `${imports}test('database proof', { skip: !process.env.DATABASE_URL }, () => {});`],
+    [toolingOnly, 'void process.env.DATABASE_URL;'],
+    [sibling, passing],
+    [release, passing],
+    ['packages/database/test/fixture.test.ts', passing],
+    [
+      legacy,
+      `${passing}\n${RETIRED_LEGACY_TESTS[legacy]
+        .map(
+          name => `test(${JSON.stringify(name)}, () => { throw new Error('retired test ran'); });`
+        )
+        .join('\n')}`,
+    ],
+  ]);
+  for (const name of ['suite-run', 'suite-surface', 'test-shards', 'test-scratch']) {
+    const file = `scripts/ci/contract-${name}.mjs`;
+    cpSync(join(repoRoot, file), join(root, file));
+  }
+  const directory = 'scripts/ci/db-lanes';
+  cpSync(join(repoRoot, directory), join(root, directory), {
+    recursive: true,
+    filter: file => !file.endsWith('.json'),
+  });
+  symlinkSync(
+    join(repoRoot, 'packages/database/node_modules'),
+    join(root, 'packages/database/node_modules')
+  );
+  const env = { ...process.env };
+  delete env.NODE_TEST_CONTEXT;
+  const run = () =>
+    spawnSync(process.execPath, [`${directory}/run.mjs`, 'unit'], {
+      cwd: root,
+      env,
+      encoding: 'utf8',
+    });
+
+  const zero = run();
+  const output = zero.stdout + zero.stderr;
+  assert.equal(zero.status, 1, output);
+  assert.ok(output.includes(`no executed cases: ${everyMode}`), output);
+  assert.ok(output.includes(`no executed cases: ${toolingOnly}`), output);
+  assert.ok(!output.includes(`no executed cases: ${sibling}`), output);
+  assert.ok(!output.includes(`no executed cases: ${legacy}`), output);
+
+  for (const file of [everyMode, toolingOnly]) writeFileSync(join(root, file), passing);
+  const active = run();
+  assert.equal(active.status, 0, active.stdout + active.stderr);
+});
 
 const lanesFor = (root, file) => repositoryInventory(root).find(row => row.file === file)?.lanes;
 
