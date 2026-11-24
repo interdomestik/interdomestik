@@ -19,7 +19,6 @@ import {
   sql,
   type TenantTransaction,
 } from '@interdomestik/database';
-import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import de from '../../src/messages/de/freeStart.json';
 import en from '../../src/messages/en/freeStart.json';
 import mk from '../../src/messages/mk/freeStart.json';
@@ -27,6 +26,7 @@ import sq from '../../src/messages/sq/freeStart.json';
 import sr from '../../src/messages/sr/freeStart.json';
 import { expect } from '../fixtures/auth.fixture';
 import { inSequence } from './in-sequence';
+import { drainJourneyNotifications } from './member-staff-evidence-journey-notifications.fixture';
 
 export type S3JourneyIdentity = { counterparty: string; summary: string };
 export const S3_JOURNEY_INCIDENT_DATE = '2026-09-16';
@@ -209,47 +209,6 @@ async function tryCleanupJourney(
   });
   if (drainFailures.length) throw drainFailures[0];
   return cleaned;
-}
-
-async function drainJourneyNotifications(
-  tx: TenantTransaction,
-  lockedClaims: Pick<
-    typeof claims.$inferSelect,
-    'id' | 'caseLifecycleState' | 'recoveryLifecycleState'
-  >[]
-): Promise<void> {
-  if (lockedClaims.length === 0) return;
-
-  const expected = lockedClaims.map(claim => ({
-    url: `/member/claims/${claim.id}`,
-    types:
-      claimStatusFromLifecycleFields(claim) === 'submitted'
-        ? ['claim_submitted']
-        : ['claim_status_changed', 'claim_submitted'],
-  }));
-  await expect
-    .poll(
-      async () => {
-        const rows = await tx.query.notifications.findMany({
-          where: and(
-            eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-            inArray(
-              notifications.actionUrl,
-              expected.map(({ url }) => url)
-            ),
-            inArray(notifications.type, ['claim_status_changed', 'claim_submitted'])
-          ),
-          columns: { actionUrl: true, type: true },
-          orderBy: notifications.type,
-        });
-        return expected.map(({ url }) => ({
-          url,
-          types: rows.filter(row => row.actionUrl === url).map(row => row.type),
-        }));
-      },
-      { message: 'Drain committed journey notifications before deleting residue', timeout: 15_000 }
-    )
-    .toEqual(expected);
 }
 
 export async function expectJourneyClean(
