@@ -82,6 +82,11 @@
       "migration": "0101_wp07_exchange_rates"
     },
     {
+      "key": "function [\"public\",\"exchange_rate_verifications_insert_guard_fn()\"]",
+      "value": "9095311059a73978ebb7a44278f9c9b0",
+      "migration": "0104_wp07_rate_verification_age"
+    },
+    {
       "key": "function [\"public\",\"legal_acceptance_reject_mutation()\"]",
       "value": "ecadb9e8955a6e25d5846927b2f212c0",
       "migration": "0105_wp13a_legal_acceptance"
@@ -95,11 +100,6 @@
       "key": "function [\"public\",\"legal_document_version_insert_guard()\"]",
       "value": "1e304e7b51270c706e32c845cdf59f5c",
       "migration": "0105_wp13a_legal_acceptance"
-    },
-    {
-      "key": "function [\"public\",\"exchange_rate_verifications_insert_guard_fn()\"]",
-      "value": "9095311059a73978ebb7a44278f9c9b0",
-      "migration": "0104_wp07_rate_verification_age"
     },
     {
       "key": "function [\"public\",\"member_leads_legacy_consent_guard_fn()\"]",
