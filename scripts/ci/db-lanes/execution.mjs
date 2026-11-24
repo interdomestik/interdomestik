@@ -1,15 +1,6 @@
-import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { join, relative, resolve } from 'node:path';
+import { join, relative } from 'node:path';
 import { run } from 'node:test';
-
-export function spawnPnpm(args, options) {
-  const { cwd, env } = options;
-  // Resolve the installation selected by the caller, including the CI setup action's pnpm.
-  const found = spawnSync('/bin/sh', ['-c', 'command -v pnpm'], { cwd, env, encoding: 'utf8' });
-  if (found.status !== 0) return found;
-  return spawnSync(resolve(cwd, found.stdout.trimEnd()), args, options);
-}
 
 export function readExecution(filename) {
   let source;
@@ -27,7 +18,7 @@ export function readExecution(filename) {
     throw new Error('Execution report has invalid JSON');
   }
   if (typeof report?.complete !== 'boolean' || !Array.isArray(report.files)) {
-    throw new TypeError('Execution report has an invalid shape');
+    throw new Error('Execution report has an invalid shape');
   }
   return report;
 }

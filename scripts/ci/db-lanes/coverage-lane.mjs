@@ -1,7 +1,7 @@
+import { spawnSync } from 'node:child_process';
 import { join, matchesGlob, relative } from 'node:path';
 import ts from 'typescript';
 import { hasUnfilteredCoverageConfig } from './coverage-config.mjs';
-import { spawnPnpm } from './execution.mjs';
 import { provenWorkflowStep } from './workflow-selectors.mjs';
 
 const gateCommand = 'pnpm test:coverage && node scripts/ci/coverage-gate.mjs --min-lines 60';
@@ -164,7 +164,8 @@ export const vitestProjects = files =>
 export function listVitestFiles(root, project, candidates, options) {
   const cwd = join(root, project);
   const filters = candidates.map(file => relative(cwd, join(root, file)));
-  const run = spawnPnpm(
+  const run = spawnSync(
+    'pnpm',
     [
       'exec',
       'vitest',

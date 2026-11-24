@@ -35,7 +35,7 @@ function isDatabaseTest(root, file) {
 }
 
 export function trackedTests(root) {
-  const output = execFileSync('/usr/bin/git', ['ls-files', '--cached', '--deduplicate', '-z'], {
+  const output = execFileSync('git', ['ls-files', '--cached', '--deduplicate', '-z'], {
     cwd: root,
     encoding: 'utf8',
   });
