@@ -38,28 +38,43 @@ import { ScanError } from './server-mutation/ast.mjs';
 import { ensureCommit, extractRevision, headSha, showAt } from './server-mutation/git.mjs';
 import { annotate, writeReport } from './server-mutation/output.mjs';
 import { changeReport, signalLine } from './screen-contract/changes.mjs';
+import { buildConfigChanges, configRefusal } from './screen-contract/config-changes.mjs';
 import { readBaselines, readTrustedInputs } from './screen-contract/cli-baselines.mjs';
-import { judge } from './screen-contract/cli-judge.mjs';
+import { judge, orphanUses } from './screen-contract/cli-judge.mjs';
 import {
   BASELINE_PATH,
   SCRIPT_PATH,
+  allEnforcingErrors,
   exitCode,
   selectChecks,
   toolVersions,
 } from './screen-contract/evaluate.mjs';
 import { emptyChecks, lintTree, linted } from './screen-contract/lint.mjs';
 import { assertNoLinks, readInside } from './screen-contract/paths.mjs';
-import { preAdoptionBase, replaySummary, synthesizeInputs } from './screen-contract/replay.mjs';
+import { registryFor } from './screen-contract/registry.mjs';
+import { candidateJudgment } from './screen-contract/replay-candidate.mjs';
+import {
+  candidateBaseline,
+  preAdoptionBase,
+  replaySummary,
+  synthesizeInputs,
+} from './screen-contract/replay.mjs';
 
 const DEFAULT_REPORT = 'tmp/screen-contract-check/report.json';
-const FLAGS = new Set(['--enforcing', '--advisory', '--replay']);
+const FLAGS = new Set(['--enforcing', '--advisory', '--replay', '--require-all-enforcing']);
 const OPTIONS = new Set(['--base', '--head', '--check', '--report', '--repo']);
 
 export function parseArgs(argv) {
-  const args = { enforcing: false, replay: false, report: DEFAULT_REPORT };
+  const args = {
+    enforcing: false,
+    replay: false,
+    requireAllEnforcing: false,
+    report: DEFAULT_REPORT,
+  };
   for (let i = 0; i < argv.length; i += 1) {
     const flag = argv[i];
     if (flag === '--replay') args.replay = true;
+    else if (flag === '--require-all-enforcing') args.requireAllEnforcing = true;
     else if (FLAGS.has(flag)) args.enforcing = flag === '--enforcing';
     else if (OPTIONS.has(flag) && typeof argv[i + 1] === 'string' && argv[i + 1] !== '') {
       i += 1;
@@ -68,6 +83,8 @@ export function parseArgs(argv) {
   }
   if (!args.base) throw new ScanError('--base <sha> is required');
   if (args.check && args.enforcing) throw new ScanError('--check and --enforcing are exclusive');
+  if (args.requireAllEnforcing && !args.enforcing)
+    throw new ScanError('--require-all-enforcing needs --enforcing');
   if (args.replay && (!args.head || args.check || args.enforcing))
     throw new ScanError('--replay needs --head and takes neither --check nor --enforcing');
   return args;
@@ -101,9 +118,66 @@ async function replayBase(repo, report, root, cleanup) {
   return replay;
 }
 
+// The candidate judgment of a replay pair (§4 of the flip plan): the parent tree is scanned with the
+// candidate scanner too (a pre-adoption base already was), and the pair is judged as PR-B's
+// required workflow would judge it. A parent that predates adoption (no baseline: the adoption
+// pair's parent) gets the adoption-created inputs synthesized as empty, as the historical path does
+// for a pre-adoption pair, and they are recorded (r5-B6); an adopted parent gets nothing.
+async function replayCandidate(
+  repo,
+  report,
+  root,
+  cleanup,
+  { pre, real, inputs, lint, files, results }
+) {
+  let baseRoot = pre?.root ?? null;
+  let synthesizedBase = [];
+  if (!baseRoot) {
+    baseRoot = extractRevision(repo, report.base);
+    cleanup.push(baseRoot);
+    assertNoLinks(baseRoot);
+    if (readInside(baseRoot, BASELINE_PATH) === null) synthesizedBase = synthesizeInputs(baseRoot);
+  }
+  const baseFiles = linted(baseRoot);
+  const baseLint = pre?.lint ?? (await lintTree(baseRoot, baseFiles));
+  const headRegistry = registryFor(root);
+  const judgment = candidateJudgment({
+    candidate: candidateBaseline(),
+    baseLint,
+    headLint: lint,
+    baseReal: real.base,
+    headReal: real.head,
+    baseExtra: { 'CHK-22': orphanUses(baseFiles, registryFor(baseRoot)).findings },
+    headExtra: { 'CHK-22': orphanUses(files, headRegistry).findings },
+    headRegistry,
+    rebuilt: inputs.rebuilt,
+    tamper: Object.fromEntries(results.map(r => [r.id, r.tamper])),
+    shas: { base: report.base, head: report.head },
+  });
+  // PR-B's required run refuses an unreviewed build-configuration change (exit 2).
+  const configChanges = report.configChanges ?? [];
+  return {
+    ...judgment,
+    synthesizedBase,
+    configChanges,
+    wouldRefuse: configChanges.length
+      ? [...judgment.wouldRefuse, 'build-config']
+      : judgment.wouldRefuse,
+  };
+}
+
+// A build-configuration change the scanner has not reviewed is refused under enforcement (the
+// owner's decision of 2026-11-23) and recorded otherwise.
+function judgeConfigChanges(args, repo, report) {
+  report.configChanges = buildConfigChanges(repo, report.base, report.head);
+  if (args.enforcing && report.configChanges.length)
+    throw new ScanError(configRefusal(report.configChanges));
+}
+
 async function scan(args, repo, report) {
   report.base = ensureCommit(repo, args.base, 'base');
   report.head = args.head ? ensureCommit(repo, args.head, 'head') : headSha(repo);
+  judgeConfigChanges(args, repo, report);
   // CI and local runs both lint an extracted head tree (H2).
   const root = extractRevision(repo, report.head);
   const cleanup = [root];
@@ -132,15 +206,32 @@ async function scan(args, repo, report) {
       files,
     });
     report.changes = changeReport(repo, report.base, report.head, root, head, inputs.rebuilt);
-    if (replay)
-      report.replay = replaySummary({
-        takenAt: pre ? pre.baseline.takenAt : (base?.takenAt ?? null),
-        synthesized: replay.synthesized,
-        baseLint: pre?.lint ?? null,
+    if (replay) {
+      // The summary, which marks the pair complete, is written only after the candidate judgment
+      // succeeds: a candidate error leaves no replay record (r5).
+      const real = { base: pre ? null : base, head: pre ? null : head };
+      const judgment = await replayCandidate(repo, report, root, cleanup, {
+        pre,
+        real,
+        inputs,
+        lint,
+        files,
         results,
-        empty,
-        versions: toolVersions(),
       });
+      report.replay = {
+        ...replaySummary({
+          takenAt: pre ? pre.baseline.takenAt : (base?.takenAt ?? null),
+          synthesized: replay.synthesized,
+          baseLint: pre?.lint ?? null,
+          results,
+          empty,
+          versions: toolVersions(),
+        }),
+        candidateJudgment: judgment,
+        // A pair is complete only when its candidate judgment has no error (§4; r6).
+        complete: judgment.errors.length === 0,
+      };
+    }
     return results;
   } finally {
     for (const dir of cleanup) fs.rmSync(dir, { recursive: true, force: true });
@@ -165,6 +256,10 @@ export async function run(argv, cwd = process.cwd()) {
     report.invocation = invocationOf(args);
     const repo = path.resolve(cwd, args.repo ?? '.');
     results = await scan(args, repo, report);
+    if (args.requireAllEnforcing) {
+      const missing = allEnforcingErrors(results);
+      if (missing.length) throw new ScanError(missing.join('; '));
+    }
   } catch (error) {
     report.errors.push(
       error instanceof ScanError ? error.message : `scanner failure: ${error?.stack ?? error}`

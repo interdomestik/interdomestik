@@ -140,3 +140,30 @@ test('function case 8: a check rule not at error for an expected file is the rec
     })
   );
 });
+
+// --- L6 (WP-05 flip): CHK-09 formatters are bound by value, through the production CLI ------------
+
+test('CLI case L6: a value shadow is no formatter; a type shadow keeps the imported formatter', t => {
+  const file = `${W}/components/l6.tsx`;
+  const result = judgeHead(t, {
+    [file]: [
+      "import { format } from 'date-fns';",
+      'export function Value({ d, format }) { return <p>{format(d)}</p>; }',
+      'export function Type<format>({ d }: { d: Date }) { return <p>{format(d, "P")}</p>; }',
+    ].join('\n'),
+    // r3-B8: the initializer reads the import; the body's own `format` is a local.
+    [`${W}/components/l6-default.jsx`]: [
+      "import { format } from 'date-fns';",
+      "export function Default({ d, label = format(d, 'P') }) { const format = x => String(x); return <p>{label}{format(d)}</p>; }",
+    ].join('\n'),
+  });
+  const checks = okRun(result);
+  assert.deepEqual(
+    checks['CHK-09'].new.filter(id => id.includes(file)),
+    [`CHK-09|${file}|date-fns.format`]
+  );
+  assert.deepEqual(
+    checks['CHK-09'].new.filter(id => id.includes('l6-default')),
+    [`CHK-09|${W}/components/l6-default.jsx|date-fns.format`]
+  );
+});

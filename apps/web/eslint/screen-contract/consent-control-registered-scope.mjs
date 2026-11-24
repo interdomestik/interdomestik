@@ -39,11 +39,31 @@ function translatorNamespace(arg) {
   return '';
 }
 
-// The variable an identifier refers to, by its lexical scope chain, or null.
+// The read reference of an identifier, or null when it is not one.
+function referenceOf(context, node) {
+  for (let scope = context.sourceCode.getScope(node); scope; scope = scope.upper) {
+    const reference = scope.references.find(r => r.identifier === node && r.isRead());
+    if (reference) return reference;
+  }
+  return null;
+}
+
+// The value variable an identifier refers to, by its lexical scope chain, or null. A binding that
+// is only a type (a type alias, an interface, a type parameter, `import type`) cannot be the value a
+// call or member reads, so the lookup passes over it (the WP-05 flip, r2-B9).
+// A read is resolved through its own reference, as the scope manager resolved it: a default
+// parameter's initializer reads the outer binding even when the function body declares the same
+// name (r3-B8). A binding site (an import specifier, a parameter, a declared name) has no read
+// reference, so it falls back to the lexical walk.
 function variableOf(context, node) {
+  const reference = referenceOf(context, node);
+  if (reference) {
+    const variable = reference.resolved;
+    return variable && variable.isValueVariable !== false ? variable : null;
+  }
   for (let scope = context.sourceCode.getScope(node); scope; scope = scope.upper) {
     const variable = scope.set.get(node.name);
-    if (variable) return variable;
+    if (variable && variable.isValueVariable !== false) return variable;
   }
   return null;
 }
@@ -171,4 +191,5 @@ export {
   isInvokedInPlace,
   localDeclarationOf,
   translatorNamespaceOf,
+  variableOf,
 };

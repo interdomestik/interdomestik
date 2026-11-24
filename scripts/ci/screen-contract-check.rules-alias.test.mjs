@@ -4,38 +4,28 @@ import path from 'node:path';
 import test from 'node:test';
 import ts from 'typescript';
 
-import { lint, tree } from './fixtures/screen-contract-check/harness.mjs';
+import {
+  lint,
+  rootTsconfig,
+  tree,
+  webTsconfig,
+} from './fixtures/screen-contract-check/harness.mjs';
 import { resolverFor } from './screen-contract/specifiers.mjs';
 import { W } from './fixtures/screen-contract-check/cli-fixtures.mjs';
 import { has, lacks } from './fixtures/screen-contract-check/rules-fixtures.mjs';
 
-// Finding 7 (r3): an entry without `*` is a fixed-file fallback, as in TypeScript, tried in order.
-// `"apps/web/src"` was an input error before; TypeScript maps every `@/` specifier to it, so it is
-// valid here too (a corrected expectation, measured below against ts.resolveModuleName).
-test('F7: an @/* entry without * is a fixed fallback for every @/ specifier, in order', async t => {
-  const root = tree(t, {
-    'tsconfig.json':
-      '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["apps/web/src/*", "apps/web/src/fallback.ts"] } }\n}\n',
-    'apps/web/tsconfig.json':
-      '{\n  "compilerOptions": { "paths": { "@/*": ["./src/*", "./src"] } },\n}\n',
-    [`${W}/fallback.ts`]: "'use server';\nexport async function fb() {}\n",
-    [`${W}/index.ts`]: 'export const ix = 1;\n',
-    [`${W}/components/view.tsx`]: 'export const View = () => null;\n',
-    // No file under the first entry: the fixed file (layer 2) under a domain source.
-    'packages/domain-claims/src/fb.ts': "import { fb } from '@/absent';\nexport const f = fb;\n",
-    [`${W}/lib/util.ts`]: 'export const util = 1;\n',
-    // The first entry names a file (support, no layer): the fallback is not reached.
-    'packages/domain-claims/src/first.ts':
-      "import { util } from '@/lib/util';\nexport const u = util;\n",
-    // The web fallback `./src` has no extension: its directory index (a layer-1 screen file) under
-    // a web action.
-    [`${W}/actions/ix.ts`]:
-      "'use server';\nimport { ix } from '@/absent';\nexport async function a() { return ix; }\n",
-  });
-  const result = await lint(root);
-  has(result, 'CHK-15a', 'CHK-15a|packages/domain-claims/src/fb.ts|@/absent');
-  lacks(result, 'CHK-15a', 'CHK-15a|packages/domain-claims/src/first.ts');
-  has(result, 'CHK-15a', `CHK-15a|${W}/actions/ix.ts|@/absent`);
+// Finding 7 (r3) modelled a fixed-file fallback entry and ordered entries. Under the fixed
+// configuration (the WP-05 flip, D-1 option B) neither is modelled: both are refused.
+test('F7: an @/* entry without *, or a second entry, is refused (fixed configuration)', async t => {
+  await assert.rejects(
+    lint(
+      tree(t, {
+        'apps/web/tsconfig.json':
+          '{\n  "compilerOptions": { "moduleResolution": "bundler", "paths": { "@/*": ["./src/*", "./src"] } },\n}\n',
+      })
+    ),
+    /apps\/web\/tsconfig\.json has an @\/\* mapping other than the fixed.*scanner PR first/u
+  );
 });
 
 test('F7: @/x.js names x.ts before x.js, as TypeScript does (CHK-15a)', async t => {
@@ -51,15 +41,15 @@ test('F7: @/x.js names x.ts before x.js, as TypeScript does (CHK-15a)', async t 
 });
 
 // The @/ alias against TypeScript's own resolver (5.9, moduleResolution Bundler, allowJs): for each
-// specifier extension and each set of files beside it, and for ordered entries with a fixed-file
-// fallback, the scanner resolves the file TypeScript resolves, or none where it resolves none.
+// specifier extension and each set of files beside it, under the fixed configuration's mappings,
+// the scanner resolves the file TypeScript resolves, or none where it resolves none.
 // Not modelled (a recorded limit): `.d.json.ts`, `.d<ext>.ts` declaration files for other
 // extensions, `typesVersions`, a directory's own package.json.
 const ALIAS_FILES = ['save.ts', 'save.tsx', 'save.js', 'save.d.ts', 'save/index.ts'];
 const ALIAS_SPECS = ['save.js', 'save', 'save.ts', 'save.jsx'];
 const subsetsOf = list =>
   list.reduce((sets, item) => [...sets, ...sets.map(set => [...set, item])], [[]]).slice(1);
-const COMPILER_OPTIONS = '"moduleResolution": "bundler", "module": "esnext", "allowJs": true';
+const COMPILER_OPTIONS = { module: 'esnext', allowJs: true };
 
 function tsResolver(root, configRel) {
   const configPath = path.join(root, configRel);
@@ -75,12 +65,10 @@ function tsResolver(root, configRel) {
 test(`F7: the @/ alias resolves TypeScript's file for four specifier spellings and every file set`, t => {
   const files = {
     [`${W}/index.ts`]: 'export const ix = 1;\n',
-    [`${W}/fallback.ts`]: 'export const fb = 1;\n',
     [`${W}/lib/dual.js`]: 'export const d = 1;\n',
     [`${W}/dual.ts`]: 'export const d = 1;\n',
-    'tsconfig.json': `{ "compilerOptions": { ${COMPILER_OPTIONS}, "baseUrl": ".", "paths": { "@/*": ["apps/web/src/lib/*", "apps/web/src/*", "apps/web/src/fallback.ts"] } } }\n`,
-    // No fallback here (r4 hardening): an unresolved lookup must come back unresolved.
-    'apps/web/tsconfig.json': `{ "compilerOptions": { ${COMPILER_OPTIONS}, "paths": { "@/*": ["./src/*"] } } }\n`,
+    'tsconfig.json': rootTsconfig(COMPILER_OPTIONS),
+    'apps/web/tsconfig.json': webTsconfig(COMPILER_OPTIONS),
   };
   const specifiers = ['@/dual', '@/absent'];
   subsetsOf(ALIAS_FILES).forEach((set, index) => {
@@ -101,7 +89,7 @@ test(`F7: the @/ alias resolves TypeScript's file for four specifier spellings a
       assert.equal(resolver.resolveFile(fromRel, specifier), expected, `${fromRel} ${specifier}`);
     }
   }
-  // The root caller's fixed-file fallback resolves every lookup; the web caller's has none.
-  assert.ok(resolved > specifiers.length, String(resolved));
+  // Some lookups resolve and some (`@/absent`, empty file sets for a spelling) do not.
+  assert.ok(resolved > 0, String(resolved));
   assert.ok(resolved < callers.length * specifiers.length, String(resolved));
 });
