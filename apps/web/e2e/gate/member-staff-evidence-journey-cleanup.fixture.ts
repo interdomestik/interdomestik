@@ -119,6 +119,12 @@ export async function cleanupJourney(
   } finally {
     await db.transaction(async tx => {
       if (ids.length) {
+        const journeyClaims = and(
+          eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+          inArray(claims.id, ids)
+        );
+        // A status write holds the claim lock before it appends events in the same transaction.
+        await tx.select({ id: claims.id }).from(claims).where(journeyClaims).for('update');
         const events = await tx.query.domainEvents.findMany({
           where: and(
             inArray(domainEvents.entityId, ids),
@@ -157,9 +163,7 @@ export async function cleanupJourney(
               and(eq(table.tenantId, E2E_USERS.KS_MEMBER.tenantId), inArray(table.claimId, ids))
             );
         }
-        await tx
-          .delete(claims)
-          .where(and(eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId), inArray(claims.id, ids)));
+        await tx.delete(claims).where(journeyClaims);
       }
       await tx
         .delete(freeStartDrafts)

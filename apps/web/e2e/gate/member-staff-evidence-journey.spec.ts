@@ -13,8 +13,9 @@ import {
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { updateClaimStatusCore } from '@interdomestik/domain-claims/staff-claims/update-status';
+import { mergeTests } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
-import { expect, test } from '../fixtures/auth.fixture';
+import { expect, test as authTest } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import {
@@ -31,6 +32,9 @@ import {
   openMemberContext,
   submitExactDraft,
 } from './member-staff-evidence-journey.fixture';
+import { signalTest } from './signal-wait.fixture';
+
+const test = mergeTests(authTest, signalTest);
 
 test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
   let residue: {
@@ -42,15 +46,19 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
 
   test.afterEach(async () => {
     if (!residue) return;
-    await residue.memberSession?.context.close();
-    await cleanupJourney(residue.claimId, residue);
-    await expectJourneyClean(residue.claimId, residue);
-    residue = null;
+    try {
+      await residue.memberSession?.context.close();
+    } finally {
+      await cleanupJourney(residue.claimId, residue);
+      await expectJourneyClean(residue.claimId, residue);
+      residue = null;
+    }
   });
 
   test('persists submission, staff verification, and member-safe continuity', async ({
     browser,
     staffPage,
+    waitForSignal,
   }, testInfo) => {
     // Only gate-ks-sq may own S3 residue.
     test.skip(testInfo.project.name !== 'gate-ks-sq', 'Other project');
@@ -155,22 +163,28 @@ test.describe('S3 member-to-staff evidence journey bounded prefix', () => {
       role: E2E_USERS.KS_STAFF.dbRole,
       tenantId: E2E_USERS.KS_STAFF.tenantId,
     });
-    await verifyStatusTransportRecovery(staffPage, submitted.claimId, publicNote, async () => {
-      const assignedClaim = await db.query.claims.findFirst({
-        where: and(
-          eq(claims.id, submitted.claimId),
-          eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-        ),
-        columns: { assignedAt: true, staffId: true, updatedAt: true },
-      });
-      expect(assignedClaim?.staffId).toBe(staffActor.id);
-      expect(assignedClaim?.assignedAt).toBeInstanceOf(Date);
-      expect(assignedClaim?.assignedAt?.toISOString()).toBe(
-        assignedClaim?.updatedAt?.toISOString()
-      );
-      await saveInterveningPublicNote(staffPage, newerNote);
-      return newerNote;
-    });
+    await verifyStatusTransportRecovery(
+      staffPage,
+      submitted.claimId,
+      publicNote,
+      waitForSignal,
+      async () => {
+        const assignedClaim = await db.query.claims.findFirst({
+          where: and(
+            eq(claims.id, submitted.claimId),
+            eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+          ),
+          columns: { assignedAt: true, staffId: true, updatedAt: true },
+        });
+        expect(assignedClaim?.staffId).toBe(staffActor.id);
+        expect(assignedClaim?.assignedAt).toBeInstanceOf(Date);
+        expect(assignedClaim?.assignedAt?.toISOString()).toBe(
+          assignedClaim?.updatedAt?.toISOString()
+        );
+        await saveInterveningPublicNote(staffPage, newerNote);
+        return newerNote;
+      }
+    );
     const privateResult = await updateClaimStatusCore({
       authority: mintTestTenantAuthority(staffActor.tenantId),
       claimId: submitted.claimId,

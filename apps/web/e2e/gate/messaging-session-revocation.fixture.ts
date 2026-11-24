@@ -20,8 +20,10 @@ import { inSequence } from './in-sequence';
 import {
   MessagingSessionTransport,
   parseFlightResult,
+  sanitizeTransport,
   type ActionResult,
 } from './messaging-session-transport';
+import { createSignal, type WaitForSignal } from './signal-wait.fixture';
 
 export type Operation = 'history' | 'send' | 'receipt';
 export type ActionIds = Record<Operation, string>;
@@ -56,47 +58,83 @@ export async function loginFixture(page: Page, info: TestInfo, email: string, us
   await page.context().addCookies(transport.cookies());
 }
 
-function observeAction(ids: Partial<ActionIds>, claimId: string, request: Request): void {
-  const id = request.headers()['next-action'];
-  if (request.method() !== 'POST' || !id) return;
-  let args: unknown;
-  try {
-    args = JSON.parse(request.postData() ?? 'null');
-  } catch {
-    return;
-  }
-  if (!Array.isArray(args)) return;
-  if (args.length === 1 && args[0] === claimId) ids.history = id;
-  if (args.length >= 3 && args[0] === claimId) ids.send = id;
-  if (args.length === 1 && Array.isArray(args[0])) ids.receipt = id;
+async function readSendResult(request: Request): Promise<ActionResult> {
+  const reply = await sanitizeTransport(async () => {
+    const response = await request.response();
+    if (!response) throw new Error('Messaging send request finished without a response');
+    return {
+      status: response.status(),
+      contentType: await response.headerValue('content-type'),
+      body: await response.text(),
+    };
+  });
+  return parseFlightResult(reply);
 }
 
 /** Learn current-build action references from the shipped UI; no manifest or auth test seam. */
-async function captureActions(page: Page, info: TestInfo, fixture: AgentMessageFixture) {
+async function captureActions(
+  page: Page,
+  info: TestInfo,
+  fixture: AgentMessageFixture,
+  waitForSignal: WaitForSignal
+): Promise<ActionIds> {
   const claimId = fixture.claimIds[0];
-  const ids: Partial<ActionIds> = {};
-  const observe = (request: Request) => observeAction(ids, claimId, request);
+  const content = `U3-2 action discovery ${claimId}`;
+  const workspacePath = routes.agentWorkspaceClaims(info);
+  const workspace = new URL(workspacePath, getProjectUrlInfo(info, null).origin);
+  const history = createSignal<string>();
+  const receipt = createSignal<string>();
+  const send = createSignal<{ id: string; request: Request }>();
+  const observe = (request: Request) => {
+    const id = request.headers()['next-action'];
+    if (request.method() !== 'POST' || !id) return;
+    const url = new URL(request.url());
+    if (url.origin !== workspace.origin || url.pathname !== workspace.pathname) return;
+    let args: unknown;
+    try {
+      args = JSON.parse(request.postData() ?? 'null');
+    } catch {
+      return;
+    }
+    if (!Array.isArray(args)) return;
+    if (args.length === 1 && args[0] === claimId) history.resolve(id);
+    if (args.length >= 3 && args[0] === claimId && args[1] === content)
+      send.resolve({ id, request });
+    if (
+      args.length === 1 &&
+      Array.isArray(args[0]) &&
+      args[0].includes(fixture.incomingMessageId)
+    ) {
+      receipt.resolve(id);
+    }
+  };
   page.on('request', observe);
   try {
     await loginFixture(page, info, fixture.email, fixture.agentId);
-    await gotoApp(page, `${routes.agentWorkspaceClaims(info)}?claimId=${claimId}`, info, {
+    await gotoApp(page, `${workspacePath}?claimId=${claimId}`, info, {
       marker: 'agent-claims-pro-page',
     });
     await page.locator('[data-testid="ops-drawer"]:visible').getByTestId('action-message').click();
     const panel = page.getByTestId('messaging-panel');
     await expect(panel).toContainText('S1 public incoming');
     await panel.getByTestId('messaging-refresh').click();
-    await expect.poll(() => Boolean(ids.history && ids.receipt)).toBe(true);
-    const content = `U3-2 action discovery ${claimId}`;
+    const historyId = await waitForSignal('Discover messaging history request', history.promise);
+    const receiptId = await waitForSignal('Discover messaging receipt request', receipt.promise);
     await panel.getByTestId('message-input').fill(content);
     await panel.getByTestId('send-message-button').click();
     await expect(panel).toContainText(content);
-    await expect.poll(() => Boolean(ids.send)).toBe(true);
-    await expect.poll(async () => (await messagingSnapshot(fixture)).audits.length).toBe(1);
+    const sent = await waitForSignal('Discover messaging send request', send.promise);
+    const result = await waitForSignal(
+      'Complete messaging send response',
+      readSendResult(sent.request)
+    );
+    expect(result.success, 'messaging discovery send succeeded').toBe(true);
+    expect(
+      (await messagingSnapshot(fixture)).audits.length,
+      'messaging discovery audit count'
+    ).toBe(1);
     await page.goto('about:blank');
-    if (!ids.history || !ids.send || !ids.receipt)
-      throw new Error('Messaging action discovery failed');
-    return { history: ids.history, send: ids.send, receipt: ids.receipt };
+    return { history: historyId, send: sent.id, receipt: receiptId };
   } finally {
     page.off('request', observe);
   }
@@ -175,11 +213,12 @@ export async function assertNoSessions(userId: string): Promise<void> {
 export function withMessagingFixture(
   page: Page,
   info: TestInfo,
+  waitForSignal: WaitForSignal,
   run: (fixture: AgentMessageFixture, ids: ActionIds) => Promise<void>
 ): Promise<void> {
   return withAgentMessageFixture(info.project.name, async fixture => {
     try {
-      await run(fixture, await captureActions(page, info, fixture));
+      await run(fixture, await captureActions(page, info, fixture, waitForSignal));
     } finally {
       try {
         await page.goto('about:blank');
