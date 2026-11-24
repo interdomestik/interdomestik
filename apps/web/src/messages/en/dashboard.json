@@ -32,6 +32,10 @@
         "external_response": "Awaiting external response",
         "court_schedule": "Review court schedule"
       },
+      "updates_item": {
+        "occurred": "Incident date",
+        "current_status": "Current status"
+      },
       "regions": {
         "case": {
           "label": "Your cases",

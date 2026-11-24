@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ClaimsFilters } from './claims-filters';
 
@@ -27,8 +27,11 @@ vi.mock('next-intl', () => ({
       all: 'All',
       processing: 'Processing...',
       search: 'Search',
+      'memberList.searchPlaceholder': 'Search...',
+      'table.status': 'Status',
       draft: 'Draft',
       submitted: 'Submitted',
+      submitted_to_airline: 'Submitted to airline',
       verification: 'Verification',
       evaluation: 'Evaluation',
       negotiation: 'Negotiation',
@@ -42,7 +45,6 @@ vi.mock('next-intl', () => ({
 
 // Mock UI components
 vi.mock('@interdomestik/ui', () => ({
-  badgeVariants: () => 'badge',
   Input: (props: React.InputHTMLAttributes<HTMLInputElement>) => <input {...props} />,
 }));
 
@@ -70,6 +72,10 @@ describe('ClaimsFilters', () => {
   it('renders search input', () => {
     render(<ClaimsFilters />);
     expect(screen.getByPlaceholderText('Search...')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: 'Search' })).toBe(
+      screen.getByTestId('member-claims-search-input')
+    );
+    expect(screen.getByText('Search', { selector: 'label' })).toBeVisible();
   });
 
   it('renders all status filter badges', () => {
@@ -86,14 +92,26 @@ describe('ClaimsFilters', () => {
     expect(screen.getByText('Rejected')).toBeInTheDocument();
   });
 
-  it('renders 9 status options', () => {
+  it('renders all ten status options as a named group of pressed-state buttons', () => {
     render(<ClaimsFilters />);
 
-    // All + 8 statuses = 9 badges
-    const badges = screen.getAllByText(
-      /All|Draft|Submitted|Verification|Evaluation|Negotiation|Court|Resolved|Rejected/
-    );
-    expect(badges.length).toBe(9);
+    const group = within(screen.getByRole('group', { name: 'Status' }));
+    expect(group.getAllByRole('button', { pressed: true })).toEqual([
+      group.getByRole('button', { name: 'All' }),
+    ]);
+    expect(
+      group.getAllByRole('button', { pressed: false }).map(button => button.textContent)
+    ).toEqual([
+      'Draft',
+      'Submitted',
+      'Submitted to airline',
+      'Verification',
+      'Evaluation',
+      'Negotiation',
+      'Court',
+      'Resolved',
+      'Rejected',
+    ]);
   });
 
   it('shows pending feedback and updates the url when search changes', () => {
@@ -151,11 +169,23 @@ describe('ClaimsFilters', () => {
     render(<ClaimsFilters />);
 
     const activeStatus = screen.getByTestId('member-claims-status-filter-submitted');
-    expect(activeStatus).toBeDisabled();
+    expect(activeStatus).toHaveAttribute('aria-disabled', 'true');
+    expect(activeStatus).not.toBeDisabled();
+    expect(activeStatus.querySelector('[aria-hidden="true"]')).toBeVisible();
+    expect(activeStatus).toHaveClass('bg-[hsl(var(--primary))]', 'border');
     fireEvent.click(activeStatus);
     expect(hoisted.push).not.toHaveBeenCalled();
 
-    fireEvent.click(screen.getByTestId('member-claims-status-filter-draft'));
+    const draft = screen.getByTestId('member-claims-status-filter-draft');
+    draft.focus();
+    fireEvent.click(draft);
+    expect(draft).toHaveFocus();
+    expect(screen.getByRole('textbox')).toHaveAttribute('readonly');
+    expect(screen.getByRole('textbox')).not.toBeDisabled();
+    // <output> carries the implicit status role (Sonar S6819); it must be the one status node.
+    expect(screen.getByRole('status')).toBe(screen.getByTestId('member-claims-pending'));
+    expect(screen.getByTestId('member-claims-pending')).toBeInstanceOf(HTMLOutputElement);
+    expect(screen.getByTestId('member-claims-pending')).not.toHaveAttribute('aria-live');
 
     expect(hoisted.push).toHaveBeenCalledWith('/member/claims?status=draft&search=claim', {
       scroll: false,
