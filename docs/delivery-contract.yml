@@ -161,9 +161,10 @@ checks:
     targets:
       - apps/web/src/actions/staff-claims/assign.ts
       - apps/web/src/actions/staff-claims/assign.core.ts
+      # WP-11: the assignment transaction lives in the domain `assign.ts` (the shared assignment
+      # command); the admin entry point is `ops-assignment-action.ts`.
       - packages/domain-claims/src/staff-claims/assign.ts
-      - packages/domain-claims/src/staff-claims/assign-transaction.ts
-      - apps/web/src/features/admin/claims/actions/ops-assignment.ts
+      - apps/web/src/features/admin/claims/actions/ops-assignment-action.ts
       - apps/web/src/features/admin/claims/components/ops/OpsAssignmentControl.tsx
     optional_targets:
       # The admin assignment actions were removed by #1961; this keeps them covered if they return.
@@ -543,9 +544,23 @@ checks:
       # A failed send through the test-only catcher never falls back to Resend.
       - '\n        const resend = fallbackResend\(provider, \(\) => getResendClient\(telemetry\)\);\n        if \(!resend\) throw smtpError;'
       - "isAutomatedEmail as isAutomated,[\\s\\S]*?from './non-sending-email'"
-      # The first statement of the client choice: in automated mode it returns the mock (null), a
-      # refusal, or the loopback catcher, and never reaches SMTP_HOST or Resend.
-      - "function getEmailClient\\([^)]*\\) \\{\\s*(?://[^\\n]*\\s*)*if \\(isAutomated\\(\\)\\) \\{\\s*const target = options\\.automatedCatcher \\? automatedSmtpTarget\\(\\) : null;\\s*if \\(target === null \\|\\| target === 'rejected'\\) return target;\\s*return \\{ type: 'smtp' as const, client: smtpTransport\\(target\\), testOnly: true \\};\\s*\\}"
+      # The client choice starts from the SMTP target, which in automated mode is only the loopback
+      # catcher or nothing (`automation.smtp_target_automated_first`). A refusal returns at once, a
+      # catcher is marked test-only, and with no target automated mode returns the mock (null)
+      # before Resend is ever considered.
+      - "function getEmailClient\\([^)]*\\) \\{\\s*const target = configuredSmtpTarget\\(options\\.automatedCatcher \\?\\? false\\);\\s*if \\(target === 'rejected'\\) return target;\\s*if \\(target\\) \\{\\s*return \\{\\s*type: 'smtp' as const,\\s*client: smtpTransport\\(target\\),\\s*\\.\\.\\.\\(isAutomated\\(\\) && \\{ testOnly: true \\}\\),\\s*\\};\\s*\\}\\s*if \\(isAutomated\\(\\)\\) return null;"
+
+  - id: automation.smtp_target_automated_first
+    description: In automated/Playwright mode the SMTP target is only the loopback catcher or none, and the delivery worker never offers Resend.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      - packages/domain-communications/src/email-transport.ts
+    must_match:
+      - "isAutomatedEmail as isAutomated,[\\s\\S]*?from './non-sending-email'"
+      # The first statement: automated mode never reaches SMTP_HOST.
+      - "export function configuredSmtpTarget\\(automatedCatcher: boolean\\) \\{\\s*if \\(isAutomated\\(\\)\\) return automatedCatcher \\? automatedSmtpTarget\\(\\) : null;"
+      - "if \\(!isAutomated\\(\\) && process\\.env\\.RESEND_API_KEY\\) transports\\.push\\('resend'\\);"
 
   - id: automation.catcher_fallback_is_refused
     description: The Resend fallback refuses a provider marked test-only (the loopback catcher).
