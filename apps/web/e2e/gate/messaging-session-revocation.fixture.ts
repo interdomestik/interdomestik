@@ -19,6 +19,7 @@ import {
 import { inSequence } from './in-sequence';
 import {
   MessagingSessionTransport,
+  observeMessagingSend,
   parseFlightResult,
   sanitizeTransport,
   type ActionResult,
@@ -59,19 +60,6 @@ export async function loginFixture(page: Page, info: TestInfo, email: string, us
   await page.context().addCookies(transport.cookies());
 }
 
-async function readSendResult(request: Request): Promise<ActionResult> {
-  const reply = await sanitizeTransport(async () => {
-    const response = await request.response();
-    if (!response) throw new Error('Messaging send request finished without a response');
-    return {
-      status: response.status(),
-      contentType: await response.headerValue('content-type'),
-      body: await response.text(),
-    };
-  });
-  return parseFlightResult(reply);
-}
-
 /** Learn current-build action references from the shipped UI; no manifest or auth test seam. */
 async function captureActions(
   page: Page,
@@ -85,7 +73,6 @@ async function captureActions(
   const workspace = new URL(workspacePath, getProjectUrlInfo(info, null).origin);
   const history = createSignal<string>();
   const receipt = createSignal<string>();
-  const send = createSignal<{ id: string; request: Request }>();
   const observe = (request: Request) => {
     const id = request.headers()['next-action'];
     if (request.method() !== 'POST' || !id) return;
@@ -99,8 +86,6 @@ async function captureActions(
     }
     if (!Array.isArray(args)) return;
     if (args.length === 1 && args[0] === claimId) history.resolve(id);
-    if (args.length >= 3 && args[0] === claimId && args[1] === content)
-      send.resolve({ id, request });
     if (
       args.length === 1 &&
       Array.isArray(args[0]) &&
@@ -125,9 +110,18 @@ async function captureActions(
     const sendId = await waitForSignal(
       'Send discovery message and complete its response',
       async remaining => {
+        const capture = await page.evaluateHandle(observeMessagingSend, {
+          workspace: workspace.href,
+          claimId,
+          content,
+        });
         const timeout = remaining();
-        const result = send.promise.then(async ({ id, request }) => {
-          const action = await readSendResult(request);
+        const result = sanitizeTransport(async () => {
+          const sent = await capture.evaluate(({ result }) => result);
+          if (!sent) throw new Error('Messaging send did not yield a readable response');
+          return sent;
+        }).then(({ id, reply }) => {
+          const action = parseFlightResult(reply);
           expect(action.success, 'messaging discovery send succeeded').toBe(true);
           return id;
         });
@@ -136,6 +130,7 @@ async function captureActions(
           panel.getByTestId('send-message-button').click({ timeout }),
           expect(panel).toContainText(content, { timeout }),
         ]);
+        await capture.dispose();
         expect(
           (await messagingSnapshot(fixture)).audits.length,
           'messaging discovery audit count'

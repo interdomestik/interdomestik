@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   MessagingSessionTransport,
+  observeMessagingSend,
   parseFlightResult,
   sanitizeTransport,
 } from '../../e2e/gate/messaging-session-transport';
@@ -82,6 +83,58 @@ describe('Flight action result binding', () => {
     expect(() => parseFlightResult(flight(validBody, 'text/x-component', 500))).toThrow(
       'Invalid messaging Flight response'
     );
+  });
+});
+
+describe('browser messaging discovery', () => {
+  const workspace = `${ORIGIN}/sq/agent/workspace/claims`;
+  const claimId = 'fixture-claim';
+  const content = 'discovery message';
+  const send = {
+    method: 'POST',
+    headers: { 'Next-Action': 'send-action' },
+    body: JSON.stringify([claimId, content, false, 'client-id']),
+  };
+
+  it('captures the exact send while the app reads the original Flight response', async () => {
+    const unrelated = new Response('unrelated');
+    const original = new Response(validBody, {
+      headers: { 'Content-Type': 'text/x-component; charset=utf-8' },
+    });
+    const fetchMock = vi.fn().mockResolvedValueOnce(unrelated).mockResolvedValueOnce(original);
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = observeMessagingSend({ workspace, claimId, content });
+
+    // A concurrent action on the same page must leave the send observer armed.
+    const history = { ...send, body: JSON.stringify([claimId]) };
+    expect(await fetch(workspace, history)).toBe(unrelated);
+    const sendUrl = new URL(workspace).pathname + '?claimId=fixture-claim';
+    const response = await fetch(sendUrl, send);
+    expect(response).toBe(original);
+    const [body, capture] = await Promise.all([response.text(), result]);
+
+    expect(body).toBe(validBody);
+    expect(capture).toEqual({
+      id: 'send-action',
+      reply: flight(body, 'text/x-component; charset=utf-8'),
+    });
+    expect(fetchMock.mock.calls).toEqual([
+      [workspace, history],
+      [sendUrl, send],
+    ]);
+    expect(globalThis.fetch).toBe(fetchMock);
+  });
+
+  it('rejects a followed redirect even when the destination returns a successful result', async () => {
+    const redirected = new Response(validBody, { headers: { 'Content-Type': 'text/x-component' } });
+    Object.defineProperty(redirected, 'redirected', { value: true });
+    const fetchMock = vi.fn().mockResolvedValue(redirected);
+    vi.stubGlobal('fetch', fetchMock);
+    const { result } = observeMessagingSend({ workspace, claimId, content });
+
+    expect(await fetch(workspace, send)).toBe(redirected);
+    await expect(result).resolves.toBeNull();
+    expect(redirected.bodyUsed).toBe(false);
   });
 });
 
