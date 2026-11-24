@@ -57,6 +57,7 @@ function fixtureRoot(t, files) {
 
 const passing = "import test from 'node:test';\ntest('ok', () => {});\n";
 const failing = "import test from 'node:test';\ntest('broken', () => { throw new Error('x'); });\n";
+const coreCheck = 'scripts/ci/screen-contract-check.fixture.test.mjs';
 // A legacy file keeping its active tests next to a retired one that would fail if it ran.
 const withRetired = (file, body) =>
   Object.hasOwn(RETIRED_LEGACY_TESTS, file)
@@ -96,7 +97,7 @@ test('full serialized contract script runs every active file for local and Z620 
   );
 });
 
-test('guard-trust shards are pinned by exact name and are the only exclusions from core', () => {
+test('guard-trust shards are pinned by exact name and are the only active exclusions from core', () => {
   assert.deepEqual(JSON.parse(JSON.stringify(GUARD_TRUST_SHARDS)), {
     authority: [GUARD_TRUST_FILES[0]],
     candidate: [GUARD_TRUST_FILES[1]],
@@ -105,8 +106,9 @@ test('guard-trust shards are pinned by exact name and are the only exclusions fr
     'resolver-state': GUARD_TRUST_FILES.slice(7),
   });
   const { all, shards } = contractTestPlan(root);
+  const core = new Set([...shards.core, ...shards['core-checks']]);
   assert.deepEqual(
-    all.filter(file => !shards.core.includes(file)),
+    all.filter(file => !core.has(file)),
     [...GUARD_TRUST_FILES, ...RETIRED_FILES].sort()
   );
 });
@@ -132,7 +134,7 @@ test('legacy retirement is pinned by exact file and exact test name', () => {
   );
 });
 
-test('core plus guard-trust shards equal the full glob minus retired files, with no overlap', () => {
+test('both core shards plus guard-trust equal the full glob minus retired files, with no overlap', () => {
   const expected = shellGlobFiles(root);
   assert.ok(expected.length > GUARD_TRUST_FILES.length);
   assert.deepEqual(listContractTestFiles(root), expected);
@@ -145,14 +147,18 @@ test('core plus guard-trust shards equal the full glob minus retired files, with
   assert.ok(assigned.includes('scripts/ci/contract-test-shards.test.mjs'));
 });
 
-test('a contract test added later lands in core by default', t => {
-  const dir = fixtureRoot(t, minimalSuite({ 'scripts/ci/added-later.test.mjs': passing }));
+test('new contract tests land in a core shard by filename', t => {
+  const dir = fixtureRoot(
+    t,
+    minimalSuite({ 'scripts/ci/added-later.test.mjs': passing, [coreCheck]: passing })
+  );
   const { shards } = contractTestPlan(dir);
   assert.deepEqual(shards.core, [
     'scripts/check-modularity-guard.test.mjs',
     'scripts/ci/added-later.test.mjs',
     'scripts/ci/core-a.test.mjs',
   ]);
+  assert.deepEqual(shards['core-checks'], [coreCheck]);
 });
 
 test('a renamed or deleted guard-trust file fails closed instead of silently shrinking', t => {
@@ -191,12 +197,23 @@ test('the serialized lane runs every active file and none of the retired asserti
   assert.equal(await main(['all'], broken, { capture: true }), 1);
 });
 
+test('the serialized core lane runs both core shards and leaves guard-trust to its own lane', async t => {
+  const dir = fixtureRoot(t, minimalSuite({ [GUARD_TRUST_FILES[1]]: failing }));
+  assert.equal(await main(['core'], dir, { capture: true }), 0);
+  const broken = fixtureRoot(t, minimalSuite({ [coreCheck]: failing }));
+  assert.equal(await main(['core'], broken, { capture: true }), 1);
+});
+
 test('parallel run passes only when every shard passes, without fail-fast', async t => {
   const output = [];
   const write = text => output.push(text);
-  assert.equal(await runParallel({ root: fixtureRoot(t, minimalSuite()), write }), 0);
+  assert.equal(
+    await runParallel({ root: fixtureRoot(t, minimalSuite({ [coreCheck]: passing })), write }),
+    0
+  );
   for (const shard of [
     'core',
+    'core-checks',
     'authority',
     'candidate',
     'merge-guard-git',
@@ -206,13 +223,22 @@ test('parallel run passes only when every shard passes, without fail-fast', asyn
     assert.match(output.join(''), new RegExp(`contract shard ${shard}: pass`, 'u'));
   }
   output.length = 0;
-  const broken = minimalSuite({ [GUARD_TRUST_FILES[1]]: failing });
+  const broken = minimalSuite({ [GUARD_TRUST_FILES[1]]: failing, [coreCheck]: passing });
   assert.equal(await runParallel({ root: fixtureRoot(t, broken), write }), 1);
   const text = output.join('');
   assert.match(text, /contract shard candidate: FAIL \(code=1/u);
-  for (const shard of ['core', 'authority', 'merge-guard-git', 'resolver-state']) {
+  for (const shard of ['core', 'core-checks', 'authority', 'merge-guard-git', 'resolver-state']) {
     assert.match(text, new RegExp(`contract shard ${shard}: pass`, 'u'));
   }
+});
+
+test('an empty core shard never starts Node test discovery', async t => {
+  const output = [];
+  assert.equal(
+    await runParallel({ root: fixtureRoot(t, minimalSuite()), write: text => output.push(text) }),
+    0
+  );
+  assert.doesNotMatch(output.join(''), /contract shard core-checks:/u);
 });
 
 test('the guard-trust lane runs the resolver-state shard', async t => {
