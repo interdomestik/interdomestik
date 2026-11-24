@@ -1,8 +1,5 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { cp, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import de from '../../../apps/web/src/messages/de/legal-documents.json';
@@ -49,20 +46,28 @@ function valuesOf(value: FixtureText): string[] {
 }
 
 export async function migrateApprovedFixture(admin: ScratchClient) {
-  // Publish a synthetic approved translation while keeping the real pending English rows. The
-  // test uses all the journal's real constraints, policies, grants and triggers.
-  const fixture = await mkdtemp(path.join(tmpdir(), 'wp13-approved-journal-'));
-  try {
-    await cp(journal, fixture, { recursive: true });
-    const migration = path.join(fixture, '0104_wp13a_legal_acceptance.sql');
-    const sql = await readFile(migration, 'utf8');
-    const pendingGerman = /('de', '[a-f0-9]{64}', )'legal_review_pending'/gu;
-    assert.equal([...sql.matchAll(pendingGerman)].length, 2);
-    await writeFile(migration, sql.replaceAll(pendingGerman, "$1'approved'"));
-    await migrateJournal(admin, fixture);
-  } finally {
-    await rm(fixture, { recursive: true, force: true });
-  }
+  await migrateJournal(admin, journal);
+  // The scratch owner projects a synthetic approval with the append-only trigger restored
+  // in the same transaction, before any restricted-role code runs.
+  await admin.begin(async tx => {
+    await tx`alter table public.legal_document_versions
+      disable trigger legal_document_versions_append_only`;
+    await tx`update public.legal_document_versions set review_status = 'approved' where locale = 'de'`;
+    await tx`alter table public.legal_document_versions
+      enable trigger legal_document_versions_append_only`;
+
+    const rows = await tx`select locale, kind, review_status from public.legal_document_versions
+      where locale in ('de', 'en') order by locale, kind`;
+    assert.deepEqual(
+      [...rows],
+      [
+        { locale: 'de', kind: 'privacy_notice', review_status: 'approved' },
+        { locale: 'de', kind: 'terms', review_status: 'approved' },
+        { locale: 'en', kind: 'privacy_notice', review_status: 'legal_review_pending' },
+        { locale: 'en', kind: 'terms', review_status: 'legal_review_pending' },
+      ]
+    );
+  });
 }
 
 export async function seedSubject(

@@ -46,16 +46,43 @@ it('accepts a symbol-resolved delegate through an action re-export', () => {
   expect(() => checkAction(`${guard} ${delegate}`, true)).not.toThrow();
 });
 
-it('accepts an awaited delegate that forwards its parameters in order', () => {
+it('accepts an awaited delegate that spreads its rest parameter', () => {
   expect(() =>
     checkAction(`${guard}
-      export async function read(input: unknown, extra?: unknown) {
-        return await guardedRead(input, extra);
+      export async function read(...args: unknown[]) {
+        return await guardedRead(...args);
       }`)
   ).not.toThrow();
 });
 
 it.each([
+  [
+    'an optional parameter that adds an argument when omitted',
+    `${guard} export async function read(input: unknown, extra?: unknown) {
+      return await guardedRead(input, extra);
+    }`,
+  ],
+  [
+    'a fixed parameter before the rest parameter',
+    `${guard} export async function read(input: unknown, ...args: unknown[]) {
+      return guardedRead(input, ...args);
+    }`,
+  ],
+  [
+    'the rest parameter without a spread',
+    `${guard} export async function read(...args: unknown[]) { return guardedRead(args); }`,
+  ],
+  [
+    'an argument in addition to the spread',
+    `${guard} export async function read(...args: unknown[]) {
+      return guardedRead(...args, undefined);
+    }`,
+  ],
+  [
+    'a spread of a different binding',
+    `${guard} const other: unknown[] = [];
+    export async function read(...args: unknown[]) { return guardedRead(...other); }`,
+  ],
   [
     'different arguments',
     `${guard} export async function read(input: unknown) { return guardedRead('other'); }`,

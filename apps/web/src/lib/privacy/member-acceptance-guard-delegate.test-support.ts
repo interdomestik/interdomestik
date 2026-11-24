@@ -20,16 +20,21 @@ function delegateCall(decl: ts.Node) {
   }
 }
 
-function forwardsParameter(
+function spreadsRestParameter(
   sources: SourceProgram,
   parameter: ts.ParameterDeclaration,
   argument: ts.Expression
 ) {
-  if (parameter.initializer || !ts.isIdentifier(parameter.name)) return false;
-  const spread = ts.isSpreadElement(argument);
-  if (Boolean(parameter.dotDotDotToken) !== spread) return false;
-  const value = spread ? argument.expression : argument;
-  return ts.isIdentifier(value) && sources.symbolAt(value)?.valueDeclaration === parameter;
+  return (
+    Boolean(parameter.dotDotDotToken) &&
+    parameter.type !== undefined &&
+    !parameter.questionToken &&
+    !parameter.initializer &&
+    ts.isIdentifier(parameter.name) &&
+    ts.isSpreadElement(argument) &&
+    ts.isIdentifier(argument.expression) &&
+    sources.symbolAt(argument.expression)?.valueDeclaration === parameter
+  );
 }
 
 function privateWrapper(sources: SourceProgram, decl: ts.Node, callee: ts.Expression) {
@@ -55,10 +60,9 @@ export function createDirectGuard(
     if (!delegate) return false;
     const { call, parameters } = delegate;
     if (
-      call.arguments.length !== parameters.length ||
-      !parameters.every((parameter, index) =>
-        forwardsParameter(sources, parameter, call.arguments[index])
-      )
+      parameters.length !== 1 ||
+      call.arguments.length !== 1 ||
+      !spreadsRestParameter(sources, parameters[0], call.arguments[0])
     ) {
       return false;
     }
