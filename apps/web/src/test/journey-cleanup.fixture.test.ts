@@ -44,6 +44,7 @@ vi.mock('../../e2e/fixtures/auth.fixture', async () => ({
 
 const claimId = 'discovered-claim';
 const journey = { counterparty: 'Test operator', summary: 'Test-only journey' };
+const delivery = { id: 'journey-delivery' };
 
 function simulateClaimCleanup(notificationCount: number) {
   const submitted = { actionUrl: `/member/claims/${claimId}`, type: 'claim_submitted' };
@@ -53,15 +54,25 @@ function simulateClaimCleanup(notificationCount: number) {
   const lock = vi.fn(() =>
     Promise.resolve([{ id: claimId, ...claimLifecycleFieldsForStatus('submitted') }])
   );
+  const lockDeliveries = vi.fn<() => Promise<{ id: string }[]>>().mockResolvedValue([delivery]);
+  const findDeliveries = vi.fn<() => Promise<{ id: string }[]>>().mockResolvedValue([delivery]);
   const remove = vi.fn((_table: unknown) => ({ where: vi.fn().mockResolvedValue(undefined) }));
   const tx = {
     execute: vi.fn().mockResolvedValue(undefined),
     query: {
       claims: { findMany: vi.fn().mockResolvedValue([{ id: claimId }]) },
       domainEvents: { findMany: vi.fn().mockResolvedValue([{ id: 'journey-event' }]) },
+      notificationDeliveries: { findMany: findDeliveries },
       notifications: { findMany: findNotifications },
     },
-    select: () => ({ from: () => ({ where: () => ({ for: lock }) }) }),
+    select: () => ({
+      from: (table: unknown) => ({
+        where: () => {
+          const rowLock = { for: table === notificationDeliveries ? lockDeliveries : lock };
+          return { ...rowLock, orderBy: () => rowLock };
+        },
+      }),
+    }),
     delete: remove,
   };
   const commit = vi.fn();
@@ -72,7 +83,7 @@ function simulateClaimCleanup(notificationCount: number) {
       return result;
     }
   );
-  return { commit, findNotifications, lock, remove };
+  return { commit, findDeliveries, findNotifications, lock, lockDeliveries, remove };
 }
 
 beforeEach(() => {
@@ -80,6 +91,47 @@ beforeEach(() => {
   Object.values(db.query).forEach(({ findMany }) => findMany.mockResolvedValue([]));
 });
 afterEach(() => vi.useRealTimers());
+
+it('lets a worker holding the delivery row finish before cleanup locks the claim', async () => {
+  const { lock, lockDeliveries, remove } = simulateClaimCleanup(1);
+  const workerTakesClaimShare = vi.fn(() => {
+    expect(lock).not.toHaveBeenCalled();
+  });
+  lockDeliveries.mockImplementationOnce(async () => {
+    workerTakesClaimShare();
+    return [delivery];
+  });
+
+  await cleanupJourney(null, journey, new Set());
+
+  expect(workerTakesClaimShare).toHaveBeenCalledExactlyOnceWith();
+  expect(lockDeliveries).toHaveBeenCalledExactlyOnceWith('update');
+  expect(lockDeliveries).toHaveBeenCalledBefore(lock);
+  expect(lock).toHaveBeenCalledExactlyOnceWith('update');
+  expect(lock).toHaveBeenCalledBefore(remove);
+});
+
+it('releases the claim and locks a late delivery before draining or deleting any rows', async () => {
+  const { commit, findDeliveries, findNotifications, lock, lockDeliveries, remove } =
+    simulateClaimCleanup(1);
+  const deliveries = [delivery, { id: 'late-delivery' }];
+  findDeliveries.mockResolvedValue(deliveries);
+  lockDeliveries.mockResolvedValueOnce([delivery]).mockImplementationOnce(async () => {
+    expect(commit).toHaveBeenCalledExactlyOnceWith();
+    expect(findNotifications).not.toHaveBeenCalled();
+    expect(remove).not.toHaveBeenCalled();
+    return deliveries;
+  });
+
+  await cleanupJourney(null, journey, new Set());
+
+  expect(lockDeliveries).toHaveBeenCalledTimes(2);
+  expect(lock).toHaveBeenCalledTimes(2);
+  expect(lock).toHaveBeenCalledBefore(findDeliveries);
+  expect(findNotifications).toHaveBeenCalledExactlyOnceWith(expect.anything());
+  expect(remove).toHaveBeenCalledWith(notificationDeliveries);
+  expect(commit).toHaveBeenCalledTimes(2);
+});
 
 it.each([0, 2])(
   'commits cleanup and checks residue with %i submitted notifications',

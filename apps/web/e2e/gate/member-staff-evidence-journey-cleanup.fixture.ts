@@ -90,9 +90,20 @@ export async function cleanupJourney(
   journey: S3JourneyIdentity,
   cleanedIds: Set<string>
 ): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (await tryCleanupJourney(claimId, journey, cleanedIds)) return;
+  }
+  throw new Error('Journey notification deliveries kept changing before cleanup could lock them');
+}
+
+async function tryCleanupJourney(
+  claimId: string | null,
+  journey: S3JourneyIdentity,
+  cleanedIds: Set<string>
+): Promise<boolean> {
   const drainFailures: unknown[] = [];
   const cleanup = dbAdmin.transaction(async tx => {
-    // Each notification read must see commits made after the claim lock was taken.
+    // Rechecking deliveries and polling the inbox require a fresh snapshot for each read.
     await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL READ COMMITTED`);
     await tx.execute(sql`SET LOCAL statement_timeout = '5s'`);
     const ids = await claimIdsForJourney(claimId, journey, tx);
@@ -102,6 +113,17 @@ export async function cleanupJourney(
         eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
         inArray(claims.id, ids)
       );
+      const journeyDeliveries = and(
+        eq(notificationDeliveries.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+        inArray(notificationDeliveries.claimId, ids)
+      );
+      // The delivery worker locks its delivery before taking a share lock on the claim.
+      const lockedDeliveries = await tx
+        .select({ id: notificationDeliveries.id })
+        .from(notificationDeliveries)
+        .where(journeyDeliveries)
+        .orderBy(notificationDeliveries.id)
+        .for('update');
       // A committed status write is visible under the lock. A later writer cannot pass its
       // claim update once this transaction deletes the row. Keep the lock through deletion.
       const lockedClaims = await tx
@@ -112,7 +134,18 @@ export async function cleanupJourney(
         })
         .from(claims)
         .where(journeyClaims)
+        .orderBy(claims.id)
         .for('update');
+      // The claim lock blocks new foreign-key references. A delivery that committed while
+      // we waited for the claim might already be held by a worker. End this attempt without
+      // deleting anything so the next transaction can lock that delivery first.
+      const currentDeliveries = await tx.query.notificationDeliveries.findMany({
+        where: journeyDeliveries,
+        columns: { id: true },
+      });
+      const lockedDeliveryIds = new Set(lockedDeliveries.map(({ id }) => id));
+      if (currentDeliveries.some(({ id }) => !lockedDeliveryIds.has(id))) return false;
+
       // Keep the lock and delete residue even when the notification assertion times out.
       await drainJourneyNotifications(tx, lockedClaims).catch(error => drainFailures.push(error));
       const events = await tx.query.domainEvents.findMany({
@@ -143,14 +176,9 @@ export async function cleanupJourney(
           )
         )
       );
+      await tx.delete(notificationDeliveries).where(journeyDeliveries);
       await inSequence(
-        [
-          notificationDeliveries,
-          claimResponseRequests,
-          claimStageHistory,
-          claimDocuments,
-          claimMessages,
-        ] as const,
+        [claimResponseRequests, claimStageHistory, claimDocuments, claimMessages] as const,
         table =>
           tx
             .delete(table)
@@ -168,8 +196,9 @@ export async function cleanupJourney(
           eq(freeStartDrafts.summary, journey.summary)
         )
       );
+    return true;
   });
-  await cleanup.catch(error => {
+  const cleaned = await cleanup.catch(error => {
     if (drainFailures.length) {
       throw new AggregateError(
         [...drainFailures, error],
@@ -179,6 +208,7 @@ export async function cleanupJourney(
     throw error;
   });
   if (drainFailures.length) throw drainFailures[0];
+  return cleaned;
 }
 
 async function drainJourneyNotifications(
