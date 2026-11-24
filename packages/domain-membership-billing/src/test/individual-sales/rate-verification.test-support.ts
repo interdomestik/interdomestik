@@ -199,7 +199,12 @@ export function registerVerificationCases(fixture: AgeFixture) {
         f.owner
       )
     );
-    const inForce = success(await f.port.getExchangeRateInForce(f.owner.authority, new Date()));
+    const inForce = success(
+      await f.port.getExchangeRateInForce(
+        f.owner.authority,
+        new Date(Date.parse(rate.storedAt) + 1)
+      )
+    );
     expect(inForce.rate.id).toBe(rate.id);
     const sale = { ...input, rateId: rate.id, amountMkdMinor: toMkdMinor(1000n, official) };
     await assertClosed(f, sale);
