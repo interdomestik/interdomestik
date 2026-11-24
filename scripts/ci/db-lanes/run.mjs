@@ -38,7 +38,8 @@ function runVitest() {
   try {
     let index = 0;
     for (const [project, selected] of groups) {
-      const filename = join(temp, `${index++}.json`);
+      const filename = join(temp, `${index}.json`);
+      index += 1;
       const cwd = join(repoRoot, project);
       const result = spawnSync(
         'pnpm',
@@ -81,7 +82,7 @@ function runVitest() {
 
 if (process.argv[2] === 'unit') {
   for (const key of Object.keys(process.env)) {
-    if (/DATABASE_URL|^PG|^DB_/u.test(key)) delete process.env[key];
+    if (key.includes('DATABASE_URL') || /^(?:PG|DB_)/u.test(key)) delete process.env[key];
   }
   await runNode('advisory/node-unit');
 } else if (process.argv[2] === 'pg16') {

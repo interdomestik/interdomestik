@@ -6,6 +6,36 @@
     "removeWhen": "A reviewed disposable CI fixture supplies both credentials and verifies the restricted role."
   },
   {
+    "file": "apps/web/src/lib/auth/better-auth-authority.contract.test.ts",
+    "reason": "This opted-in authority proof writes users and sessions through the OTP contract helper's independent PostgreSQL client.",
+    "owner": "Web Auth",
+    "removeWhen": "The authority contract helper uses a guarded disposable CI target for setup, assertions, and cleanup."
+  },
+  {
+    "file": "apps/web/src/lib/auth/better-auth-email-otp.contract.test.ts",
+    "reason": "The opted-in OTP proof seeds users and writes verification, session, and account rows through a separately configured PostgreSQL client.",
+    "owner": "Web Auth",
+    "removeWhen": "A guarded disposable CI fixture owns the OTP client's writes and cleanup."
+  },
+  {
+    "file": "apps/web/src/lib/auth/different-email-recovery-reset.contract.test.ts",
+    "reason": "Reset proof creates users and verification rows through the recovery fixture's separate client and performs resets through the app database client.",
+    "owner": "Web Auth",
+    "removeWhen": "Both clients are bound to the same guarded disposable CI database and reset fixtures are isolated there."
+  },
+  {
+    "file": "apps/web/src/lib/auth/different-email-recovery-session.contract.test.ts",
+    "reason": "Session proof changes verification, user, and session state across the recovery fixture's client and the app database client.",
+    "owner": "Web Auth",
+    "removeWhen": "Both clients are bound to the same guarded disposable CI database and session fixtures are isolated there."
+  },
+  {
+    "file": "apps/web/src/lib/auth/different-email-recovery-store.contract.test.ts",
+    "reason": "The storage proof creates a cross-table ownership fixture and a competing writer through a separate recovery client while the store uses the app database client.",
+    "owner": "Web Auth",
+    "removeWhen": "Both clients and the competing writer are bound to the same guarded disposable CI database."
+  },
+  {
     "file": "packages/database/test/admin-connection-preflight.test.ts",
     "reason": "The admin preflight fixture starts a private PostgreSQL container and asserts its generated owner and non-owner identities.",
     "owner": "Database migrations",
@@ -46,5 +76,11 @@
     "reason": "This opt-in proof owns a separate labelled Docker container and its lifecycle instead of using the CI PostgreSQL service.",
     "owner": "Database migrations",
     "removeWhen": "A CI lane can execute the container lifecycle proof with its required isolation."
+  },
+  {
+    "file": "scripts/pilot/admin-users-unread.test.ts",
+    "reason": "The pilot proof requires a seeded loopback database on port 55432 and creates and checks the records_search_rls role. The advisory service uses port 5432 and does not provision that role.",
+    "owner": "Pilot Records",
+    "removeWhen": "A reviewed disposable CI lane supplies the seeded target and verifies the proof's restricted role."
   }
 ]

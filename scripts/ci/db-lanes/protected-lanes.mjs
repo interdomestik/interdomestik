@@ -1,28 +1,64 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import yaml from 'js-yaml';
+import { coverageTargets } from './coverage-lane.mjs';
+
+const requiredFlags = new Set([
+  'REQUIRE_DOMAIN_EVENT_RELAY_SQL_PROOF=1',
+  'REQUIRE_RLS_INTEGRATION=1',
+  'MESSAGE_RLS_INTEGRATION=1',
+  'BILLING_RLS_INTEGRATION=1',
+]);
+const runnerPrefixes = [
+  'tsx --test --test-concurrency=1 ',
+  'tsx --test ',
+  'vitest run --no-file-parallelism ',
+  'vitest run ',
+];
+
+function checkPg16Workflow(e2e) {
+  const rls = e2e.steps.find(step => step.name === 'RLS Integration Test');
+  const prepare = e2e.steps.find(step => step.name === 'Prepare E2E Database');
+  const rlsFlags = rls?.env;
+  const rlsRequired = ['REQUIRE_RLS_INTEGRATION', 'REQUIRE_RLS_COVERAGE'].every(
+    key => rlsFlags?.[key] === '1'
+  );
+  const journalLast = prepare?.run?.trimEnd().endsWith('\npnpm db:journal:parity');
+  const journalRequired = prepare?.env?.REQUIRE_JOURNAL_SCHEMA_PARITY === '1';
+  const checks = [
+    e2e.if === "needs.validation-surface.outputs.run_broad == 'true'",
+    rls?.run === 'pnpm db:rls:test',
+    !rls?.if,
+    rlsRequired,
+    !prepare?.if,
+    journalLast,
+    journalRequired,
+  ];
+  if (!checks.every(Boolean))
+    throw new Error('Cannot inventory the existing PG16 workflow selectors');
+}
+
+function testArguments(part, name, script) {
+  const args = part.split(' ');
+  let runnerIndex = 0;
+  while (requiredFlags.has(args[runnerIndex])) runnerIndex += 1;
+  const command = args.slice(runnerIndex).join(' ');
+  const prefix = runnerPrefixes.find(value => command.startsWith(value));
+  if (!prefix) throw new Error(`Unsupported runner in ${name} ${script}`);
+  const files = command.slice(prefix.length).split(' ');
+  if (files.some(file => !/^(?:src|test)\/[\w./-]+\.test\.tsx?$/u.test(file))) {
+    throw new Error(`Unsupported file selector in ${name} ${script}`);
+  }
+  return files;
+}
 
 // Inventory the explicit database commands without executing or rewriting them.
-export function protectedLanes(root) {
+export function protectedLanes(root, coverageCandidates = []) {
   const read = file => readFileSync(join(root, file), 'utf8');
   const scripts = (directory = '.') => JSON.parse(read(`${directory}/package.json`)).scripts;
   const workflow = yaml.load(read('.github/workflows/ci.yml'));
   const roots = scripts();
-  const e2e = workflow.jobs['e2e-gate'];
-  const rls = e2e.steps.find(step => step.name === 'RLS Integration Test');
-  const prepare = e2e.steps.find(step => step.name === 'Prepare E2E Database');
-  if (
-    e2e.if !== "needs.validation-surface.outputs.run_broad == 'true'" ||
-    rls?.run !== 'pnpm db:rls:test' ||
-    rls.if ||
-    rls.env?.REQUIRE_RLS_INTEGRATION !== '1' ||
-    rls.env?.REQUIRE_RLS_COVERAGE !== '1' ||
-    prepare?.if ||
-    !prepare?.run?.trimEnd().endsWith('\npnpm db:journal:parity') ||
-    prepare.env?.REQUIRE_JOURNAL_SCHEMA_PARITY !== '1'
-  ) {
-    throw new Error('Cannot inventory the existing PG16 workflow selectors');
-  }
+  checkPg16Workflow(workflow.jobs['e2e-gate']);
 
   function packageTargets(command) {
     const invocation = /^pnpm --filter @interdomestik\/([\w-]+) (test:[\w-]+)$/u.exec(command);
@@ -31,30 +67,23 @@ export function protectedLanes(root) {
     const directory = `packages/${name}`;
     const run = scripts(directory)[script];
     if (!run) throw new Error(`Missing ${name} ${script} selector`);
-    return run.split(' && ').flatMap(part => {
-      const invocation =
-        /^(?:(?:REQUIRE_DOMAIN_EVENT_RELAY_SQL_PROOF|REQUIRE_RLS_INTEGRATION|MESSAGE_RLS_INTEGRATION|BILLING_RLS_INTEGRATION)=1 )*(?:tsx --test(?: --test-concurrency=1)?|vitest run(?: --no-file-parallelism)?) (.+)$/u.exec(
-          part
-        );
-      if (!invocation) throw new Error(`Unsupported runner in ${name} ${script}`);
-      const files = invocation[1].split(' ');
-      if (
-        !files.length ||
-        files.some(file => !/^(?:src|test)\/[\w./-]+\.test\.tsx?$/u.test(file))
-      ) {
-        throw new Error(`Unsupported file selector in ${name} ${script}`);
-      }
-      return files.map(file => `${directory}/${file}`);
-    });
+    return run
+      .split(' && ')
+      .flatMap(part => testArguments(part, name, script).map(file => `${directory}/${file}`));
   }
 
   function webTargets(command) {
     if (command !== 'node scripts/run-staff-detail-rls.mjs') {
       throw new Error('Unsupported staff detail selector');
     }
-    const source = read('scripts/run-staff-detail-rls.mjs');
-    const args = /const child = spawn\(\s*process\.execPath,\s*\[([\s\S]*?)\n\s*\],/u.exec(source);
+    const lines = read('scripts/run-staff-detail-rls.mjs')
+      .split('\n')
+      .map(line => line.trim());
+    const start = lines.indexOf('const child = spawn(');
     const prefix = [
+      'const child = spawn(',
+      'process.execPath,',
+      '[',
       'vitest,',
       "'run',",
       "'--environment=node',",
@@ -62,35 +91,23 @@ export function protectedLanes(root) {
       "'--no-file-parallelism',",
       "'--testTimeout=30000',",
     ];
-    const lines = (args?.[1] ?? '')
-      .trim()
-      .split('\n')
-      .map(line => line.trim());
-    const files = lines
-      .slice(prefix.length)
-      .map(line => /^'(src\/[^']+\.test\.tsx?)',$/u.exec(line));
+    const firstFile = start + prefix.length;
+    const end = lines.indexOf('],', firstFile);
     if (
-      !prefix.every((line, index) => line === lines[index]) ||
-      !files.length ||
-      files.includes(null)
+      start < 0 ||
+      end <= firstFile ||
+      !prefix.every((line, index) => line === lines[start + index])
     ) {
       throw new Error('Unsupported staff detail test selectors');
     }
-    return files.map(([, file]) => `apps/web/${file}`);
+    return lines.slice(firstFile, end).map(line => {
+      const match = /^'(src\/[^']+\.test\.tsx?)',$/u.exec(line);
+      if (!match) throw new Error('Unsupported staff detail test selector');
+      return `apps/web/${match[1]}`;
+    });
   }
 
-  const coverage = workflow.jobs.unit.steps.find(step => step.name === 'Coverage Gate');
-  if (
-    coverage?.run !== 'pnpm coverage:gate' ||
-    !roots['coverage:gate'].startsWith('pnpm test:coverage && ') ||
-    !roots['test:coverage'].includes('--filter @interdomestik/web exec vitest run --coverage') ||
-    !roots['test:coverage'].includes('--filter @interdomestik/domain-* test:unit --coverage') ||
-    scripts('packages/domain-users')['test:unit'] !== 'vitest run'
-  ) {
-    throw new Error('Cannot inventory the existing coverage selectors');
-  }
-
-  return [
+  const lanes = [
     {
       name: 'e2e-gate/RLS',
       files: roots['db:rls:test']
@@ -102,12 +119,8 @@ export function protectedLanes(root) {
         ),
     },
     { name: 'e2e-gate/journal-parity', files: packageTargets(roots['db:journal:parity']) },
-    {
-      name: 'unit/coverage',
-      files: [
-        'apps/web/src/features/claims/tracking/server/trackingLifecycle.integration.test.ts',
-        'packages/domain-users/src/admin/get-users.rls.test.ts',
-      ],
-    },
   ];
+  const coverage = coverageTargets(root, workflow.jobs.unit, roots, read, coverageCandidates);
+  if (coverage.length) lanes.push({ name: 'unit/coverage', files: coverage });
+  return lanes;
 }

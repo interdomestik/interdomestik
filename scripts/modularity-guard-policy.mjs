@@ -47,6 +47,7 @@ const STRUCTURED_OWNERS = [
   [/^\.github\/actions\/pr-feedback-setup\/action\.yml$/u, 'pr-feedback-refresh-contract'],
   [/^\.github\/actions\/setup\/action\.yml$/u, 'private-node-cache-contract'],
   [/^scripts\/ci\/reviewer-no-tools\.toml$/u, 'reviewer-tool-denial-contract'],
+  [/^scripts\/ci\/db-lanes\/exclusions\.json$/u, 'database-lane-inventory-contract'],
   [/^\.github\/actions\/validation-surface\/action\.yml$/u, 'main-e2e-reuse-workflow-contract'],
   [/^\.github\/reviewer-routing\.json$/u, 'reviewer-routing-contract'],
   [/^docs\/delivery-contract\.yml$/u, 'track-audit-contract'],
@@ -89,7 +90,6 @@ function exactLocaleCatalogOwners(owner, namesByLocale) {
     names.map(name => [`${locale}/${name}.json`, owner])
   );
 }
-
 const LOCALE_CATALOG_OWNERS = new Map([
   ['admin-users.json', 's7-admin-user-read-recovery-i18n-contract'],
   ['admin-claims.json', 's7-admin-claims-read-consistency-i18n-contract'],

@@ -1,22 +1,45 @@
 import { execFileSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
-import { join, resolve } from 'node:path';
+import { basename, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 import { protectedLanes } from './protected-lanes.mjs';
 
 export const repoRoot = resolve(import.meta.dirname, '../../..');
 const testFile = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
-const marked = /[.-](?:db|pg16|postgres|integration|rls|restricted-role)[.-]/u;
+const databaseMarker = /(?:^|[.-])(?:db|pg16|postgres|integration|rls|restricted-role)/u;
+const marked = new RegExp(`${databaseMarker.source}[.-]`, 'u');
+const liveTestSuffix = new RegExp(`${databaseMarker.source}\\.test\\.ts$`, 'u');
+const rlsMarked = /(?:^|[.-])(?:rls|restricted-role)[.-]/u;
 const sourceTree = /^(?:apps\/web|packages\/[^/]+)\/src\//u;
+const authContracts = /^apps\/web\/src\/lib\/auth\/[^/]+\.contract\./u;
+const packageTests = /^packages\/[^/]+\/test\//u;
+const coverageMock = /\bvi\.mock\(\s*['"]@interdomestik\/database['"]/u;
+const conditionalTest = /\.(?:runIf|skipIf|skip|todo)\b|\bskip\s*:/u;
 
-function isDatabaseTest(file) {
-  if (!testFile.test(file)) return false;
-  const name = file.split('/').at(-1);
-  return (
-    /^packages\/[^/]+\/test\//u.test(file) ||
-    /[.-](?:rls|restricted-role)[.-]/u.test(name) ||
-    (sourceTree.test(file) && marked.test(name))
-  );
+function isLiveOptIn(file, source) {
+  if (!conditionalTest.test(source)) return false;
+  if (!source.includes('process.env')) return false;
+  const syntax = ts.createSourceFile(file, source, ts.ScriptTarget.Latest);
+  const databaseKey = /DATABASE_URL|DB_PROOF|DB_INTEGRATION|POSTGRES_INTEGRATION|RLS_INTEGRATION/u;
+  function visitsDatabaseEnv(node) {
+    const readsDatabaseEnv =
+      ts.isPropertyAccessExpression(node) &&
+      databaseKey.test(node.name.text) &&
+      node.expression.getText(syntax) === 'process.env';
+    return readsDatabaseEnv || Boolean(ts.forEachChild(node, visitsDatabaseEnv));
+  }
+  return visitsDatabaseEnv(syntax);
+}
+
+function isDatabaseTest(root, file) {
+  const name = basename(file);
+  if (name.endsWith('rls.spec.ts')) return true;
+  if (packageTests.test(file) || rlsMarked.test(name)) return true;
+  const inSource = sourceTree.test(file);
+  if (!inSource && !file.startsWith('scripts/')) return false;
+  if (inSource && (marked.test(name) || authContracts.test(file))) return true;
+  return isLiveOptIn(file, readFileSync(join(root, file), 'utf8'));
 }
 
 export function trackedTests(root) {
@@ -24,7 +47,19 @@ export function trackedTests(root) {
     cwd: root,
     encoding: 'utf8',
   });
-  return output.split('\0').filter(isDatabaseTest).sort();
+  return output
+    .split('\0')
+    .filter(file => testFile.test(file))
+    .filter(file => isDatabaseTest(root, file))
+    .sort();
+}
+
+function isExactTestPath(file) {
+  return (
+    testFile.test(file) &&
+    !/[*?\\\r\n\0]/u.test(file) &&
+    file.split('/').every(segment => !['', '.', '..'].includes(segment))
+  );
 }
 
 export function readExclusions(filename) {
@@ -47,15 +82,10 @@ export function readExclusions(filename) {
   }
   const seen = new Set();
   for (const entry of entries) {
-    if (
-      !entry ||
-      !['file', 'reason', 'owner', 'removeWhen'].every(
-        key => typeof entry[key] === 'string' && entry[key].trim()
-      ) ||
-      !isDatabaseTest(entry.file) ||
-      /[*?\\\r\n\0]/u.test(entry.file) ||
-      entry.file.split('/').some(segment => ['', '.', '..'].includes(segment))
-    ) {
+    const complete = ['file', 'reason', 'owner', 'removeWhen'].every(
+      key => typeof entry?.[key] === 'string' && entry[key].trim()
+    );
+    if (!complete || !isExactTestPath(entry.file)) {
       throw new Error('Database test exclusions manifest has an invalid exclusion');
     }
     if (seen.has(entry.file)) throw new Error(`duplicate exclusion: ${entry.file}`);
@@ -66,12 +96,11 @@ export function readExclusions(filename) {
 
 function advisoryLane(file) {
   if (/^packages\/database\/test\/(?:pg16\/)?[^/]+\.test\.ts$/u.test(file)) {
-    const name = file.split('/').at(-1);
-    const liveTest = /[.-](?:db|pg16|postgres|integration|rls|restricted-role)\.test\.ts$/u;
-    if (file.startsWith('packages/database/test/pg16/') || liveTest.test(name)) {
+    const name = basename(file);
+    if (file.startsWith('packages/database/test/pg16/') || liveTestSuffix.test(name)) {
       return 'advisory/node-pg16';
     }
-    return /^sponsor-(?!refactor\.test\.ts$)/u.test(name)
+    return name.startsWith('sponsor-') && name !== 'sponsor-refactor.test.ts'
       ? 'advisory/node-pg16'
       : 'advisory/node-unit';
   }
@@ -81,6 +110,7 @@ function advisoryLane(file) {
   ) {
     return 'advisory/vitest-pg16';
   }
+  return undefined;
 }
 
 export function buildInventory(files, existing, exclusions) {
@@ -114,11 +144,15 @@ export function buildInventory(files, existing, exclusions) {
 }
 
 export function repositoryInventory(root = repoRoot) {
-  return buildInventory(
-    trackedTests(root),
-    protectedLanes(root),
-    readExclusions(join(root, 'scripts/ci/db-lanes/exclusions.json'))
-  );
+  const files = trackedTests(root);
+  const exclusions = readExclusions(join(root, 'scripts/ci/db-lanes/exclusions.json'));
+  const excludedFiles = new Set(exclusions.map(entry => entry.file));
+  const coverageCandidates = files.filter(file => {
+    if (advisoryLane(file) !== 'advisory/vitest-pg16' || excludedFiles.has(file)) return false;
+    const source = readFileSync(join(root, file), 'utf8');
+    return coverageMock.test(source) && !conditionalTest.test(source);
+  });
+  return buildInventory(files, protectedLanes(root, coverageCandidates), exclusions);
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
