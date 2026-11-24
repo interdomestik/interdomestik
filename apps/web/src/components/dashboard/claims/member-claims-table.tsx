@@ -172,8 +172,11 @@ function useMemberClaimsRetainedResult(
     setLastSuccess({ key: requestKey, data });
   }
 
-  if (isPlaceholderData && lastSuccess?.data === data) {
-    return lastSuccess;
+  // Retain whatever placeholder the query offers once a request has succeeded and none has
+  // failed since. Comparing object identity would drop rows that a background refresh
+  // replaced in the cache just before the URL committed.
+  if (isPlaceholderData && lastSuccess && data) {
+    return { key: lastSuccess.key, data };
   }
   return null;
 }

@@ -322,6 +322,45 @@ describe('MemberClaimsTable (wire-to-mounted regression)', () => {
     expect(live).toHaveTextContent('Page 1 of 1: 1 case');
   });
 
+  it('keeps the rows when a background refresh lands just before a page commit', async () => {
+    mockFetch({ ...wireResponse([wireRow()]), totalPages: 2 });
+    const { commit, queryClient } = renderTable();
+    const firstRow = await screen.findByRole('link', { name: 'Flight Delay' });
+    const pageOneKey = ['claims', 'member', { page: 1 }];
+    const settled = queryClient.getQueryData<{ claims: Array<Record<string, unknown>> }>(
+      pageOneKey
+    );
+    expect(settled?.claims).toHaveLength(1);
+    const finishPageTwo = deferFetch();
+
+    // A background refresh (changed status) reaches the cache in the same render as the URL
+    // commit, so the placeholder is a new page-1 object the table has not rendered yet.
+    act(() => {
+      queryClient.setQueryData(pageOneKey, {
+        ...settled,
+        claims: settled!.claims.map(claim => ({ ...claim, status: 'evaluation' })),
+      });
+      commit('page=2');
+    });
+
+    const region = screen.getByRole('region', { name: claims.claims.title });
+    expect(firstRow).toBeVisible();
+    expect(within(region).getByText(claims.claims.memberList.updating)).toBeVisible();
+    expect(within(region).queryByText(common.common.loading)).not.toBeInTheDocument();
+    expect(region.querySelector('.motion-safe\\:animate-pulse')).not.toBeInTheDocument();
+
+    finishPageTwo(
+      new Response(
+        JSON.stringify({
+          ...wireResponse([wireRow({ id: 'page-two', title: 'Case on page two' })]),
+          page: 2,
+          totalPages: 2,
+        })
+      )
+    );
+    expect(await screen.findByRole('link', { name: 'Case on page two' })).toBeVisible();
+  });
+
   it('releases pagination immediately on Back after a page commits with placeholder rows', async () => {
     const firstPage = { ...wireResponse([wireRow()]), totalPages: 2 };
     mockFetch(firstPage);
