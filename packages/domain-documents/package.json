@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./storage": "./src/storage.ts",
+    "./claim-documents": "./src/claim-documents.ts",
     "./upload": "./src/upload.ts",
     "./audit": "./src/audit.ts"
   },
