@@ -135,15 +135,12 @@ export async function openQueue(
     baseURL: origin,
     marker: 'staff-page-ready',
   });
-  // Scoped to the shell: a reload can leave a hidden streamed copy of the row outside it.
-  const row = page
-    .getByTestId('role-shell')
-    .getByTestId('staff-claims-row')
-    .filter({
-      has: page
-        .getByTestId('staff-claims-view')
-        .and(page.locator(`a[href$="/staff/claims/${claimId}"]`)),
-    });
-  await expect(row).toBeVisible();
-  return row.getByTestId('staff-claim-overdue-follow-up');
+  const row = page.getByTestId('staff-claims-row').filter({
+    has: page
+      .getByTestId('staff-claims-view')
+      .and(page.locator(`a[href$="/staff/claims/${claimId}"]`)),
+  });
+  const shellRow = page.getByTestId('role-shell').getByTestId('staff-claims-row').and(row);
+  await expect(shellRow).toBeVisible();
+  return { row, overdue: shellRow.getByTestId('staff-claim-overdue-follow-up') };
 }

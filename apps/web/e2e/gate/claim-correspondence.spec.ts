@@ -26,7 +26,12 @@ test('assigned staff record legal bases, document disclosure, and an overdue una
   await loginAtDoor(page, origin, locale, 'KS_STAFF', info);
   const detail = `/${locale}/staff/claims/${claimId}`;
   await gotoApp(page, detail, info, { baseURL: origin, marker: 'staff-claim-detail-ready' });
-  await expect(page.getByTestId('staff-correspondence-list')).toContainText(copy.list.empty);
+  const list = page.getByTestId('staff-correspondence-list');
+  await expect(list).toHaveCount(1);
+  await expect(list).toContainText(copy.list.empty);
+  await expect(
+    page.getByRole('region', { name: copy.caseFields.title, exact: true, includeHidden: true })
+  ).toHaveCount(1);
 
   for (const name of [...instruments.map(instrument => instrument.file), sentDocument]) {
     await uploadCasePdf(page, name);
@@ -47,7 +52,7 @@ test('assigned staff record legal bases, document disclosure, and an overdue una
 
   const queue = await page.context().newPage();
   try {
-    const overdue = await openQueue(queue, claimId, origin, locale, info);
+    const { row, overdue } = await openQueue(queue, claimId, origin, locale, info);
     await expect(overdue).toBeVisible();
     await expect(overdue).toContainText(formatPilotDateTime(firstFollowUp, locale, ''));
 
@@ -75,6 +80,7 @@ test('assigned staff record legal bases, document disclosure, and an overdue una
     await expect(overdue).toBeVisible();
     await expect(overdue).toContainText(formatPilotDateTime(secondFollowUp, locale, ''));
     await expect(overdue).not.toContainText(formatPilotDateTime(firstFollowUp, locale, ''));
+    await expect(row).toHaveCount(1);
   } finally {
     await queue.close();
   }
