@@ -183,25 +183,29 @@ checks:
     description: The admin claim card's assignment handler must not secretly update status.
     type: regex
     scope: EACH_TARGET
+    # Comments are stripped first, so a commented-out copy cannot satisfy the pin.
+    strip_comments: true
     targets:
       - apps/web/src/features/admin/claims/components/ops/NextActionsCard.tsx
     must_match:
       # The card also owns explicit status changes, so its assignment handler is pinned whole
       # (whitespace aside): any change, including a call to a status action or callback, fails
       # until this contract is reviewed.
-      - 'const\s+handleAssign\s+=\s+\(staffId:\s+string,\s+intent:\s+AssignmentIntent\)\s+=>\s+\{\s+if\s+\(isPending\s+\|\|\s+!canAssignHere\)\s+return;\s+const\s+claimId\s+=\s+claim\.id;\s+startTransition\(async\s+\(\)\s+=>\s+\{\s+onAction\?\.\(intent\);\s+//\s+Ops\s+tracking\s+try\s+\{\s+const\s+result\s+=\s+await\s+assignOwner\(claimId,\s+staffId,\s+locale\);\s+if\s+\(result\.success\)\s+\{\s+//\s+The\s+user\s+left\s+this\s+claim\s+while\s+saving:\s+confirm\s+without\s+reloading\s+the\s+page\s+they\s+are\s+on\.\s+if\s+\(!assignmentReload\.isCurrent\(claimId\)\)\s+\{\s+showAssignmentSaved\(\);\s+return;\s+\}\s+//\s+The\s+localized\s+confirmation\s+is\s+shown\s+after\s+the\s+reload\.\s+When\s+the\s+browser\s+blocks\s+session\s+//\s+storage\s+it\s+is\s+shown\s+now;\s+the\s+transition\s+stays\s+pending\s+until\s+the\s+delayed\s+reload\.\s+if\s+\(rememberAssignmentFlash\(claimId\)\)\s+\{\s+globalThis\.location\.reload\(\);\s+\}\s+else\s+\{\s+showAssignmentSaved\(\);\s+await\s+assignmentReload\.reloadAfterToast\(claimId\);\s+\}\s+return;\s+\}\s+const\s+errorKey\s+=\s+assignmentErrorToastKey\(result\.error\);\s+toast\.error\(errorKey\s+\?\s+tAssignment\(errorKey\)\s+:\s+t\(''toast\.failed''\)\);\s+\}\s+catch\s+\{\s+toast\.error\(t\(''toast\.unexpected_error''\)\);\s+\}\s+\}\);\s+\};'
+      - 'const\s+handleAssign\s+=\s+\(staffId:\s+string,\s+intent:\s+AssignmentIntent\)\s+=>\s+\{\s+if\s+\(isPending\s+\|\|\s+!canAssignHere\)\s+return;\s+const\s+claimId\s+=\s+claim\.id;\s+startTransition\(async\s+\(\)\s+=>\s+\{\s+onAction\?\.\(intent\);\s+try\s+\{\s+const\s+result\s+=\s+await\s+assignOwner\(claimId,\s+staffId,\s+locale\);\s+if\s+\(result\.success\)\s+\{\s+if\s+\(!assignmentReload\.isCurrent\(claimId\)\)\s+\{\s+showAssignmentSaved\(\);\s+return;\s+\}\s+if\s+\(rememberAssignmentFlash\(claimId\)\)\s+\{\s+globalThis\.location\.reload\(\);\s+\}\s+else\s+\{\s+showAssignmentSaved\(\);\s+await\s+assignmentReload\.reloadAfterToast\(claimId\);\s+\}\s+return;\s+\}\s+const\s+errorKey\s+=\s+assignmentErrorToastKey\(result\.error\);\s+toast\.error\(errorKey\s+\?\s+tAssignment\(errorKey\)\s+:\s+t\(''toast\.failed''\)\);\s+\}\s+catch\s+\{\s+toast\.error\(t\(''toast\.unexpected_error''\)\);\s+\}\s+\}\);\s+\};'
 
   - id: lifecycle.no_hidden_transitions_admin_assign_action
-    description: The exported admin assignment action only delegates to the checked assignment action.
+    description: The exported admin ownership actions only delegate to the checked assignment actions.
     type: regex
     scope: EACH_TARGET
+    strip_comments: true
     targets:
       - apps/web/src/features/admin/claims/actions/ops-actions.ts
     must_match:
-      # The module also exports the status action, so the assignment wrapper is pinned whole: its
-      # body is the delegation to `assignOwnerAction` (checked by
-      # `lifecycle.no_hidden_transitions_assignment`) and nothing else.
+      # The module also exports the status action, so both ownership wrappers are pinned whole: each
+      # body is the delegation to `assignOwnerAction` / `unassignOwnerAction` in
+      # `ops-assignment-action.ts` (held by `lifecycle.no_hidden_transitions_assignment`).
       - 'export\s+async\s+function\s+assignOwner\(\s+claimId:\s+string,\s+staffId:\s+string,\s+locale:\s+string\s+\):\s+Promise<OpsActionResponse>\s+\{\s+return\s+assignOwnerAction\(claimId,\s+staffId,\s+locale\);\s+\}'
+      - 'export\s+async\s+function\s+unassignOwner\(claimId:\s+string,\s+locale:\s+string\):\s+Promise<OpsActionResponse>\s+\{\s+return\s+unassignOwnerAction\(claimId,\s+locale\);\s+\}'
 
   - id: lifecycle.allowed_transitions_single_source
     description: UI status controls must derive options from ALLOWED_TRANSITIONS.
@@ -590,6 +594,19 @@ checks:
       # The whole worker transport list, from its initialization to its return: Resend only when not
       # automated.
       - "export function configuredEmailTransports\\(\\): EmailTransport\\[\\] \\{\\s*const transports: EmailTransport\\[\\] = \\[\\];\\s*const target = configuredSmtpTarget\\(true\\);\\s*if \\(target && target !== 'rejected'\\) transports\\.push\\('smtp'\\);\\s*if \\(!isAutomated\\(\\) && process\\.env\\.RESEND_API_KEY\\) transports\\.push\\('resend'\\);\\s*return transports;\\s*\\}"
+
+  - id: automation.smtp_socket_targets_validated_host
+    description: The SMTP socket connects only to the validated target (the loopback catcher in automated mode), never to an environment host.
+    type: regex
+    scope: EACH_TARGET
+    strip_comments: true
+    targets:
+      - packages/domain-communications/src/sign-in-otp-email.ts
+    must_match:
+      - 'createConnection\(\{ host: options\.host, port: options\.port, signal \}\)'
+    must_not_match:
+      - 'process\.env\.SMTP_(?:HOST|PORT)'
+      - 'createConnection\([\s\S]*createConnection\('
 
   - id: automation.catcher_fallback_is_refused
     description: The Resend fallback refuses a provider marked test-only (the loopback catcher).
