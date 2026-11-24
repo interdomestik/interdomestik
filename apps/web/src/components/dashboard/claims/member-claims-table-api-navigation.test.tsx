@@ -1,68 +1,25 @@
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { SEARCH_COMMIT_DELAY_MS } from '@/hooks/use-responsive-search';
-import type { ComponentProps } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { ClaimsFilters } from './claims-filters';
-import { MemberClaimsTable } from './member-claims-table';
+import { describe, expect, it, vi } from 'vitest';
 import { wireResponse, wireRow } from '@/test/fixtures/claims-list-wire';
-import { NextIntlClientProvider } from 'next-intl';
 import claims from '@/messages/en/claims.json';
 import common from '@/messages/en/common.json';
-import { catalogues, deferFetch, mockFetch } from './member-claims-table-test-support';
-
-const navigation = vi.hoisted(() => ({ query: '', push: vi.fn() }));
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => new URLSearchParams(navigation.query),
-}));
-
-vi.mock('@/i18n/routing', () => ({
-  Link: ({ prefetch: _prefetch, ...props }: ComponentProps<'a'> & { prefetch?: boolean }) => (
-    <a {...props} />
-  ),
-  usePathname: () => '/member/claims',
-  useRouter: () => ({ push: navigation.push }),
-}));
+import {
+  deferFetch,
+  mockFetch,
+  navigation,
+  setupApiTable,
+} from './member-claims-table-test-support';
+import { SEARCH_COMMIT_DELAY_MS } from '@/hooks/use-responsive-search';
 
 vi.unmock('next-intl');
+const loadMocks = vi.hoisted(() => () => import('./member-claims-table-test-support'));
+vi.mock('next/navigation', async () => (await loadMocks()).nextNavigationMock());
+vi.mock('@/i18n/routing', async () => (await loadMocks()).routingMock());
+vi.mock('./claim-status-badge', async () => (await loadMocks()).claimStatusBadgeMock());
 
-vi.mock('@/components/dashboard/claims/claim-status-badge', () => ({
-  ClaimStatusBadge: ({ status }: { status: string }) => <span>{status}</span>,
-}));
-
-function renderTable(locale: keyof typeof catalogues = 'en', withFilters = false) {
-  const queryClient = new QueryClient({
-    defaultOptions: { queries: { retry: false } },
-  });
-  const tree = () => (
-    <QueryClientProvider client={queryClient}>
-      <NextIntlClientProvider locale={locale} messages={catalogues[locale]}>
-        {withFilters ? <ClaimsFilters /> : null}
-        <MemberClaimsTable />
-      </NextIntlClientProvider>
-    </QueryClientProvider>
-  );
-  const view = render(tree());
-  return {
-    queryClient,
-    commit(query: string) {
-      navigation.query = query;
-      view.rerender(tree());
-    },
-  };
-}
-
+const renderTable = await setupApiTable();
 describe('MemberClaimsTable (wire-to-mounted regression)', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    navigation.query = '';
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it('keeps settled rows and the live line until the requested page returns', async () => {
     mockFetch({ ...wireResponse([wireRow()]), totalPages: 2 });
     const { commit } = renderTable();

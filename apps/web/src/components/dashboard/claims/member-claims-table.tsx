@@ -190,7 +190,7 @@ export function MemberClaimsTable({
             >
               <TableHeader className="sr-only md:not-sr-only md:table-header-group" role="rowgroup">
                 <TableRow
-                  className="border-[hsl(var(--border-strong))] hover:bg-transparent [&_th]:py-3 [&_th]:font-semibold [&_th]:text-foreground"
+                  className="block border-[hsl(var(--border-strong))] hover:bg-transparent md:table-row [&_th]:block [&_th]:py-3 [&_th]:font-semibold [&_th]:text-foreground md:[&_th]:table-cell"
                   role="row"
                 >
                   <TableHead id={`${headerId}-title`} className="md:w-1/4" role="columnheader">

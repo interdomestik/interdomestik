@@ -1,104 +1,24 @@
+import { useQuery } from '@tanstack/react-query';
 import { act, fireEvent, render, screen } from '@testing-library/react';
-import type { AnchorHTMLAttributes } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemberClaimsTable } from './member-claims-table';
-import { mockClaims } from './member-claims-table-test-support';
+import { mockClaims, navigation, resetUnitNavigation } from './member-claims-table-test-support';
 
-const hoisted = vi.hoisted(() => ({
-  push: vi.fn(),
-  searchParams: new URLSearchParams(),
-}));
+const loadMocks = vi.hoisted(() => () => import('./member-claims-table-test-support'));
+vi.mock('@tanstack/react-query', async original => (await loadMocks()).reactQueryMock(original));
+vi.mock('next/navigation', async () => (await loadMocks()).unitNextNavigationMock());
+vi.mock('next-intl', async () => (await loadMocks()).intlMock());
+vi.mock('@/i18n/routing', async () => (await loadMocks()).routingMock());
+vi.mock('./claim-status-badge', async () => (await loadMocks()).claimStatusBadgeMock());
+vi.mock('@/lib/api/claims', async () => (await loadMocks()).claimsApiMock());
 
-// Mock react-query
-vi.mock('@tanstack/react-query', async importOriginal => ({
-  ...(await importOriginal<typeof import('@tanstack/react-query')>()),
-  useQuery: vi.fn(),
-}));
-
-import { useQuery } from '@tanstack/react-query';
+const hoisted = navigation;
 const mockUseQuery = vi.mocked(useQuery);
 
-// Mock search params
-vi.mock('next/navigation', () => ({
-  useSearchParams: () => hoisted.searchParams,
-}));
-
-// Mock next-intl
-vi.mock('next-intl', () => ({
-  useLocale: () => 'en',
-  useTranslations: () =>
-    Object.assign(
-      (key: string) => {
-        const translations: Record<string, string> = {
-          'detail.continuity.caseLabel': 'Case',
-          'table.company': 'Company',
-          'table.category': 'Category',
-          'table.status': 'Status',
-          'table.amount': 'Amount',
-          'table.created': 'Created',
-          'table.unavailable': 'Unavailable',
-          'empty.title': 'No claims yet',
-          'empty.description': 'Start by creating your first claim',
-          'empty.filtered': 'No claims match your filters',
-          'empty.createFirst': 'Create First Claim',
-          showing: 'Showing',
-          claim: 'claim',
-          claimsPlural: 'claims',
-          loading: 'Loading...',
-          processing: 'Processing...',
-          'errors.generic': 'An error occurred',
-          tryAgain: 'Try Again',
-          previous: 'Previous',
-          next: 'Next',
-          'pagination.pageOf': 'Page {page} of {total}',
-          auto: 'Auto',
-          travel: 'Travel',
-        };
-        return translations[key] || key;
-      },
-      { has: (key: string) => key === 'auto' || key === 'travel' }
-    ),
-}));
-
-// Mock routing
-vi.mock('@/i18n/routing', () => ({
-  Link: ({
-    children,
-    href,
-    prefetch: _prefetch,
-    ...props
-  }: AnchorHTMLAttributes<HTMLAnchorElement> & {
-    children: React.ReactNode;
-    href: string;
-    prefetch?: boolean;
-  }) => (
-    <a href={href} {...props}>
-      {children}
-    </a>
-  ),
-  usePathname: () => '/member/claims',
-  useRouter: () => ({
-    push: hoisted.push,
-  }),
-}));
-
-// Mock ClaimStatusBadge
-vi.mock('@/components/dashboard/claims/claim-status-badge', () => ({
-  ClaimStatusBadge: ({ status }: { status: string }) => <span>{status}</span>,
-}));
-
-// Mock fetchClaims
-vi.mock('@/lib/api/claims', () => ({
-  fetchClaims: vi.fn(),
-}));
-
 describe('MemberClaimsTable', () => {
-  beforeEach(() => {
-    vi.clearAllMocks();
-    hoisted.searchParams = new URLSearchParams();
-  });
+  beforeEach(resetUnitNavigation);
 
-  it('shows deterministic pending feedback when pagination changes page', async () => {
+  it('shows deterministic pending feedback when pagination changes page', () => {
     mockUseQuery.mockReturnValue({
       data: { claims: mockClaims, totalPages: 3 },
       isLoading: false,
@@ -117,7 +37,7 @@ describe('MemberClaimsTable', () => {
     );
   });
 
-  it('keeps current and pending pagination controls inert', async () => {
+  it('keeps current and pending pagination controls inert', () => {
     hoisted.searchParams = new URLSearchParams('page=2&search=claim');
     mockUseQuery.mockReturnValue({
       data: { claims: mockClaims, totalPages: 3 },
