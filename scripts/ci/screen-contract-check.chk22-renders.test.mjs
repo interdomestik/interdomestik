@@ -146,3 +146,19 @@ test('CHK-22: a direct namespace member resolves to the registered submission', 
   const handler = '() => actions.saveTerms()';
   assert.deepEqual(await judgeSignupHandler(t, NAMESPACE_ACTIONS, handler), []);
 });
+
+test('CHK-22: with no registered render target, an unresolvable namespace member is no scanner error (r3-B4)', async t => {
+  const forms = `${W}/app/menu.tsx`;
+  const root = tree(
+    t,
+    base({
+      ...SHARED_FILES,
+      [forms]:
+        "import * as UI from '@interdomestik/ui';\nexport function M() { return <div><UI.Menu.Item /><UI.Missing /></div>; }\n",
+    })
+  );
+  assert.deepEqual(
+    (await chk22(root)).filter(id => id.includes(forms)),
+    []
+  );
+});
