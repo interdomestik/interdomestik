@@ -1,4 +1,8 @@
+// @vitest-environment node
+
+import 'next/dist/server/node-environment-baseline';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { adapter } from 'next/dist/server/web/adapter';
 import { NextRequest } from 'next/server';
 import { LOCALES } from '@/i18n/locales';
 
@@ -56,6 +60,35 @@ const actionHeaders = { 'next-action': 'test-action' };
 const actionPost = { method: 'POST', headers: actionHeaders };
 const matchingKsCookie = 'tenantId=tenant_ks';
 
+function runActionThroughAdapter(
+  host: string,
+  path: string,
+  tenant: string,
+  proxyPath = path,
+  transportHeaders?: Record<string, string>
+) {
+  return adapter({
+    page: '/src/proxy',
+    request: {
+      url: `http://${host}${path}`,
+      method: 'POST',
+      signal: new AbortController().signal,
+      headers: {
+        host,
+        cookie: `tenantId=${tenant}`,
+        accept: 'text/x-component',
+        ...actionHeaders,
+        'next-router-state-tree': encodeURIComponent(JSON.stringify(['', {}])),
+        ...transportHeaders,
+      },
+    },
+    handler: request => {
+      expect(request.nextUrl.pathname).toBe(proxyPath);
+      return proxy(request);
+    },
+  });
+}
+
 function expectProxyContext(
   response: Response,
   expected: { tenant: string; context: string; setCookie?: string | null }
@@ -70,7 +103,7 @@ function expectProxyContext(
     expect(setCookie).toBeNull();
     return;
   }
-  expect(setCookie).toContain(expected.setCookie);
+  expect(setCookie).toEqual(expect.stringContaining(expected.setCookie));
 }
 
 describe('proxy ida front-door context', () => {
@@ -143,7 +176,7 @@ describe('proxy ida front-door context', () => {
   ])(
     'keeps hardening without reissuing an identical cookie on %s%s',
     async (host, path, tenant) => {
-      const response = await proxy(makeRequest(path, `tenantId=${tenant}`, host, actionPost));
+      const { response } = await runActionThroughAdapter(host, path, tenant);
 
       expectProxyContext(response, { tenant, context: 'compatibility_alias', setCookie: null });
       expect(response.headers.get('x-middleware-set-cookie')).toBeNull();
@@ -174,4 +207,34 @@ describe('proxy ida front-door context', () => {
     });
     expect(response.headers.get('x-content-type-options')).toBe('nosniff');
   });
+
+  it.each([
+    ['/SQ', '/SQ'],
+    ['/sq.segments/_tree.segment.rsc', '/sq.segments/_tree.segment'],
+    ['/sq.json', '/sq.json'],
+    // Next.js sets x-nextjs-data in the router before the adapter receives the request.
+    ['/_next/data/test-build/sq.json', '/sq', { 'x-nextjs-data': '1' }],
+    ['/_next/data/test-build/sq.rsc', '/_next/data/test-build/sq'],
+    ['/index.rsc', '/index'],
+    ['/index.segments/_tree.segment.rsc', '/index.segments/_tree.segment'],
+    ['/index.json', '/index.json'],
+  ])(
+    'writes the host tenant cookie for action POST %s through Next.js',
+    async (path, proxyPath, transportHeaders?: Record<string, string>) => {
+      const { response } = await runActionThroughAdapter(
+        'ks.localhost:3000',
+        path,
+        'tenant_ks',
+        proxyPath,
+        transportHeaders
+      );
+
+      expectProxyContext(response, {
+        tenant: 'tenant_ks',
+        context: 'compatibility_alias',
+        setCookie: matchingKsCookie,
+      });
+      expect(response.headers.get('x-content-type-options')).toBe('nosniff');
+    }
+  );
 });

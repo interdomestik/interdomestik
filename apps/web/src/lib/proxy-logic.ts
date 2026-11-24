@@ -33,9 +33,11 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
   }
 
   // Next.js revalidates the page when the proxy sets a cookie during a server action.
+  // The router marks Pages Router data requests even when their pathname becomes /<locale>.
   const skipTenantCookie =
     request.method === 'POST' &&
     request.headers.has('next-action') &&
+    !request.headers.has('x-nextjs-data') &&
     context.isLocale &&
     request.nextUrl.pathname === `/${context.locale}` &&
     request.cookies.get(TENANT_COOKIE_NAME)?.value === context.tenant;

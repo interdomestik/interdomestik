@@ -68,6 +68,21 @@ A new server action is a file `apps/web/src/actions/<area>/<name>.ts` that begin
 
 A caller **without a session** reaches, per `A/raw/R2b/entry/public-entry-inventory.md`: the whole `/api/auth/*` surface including `POST /api/auth/sign-up/email`, which is enabled, guarded by a tenant-context check only and **has no mounted UI** (`:35`); the e-mailed-code paths; Free Start, of which three entries need **no** session — the intake `submitFreeStartIntake` (`apps/web/src/actions/free-start/submit.core.ts:46-64`, "anonymous public intake"), the claim-pack action and the e-mailed code of "secure save" (`:67-69`) — while its six draft actions need one (`:70`); the E2E helper route `/api/e2e/branches`, which is closed only while `E2E_API_SECRET` is unset and, with the secret configured, accepts a request that carries it under `NODE_ENV=production` too (`apps/web/src/app/api/e2e/branches/route.ts:18-43`; WP-10 makes production refuse the variable); pages without a session (section C); 13 route handlers without authentication, all of which R1 judged intended or inert (`A/modules/security.md:42`); and 10 action rows without authentication, 4 of them a real gap (`A/modules/security.md:44`). Section H lists what a closure **must not break**: the activation invite → password-reset chain, sign-in by password and by code, session reads, the sponsor opt-out link, claim tracking by token and share packs (`…/public-entry-inventory.md:199-212`). Not live: `RegisterForm` is referenced only by its own test and `/[locale]/register` redirects to `/pricing` (`:35`); the dead prototype and legacy entry points of SEC-09; four cron routes have no scheduler in the repository (MAIN-11; SCTX-08 is another name of the same record).
 
+## Proxy: identical tenant cookie on homepage actions (WP-10, owner 2026-11-24 "Yes, approve")
+
+`apps/web/src/lib/proxy-logic.ts` does not re-issue the `tenantId` cookie for a server-action POST (`next-action`, no
+`x-nextjs-data`) to exactly `/<locale>` whose incoming cookie already equals the host-resolved tenant, so Next does not
+revalidate the dynamic homepage after a Free Start or claim-pack action. Every other request writes the cookie as before,
+and every hardening header is set in every case (`proxy-secure.ts:97-112`). Regression matrix: `proxy-front-door.test.ts`.
+
+**Named limit (lead, 2026-11-24, within the owner's approval).** Next 16.4.5 normalizes `/<locale>.rsc` (with or without a
+query) into the same `/<locale>` homepage request before the proxy runs: the adapter rewrites `request.url` and `nextUrl`
+and passes no original URL or marker (`node_modules/next/dist/server/web/adapter.js:113`; matcher
+`build/analysis/get-page-static-info.js:364`). The proxy therefore cannot tell `/<locale>.rsc` from `/<locale>`, and the skip
+also applies to it. The effect is nil: the skip happens only when the cookie already equals the host tenant, so no tenant,
+authority or header changes. Every other normalized form (`.json`, `/_next/data/…`, segment prefetch, `/index.*`) still
+writes the cookie (the matrix goes through the installed adapter).
+
 ## Tests to run
 
 The web app's unit suite (vitest) and the Playwright e2e suite under `apps/web/e2e/`. The unit suite runs in CI inside the coverage step: `.github/workflows/ci.yml:138` (`pnpm coverage:gate`, whose `test:coverage` runs the web suite, `shared-auth` and every `domain-*` package, `package.json:86-87`; the step is skipped when coverage is reused, `ci.yml:137`). The browser suites run at `ci.yml:184` (`e2e:guards`) and `ci.yml:202` (`e2e:gate`) and in `e2e-pr.yml` and `e2e-nightly.yml` (the unit's reading). Since WP-02 part 1, CHK-04 (the wrapper), CHK-05 (write provenance), CHK-05b (cast response bodies), CHK-26 (the public-entry registry, both directions) and UNAUTH-TEXT run as one script, `node scripts/ci/server-mutation-check.mjs --base <sha>`, in the advisory workflow `server-mutation-report.yml` against `scripts/ci/server-mutation-baseline.json`; every check is in `report` mode until its own flip PR. Their fixture tests are `scripts/ci/server-mutation-check.*.test.mjs`; the refusal row's row policy is tested by `packages/database/test/audit-log-refusal-rls.test.ts` (`test:rls`). CHK-08 (catch clauses) and CHK-20 (the result type) remain proposals.
