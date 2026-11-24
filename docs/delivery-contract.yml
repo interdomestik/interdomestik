@@ -172,9 +172,27 @@ checks:
     must_not_match:
       - 'updateStatus'
       - 'status:'
+      # WP-11's shared status command and its staff entry point.
+      - 'changeClaimStatus'
+      - 'updateClaimStatus'
       # The lifecycle columns replaced `status`: an assignment write never sets them (reading them
       # in a compare-and-set guard is allowed).
       - '\.set\(\{(?:(?!\}\))[\s\S])*(?:LifecycleState|mapClaimStatusToLifecycleStates)'
+
+  - id: lifecycle.no_hidden_transitions_admin_assign_handler
+    description: The admin claim page's assignment handler must not secretly update status.
+    type: regex
+    scope: EACH_TARGET
+    targets:
+      # The same component also owns explicit status changes, so only the assignment handler (from
+      # `handleAssign` to the next handler) is held to the rule.
+      - apps/web/src/features/admin/claims/components/ops/NextActionsCard.tsx
+    must_match:
+      - '\n  const handleAssign = \(staffId: string, intent: AssignmentIntent\) => \{'
+      - 'await assignOwner\(claimId, staffId, locale\)'
+      - '\n  const handleActionClick = \('
+    must_not_match:
+      - '\n  const handleAssign = [\s\S]*?(?:updateStatus|changeClaimStatus|updateClaimStatus)\([\s\S]*?\n  const handleActionClick = '
 
   - id: lifecycle.allowed_transitions_single_source
     description: UI status controls must derive options from ALLOWED_TRANSITIONS.
@@ -560,7 +578,9 @@ checks:
       - "isAutomatedEmail as isAutomated,[\\s\\S]*?from './non-sending-email'"
       # The first statement: automated mode never reaches SMTP_HOST.
       - "export function configuredSmtpTarget\\(automatedCatcher: boolean\\) \\{\\s*if \\(isAutomated\\(\\)\\) return automatedCatcher \\? automatedSmtpTarget\\(\\) : null;"
-      - "if \\(!isAutomated\\(\\) && process\\.env\\.RESEND_API_KEY\\) transports\\.push\\('resend'\\);"
+      # The whole worker transport list, from its initialization to its return: Resend only when not
+      # automated.
+      - "export function configuredEmailTransports\\(\\): EmailTransport\\[\\] \\{\\s*const transports: EmailTransport\\[\\] = \\[\\];\\s*const target = configuredSmtpTarget\\(true\\);\\s*if \\(target && target !== 'rejected'\\) transports\\.push\\('smtp'\\);\\s*if \\(!isAutomated\\(\\) && process\\.env\\.RESEND_API_KEY\\) transports\\.push\\('resend'\\);\\s*return transports;\\s*\\}"
 
   - id: automation.catcher_fallback_is_refused
     description: The Resend fallback refuses a provider marked test-only (the loopback catcher).
