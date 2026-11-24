@@ -47,6 +47,16 @@
       "reason": "Contract check over workflow YAML text: compares the e2e-gate job's DATABASE_URL entries; reads no database."
     },
     {
+      "path": "scripts/ci/db-lanes/inventory.mjs",
+      "kind": "contract",
+      "reason": "Matches database-client names and DATABASE_URL only as discovery tokens in test source; never imports a driver or opens a connection."
+    },
+    {
+      "path": "scripts/ci/db-lanes/run.mjs",
+      "kind": "launcher",
+      "reason": "Launches test lanes after clearing database environment variables for unit tests or requiring the exact disposable CI target for pg16; never imports a driver or opens a connection itself."
+    },
+    {
       "path": "scripts/ci/fetch-vercel-health.mjs",
       "kind": "contract",
       "reason": "Redacts DATABASE_URL values from fetched health output; never reads or uses the variable."
