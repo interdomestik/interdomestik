@@ -47,7 +47,6 @@ function runVitest() {
           'exec',
           'vitest',
           'run',
-          '--environment=node',
           '--no-file-parallelism',
           '--retry=0',
           '--reporter',

@@ -129,25 +129,40 @@ test('discovers a newly tracked orphan independently of advisory selectors', t =
   );
 });
 
-for (const [label, source] of [
+for (const [label, source, directory = 'scripts/pilot'] of [
   ['element access', "test('live proof', { skip: process.env['LIVE_DB_PROOF'] !== '1' });"],
   [
     'destructuring',
     "const { 'LIVE_DB_PROOF': enabled } = process.env; test('live proof', { skip: enabled !== '1' });",
   ],
+  [
+    'an environment alias',
+    "const env = process.env; test('live proof', { skip: env.LIVE_DB_PROOF !== '1' });",
+  ],
+  [
+    'an environment import',
+    "import { env } from 'node:process'; test('live proof', { skip: env.LIVE_DB_PROOF !== '1' });",
+  ],
+  ['an environment object without a named flag', 'const env = process.env; void env;'],
+  ['environment tokens separated by a comment', 'const env = process /* runtime */ .env;'],
+  ['an opt-in token outside an environment reference', 'const optInKey = "LIVE_DB_PROOF";'],
+  [
+    'a restricted client import outside standard test directories',
+    'import { db } from "@interdomestik/database/confirmed-ci";',
+    'tools/pilot',
+  ],
 ]) {
-  test(`reports a tracked script with ${label} database opt-in as an orphan`, t => {
+  test(`reports an orphan for a tracked test with ${label}`, t => {
     const root = scratch(t);
     const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
     git('init', '-q');
-    const file = 'scripts/pilot/db-opt-in.test.ts';
-    mkdirSync(join(root, 'scripts/pilot'), { recursive: true });
+    const file = `${directory}/db-opt-in.test.ts`;
+    mkdirSync(join(root, dirname(file)), { recursive: true });
     writeFileSync(join(root, file), source);
     git('add', '--', file);
-    assert.throws(
-      () => buildInventory(trackedTests(root), [], []),
-      /Database tests with no CI lane: scripts\/pilot\/db-opt-in\.test\.ts/u
-    );
+    assert.throws(() => buildInventory(trackedTests(root), [], []), {
+      message: `Database tests with no CI lane: ${file}`,
+    });
   });
 }
 
@@ -171,7 +186,7 @@ test('inventories the checked-out selectors', () => {
     ['apps/web/src/lib/refusal-audit-rls.integration.test.ts', 'e2e-gate/RLS'],
     [
       'apps/web/src/features/claims/tracking/server/trackingLifecycle.integration.test.ts',
-      'unit/coverage',
+      'advisory/vitest-pg16',
     ],
     ['packages/domain-users/src/admin/get-users.rls.test.ts', 'advisory/vitest-pg16'],
     ['packages/database/test/access-tenant-rls-migration.test.ts', 'advisory/node-unit'],

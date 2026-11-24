@@ -1,13 +1,11 @@
 import { spawnSync } from 'node:child_process';
 import { join, matchesGlob, relative } from 'node:path';
 import ts from 'typescript';
-import { inspectCoverageParity } from '../main-coverage-reuse.mjs';
 
 const gateCommand = 'pnpm test:coverage && node scripts/ci/coverage-gate.mjs --min-lines 60';
 const cleanupCommand = 'node scripts/ci/clean-coverage-artifacts.mjs';
 const coverageInvocation =
   /^pnpm --filter (@interdomestik\/[\w*-]+) (exec vitest run|test:unit) (.+)$/u;
-const broadJob = "needs.validation-surface.outputs.run_broad == 'true'";
 
 function unconditional(condition) {
   return (
@@ -18,26 +16,36 @@ function unconditional(condition) {
   );
 }
 
-function coverageRuns(unit, gate, read) {
-  if (!gate) return false;
-  const requires = [unit.needs ?? []].flat();
-  const needsValidation = requires.length === 1 && requires[0] === 'validation-surface';
-  if (requires.length && !needsValidation) return false;
-  if (!unconditional(unit.if) && !(needsValidation && unit.if === broadJob)) return false;
-  if (unconditional(gate.if)) return true;
-  // The checked reuse chain falls back to fresh coverage on pull requests.
-  const { checkoutEvent, commandChain } = inspectCoverageParity(read('.github/workflows/ci.yml'));
-  return checkoutEvent && commandChain;
+function jobRuns(jobs, name, ancestors = new Set()) {
+  if (!Object.hasOwn(jobs, name) || ancestors.has(name)) return false;
+  const job = jobs[name];
+  if (
+    !job ||
+    !unconditional(job.if) ||
+    job.strategy !== undefined ||
+    !Array.isArray(job.steps) ||
+    !job.steps.length
+  )
+    return false;
+  const prerequisites = typeof job.needs === 'string' ? [job.needs] : job.needs;
+  if (prerequisites === undefined) return true;
+  const path = new Set([...ancestors, name]);
+  return (
+    Array.isArray(prerequisites) &&
+    prerequisites.every(needed => typeof needed === 'string' && jobRuns(jobs, needed, path))
+  );
 }
 
 function vitestImports(syntax) {
   const imports = new Map();
   for (const statement of syntax.statements) {
-    if (!ts.isImportDeclaration(statement) || statement.moduleSpecifier.text !== 'vitest') continue;
+    if (!ts.isImportDeclaration(statement)) continue;
+    if (statement.moduleSpecifier.text !== 'vitest') return null;
     const names = statement.importClause?.namedBindings;
-    if (!names || !ts.isNamedImports(names)) continue;
+    if (!names || !ts.isNamedImports(names) || statement.importClause.name) return null;
     for (const { name, propertyName, isTypeOnly } of names.elements) {
       if (!isTypeOnly && !statement.importClause.isTypeOnly) {
+        if (imports.has(name.text)) return null;
         imports.set(name.text, (propertyName ?? name).text);
       }
     }
@@ -45,58 +53,81 @@ function vitestImports(syntax) {
   return imports;
 }
 
-function isViCall(call, imports, method) {
-  if (!call || !ts.isCallExpression(call) || call.questionDotToken) return false;
+function memberCall(call, method) {
+  if (!ts.isCallExpression(call) || call.questionDotToken) return undefined;
   const member = call.expression;
-  return (
+  if (
     ts.isPropertyAccessExpression(member) &&
     !member.questionDotToken &&
-    ts.isIdentifier(member.expression) &&
-    imports.get(member.expression.text) === 'vi' &&
     member.name.text === method
+  )
+    return member.expression;
+}
+
+function isEmptyDatabaseMock(call, imports) {
+  const receiver = memberCall(call, 'mock');
+  if (!receiver || !ts.isIdentifier(receiver) || imports.get(receiver.text) !== 'vi') return false;
+  const [module, factory] = call.arguments;
+  return (
+    call.arguments.length === 2 &&
+    ts.isStringLiteralLike(module) &&
+    module.text === '@interdomestik/database' &&
+    ts.isArrowFunction(factory) &&
+    !factory.parameters.length &&
+    ts.isParenthesizedExpression(factory.body) &&
+    ts.isObjectLiteralExpression(factory.body.expression) &&
+    !factory.body.expression.properties.length
   );
 }
 
-const isCallback = node => node && (ts.isArrowFunction(node) || ts.isFunctionExpression(node));
-const hooks = new Set(['beforeAll', 'beforeEach', 'afterAll', 'afterEach']);
+function isLiteralAssertion(expression, imports) {
+  const assertion = memberCall(expression, 'toBe');
+  return (
+    assertion &&
+    ts.isCallExpression(assertion) &&
+    !assertion.questionDotToken &&
+    ts.isIdentifier(assertion.expression) &&
+    imports.get(assertion.expression.text) === 'expect' &&
+    assertion.arguments.length === 1 &&
+    expression.arguments.length === 1 &&
+    ts.isLiteralExpression(assertion.arguments[0]) &&
+    ts.isLiteralExpression(expression.arguments[0])
+  );
+}
+
+// Recognize only callback bodies that cannot delegate to code with access to Vitest runtime state.
+function isDirectCase(body, imports) {
+  if (!ts.isBlock(body)) return isLiteralAssertion(body, imports);
+  return body.statements.every(
+    statement =>
+      ts.isExpressionStatement(statement) && isLiteralAssertion(statement.expression, imports)
+  );
+}
 
 // Follow only direct Vitest declarations. Delegated registration and conditional suite
 // control flow do not have a statically known set of runnable cases.
-function registeredCases(statements, imports) {
+function registeredCases(statements, imports, databaseMock) {
   let cases = 0;
   for (const statement of statements) {
-    if (ts.isImportDeclaration(statement) && statement.importClause) continue;
-    if (ts.isFunctionDeclaration(statement) && !imports.has(statement.name?.text)) continue;
-    if (
-      ts.isVariableStatement(statement) &&
-      statement.declarationList.declarations.every(
-        ({ name, initializer }) =>
-          ts.isIdentifier(name) &&
-          !imports.has(name.text) &&
-          (isViCall(initializer, imports, 'hoisted') ||
-            (initializer && ts.isLiteralExpression(initializer)))
-      )
-    )
-      continue;
     if (!ts.isExpressionStatement(statement) || !ts.isCallExpression(statement.expression))
       return null;
     const call = statement.expression;
-    if (isViCall(call, imports, 'mock')) continue;
+    if (call === databaseMock) continue;
     if (!ts.isIdentifier(call.expression) || call.questionDotToken) return null;
     const name = imports.get(call.expression.text);
     const [label, callback] = call.arguments;
-    if (hooks.has(name) && call.arguments.length === 1 && isCallback(label)) continue;
-    if (call.arguments.length !== 2 || !ts.isStringLiteralLike(label) || !isCallback(callback))
+    if (
+      call.arguments.length !== 2 ||
+      !ts.isStringLiteralLike(label) ||
+      !(ts.isArrowFunction(callback) || ts.isFunctionExpression(callback)) ||
+      callback.parameters.length
+    )
       return null;
-    if (name === 'it' || name === 'test') {
+    if ((name === 'it' || name === 'test') && isDirectCase(callback.body, imports)) {
       cases += 1;
-    } else if (
-      name === 'describe' &&
-      ts.isBlock(callback.body) &&
-      callback.parameters.length === 0
-    ) {
+    } else if (name === 'describe' && ts.isBlock(callback.body)) {
       const nested = registeredCases(callback.body.statements, imports);
-      if (nested === null) return null;
+      if (!nested) return null;
       cases += nested;
     } else {
       return null;
@@ -105,41 +136,37 @@ function registeredCases(statements, imports) {
   return cases;
 }
 
-export function hasUnconditionalCoverageSuite(file, source) {
+function hasUnconditionalCoverageSuite(file, source) {
   const syntax = ts.createSourceFile(file, source, ts.ScriptTarget.Latest, true);
   if (syntax.parseDiagnostics.length) return false;
   const imports = vitestImports(syntax);
-  const mocksDatabase = syntax.statements.some(statement => {
-    if (!ts.isExpressionStatement(statement) || !isViCall(statement.expression, imports, 'mock')) {
-      return false;
-    }
-    const [module] = statement.expression.arguments;
-    return module && ts.isStringLiteralLike(module) && module.text === '@interdomestik/database';
-  });
-  return mocksDatabase && registeredCases(syntax.statements, imports) > 0;
+  if (!imports) return false;
+  const statements = syntax.statements.filter(statement => !ts.isImportDeclaration(statement));
+  const mock = statements.find(
+    statement =>
+      ts.isExpressionStatement(statement) && isEmptyDatabaseMock(statement.expression, imports)
+  );
+  return Boolean(mock && registeredCases(statements, imports, mock.expression) > 0);
 }
 
 function readInvocations(coverage, scripts) {
-  if (coverage?.run !== 'pnpm coverage:gate' || scripts['coverage:gate'] !== gateCommand) {
-    throw new Error('Cannot inventory the existing coverage gate');
-  }
+  if (coverage.run !== 'pnpm coverage:gate' || scripts['coverage:gate'] !== gateCommand) return [];
   const [cleanup, ...commands] = (scripts['test:coverage'] ?? '').split(' && ');
-  if (cleanup !== cleanupCommand || !commands.length) {
-    throw new Error('Cannot inventory the existing coverage commands');
-  }
-  return commands.map(command => {
+  if (cleanup !== cleanupCommand) return [];
+  const invocations = [];
+  for (const command of commands) {
     const match = coverageInvocation.exec(command);
-    if (!match) throw new Error('Unsupported coverage invocation');
+    if (!match) return [];
     const [, filter, runner, args] = match;
     const options = args.split(' ');
     const listOptions = options.filter(option => !option.startsWith('--coverage.'));
-    if (!listOptions.includes('--coverage')) throw new Error('Coverage flag is missing');
+    if (!listOptions.includes('--coverage')) return [];
     const vitestOptions = listOptions.filter(option => option !== '--coverage');
-    if (vitestOptions.some(option => !/^--(?:pool|testTimeout|maxWorkers)=[\w-]+$/u.test(option))) {
-      throw new Error('Unsupported coverage test selector');
-    }
-    return { filter, runner, vitestOptions };
-  });
+    if (vitestOptions.some(option => !/^--(?:pool|testTimeout|maxWorkers)=[\w-]+$/u.test(option)))
+      return [];
+    invocations.push({ filter, runner, vitestOptions });
+  }
+  return invocations;
 }
 
 export const vitestProjects = files =>
@@ -175,19 +202,37 @@ export function listVitestFiles(root, project, candidates, options) {
   return new Set(listing.map(({ file }) => relative(root, file)));
 }
 
-export function coverageTargets(root, unit, scripts, read, files) {
-  const gate = unit?.steps?.find(step => step.name === 'Coverage Gate');
-  if (!coverageRuns(unit, gate, read)) return [];
+export function coverageTargets(root, workflow, scripts, read, files) {
+  const { jobs } = workflow;
+  if (!files.length || workflow.defaults !== undefined || !jobRuns(jobs, 'unit')) return [];
+  const gates = jobs.unit.steps.filter(step => step?.name === 'Coverage Gate');
+  const unit = jobs.unit;
+  if (gates.length !== 1 || unit.defaults !== undefined || unit['continue-on-error']) return [];
+  const [gate] = gates;
+  if (
+    !unconditional(gate.if) ||
+    gate['continue-on-error'] ||
+    gate['working-directory'] !== undefined ||
+    gate.shell !== undefined
+  )
+    return [];
   const invocations = readInvocations(gate, scripts);
+  if (!invocations.length) return [];
   const selected = new Set();
-  for (const [project, candidates] of vitestProjects(files)) {
+  const proven = files.filter(file => hasUnconditionalCoverageSuite(file, read(file)));
+  for (const [project, candidates] of vitestProjects(proven)) {
     const manifest = JSON.parse(read(`${project}/package.json`));
     for (const { filter, runner, vitestOptions } of invocations) {
       if (!matchesGlob(manifest.name, filter)) continue;
       if (runner === 'test:unit' && manifest.scripts?.['test:unit'] !== 'vitest run') {
-        throw new Error(`Unsupported coverage runner in ${project}`);
+        continue;
       }
-      const listed = listVitestFiles(root, project, candidates, vitestOptions);
+      let listed;
+      try {
+        listed = listVitestFiles(root, project, candidates, vitestOptions);
+      } catch {
+        continue; // The advisory selector still needs to confirm these files independently.
+      }
       for (const file of candidates) {
         if (listed.has(file)) selected.add(file);
       }

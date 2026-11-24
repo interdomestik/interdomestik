@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import yaml from 'js-yaml';
+import { contractTestPlan } from '../contract-test-shards.mjs';
 import { coverageTargets } from './coverage-lane.mjs';
 
 const requiredFlags = new Set([
@@ -52,8 +53,8 @@ function testArguments(part, name, script) {
   return files;
 }
 
-// Inventory the explicit database commands without executing or rewriting them.
-export function protectedLanes(root, coverageCandidates = []) {
+// Inventory the existing runners without executing or rewriting them.
+export function protectedLanes(root, coverageCandidates = [], databaseFiles = []) {
   const read = file => readFileSync(join(root, file), 'utf8');
   const scripts = (directory = '.') => JSON.parse(read(`${directory}/package.json`)).scripts;
   const workflow = yaml.load(read('.github/workflows/ci.yml'));
@@ -120,7 +121,32 @@ export function protectedLanes(root, coverageCandidates = []) {
     },
     { name: 'e2e-gate/journal-parity', files: packageTargets(roots['db:journal:parity']) },
   ];
-  const coverage = coverageTargets(root, workflow.jobs.unit, roots, read, coverageCandidates);
+  const coverage = coverageTargets(root, workflow, roots, read, coverageCandidates);
   if (coverage.length) lanes.push({ name: 'unit/coverage', files: coverage });
+
+  const contractCandidates = databaseFiles.filter(file =>
+    /^scripts\/ci\/[^/]+\.test\.mjs$/u.test(file)
+  );
+  const auditRuns = workflow.jobs.audit?.steps?.some(step =>
+    step.run?.split('\n').includes('node scripts/ci/contract-suite-run.mjs')
+  );
+  if (contractCandidates.length && auditRuns) {
+    const selected = new Set(Object.values(contractTestPlan(root).shards).flat());
+    const files = contractCandidates.filter(file => selected.has(file));
+    if (files.length) lanes.push({ name: 'audit/contracts', files });
+  }
+
+  const releaseRuns = workflow.jobs.unit?.steps?.some(
+    step => step.run === 'pnpm test:release-gate'
+  );
+  const releaseCommand = roots['test:release-gate'];
+  if (
+    releaseRuns &&
+    /^tsx --test(?: scripts\/release-gate\/[\w.-]+\.test\.ts)+$/u.test(releaseCommand)
+  ) {
+    const selected = new Set(releaseCommand.split(' ').slice(2));
+    const files = databaseFiles.filter(file => selected.has(file));
+    if (files.length) lanes.push({ name: 'unit/release-gate', files });
+  }
   return lanes;
 }
