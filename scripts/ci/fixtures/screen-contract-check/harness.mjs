@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import ts from 'typescript';
 
 import { lintTree, linted } from '../../screen-contract/lint.mjs';
 
@@ -14,15 +15,26 @@ export const SCANNER = path.join(REPO_ROOT, 'scripts/ci/screen-contract-check.mj
 
 const pkg = (name, exportsMap) => JSON.stringify({ name, private: true, exports: exportsMap });
 
-// The minimum every tree needs: the root and web tsconfigs with their `@/` mappings (the root one,
-// as in the repository, relative to its `baseUrl`) and a few packages.
+// The repository's own `paths` (and the root `baseUrl`): the scanner accepts only the fixed
+// configuration (the WP-05 flip, D-1 option B), so every fixture tree carries it.
+const realOptions = rel =>
+  ts.parseConfigFileTextToJson(rel, fs.readFileSync(path.join(REPO_ROOT, rel), 'utf8')).config
+    .compilerOptions;
+export const ROOT_PATHS = Object.freeze(realOptions('tsconfig.json').paths);
+export const WEB_PATHS = Object.freeze(realOptions('apps/web/tsconfig.json').paths);
+// A tsconfig text with the fixed `paths` (and `baseUrl` for the root) and the given options.
+export const rootTsconfig = (options = {}) =>
+  `${JSON.stringify({ compilerOptions: { moduleResolution: 'bundler', ...options, baseUrl: '.', paths: ROOT_PATHS } })}\n`;
+export const webTsconfig = (options = {}) =>
+  `{\n  // comment\n  "compilerOptions": ${JSON.stringify({ moduleResolution: 'bundler', ...options, paths: WEB_PATHS })},\n}\n`;
+
+// The minimum every tree needs: the root and web tsconfigs of the fixed configuration and a few
+// packages.
 export const BASE_FILES = Object.freeze({
   'apps/web/src/messages/en/common.json': '{ "common": { "ok": "OK" } }\n',
   'scripts/ci/screen-contract-consent-registry.json': '{ "version": 1, "entries": [] }\n',
-  'tsconfig.json':
-    '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["apps/web/src/*"] } }\n}\n',
-  'apps/web/tsconfig.json':
-    '{\n  // comment\n  "compilerOptions": { "paths": { "@/*": ["./src/*"] } },\n}\n',
+  'tsconfig.json': rootTsconfig(),
+  'apps/web/tsconfig.json': webTsconfig(),
   'packages/database/package.json': pkg('@interdomestik/database', {
     '.': './src/index.ts',
     './schema': './src/schema/index.ts',

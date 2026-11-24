@@ -42,6 +42,9 @@ test('roles: one role per file, screens by default (design §1)', () => {
     [`${W}/components/__tests__/y.tsx`]: 'test',
     [`${W}/test/setup.ts`]: 'test',
     [`${W}/types/globals.d.ts`]: 'test',
+    // Declaration files of every module kind share one role (the WP-05 flip, D-1).
+    [`${W}/components/x/y.d.mts`]: 'test',
+    [`${W}/components/x/y.d.cts`]: 'test',
     [`${W}/next.config.test.ts`]: 'test',
     [`${W}/components/x/styles.css`]: null,
     'apps/web/e2e/x.spec.ts': null,

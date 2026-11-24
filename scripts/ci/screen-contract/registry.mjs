@@ -37,6 +37,14 @@ export function registryTamper(baseRegistry, headRegistry, base, head, isRendere
   return out.filter(finding => !freshFor(base, head, idOfFinding(finding)));
 }
 
+// The registry freeze of the WP-05 flip (D-7; r3-B1): while CHK-22 enforces, the head registry
+// must be empty until a reviewed scanner lifts the freeze. Each entry is a `registry-frozen`
+// finding, which no exception admits (the owner's approval of a registration is not
+// machine-enforced yet: O5). No reference is consulted, so nothing a base holds, whatever its mode
+// history, can be inherited.
+export const frozenEntries = headRegistry =>
+  [...headRegistry.keys()].map(id => `CHK-22#registry-frozen:${id}`);
+
 // The changes of one base entry in the head: removed, a bound field changed, a use or alias removed.
 function entryTamper(id, before, after, isRendered) {
   if (!after) return isRendered(before) ? [`CHK-22#registry-removed:${id}`] : [];

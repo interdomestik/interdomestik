@@ -92,30 +92,31 @@ test('CHK-15a: a value edge resolves under the value conditions, a type edge und
 });
 
 test('CHK-15a: a package caller resolves @/ through the root tsconfig, a web caller through the web one (H7)', async t => {
+  // Both fixed mappings name apps/web/src (the WP-05 flip, D-1 option B).
   const root = tree(t, {
-    'tsconfig.json':
-      '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["apps/web/src/*"] } }\n}\n',
-    'apps/web/tsconfig.json':
-      '{\n  // web\n  "compilerOptions": { "paths": { "@/*": ["./src/components/*"] } },\n}\n',
     [`${W}/actions/a.ts`]: "'use server';\nexport async function a() {}\n",
     [`${W}/components/view.tsx`]: 'export const View = () => null;\n',
-    // Root mapping: apps/web/src/actions/a (layer 2). The web mapping would name a missing file.
+    // apps/web/src/actions/a (layer 2) under a domain source (layer 3).
     'packages/domain-claims/src/h7.ts': "import { a } from '@/actions/a';\nexport const h = a;\n",
-    // Web mapping: apps/web/src/components/view (layer 1). The root mapping would name a missing file.
+    // apps/web/src/components/view (layer 1) under a web action (layer 2).
     [`${W}/actions/b.ts`]:
-      "'use server';\nimport { View } from '@/view';\nexport async function b() { return View; }\n",
+      "'use server';\nimport { View } from '@/components/view';\nexport async function b() { return View; }\n",
   });
   const result = await lint(root);
   has(result, 'CHK-15a', 'CHK-15a|packages/domain-claims/src/h7.ts|@/actions/a');
-  has(result, 'CHK-15a', `CHK-15a|${W}/actions/b.ts|@/view`);
+  has(result, 'CHK-15a', `CHK-15a|${W}/actions/b.ts|@/components/view`);
 });
 
 test('CHK-15a: the root tsconfig and its @/* mapping are required inputs (§5)', async t => {
   await assert.rejects(lint(tree(t, { 'tsconfig.json': null })), /tsconfig\.json is missing/u);
   await assert.rejects(lint(tree(t, { 'tsconfig.json': '' })), /tsconfig\.json is empty/u);
   await assert.rejects(
-    lint(tree(t, { 'tsconfig.json': '{ "compilerOptions": { "paths": {} } }' })),
-    /tsconfig\.json has no @\/\* mapping/u
+    lint(
+      tree(t, {
+        'tsconfig.json': '{ "compilerOptions": { "moduleResolution": "bundler", "paths": {} } }',
+      })
+    ),
+    /tsconfig\.json has an @\/\* mapping other than the fixed/u
   );
 });
 
@@ -166,41 +167,23 @@ test('CHK-15b, CHK-15c: type-only export-from and import types are type edges (H
   assert.ok(result['CHK-15c'].units['edge:type'] >= 2);
 });
 
-test('CHK-15a: every @/* mapping is tried in order, the first existing file wins (B8)', async t => {
-  const root = tree(t, {
-    // The first root mapping names a support directory, the second the web sources.
-    'tsconfig.json':
-      '{\n  "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ["apps/web/src/lib/*", "apps/web/src/*"] } }\n}\n',
-    'apps/web/tsconfig.json':
-      '{\n  "compilerOptions": { "paths": { "@/*": ["./src/lib/*", "./src/*"] } },\n}\n',
-    [`${W}/actions/only.ts`]: "'use server';\nexport async function only() {}\n",
-    [`${W}/actions/both.ts`]: "'use server';\nexport async function both() {}\n",
-    [`${W}/lib/actions/both.ts`]: 'export async function both() {}\n',
-    [`${W}/components/view.tsx`]: 'export const View = () => null;\n',
-    // Only the second mapping names a file: layer 2 under a domain source.
-    'packages/domain-claims/src/second.ts':
-      "import { only } from '@/actions/only';\nexport const s = only;\n",
-    // The first mapping's file (support, no layer) wins over the second's (layer 2).
-    'packages/domain-claims/src/first.ts':
-      "import { both } from '@/actions/both';\nexport const f = both;\n",
-    // A web caller follows the second web mapping to a layer-1 file.
-    [`${W}/actions/web.ts`]:
-      "'use server';\nimport { View } from '@/components/view';\nexport async function w() { return View; }\n",
-  });
-  const result = await lint(root);
-  has(result, 'CHK-15a', 'CHK-15a|packages/domain-claims/src/second.ts|@/actions/only');
-  lacks(result, 'CHK-15a', 'CHK-15a|packages/domain-claims/src/first.ts');
-  has(result, 'CHK-15a', `CHK-15a|${W}/actions/web.ts|@/components/view`);
-});
-
-test('CHK-15a: an @/* mapping that is empty, or has an entry that is not a string or has two *, is an input error (§5)', async t => {
-  const mappings = ['[]', '["apps/web/src/*", 3]', '["apps/web/src/*/*"]'];
+// The fixed configuration (the WP-05 flip, D-1 option B): any `@/*` mapping other than today's
+// exact one is refused, including a second entry, a fixed-file entry and a malformed one.
+test('CHK-15a: an @/* mapping other than the fixed one is an input error (§5, D-1)', async t => {
+  const mappings = [
+    '[]',
+    '["apps/web/src/*", 3]',
+    '["apps/web/src/*/*"]',
+    '["apps/web/src/lib/*", "apps/web/src/*"]',
+    '["apps/web/src/*", "apps/web/src/fallback.ts"]',
+    '["packages/*/../src/*"]',
+  ];
   await Promise.all(
     mappings.map(mapping => {
-      const config = `{ "compilerOptions": { "baseUrl": ".", "paths": { "@/*": ${mapping} } } }`;
+      const config = `{ "compilerOptions": { "moduleResolution": "bundler", "baseUrl": ".", "paths": { "@/*": ${mapping} } } }`;
       return assert.rejects(
         lint(tree(t, { 'tsconfig.json': config })),
-        /tsconfig\.json has no usable @\/\* mapping/u,
+        /tsconfig\.json has an @\/\* mapping other than the fixed.*scanner PR first/u,
         mapping
       );
     })
