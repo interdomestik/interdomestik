@@ -13,12 +13,17 @@ type CriticalRlsRow = {
 const CRITICAL_TABLES = [
   'claim',
   'claim_transition_evidence',
+  'claim_response_requests',
   'claim_messages',
   'crm_task_history',
   'crm_tasks',
   'documents',
   'free_start_drafts',
+  'notification_deliveries',
+  'notification_preview_restrictions',
+  'support_handoff_first_responses',
   'user',
+  'user_locale_preferences',
 ] as const;
 
 test('critical tables keep row level security enabled', async t => {

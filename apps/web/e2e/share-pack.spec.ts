@@ -4,7 +4,7 @@
  * Tests share pack creation and access using seeded document IDs.
  * Uses API-only approach without direct DB connections from test process.
  */
-import { expect, test } from './fixtures/auth.fixture';
+import { expect, test } from '../e2e-mac/closed-services.fixture';
 
 // Use hardcoded document IDs from seed (ks-workflow-pack.ts lines 263, 277)
 const SEEDED_KS_DOC_IDS = ['doc-ks-1', 'doc-ks-2'];

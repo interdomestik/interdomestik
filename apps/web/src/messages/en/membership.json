@@ -1,5 +1,6 @@
 {
   "membership": {
+    "CLOSED": "Payment and subscription management are currently unavailable.",
     "page": {
       "title": "Membership",
       "description": "Manage your subscription and plan details."

@@ -1,3 +1,5 @@
+import { FREE_START_CATALOG_OWNERS } from './modularity-guard-free-start-owners.mjs';
+
 export const MODULARITY_POLICY = Object.freeze({
   productionCode: Object.freeze({ preferredLines: 150, reviewLines: 300 }),
   focusedTest: Object.freeze({ maxLines: 300 }),
@@ -80,23 +82,21 @@ const STRUCTURED_OWNERS = [
 ];
 // A constant keeps owner/path pairs such as auth.json clear of secret-scanner key heuristics.
 const PARITY_OWNER = 'i18n-keys-parity-contract';
-const FREE_START_JOURNEY_CATALOGS = ['freeStartResult', 'injuryJourney', 'propertyJourney'];
-const FREE_START_PRICING_CATALOGS = ['commercialTerms', 'coverageMatrix', 'servicesPage'];
-
-/** `<locale>/<name>.json` registry entries for an owner; exact files only, never a whole locale. */
-function exactLocaleCatalogOwners(owner, namesByLocale) {
-  return Object.entries(namesByLocale).flatMap(([locale, names]) =>
-    names.map(name => [`${locale}/${name}.json`, owner])
-  );
-}
 
 const LOCALE_CATALOG_OWNERS = new Map([
+  ['admin-settings.json', 'wp10-pilot-switch-i18n-contract'],
   ['admin-users.json', 's7-admin-user-read-recovery-i18n-contract'],
   ['admin-claims.json', 's7-admin-claims-read-consistency-i18n-contract'],
   ['freeStart.json', 's5-local-draft-disclosure-i18n-contract'],
   ['diaspora.json', 's5d-diaspora-claim-start-i18n-contract'],
   ['dashboard.json', 't117b-member-portal-i18n-contract'],
   ['claims.json', 'member-evidence-upload-locale-contract'],
+  // Owns WP-12 staff case register fields, authorities, correspondence and pages. German follows English.
+  ['de/staff-correspondence.json', 'wp-12-staff-case-register-i18n-contract'],
+  ['en/staff-correspondence.json', 'wp-12-staff-case-register-i18n-contract'],
+  ['mk/staff-correspondence.json', 'wp-12-staff-case-register-i18n-contract'],
+  ['sq/staff-correspondence.json', 'wp-12-staff-case-register-i18n-contract'],
+  ['sr/staff-correspondence.json', 'wp-12-staff-case-register-i18n-contract'],
   // Owns the claim evidence upload allowlist copy (formats, limits, refusals); de follows en.
   ['en/evidence.json', 'claim-evidence-file-upload-i18n-contract'],
   // Owns member messaging and D1c branch-manager communication metadata copy in all five locales.
@@ -125,7 +125,6 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['de/admin-common.json', 'de-locale-catalog-contract'],
   ['de/admin-crm.json', 'de-locale-catalog-contract'],
   ['de/admin-dashboard.json', 'de-locale-catalog-contract'],
-  ['de/admin-settings.json', 'de-locale-catalog-contract'],
   ['de/admin.json', 'de-locale-catalog-contract'],
   ['de/agent-crm.json', 'locale-quality-pass-i18n-contract'],
   ['de/auth.json', PARITY_OWNER],
@@ -220,12 +219,7 @@ const LOCALE_CATALOG_OWNERS = new Map([
   ['sq/coverageMatrix.json', 'qa-localization-i18n-contract'],
   ['sq/documents.json', 'qa-localization-i18n-contract'],
   ['sq/servicesPage.json', 'qa-localization-i18n-contract'],
-  // Exact catalogs touched by the Free Start / success fee / opt-in terminology pass.
-  ...exactLocaleCatalogOwners('free-start-terminology-i18n-contract', {
-    mk: [...FREE_START_JOURNEY_CATALOGS, ...FREE_START_PRICING_CATALOGS],
-    sq: FREE_START_JOURNEY_CATALOGS,
-    sr: [...FREE_START_JOURNEY_CATALOGS, ...FREE_START_PRICING_CATALOGS],
-  }),
+  ...FREE_START_CATALOG_OWNERS,
 ]);
 /** Registry keys: a bare filename applies to every locale; `<locale>/<file>` to that locale only. */
 export const LOCALE_CATALOG_OWNER_KEYS = Object.freeze([...LOCALE_CATALOG_OWNERS.keys()]);

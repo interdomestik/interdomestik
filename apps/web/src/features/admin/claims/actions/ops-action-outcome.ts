@@ -1,3 +1,4 @@
+import { safeExceptionType } from '@/lib/observability/sentry-error-labels';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
 
 // Pure outcome helpers for admin ops server actions. Deliberately free of auth/db/next imports so
@@ -67,8 +68,12 @@ export function completeCommittedOpsAction(
 ): OpsActionResult {
   try {
     revalidate();
-  } catch {
-    console.error(`Revalidation failed after commit: ${actionName}`, 'revalidation_failure');
+  } catch (error) {
+    const errorType = safeExceptionType(error instanceof Error ? error.name : undefined);
+    console.error(
+      `Revalidation failed after commit: ${actionName}`,
+      new Error('revalidation_failure', { cause: errorType })
+    );
     return {
       success: true,
       message: OPS_COMMITTED_REFRESH_PENDING_MESSAGE,

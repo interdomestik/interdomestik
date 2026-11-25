@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { mockClaimWriterEffects } from './submit-test-support';
 
 const hoisted = vi.hoisted(() => {
   const txInsertValues = vi.fn();
@@ -70,13 +71,12 @@ vi.mock('drizzle-orm', () => ({
   eq: vi.fn((left: unknown, right: unknown) => ({ left, right })),
 }));
 vi.mock('nanoid', () => ({ nanoid: hoisted.nanoid }));
-vi.mock('./ai-workflows', () => ({
-  queueClaimDocumentAiWorkflows: vi.fn().mockResolvedValue([]),
-}));
 
 import { appendEvent } from '@interdomestik/database';
-import { createClaimCore } from './create';
-import { submitClaimCore } from './submit';
+
+mockClaimWriterEffects();
+const { createClaimCore } = await import('./create');
+const { submitClaimCore } = await import('./submit');
 
 const authority = mintTestTenantAuthority('tenant-1');
 
@@ -86,11 +86,11 @@ function session() {
   };
 }
 
-function formData() {
+function formData(category = ' VEHICLE ') {
   const data = new FormData();
-  data.set('title', 'Retail refund claim');
-  data.set('category', 'retail');
-  data.set('companyName', 'Retail Co');
+  data.set('title', 'Vehicle repair claim');
+  data.set('category', category);
+  data.set('companyName', 'Auto Insurer');
   data.set('claimAmount', '120.00');
   return data;
 }
@@ -113,6 +113,7 @@ describe('claim lifecycle state initialization', () => {
     expect(hoisted.txInsertValues).toHaveBeenNthCalledWith(
       1,
       expect.objectContaining({
+        category: 'vehicle',
         caseLifecycleState: 'draft',
         recoveryLifecycleState: 'not_started',
       })
@@ -129,6 +130,22 @@ describe('claim lifecycle state initialization', () => {
       })
     );
   });
+
+  it.each(['injury', 'invalidity', 'Personal Injury'])(
+    'refuses to create a draft with category %s',
+    async category => {
+      const result = await createClaimCore({
+        authority,
+        formData: formData(category),
+        requestHeaders: new Headers(),
+        session: session(),
+      });
+
+      expect(result).toMatchObject({ success: false, issues: { category: expect.any(String) } });
+      expect(hoisted.txInsert).not.toHaveBeenCalled();
+      expect(appendEvent).not.toHaveBeenCalled();
+    }
+  );
 
   it('initializes submitted claims with deterministic lifecycle states', async () => {
     await submitClaimCore({

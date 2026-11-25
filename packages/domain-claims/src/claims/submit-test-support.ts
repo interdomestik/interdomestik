@@ -14,6 +14,21 @@ export type SubmitClaimTestArgs = {
   data: CreateClaimValues;
 };
 
+export function mockClaimWriterEffects() {
+  vi.doMock('@interdomestik/domain-communications/notification-deliveries', () => ({
+    enqueueClaimSubmittedNotification: vi.fn().mockResolvedValue([]),
+    enqueueStaffClaimNotification: vi.fn().mockResolvedValue([]),
+    lockClaimNotificationRecipient: vi.fn(),
+  }));
+  vi.doMock('../staff-claims/notification-recipients', () => ({
+    resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([]),
+  }));
+  vi.doMock('./response-requests', () => ({ createClaimResponseRequest: vi.fn() }));
+  vi.doMock('./ai-workflows', () => ({
+    queueClaimDocumentAiWorkflows: vi.fn().mockResolvedValue([]),
+  }));
+}
+
 export const submitAuthority: TenantAuthority = mintTestTenantAuthority('tenant-1');
 export const appendEventMock: Mock = vi.fn();
 export const ensureTenantIdMock = vi.fn(() => 'tenant-1');
@@ -23,6 +38,11 @@ export const logAuditEventMock: Mock = vi.fn();
 export const nanoidMock: Mock = vi.fn();
 export const queueClaimDocumentAiWorkflowsMock: Mock = vi.fn();
 export const readTenantLocaleMetadataMock: Mock = vi.fn();
+export const enqueueClaimSubmittedNotificationMock: Mock = vi
+  .fn()
+  .mockResolvedValue(['member-email']);
+export const enqueueStaffClaimNotificationMock: Mock = vi.fn().mockResolvedValue(['staff-email']);
+export const createClaimResponseRequestMock: Mock = vi.fn();
 
 /** Each tenant transaction the submission opens gets the next number; 0 = none open. */
 let currentContext = 0;

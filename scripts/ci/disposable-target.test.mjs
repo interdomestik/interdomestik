@@ -10,7 +10,7 @@ import { fileURLToPath } from 'node:url';
 // registry's own refusals.
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '../..');
 const SUITES = Object.freeze({
-  'test/disposable-target.test.ts': 11,
+  'test/disposable-target.test.ts': 12,
   'test/journal-schema-parity.test.ts': 10,
   'test/journal-schema-parity-registry.test.ts': 4,
   'test/scratch-database-redaction.test.ts': 1,

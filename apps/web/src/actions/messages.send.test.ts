@@ -153,6 +153,7 @@ describe('sendMessage', () => {
       user: { id: 'admin-1', role: 'admin', tenantId: 'tenant_mk' },
     });
     mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
+    mocks.dbUserQuery.mockResolvedValueOnce({ id: 'admin-1', tenantId: 'tenant_mk' });
     mocks.dbInsert.mockResolvedValue(undefined);
     mockSelectChain.limit.mockReturnValue([
       {

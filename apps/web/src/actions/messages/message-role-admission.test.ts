@@ -33,9 +33,12 @@ const roles: Admission[] = [
 ];
 const messageIds = ['public-message', 'internal-message', 'unspecified-message'];
 
+const reviewerId = 'reviewer-a';
+
 function seedConversation(): void {
   reset('restricted');
   state.rows.user.find(user => user.id === ids.agent)!.branchId = 'branch-a';
+  state.rows.user.push({ id: reviewerId, tenantId: ids.tenant });
   state.rows.claimMessages = [false, true, null].map((isInternal, index) => ({
     id: messageIds[index],
     tenantId: ids.tenant,
@@ -51,7 +54,7 @@ function seedConversation(): void {
 function actAs(role: string): void {
   // Read-only actors own the historical claim; staff/admin controls must not rely on ownership.
   const id = ['staff', 'branch_manager', 'admin', 'tenant_admin', 'super_admin'].includes(role)
-    ? 'reviewer-a'
+    ? reviewerId
     : ids.member;
   state.session = session(role, { id: role === 'agent' ? ids.agent : id });
 }
@@ -213,7 +216,7 @@ describe('explicit messaging role admission', () => {
       success: false,
       error: 'Only staff can send internal messages',
     });
-    noNotification();
+    expect(state.rows.notifications).toMatchObject([{ type: 'staff_member_message' }]);
   });
 
   it.each([

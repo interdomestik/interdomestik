@@ -1,13 +1,4 @@
-import {
-  E2E_USERS,
-  and,
-  db,
-  domainEvents,
-  eq,
-  subscriptions,
-  user,
-  webhookEvents,
-} from '@interdomestik/database';
+import { E2E_USERS, and, dbAdmin, eq, subscriptions, user } from '@interdomestik/database';
 import { createFreeStartDraft } from '@interdomestik/database/free-start-drafts';
 import { expect, test, type Page } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
@@ -34,8 +25,8 @@ import {
   postKsWebhook,
 } from './s6-provider-entitlement.fixture';
 
-test.describe('S6 provider-order entitlement boundary', () => {
-  test('a signed subscription update without causal order authority cannot grant entitlement', async ({
+test.describe('Paddle closure preserves the saved-draft entitlement boundary', () => {
+  test('a signed active subscription update stays unstored and cannot grant entitlement', async ({
     browser,
   }, testInfo) => {
     testInfo.skip(testInfo.project.name !== 'gate-ks-sq', 'One canonical KS run owns activation.');
@@ -55,17 +46,27 @@ test.describe('S6 provider-order entitlement boundary', () => {
     let session: S5Session | null = null;
 
     try {
-      const member = await db.query.user.findFirst({
-        columns: { emailVerified: true, role: true },
-        where: and(
-          eq(user.id, owner.ownerUserId),
-          eq(user.tenantId, owner.tenantId),
-          eq(user.email, E2E_USERS.KS_MEMBER_EMPTY.email)
-        ),
-      });
-      expect(member).toEqual({ emailVerified: true, role: 'member' });
+      const readMember = () =>
+        dbAdmin.query.user.findFirst({
+          columns: {
+            agentId: true,
+            assistedByAgentId: true,
+            createdBy: true,
+            emailVerified: true,
+            memberNumber: true,
+            memberNumberIssuedAt: true,
+            role: true,
+            tenantClassificationPending: true,
+          },
+          where: and(
+            eq(user.id, owner.ownerUserId),
+            eq(user.tenantId, owner.tenantId),
+            eq(user.email, E2E_USERS.KS_MEMBER_EMPTY.email)
+          ),
+        });
+      expect(await readMember()).toMatchObject({ emailVerified: true, role: 'member' });
       expect(
-        await db.query.subscriptions.findFirst({
+        await dbAdmin.query.subscriptions.findFirst({
           columns: { id: true },
           where: and(
             eq(subscriptions.tenantId, owner.tenantId),
@@ -119,11 +120,14 @@ test.describe('S6 provider-order entitlement boundary', () => {
         },
       };
 
+      const member = await readMember();
       const activation = await postKsWebhook(page, idaOrigin(info), payload);
-      expect(activation.status(), await activation.text()).toBe(500);
-      expect(await activation.json()).toEqual({ error: 'Internal Server Error' });
+      expect(activation.status()).toBe(503);
+      expect(activation.headers()['retry-after']).toMatch(/^[1-9]\d*$/);
+      expect(await activation.json()).toMatchObject({ code: 'PADDLE_CLOSED' });
 
-      const membership = await db.query.subscriptions.findMany({
+      expect(await readMember()).toEqual(member);
+      const membership = await dbAdmin.query.subscriptions.findMany({
         columns: {
           id: true,
           planId: true,
@@ -137,37 +141,13 @@ test.describe('S6 provider-order entitlement boundary', () => {
           eq(subscriptions.userId, owner.ownerUserId)
         ),
       });
-      expect(membership, 'unreconciled signed traffic creates no entitlement').toEqual([]);
-      const receipt = await db.query.webhookEvents.findMany({
-        columns: {
-          eventId: true,
-          processingResult: true,
-          processingScopeKey: true,
-          signatureValid: true,
-        },
-        where: and(
-          eq(webhookEvents.provider, 'paddle'),
-          eq(webhookEvents.processingScopeKey, 'entity:ks'),
-          eq(webhookEvents.eventId, eventId)
-        ),
+      expect(membership, 'closed Paddle traffic creates no entitlement').toEqual([]);
+      await expectActivationClean({
+        eventId,
+        providerSubscriptionId,
+        tenantId: owner.tenantId,
+        userId: owner.ownerUserId,
       });
-      expect(receipt).toEqual([
-        {
-          eventId,
-          processingResult: 'retryable_error',
-          processingScopeKey: 'entity:ks',
-          signatureValid: true,
-        },
-      ]);
-      expect(
-        await db.query.domainEvents.findMany({
-          columns: { eventName: true, id: true },
-          where: and(
-            eq(domainEvents.tenantId, owner.tenantId),
-            eq(domainEvents.entityId, providerSubscriptionId)
-          ),
-        })
-      ).toEqual([]);
 
       const after = await openSavedDrafts(page, info);
       await after
@@ -188,9 +168,10 @@ test.describe('S6 provider-order entitlement boundary', () => {
     } finally {
       const activeSession = session;
       const activePage = page;
+      const cleanedIds = new Set<string>();
       await teardown(
         [
-          () => cleanupS5(claimId, journey),
+          () => cleanupS5(claimId, journey, cleanedIds),
           ...(activeSession ? [() => signOut(activeSession)] : []),
           ...(activePage ? [() => activePage.context().close()] : []),
           () =>
@@ -200,7 +181,7 @@ test.describe('S6 provider-order entitlement boundary', () => {
               tenantId: owner.tenantId,
               userId: owner.ownerUserId,
             }),
-          () => expectJourneyClean(claimId, journey),
+          () => expectJourneyClean(claimId, journey, cleanedIds),
           () =>
             expectActivationClean({
               eventId,

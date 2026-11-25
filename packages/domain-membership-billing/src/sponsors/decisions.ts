@@ -21,6 +21,7 @@ import { nanoid } from 'nanoid';
 import { parseTimestamp } from '../sponsor-coverage/resolve';
 import { canDecideRevision, type SponsorActor } from './access';
 import { writeSponsorAudit } from './audit';
+import { assertSponsorSalesOpen } from './sales-admission';
 import type { SponsorResult } from './terms';
 
 const DAY_MS = 24 * 60 * 60 * 1000;
@@ -81,6 +82,9 @@ export async function decideRevision(
       .orderBy(desc(sponsorTermRevisions.revision))
       .limit(1);
     if (highest?.revision !== target.revision) return { ok: false, error: 'conflict' };
+    if (input.decision === 'approved') {
+      await assertSponsorSalesOpen(tx, tenantId);
+    }
     const decisionId = `spd_${nanoid()}`;
     const inserted = await tx
       .insert(sponsorRevisionDecisions)

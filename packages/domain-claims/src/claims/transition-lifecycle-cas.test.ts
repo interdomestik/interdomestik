@@ -130,3 +130,62 @@ describe('transition lifecycle CAS deprecation readiness', () => {
     expect(calls.eventValues).toBeUndefined();
   });
 });
+
+describe('draft submission intake categories', () => {
+  function draftCase(category: string) {
+    return { id: 'claim-1', category, lifecycleVersion: 6, status: 'draft' as const };
+  }
+
+  it.each(['injury', 'invalidity', 'Personal Injury'])(
+    'refuses to submit a draft with category %s',
+    async category => {
+      const { calls, tx } = makeTransitionTx({ current: draftCase(category) });
+
+      await expect(transitionClaimStatusInTransaction(tx, params('submitted'))).resolves.toEqual({
+        success: false,
+        error: 'transition_rejected',
+      });
+
+      expect(calls.updateValues).toBeUndefined();
+      expect(calls.historyValues).toBeUndefined();
+      expect(calls.eventValues).toBeUndefined();
+    }
+  );
+
+  it('requires the current draft row to have an open category in the submission CAS', async () => {
+    const { calls, tx } = makeTransitionTx({
+      current: draftCase(' VEHICLE '),
+      updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
+    });
+
+    await expect(
+      transitionClaimStatusInTransaction(tx, params('submitted'))
+    ).resolves.toMatchObject({
+      success: true,
+      status: 'submitted',
+    });
+
+    expectLifecycleCas(calls.whereConditions);
+    const where = inspect(calls.whereConditions.at(-1), { depth: 20 });
+    expect(where).toContain('public.claim_category_open_for_intake(');
+    expect(where).toContain('category');
+  });
+
+  it('moves a legacy free-text claim already submitted to verification', async () => {
+    const { calls, tx } = makeTransitionTx({
+      current: { ...draftCase('Personal Injury'), status: 'submitted' },
+      updated: [{ id: 'claim-1', lifecycleVersion: 7 }],
+    });
+
+    await expect(
+      transitionClaimStatusInTransaction(tx, params('verification'))
+    ).resolves.toMatchObject({
+      success: true,
+      status: 'verification',
+    });
+
+    expect(inspect(calls.whereConditions.at(-1), { depth: 20 })).not.toContain(
+      'public.claim_category_open_for_intake('
+    );
+  });
+});

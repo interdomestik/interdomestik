@@ -31,6 +31,10 @@
         "external_response": "Čeka se spoljni odgovor",
         "court_schedule": "Proverite raspored suda"
       },
+      "updates_item": {
+        "occurred": "Datum događaja",
+        "current_status": "Trenutni status"
+      },
       "regions": {
         "case": {
           "label": "Vaši slučajevi",

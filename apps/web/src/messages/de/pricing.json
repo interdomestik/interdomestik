@@ -1,5 +1,6 @@
 {
   "pricing": {
+    "CLOSED": "Der Kauf von Mitgliedschaften ist derzeit geschlossen.",
     "title": "Mitgliedschaft mit Fokus auf Schadensfälle",
     "subtitle": "Beginnen Sie mit Fahrzeug-, Sach- und Personenschäden. Reine Beratungsfälle bleiben beratend, und Angelegenheiten außerhalb des Umfangs werden weitergeleitet.",
     "monthly": "Monatlich",
@@ -220,6 +221,7 @@
       }
     },
     "businessLead": {
+      "CLOSED": "Unternehmensanfragen sind derzeit geschlossen.",
       "title": "Sprechen Sie mit unserem Business-Team",
       "subtitle": "Business-Mitgliedschaften werden mit einer kurzen begleiteten Aufnahme eingerichtet, damit wir vor der Aktivierung den passenden Schutzumfang festlegen können.",
       "callCta": "Business-Aufnahme anrufen",

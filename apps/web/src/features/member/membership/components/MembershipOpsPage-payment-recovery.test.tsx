@@ -147,5 +147,18 @@ describe('MembershipOpsPage', () => {
 
       expect(screen.queryByText('sponsored.activation.success')).not.toBeInTheDocument();
     });
+
+    it('announces the localized closed notice when the action returns CLOSED', async () => {
+      actionMocks.getPaymentUpdateUrl.mockResolvedValueOnce({
+        success: false,
+        code: 'CLOSED',
+        error: 'Payment and subscription management are currently unavailable.',
+      });
+
+      fireEvent.click(renderPastDueSubscription());
+
+      await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('CLOSED'));
+      expect(screen.queryByText('errors.payment_update_failed')).not.toBeInTheDocument();
+    });
   });
 });

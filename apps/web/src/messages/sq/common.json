@@ -1,5 +1,18 @@
 {
   "common": {
+    "claimStatusErrors": {
+      "forbidden": "Nuk keni leje për ta përditësuar këtë kërkesë.",
+      "notFound": "Kërkesa nuk u gjet ose qasja është e kufizuar.",
+      "declineReason": "Zgjidhni një arsye përpara se ta refuzoni kërkesën.",
+      "draft": "Dërgoni një kërkesë të re për të vazhduar nga drafti.",
+      "conflict": "Kërkesa ka ndryshuar. Rifreskoni faqen dhe provoni përsëri.",
+      "transition": "Kërkesa nuk mund të kalojë në statusin e zgjedhur.",
+      "recovery": "Plotësoni parakushtet e rikuperimit përpara se të ndryshoni statusin.",
+      "evidence": "Kontrolloni provat dhe autorizimet që kërkohen për këtë status.",
+      "failed": "Statusi i kërkesës nuk mund të ruhej.",
+      "assignmentTarget": "Punonjësi nuk u gjet ose është jashtë fushës suaj.",
+      "assignmentFailed": "Caktimi nuk mund të ruhej."
+    },
     "pwa": {
       "offlineHeading": "Ndihmë tani — jashtë linje",
       "offlinePrivacy": "Vetëm listë publike për vendin e ngjarjes. Pa të dhëna llogarie, shënime të ruajtura për fotografitë apo ndryshime në radhë.",
@@ -92,6 +105,8 @@
       }
     },
     "toastRegion": "Njoftimet",
+    "localeSaveError": "Nuk u ruajt gjuha që zgjodhët. Provoni përsëri.",
+    "localeSwitchUnsaved": "Gjuha që zgjodhët nuk mund të ruhej në këtë sesion.",
     "membershipStatus": {
       "active": "Aktive",
       "past_due": "Pagesë e vonuar",

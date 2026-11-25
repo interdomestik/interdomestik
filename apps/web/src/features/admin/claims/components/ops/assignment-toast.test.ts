@@ -3,7 +3,7 @@ import {
   ASSIGNMENT_CONFLICT_ERROR,
   ASSIGNMENT_DRAFT_ERROR,
   ASSIGNMENT_TARGET_DENIED_ERROR,
-} from '../../actions/ops-assignment';
+} from '../../actions/ops-assignment-errors';
 import { assignmentErrorToastKey } from './assignment-toast';
 
 describe('assignmentErrorToastKey', () => {

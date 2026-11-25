@@ -1,5 +1,7 @@
 'use server';
 
+import { leadSalesClosedFailure } from '@/actions/leads/sales-closed';
+import { toActionError } from '@/lib/safe-action.failure';
 import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { updateScopedAgentLeadStatus, type AgentLeadScope } from './server/lead-actions';
 import { memberLeads } from '@interdomestik/database';
@@ -54,12 +56,16 @@ async function resolveAgentLeadScope(leadId: string): Promise<AgentLeadScope> {
  * strictly enforces tenant, agent, and branch isolation.
  */
 export async function updateLeadStatus(leadId: string, status: string) {
-  const result = await updateScopedAgentLeadStatus({
-    scope: await resolveAgentLeadScope(leadId),
-    status: assertLeadStatus(status),
-  });
-  revalidatePath('/[locale]/(app)/agent/leads');
-  return result;
+  try {
+    const result = await updateScopedAgentLeadStatus({
+      scope: await resolveAgentLeadScope(leadId),
+      status: assertLeadStatus(status),
+    });
+    revalidatePath('/[locale]/(app)/agent/leads');
+    return result;
+  } catch (error) {
+    return toActionError(await leadSalesClosedFailure(error));
+  }
 }
 
 /**
@@ -68,10 +74,5 @@ export async function updateLeadStatus(leadId: string, status: string) {
  * or would trigger a complex flow. MVP: Status -> 'converted'.
  */
 export async function convertLeadToClient(leadId: string) {
-  const result = await updateScopedAgentLeadStatus({
-    scope: await resolveAgentLeadScope(leadId),
-    status: 'converted',
-  });
-  revalidatePath('/[locale]/(app)/agent/leads');
-  return result;
+  return updateLeadStatus(leadId, 'converted');
 }

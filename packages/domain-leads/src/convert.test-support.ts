@@ -1,6 +1,10 @@
 import { vi } from 'vitest';
 
 const tableRefs = vi.hoisted(() => ({
+  leadPaymentAttempts: {
+    id: 'leadPaymentAttempts.id',
+    tenantId: 'leadPaymentAttempts.tenantId',
+  },
   memberLeads: { table: 'memberLeads', id: 'memberLeads.id', tenantId: 'memberLeads.tenantId' },
   membershipCards: { table: 'membershipCards' },
   subscriptions: { table: 'subscriptions' },
@@ -9,6 +13,7 @@ const tableRefs = vi.hoisted(() => ({
 }));
 
 const mocks = vi.hoisted(() => ({
+  assertNewSalesOpen: vi.fn(),
   eq: vi.fn((left, right) => ({ left, right, op: 'eq' })),
   and: vi.fn((...clauses) => ({ clauses, op: 'and' })),
   asc: vi.fn(value => ({ op: 'asc', value })),
@@ -17,6 +22,9 @@ const mocks = vi.hoisted(() => ({
   lockedLead: [{ status: 'new', convertedUserId: null }] as unknown[],
   db: {
     query: {
+      leadPaymentAttempts: {
+        findFirst: vi.fn(),
+      },
       memberLeads: {
         findFirst: vi.fn(),
       },
@@ -51,6 +59,11 @@ vi.mock('@interdomestik/database', () => ({
 }));
 
 vi.mock('@interdomestik/database/schema', () => tableRefs);
+
+vi.mock('@interdomestik/database/pilot-switch', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database/pilot-switch')>()),
+  assertNewSalesOpen: mocks.assertNewSalesOpen,
+}));
 
 vi.mock('nanoid', () => ({
   nanoid: mocks.nanoid,

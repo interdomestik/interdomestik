@@ -16,7 +16,7 @@ export function mintTestTenantAuthority(
     accessTenantId?: string;
     userId?: string;
     role?: string | null;
-    branchId?: string;
+    branchId?: string | null;
     purpose?: 'test' | 'session';
   } = {}
 ): TenantAuthority {

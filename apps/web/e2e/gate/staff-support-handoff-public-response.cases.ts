@@ -25,6 +25,12 @@ import {
 import { expectManagerHandoffMetadata } from './support-handoff-metadata.test-support';
 
 export function registerPublicResponseCase() {
+  test.describe(publicResponseCase);
+}
+
+function publicResponseCase() {
+  // Keep the 60 s journey budget and allow 15 s of headroom for each of the four sign-ins.
+  test.describe.configure({ timeout: 120_000 });
   test('staff can send a public response that notifies the member until close', async ({
     authenticatedPage: memberPage,
     branchManagerPage,

@@ -1,7 +1,8 @@
 import { E2E_PASSWORD, E2E_USER_IDS, E2E_USERS, type E2EUserKey } from '@interdomestik/database';
 import { test as base, expect, type Page, type TestInfo } from '@playwright/test';
-import { requireDoorActor } from './one-door-data.fixture';
+import { waitForTestSignal } from '../gate/signal-wait.fixture';
 import { gotoApp } from '../utils/navigation';
+import { requireDoorActor } from './one-door-data.fixture';
 
 export function doorLocation(info: TestInfo): { origin: string; locale: string } {
   const baseUrl = new URL(info.project.use.baseURL?.toString() ?? 'http://localhost:3000');
@@ -61,38 +62,40 @@ export async function loginAtDoor(
   await page.getByTestId('login-email').fill(E2E_USERS[actor].email);
   await password.fill(E2E_PASSWORD);
   await expect(page.getByTestId('login-email')).toHaveValue(E2E_USERS[actor].email);
-  const [signIn] = await Promise.all([
-    page.waitForResponse(
-      res =>
-        new URL(res.url()).pathname === '/api/auth/sign-in/email' &&
-        res.request().method() === 'POST'
-    ),
-    page.getByTestId('login-submit').click(),
-  ]);
-  expect(signIn.status()).toBe(200);
-  // Wait for the login form to hand off to the authenticated portal.
-  await page.waitForURL(url => !/\/login\/?$/.test(url.pathname), { waitUntil: 'load' });
-  if (expected.role === 'branch_manager') {
-    // The overview streams a redirect to the assigned branch after the initial navigation.
-    await expect(page.getByTestId('branch-dashboard-title')).toBeVisible();
-  }
-  await expect
-    .poll(async () => {
-      const response = await page.request.get(`${origin}/api/auth/get-session`);
-      if (response.status() !== 200) return null;
-      return (await response.json())?.user?.id;
-    })
-    .toBe(E2E_USER_IDS[actor]);
-  const response = await page.request.get(`${origin}/api/auth/get-session`);
-  expect(response.status()).toBe(200);
-  const session = await response.json();
-  expect(session.user).toMatchObject({
-    id: expected.id,
-    tenantId: expected.tenantId,
-    role: expected.role,
+  await waitForTestSignal(info, 'Complete one-door sign-in', async remaining => {
+    const [signIn] = await Promise.all([
+      page.waitForResponse(
+        res =>
+          new URL(res.url()).pathname === '/api/auth/sign-in/email' &&
+          res.request().method() === 'POST',
+        { timeout: remaining() }
+      ),
+      page.getByTestId('login-submit').click({ timeout: remaining() }),
+    ]);
+    expect(signIn.status()).toBe(200);
+    // Let the form's redirect settle before the caller navigates and prove the resulting session.
+    await page.waitForURL(url => !/\/login\/?$/.test(url.pathname), {
+      waitUntil: 'load',
+      timeout: remaining(),
+    });
+    if (expected.role === 'branch_manager') {
+      // The overview streams a redirect to the assigned branch after the initial navigation.
+      await expect(page.getByTestId('branch-dashboard-title')).toBeVisible();
+    }
+    const response = await page.request.get(`${origin}/api/auth/get-session`, {
+      timeout: remaining(),
+    });
+    expect(response.status()).toBe(200);
+    const session = await response.json();
+    expect(session?.user?.id).toBe(E2E_USER_IDS[actor]);
+    expect(session.user).toMatchObject({
+      id: expected.id,
+      tenantId: expected.tenantId,
+      role: expected.role,
+    });
+    expect(session.user.branchId ?? null).toBe(expected.branchId);
+    expect(new URL(page.url()).origin).toBe(origin);
   });
-  expect(session.user.branchId ?? null).toBe(expected.branchId);
-  expect(new URL(page.url()).origin).toBe(origin);
 }
 
 export function directDoorUpload(

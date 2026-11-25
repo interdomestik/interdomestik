@@ -1,10 +1,19 @@
-import { and, desc, eq, sql, supportHandoffs } from '@interdomestik/database';
+import {
+  and,
+  desc,
+  eq,
+  sql,
+  supportHandoffFirstResponses,
+  supportHandoffs,
+} from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
+import { enqueueSupportHandoffResponseNotification } from '@interdomestik/domain-communications/notification-deliveries';
+import { reportServerError } from '@interdomestik/domain-communications/server-error';
 import { inArray, isNotNull, type SQL } from 'drizzle-orm';
 
 import type {
@@ -74,58 +83,102 @@ export async function updateSupportHandoffPublicResponseCore(
     return { success: false, error: 'Public response is required' };
   }
 
-  const now = new Date();
   const expectedVersion = params.expectedVersion ?? 0;
-  const updated = await withTenantAuthority(authority, tx =>
-    tx
-      .update(supportHandoffs)
-      .set({
-        publicResponse,
-        publicResponseAt: now,
-        publicResponseById: staffSession.user.id,
-        publicResponseVersion: sql`${supportHandoffs.publicResponseVersion} + 1`,
-        updatedAt: now,
-      })
-      .where(
-        withTenant(
-          tenantId,
-          supportHandoffs.tenantId,
-          and(
-            eq(supportHandoffs.id, params.handoffId),
-            eq(supportHandoffs.status, 'accepted'),
-            eq(supportHandoffs.staffId, staffSession.user.id),
-            eq(supportHandoffs.publicResponseVersion, expectedVersion),
-            buildBranchScope(staffSession.user.branchId ?? null)
-          )
+  let row: UpdateSupportHandoffPublicResponseResult | undefined;
+  try {
+    row = await withTenantAuthority(authority, async tx => {
+      const scope = withTenant(
+        tenantId,
+        supportHandoffs.tenantId,
+        and(
+          eq(supportHandoffs.id, params.handoffId),
+          eq(supportHandoffs.status, 'accepted'),
+          eq(supportHandoffs.staffId, staffSession.user.id),
+          eq(supportHandoffs.publicResponseVersion, expectedVersion),
+          buildBranchScope(staffSession.user.branchId ?? null)
         )
-      )
-      .returning({
-        handoffId: supportHandoffs.id,
-        memberId: supportHandoffs.memberId,
-        publicResponseVersion: supportHandoffs.publicResponseVersion,
-        tenantId: supportHandoffs.tenantId,
-      })
-  );
+      );
+      // db-access-guard: tenant-scoped -- reason: scope binds the handoff to the validated staff and tenant.
+      const [locked] = await tx
+        .select({ id: supportHandoffs.id })
+        .from(supportHandoffs)
+        .where(scope)
+        .for('no key update');
+      if (!locked) return undefined;
 
-  const row = updated[0];
+      const [clock] = await tx
+        .select({
+          epochMs: sql<number>`(extract(epoch from clock_timestamp()) * 1000)::double precision`,
+        })
+        .from(supportHandoffs)
+        .where(scope)
+        .limit(1);
+      const now = new Date(clock?.epochMs ?? Number.NaN);
+      if (Number.isNaN(now.getTime())) throw new Error('Unreadable handoff response timestamp');
+
+      // db-access-guard: tenant-scoped -- reason: the scope repeats the locked handoff and response version.
+      const [updated] = await tx
+        .update(supportHandoffs)
+        .set({
+          publicResponse,
+          publicResponseAt: now,
+          publicResponseById: staffSession.user.id,
+          publicResponseVersion: sql`${supportHandoffs.publicResponseVersion} + 1`,
+          updatedAt: now,
+        })
+        .where(scope)
+        .returning({
+          handoffId: supportHandoffs.id,
+          memberId: supportHandoffs.memberId,
+          publicResponseVersion: supportHandoffs.publicResponseVersion,
+          tenantId: supportHandoffs.tenantId,
+        });
+      if (updated && expectedVersion === 0) {
+        // db-access-guard: tenant-scoped -- reason: the locked handoff's tenant and id.
+        await tx
+          .insert(supportHandoffFirstResponses)
+          .values({
+            tenantId: updated.tenantId,
+            handoffId: updated.handoffId,
+            firstPublicResponseAt: now,
+          })
+          .onConflictDoNothing({ target: supportHandoffFirstResponses.handoffId });
+      }
+      if (updated) {
+        await enqueueSupportHandoffResponseNotification(tx, tenantId, updated.memberId, {
+          id: updated.handoffId,
+          responseVersion: updated.publicResponseVersion,
+        });
+      }
+      return updated;
+    });
+  } catch (error) {
+    reportServerError('Support handoff public response transaction failed', error);
+    return { success: false, error: 'Public response could not be saved' };
+  }
+
   if (!row) {
     return { success: false, error: 'Handoff changed before response could be updated' };
   }
 
   if (deps.logAuditEvent) {
-    await deps.logAuditEvent({
-      actorId: staffSession.user.id,
-      actorRole: staffSession.user.role,
-      authority,
-      action: 'support_handoff.public_response_updated',
-      entityType: 'support_handoff',
-      entityId: params.handoffId,
-      metadata: {
-        expectedVersion,
-        responseLength: publicResponse.length,
-      },
-      headers: params.requestHeaders,
-    });
+    try {
+      await deps.logAuditEvent({
+        actorId: staffSession.user.id,
+        actorRole: staffSession.user.role,
+        authority,
+        action: 'support_handoff.public_response_updated',
+        entityType: 'support_handoff',
+        entityId: params.handoffId,
+        metadata: {
+          expectedVersion,
+          responseLength: publicResponse.length,
+        },
+        headers: params.requestHeaders,
+      });
+    } catch (error) {
+      reportServerError('Support handoff public response audit failed after commit', error);
+    }
   }
 
   return {

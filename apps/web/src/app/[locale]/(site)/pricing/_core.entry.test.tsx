@@ -1,85 +1,16 @@
 import { render, screen } from '@testing-library/react';
-import type { ReactNode } from 'react';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
+import { describe, expect, it, vi } from 'vitest';
+import { expectCoverageMatrix } from '@/test/coverage-matrix-test-utils';
 import { expectCommercialTerms } from '@/test/commercial-terms-test-utils';
 import { expectSuccessFeeCalculator } from '@/test/success-fee-calculator-test-utils';
-const hoisted = vi.hoisted(() => {
-  const entityDisclosure = { contractingCompany: 'KS LLC', governingLaw: 'XK', unavailable: false };
-
-  return {
-    entityDisclosure,
-    headersMock: vi.fn(async () => new Headers([['host', 'ks.localhost:3000']])),
-    getSessionMock: vi.fn(async () => ({ user: { id: 'user-1', email: 'member@example.com' } })),
-    getPublicBillingCheckoutConfigMock: vi.fn(() => ({
-      entity: 'ks',
-      tenantId: 'tenant_ks',
-      environment: 'sandbox',
-      entityDisclosure,
-      clientToken: 'test_client_token_ks',
-      priceIds: { standardYear: 'standard', familyYear: 'family', businessYear: 'business' },
-    })),
-    resolveBillingEntityFromPathSegmentMock: vi.fn(() => 'ks'),
-    resolveBillingTenantIdForEntityMock: vi.fn(() => 'tenant_ks'),
-    pricingPageRuntimeMock: vi.fn((_: unknown) => null),
-  };
-});
-
-const ORIGINAL_ENV = { ...process.env };
-
-vi.mock('next/headers', () => ({
-  headers: hoisted.headersMock,
-}));
-
-vi.mock('@/lib/auth', () => ({
-  auth: {
-    api: {
-      getSession: hoisted.getSessionMock,
-    },
-  },
-}));
-
-vi.mock('next-intl/server', () => ({
-  getTranslations: vi.fn(async (options?: { namespace?: string } | string) =>
-    getNamespacedTranslation(options)
-  ),
-}));
-
-vi.mock('@interdomestik/domain-membership-billing/paddle-server', () => ({
-  getPublicBillingCheckoutConfig: hoisted.getPublicBillingCheckoutConfigMock,
-  resolveBillingEntityFromPathSegment: hoisted.resolveBillingEntityFromPathSegmentMock,
-  resolveBillingTenantIdForEntity: hoisted.resolveBillingTenantIdForEntityMock,
-}));
-
-vi.mock('./pricing-page-runtime', () => ({
-  PricingPageRuntime: (props: unknown) => hoisted.pricingPageRuntimeMock(props),
-}));
-
-vi.mock('@/components/pricing/pricing-table', () => ({
-  PricingTable: ({ children }: { children?: ReactNode }) => children ?? null,
-}));
-
-vi.mock('@/i18n/routing', () => ({
-  Link: ({ children, href }: { children: ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
-}));
-
+import { hoisted, installPricingPageHooks } from './_core.entry.test-support';
 import PricingPage from './_core.entry';
 
 describe('PricingPage server shell', () => {
-  beforeEach(() => {
-    process.env = { ...ORIGINAL_ENV };
-    process.env.IDA_HOST = 'https://ida.example.test';
-    delete process.env.BILLING_TEST_MODE;
-    delete process.env.NEXT_PUBLIC_BILLING_TEST_MODE;
-    vi.clearAllMocks();
-  });
-  afterEach(() => {
-    process.env = { ...ORIGINAL_ENV };
-  });
+  installPricingPageHooks();
 
-  it('C29 passes only the trusted pricing entry and validated plan without headers or session', async () => {
+  it('C29 passes only the trusted pricing entry and validated plan under the header tenant without a server session', async () => {
+    hoisted.keepParkedPath = true;
     const tree = await PricingPage({
       params: Promise.resolve({ locale: 'sq' }),
       searchParams: Promise.resolve({ plan: 'family' }),
@@ -120,7 +51,8 @@ describe('PricingPage server shell', () => {
       neutralEntryPlan: 'family',
       neutralPricingEntryUrl: 'https://ida.example.test/sq/pricing',
     });
-    expect(hoisted.headersMock).not.toHaveBeenCalled();
+    expect(hoisted.headersMock).toHaveBeenCalledOnce();
+    expect(hoisted.authorize).toHaveBeenCalledExactlyOnceWith('tenant_ks');
     expect(hoisted.getSessionMock).not.toHaveBeenCalled();
   });
 
@@ -145,7 +77,7 @@ describe('PricingPage server shell', () => {
   });
 
   it('keeps rendering the pricing shell during local sandbox builds when checkout config is unavailable', async () => {
-    vi.stubEnv('NODE_ENV', 'production');
+    hoisted.keepParkedPath = true;
     process.env.NEXT_PUBLIC_PADDLE_ENV = 'sandbox';
     delete process.env.VERCEL_ENV;
 
@@ -173,7 +105,7 @@ describe('PricingPage server shell', () => {
   });
 
   it('fails closed in production Paddle mode when public checkout config is unavailable', async () => {
-    vi.stubEnv('NODE_ENV', 'production');
+    hoisted.keepParkedPath = true;
     vi.stubEnv('NEXT_PUBLIC_PADDLE_ENV', 'production');
     delete process.env.VERCEL_ENV;
 

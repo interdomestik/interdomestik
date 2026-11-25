@@ -141,6 +141,31 @@ test('D-1: a Next configuration other than the fixed one is refused', t => {
     { ...REAL_NEXT, 'apps/web/src/lib/supabase-deployment.mjs': null },
     both(/supabase-deployment\.mjs .*is missing/u, SCANNER_PR)
   );
+  // #2124's re-pin: one changed byte in the second helper, or the helper missing, is refused.
+  const refusals = REAL_NEXT['apps/web/src/lib/pilot-env-refusals.mjs'];
+  rejects(
+    t,
+    {
+      ...REAL_NEXT,
+      'apps/web/src/lib/pilot-env-refusals.mjs': refusals.replace('export', 'export '),
+    },
+    both(/pilot-env-refusals\.mjs is not the fixed/u, SCANNER_PR)
+  );
+  rejects(
+    t,
+    { ...REAL_NEXT, 'apps/web/src/lib/pilot-env-refusals.mjs': null },
+    both(/pilot-env-refusals\.mjs .*is missing/u, SCANNER_PR)
+  );
+  // A config that also loads a third local file is another configuration.
+  rejects(
+    t,
+    {
+      ...REAL_NEXT,
+      'apps/web/next.config.mjs': `import './src/lib/extra-config.mjs';\n${config}`,
+      'apps/web/src/lib/extra-config.mjs': 'export {};\n',
+    },
+    both(/next\.config\.mjs is not the fixed/u, SCANNER_PR)
+  );
   for (const ext of ['js', 'cjs', 'ts', 'mts', 'cts']) {
     rejects(
       t,

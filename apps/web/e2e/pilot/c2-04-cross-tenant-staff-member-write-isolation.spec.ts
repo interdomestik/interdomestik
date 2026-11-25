@@ -10,9 +10,9 @@ import {
 } from '@interdomestik/database';
 import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { cancelClaimCore, updateDraftClaimCore } from '@interdomestik/domain-claims/claims/draft';
-import { assignClaimCore as assignStaffClaimCore } from '@interdomestik/domain-claims/staff-claims/assign';
-import { updateClaimStatusCore as updateStaffClaimStatusCore } from '@interdomestik/domain-claims/staff-claims/update-status';
+import { changeClaimStatus } from '@interdomestik/domain-claims/claims/change-status';
+import { updateDraftClaimCore } from '@interdomestik/domain-claims/claims/draft';
+import { changeClaimAssignment } from '@interdomestik/domain-claims/staff-claims/assign';
 import { expect, test } from '../fixtures/auth.fixture';
 
 const ACTOR_HOST = process.env.C2_ACTOR_HOST ?? process.env.MK_HOST ?? 'mk.127.0.0.1.nip.io:3000';
@@ -22,9 +22,6 @@ const ACTOR_STAFF_TENANT_ID = process.env.C2_STAFF_TENANT_ID ?? E2E_USERS.MK_STA
 const ACTOR_MEMBER_TENANT_ID = process.env.C2_MEMBER_TENANT_ID ?? E2E_USERS.MK_MEMBER.tenantId;
 const TARGET_TENANT_ID = process.env.C2_TARGET_TENANT_ID ?? E2E_USERS.KS_MEMBER.tenantId;
 
-type StaffSession = {
-  user: { id: string; role: string | null; tenantId: string | null; branchId: string | null };
-};
 type MemberSession = { user: { id: string; role: string | null; tenantId: string | null } };
 type KsClaimTarget = { id: string; title: string; status: string | null; staffId: string | null };
 
@@ -69,7 +66,7 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
 
   const mkStaff = await db.query.user.findFirst({
     where: and(eq(user.email, ACTOR_STAFF_EMAIL), eq(user.tenantId, ACTOR_STAFF_TENANT_ID)),
-    columns: { id: true, role: true, tenantId: true, branchId: true },
+    columns: { id: true, role: true, tenantId: true },
   });
   if (!mkStaff?.id || mkStaff.tenantId !== ACTOR_STAFF_TENANT_ID) {
     throw new Error('Expected seeded MK staff actor');
@@ -82,15 +79,6 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
   if (!mkMember?.id || mkMember.tenantId !== ACTOR_MEMBER_TENANT_ID) {
     throw new Error('Expected seeded MK member actor');
   }
-
-  const staffSession = {
-    user: {
-      id: mkStaff.id,
-      role: mkStaff.role,
-      tenantId: mkStaff.tenantId,
-      branchId: mkStaff.branchId ?? null,
-    },
-  } satisfies StaffSession;
 
   const memberSession = {
     user: {
@@ -109,53 +97,47 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
     throw new Error(`Expected baseline KS claim ${targetClaim.id}`);
   }
 
-  const staffAuthority = mintTestTenantAuthority(mkStaff.tenantId);
-  const memberAuthority = mintTestTenantAuthority(mkMember.tenantId);
-
-  const assignResult = await assignStaffClaimCore({
-    authority: staffAuthority,
-    claimId: targetClaim.id,
-    session: staffSession,
-    requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
+  const staffAuthority = mintTestTenantAuthority(mkStaff.tenantId, {
+    userId: mkStaff.id,
+    role: mkStaff.role,
   });
-  expect(assignResult.success).toBe(false);
-  if (assignResult.success) {
-    throw new Error('Expected cross-tenant staff assignment to be denied');
-  }
-  expect(assignResult.error).toBe('Claim not found or access denied');
+  const memberAuthority = mintTestTenantAuthority(mkMember.tenantId, {
+    userId: mkMember.id,
+    role: mkMember.role,
+  });
+  const requestHeaders = new Headers({ 'x-forwarded-host': ACTOR_HOST });
+
+  await expect(
+    changeClaimAssignment(staffAuthority, { claimId: targetClaim.id }, { requestHeaders })
+  ).resolves.toEqual({ ok: false, code: 'not_found' });
 
   const statusProbeNote = `C2-04 cross-tenant staff status probe ${Date.now()}`;
-  const staffStatusResult = await updateStaffClaimStatusCore({
-    authority: staffAuthority,
-    claimId: targetClaim.id,
-    newStatus: 'verification',
-    note: statusProbeNote,
-    isPublicChange: false,
-    session: staffSession,
-    requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
-  });
+  await expect(
+    changeClaimStatus(
+      staffAuthority,
+      {
+        claimId: targetClaim.id,
+        toStatus: 'verification',
+        note: statusProbeNote,
+        isPublicNote: false,
+      },
+      { hostId: mkStaff.tenantId, requestHeaders }
+    )
+  ).resolves.toEqual({ ok: false, code: 'not_found' });
 
-  expect(staffStatusResult.success).toBe(false);
-  if (staffStatusResult.success) {
-    throw new Error('Expected cross-tenant staff status update to be denied');
-  }
-  expect(staffStatusResult.error).toBe('Claim not found');
-
-  const memberCancelResult = await cancelClaimCore({
-    authority: memberAuthority,
-    session: memberSession,
-    requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
-    claimId: targetClaim.id,
-  });
-
-  expect(memberCancelResult.success).toBe(false);
-  expect(memberCancelResult.error).toBe('Claim not found');
+  await expect(
+    changeClaimStatus(
+      memberAuthority,
+      { claimId: targetClaim.id, toStatus: 'rejected' },
+      { hostId: mkMember.tenantId, requestHeaders }
+    )
+  ).resolves.toEqual({ ok: false, code: 'forbidden_role' });
 
   const draftProbeFileName = `c2-04-draft-probe-${Date.now()}.pdf`;
   const memberDraftResult = await updateDraftClaimCore({
     authority: memberAuthority,
     session: memberSession,
-    requestHeaders: new Headers({ 'x-forwarded-host': ACTOR_HOST }),
+    requestHeaders,
     claimId: targetClaim.id,
     data: {
       category: 'vehicle',
@@ -217,7 +199,7 @@ test('C2-04: staff/member cross-tenant writes are denied without mutation', asyn
 
   console.log('MARKER_C2_04_STAFF_ASSIGN_DENIED');
   console.log('MARKER_C2_04_STAFF_STATUS_DENIED');
-  console.log('MARKER_C2_04_MEMBER_CANCEL_DENIED');
+  console.log('MARKER_C2_04_MEMBER_STATUS_DENIED');
   console.log('MARKER_C2_04_MEMBER_DRAFT_DENIED');
   console.log(`C2_04_TARGET_CLAIM_ID=${targetClaim.id}`);
   console.log(`C2_04_TARGET_CLAIM_TITLE=${targetClaim.title}`);

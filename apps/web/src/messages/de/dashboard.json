@@ -32,6 +32,10 @@
         "external_response": "Warten auf externe Antwort",
         "court_schedule": "Gerichtstermine prüfen"
       },
+      "updates_item": {
+        "occurred": "Datum des Vorfalls",
+        "current_status": "Aktueller Status"
+      },
       "regions": {
         "case": {
           "label": "Ihre Fälle",
