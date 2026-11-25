@@ -342,6 +342,11 @@
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"claim\",\"idx_claims_tenant_updated\"]",
+      "value": "btree (tenant_id, \"updatedAt\" DESC, id DESC)",
+      "migration": "0107_perf_read_path_indexes"
+    },
+    {
       "key": "index [\"public\",\"claim_correspondence\",\"claim_correspondence_follow_up_idx\"]",
       "value": "btree (tenant_id, follow_up_at) WHERE ((direction = 'outbound'::text) AND (follow_up_at IS NOT NULL))",
       "migration": "0106_wp12_claim_correspondence"
@@ -365,6 +370,11 @@
       "key": "index [\"public\",\"claim_response_requests\",\"claim_response_requests_source_uq\"]",
       "value": "unique btree (tenant_id, kind, COALESCE(source_message_id, claim_id))",
       "migration": "0105_wp11_notification_deliveries"
+    },
+    {
+      "key": "index [\"public\",\"claim_stage_history\",\"idx_claim_stage_history_tenant_claim_created\"]",
+      "value": "btree (tenant_id, claim_id, created_at DESC, id DESC)",
+      "migration": "0107_perf_read_path_indexes"
     },
     {
       "key": "index [\"public\",\"claim_stage_history\",\"idx_claim_stage_history_tenant_id\"]",
@@ -430,6 +440,11 @@
       "key": "index [\"public\",\"notifications\",\"idx_notifications_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"notifications\",\"idx_notifications_tenant_user_created\"]",
+      "value": "btree (tenant_id, user_id, created_at DESC)",
+      "migration": "0107_perf_read_path_indexes"
     },
     {
       "key": "index [\"public\",\"notifications\",\"notifications_tenant_id_id_uq\"]",

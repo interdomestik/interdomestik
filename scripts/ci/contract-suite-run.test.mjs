@@ -18,7 +18,8 @@ const entry = 'scripts/ci/contract-suite-run.mjs';
 const retained = 'scripts/ci/retained.test.mjs';
 const skipped = GUARD_TRUST_SHARDS.candidate[0];
 const extra = 'scripts/check-modularity-guard.test.mjs';
-const shards = ['core', ...Object.keys(GUARD_TRUST_SHARDS)];
+const coreCheck = 'scripts/ci/server-mutation-check.fixture.test.mjs';
+const shards = ['core', 'core-checks', ...Object.keys(GUARD_TRUST_SHARDS)];
 const passing = "import test from 'node:test';\ntest('passes', () => {});\n";
 const failing =
   "import test from 'node:test';\ntest('fixture fails', () => { throw new Error('fixture failure'); });\n";
@@ -39,7 +40,7 @@ function fixture(t, { tests = {}, toolingOnly = [] } = {}) {
   ]) {
     write(`scripts/ci/${name}`, fs.readFileSync(new URL(name, import.meta.url)));
   }
-  for (const file of [retained, extra, ...Object.values(GUARD_TRUST_SHARDS).flat()]) {
+  for (const file of [retained, extra, coreCheck, ...Object.values(GUARD_TRUST_SHARDS).flat()]) {
     const retiredNames = RETIRED_LEGACY_TESTS[file] ?? [];
     const retired = retiredNames.map(
       name => `test(${JSON.stringify(name)}, () => { throw new Error('retired test ran'); });\n`
@@ -125,6 +126,7 @@ test('product skips only listed files and reports empty shards without starting 
   assert.match(output, /contract shard candidate: 0 selected file\(s\)/u);
   assert.doesNotMatch(output, /contract shard candidate: (pass|FAIL)/u);
   assert.match(output, /contract shard core: pass; 2 file\(s\)/u);
+  assert.match(output, /contract shard core-checks: pass; 1 file\(s\)/u);
 });
 
 test('a failing retained file makes the product entry point exit 1', t => {
@@ -135,6 +137,16 @@ test('a failing retained file makes the product entry point exit 1', t => {
   assert.match(output, /contract lane: product/u);
   assert.match(output, /fixture failure/u);
   assert.match(output, /contract shard core: FAIL \(code=1/u);
+});
+
+test('a failing check in the second core shard fails the product lane', t => {
+  const suite = fixture(t, { tests: { [coreCheck]: failing } });
+  suite.pullRequest();
+  const { status, output } = suite.run();
+  assert.equal(status, 1, output);
+  assert.match(output, /contract lane: product/u);
+  assert.match(output, /fixture failure/u);
+  assert.match(output, /contract shard core-checks: FAIL \(code=1/u);
 });
 
 test('a selector exception runs the full suite and propagates a shard failure', t => {
