@@ -1,6 +1,48 @@
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import { waitForTestSignal } from './signal-wait.fixture';
+
+// Browser probe: wait for the mobile layout before the native fragment jump measures it.
+async function isLayoutSettledAt320Px(link: Element, targetId: string): Promise<boolean> {
+  const root = document.documentElement;
+  const target = document.getElementById(targetId);
+  if (root.clientWidth !== 320 || !target) return false;
+
+  const captureLayout = () =>
+    JSON.stringify([
+      root.clientWidth,
+      root.scrollHeight,
+      link.getBoundingClientRect(),
+      target.getBoundingClientRect(),
+    ]);
+  const nextFrameLayout = () =>
+    new Promise<string>(resolve => {
+      requestAnimationFrame(() => resolve(captureLayout()));
+    });
+
+  const layout = captureLayout();
+  const nextLayout = await nextFrameLayout();
+  const finalLayout = await nextFrameLayout();
+  return layout === nextLayout && nextLayout === finalLayout;
+}
+
+// Browser probe: the target is on screen and its top stays put across two animation frames.
+async function isSettledInViewport(id: string): Promise<boolean> {
+  const target = document.getElementById(id);
+  if (!target) return false;
+
+  const { top, bottom } = target.getBoundingClientRect();
+  if (top >= window.innerHeight || bottom <= 0) return false;
+
+  const nextFrameTop = () =>
+    new Promise<number>(resolve => {
+      requestAnimationFrame(() => resolve(target.getBoundingClientRect().top));
+    });
+  const nextTop = await nextFrameTop();
+  const finalTop = await nextFrameTop();
+  return top === nextTop && nextTop === finalTop;
+}
 
 // Task-first reading order of the member case workspace.
 const READING_ORDER_SELECTORS = [
@@ -97,6 +139,8 @@ test('member case workspace keeps reading order and keyboard destinations at 320
   page,
   loginAs,
 }, testInfo) => {
+  // Keep the original 60 s available before the signal helper's 30 s cleanup reserve.
+  test.setTimeout(90_000);
   await loginAs('member');
   await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
   const caseLinks = page
@@ -136,10 +180,31 @@ test('member case workspace keeps reading order and keyboard destinations at 320
 
   const messagesLink = page.locator('a[href="#member-claim-detail-messaging"]:visible');
   await expect(messagesLink).toHaveCount(1);
+  await waitForTestSignal(
+    testInfo,
+    'Settle the 320 px layout before the keyboard jump',
+    async remaining => {
+      await expect
+        .poll(
+          () => messagesLink.evaluate(isLayoutSettledAt320Px, 'member-claim-detail-messaging'),
+          { timeout: remaining() }
+        )
+        .toBe(true);
+    }
+  );
   await messagesLink.focus();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/#member-claim-detail-messaging$/);
-  await expect(page.locator('#member-claim-detail-messaging')).toBeInViewport();
+  await waitForTestSignal(testInfo, 'Finish the keyboard jump to messages', async remaining => {
+    await expect(page).toHaveURL(/#member-claim-detail-messaging$/, { timeout: remaining() });
+    await expect
+      .poll(() => page.evaluate(isSettledInViewport, 'member-claim-detail-messaging'), {
+        timeout: remaining(),
+      })
+      .toBe(true);
+    await expect(page.locator('#member-claim-detail-messaging')).toBeInViewport({
+      timeout: remaining(),
+    });
+  });
 
   // 200% presentation emulated by halving the CSS viewport and doubling the root font size.
   await page.setViewportSize({ width: 640, height: 512 });
