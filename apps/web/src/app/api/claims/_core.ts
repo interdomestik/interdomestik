@@ -5,18 +5,7 @@ import {
 } from '@interdomestik/domain-claims';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { SessionWithTenant } from '@interdomestik/shared-auth';
-
-const MAX_PER_PAGE = 50;
-
-function clampPage(value: number) {
-  if (!Number.isFinite(value) || value < 1) return 1;
-  return Math.floor(value);
-}
-
-function clampPerPage(value: number, fallback: number) {
-  if (!Number.isFinite(value) || value < 1) return fallback;
-  return Math.min(Math.floor(value), MAX_PER_PAGE);
-}
+import { clampPage, clampPerPage } from '@/lib/pagination';
 
 function parseScope(scopeParam: string | null = 'member'): ClaimsScope {
   const value = scopeParam ?? 'member';

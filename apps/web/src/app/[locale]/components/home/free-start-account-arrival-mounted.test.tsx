@@ -20,6 +20,7 @@ const renderPublicHome = () =>
       defaultPublicTenantId="tenant_ks"
       locale="en"
       neutralOtpHost={location.host}
+      publicIntakeOpen
       uiV2Enabled
     />
   );

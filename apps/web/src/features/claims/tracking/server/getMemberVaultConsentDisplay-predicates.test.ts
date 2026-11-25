@@ -49,7 +49,8 @@ vi.mock('@interdomestik/database/tenant-directory', () => ({
   readTenantLocaleMetadata: hoisted.locale,
 }));
 vi.mock('@interdomestik/database/schema', () => schema);
-vi.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
   and: hoisted.and,
   desc: hoisted.desc,
   eq: hoisted.eq,

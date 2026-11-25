@@ -31,6 +31,8 @@ const INVENTORY = {
     // Dunning delivery is explicitly class A even though it lives among Paddle handlers.
     `${BILLING}paddle-webhooks/handlers/dunning-context.ts`,
     'packages/domain-claims/src/staff-claims/matter-allowance.ts',
+    // Recovery status locks the allowance key and backing subscription before resolving coverage.
+    'packages/domain-claims/src/claims/change-status-recovery.ts',
     'packages/domain-claims/src/support-handoffs/queue.ts',
     'packages/domain-users/src/agent/get-users.ts',
   ],

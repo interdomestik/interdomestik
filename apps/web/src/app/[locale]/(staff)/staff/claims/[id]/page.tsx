@@ -26,19 +26,20 @@ import { notFound } from 'next/navigation';
 
 import { ClaimActionPanel } from '@/components/staff/claim-action-panel';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
-import { StaffClaimDocumentsSection } from './staff-claim-documents-section';
 import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { getMessagesForClaimCore } from '@/actions/messages/get.core';
 import { getStaffAssignmentOptions } from '@/features/staff/claims/assignment-options';
 import { authorizeStaffClaimPage } from '@/features/staff/claims/server/authorize-staff-claim-page';
-import { getAssignedStaffClaimDocuments } from '@/features/staff/claims/server/get-assigned-claim-documents';
 import { getPublicStatusHistoryCore } from './_core';
+import {
+  prepareStaffClaimRegister,
+  readStaffClaimRegisterPages,
+  type StaffClaimRegisterSearchParams,
+} from './staff-claim-register';
 
 interface PageProps {
-  params: Promise<{
-    locale: string;
-    id: string;
-  }>;
+  params: Promise<{ locale: string; id: string }>;
+  searchParams?: Promise<StaffClaimRegisterSearchParams>;
 }
 
 function toClaimStatus(value: unknown): ClaimStatus {
@@ -68,8 +69,10 @@ function loadStaffClaimReads(
 
 export default async function StaffClaimDetailsPage({
   params,
+  searchParams,
 }: Readonly<PageProps>): Promise<React.JSX.Element> {
   const { id, locale } = await params;
+  const pages = readStaffClaimRegisterPages(await searchParams);
   setRequestLocale(locale);
   const tClaims = await getTranslations({ locale, namespace: 'agent-claims.claims' });
   const tStatus = await getTranslations({ locale, namespace: 'claims-tracking.status' });
@@ -112,10 +115,15 @@ export default async function StaffClaimDetailsPage({
     initialMessagesResult.success === true &&
     Array.isArray((initialMessagesResult as { messages?: unknown }).messages);
   const initialReadFailed = isStaff && !serverReadSucceeded;
-  // The document reader rechecks exact assignment inside its tenant transaction.
-  const assignedDocuments = isAssignedStaff
-    ? await getAssignedStaffClaimDocuments({ claimId: id, session, authority }).catch(() => null)
-    : null;
+  const { readRegister, renderEvidence } = await prepareStaffClaimRegister({
+    session,
+    authority,
+    claim: detail.claim,
+    claimId: id,
+    locale,
+    isAssignedStaff,
+    pages,
+  });
   // The information-request card owns real member duties; generic phase copy stays neutral.
   const slaPhaseLabel = isVerificationGuidancePhase(claimStatus, slaPhase)
     ? tClaims('details.verification_guidance')
@@ -159,6 +167,7 @@ export default async function StaffClaimDetailsPage({
     updatedAt: detail.claim.updatedAt,
   });
 
+  const register = await readRegister();
   return (
     <div
       className="min-w-0 space-y-6 [&_section]:scroll-mt-80 md:[&_section]:scroll-mt-20"
@@ -230,16 +239,7 @@ export default async function StaffClaimDetailsPage({
           claimId={id}
           requests={informationRequests}
         />
-        <StaffClaimDocumentsSection
-          documents={assignedDocuments}
-          emptyLabel={tEvidence('detail.documentsEmpty')}
-          errorLabel={tCommon('errors.generic')}
-          isAssignedStaff={isAssignedStaff}
-          retryHref={`/${locale}/staff/claims/${encodeURIComponent(id)}`}
-          retryLabel={tCommon('tryAgain')}
-          title={tEvidence('detail.evidence')}
-          viewLabel={tEvidence('informationRequests.download')}
-        />
+        {renderEvidence(tEvidence, tCommon)}
       </section>
 
       {isStaff ? (
@@ -271,6 +271,7 @@ export default async function StaffClaimDetailsPage({
         </section>
       ) : null}
 
+      {register}
       <StaffClaimContext
         groups={contextGroups}
         sectionId={SECTION_CONTEXT}

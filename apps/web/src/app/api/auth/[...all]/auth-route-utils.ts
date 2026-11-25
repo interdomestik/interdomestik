@@ -1,5 +1,7 @@
 import { enforceRateLimit } from '@/lib/rate-limit';
 import { enforceOtpRateLimits } from '@/lib/rate-limit-otp';
+import { resolvePublicAdmission } from '@/lib/tenant/public-admission-tenant';
+import type { TenantId } from '@/lib/tenant/tenant-hosts';
 
 import { getAuthRateLimitConfig } from './_core';
 import {
@@ -7,10 +9,10 @@ import {
   evaluateNeutralOtpOrigin,
   neutralOtpPathKind,
   otpUnavailable,
-  type NeutralOtpKind,
 } from './neutral-otp-boundary';
+import { refuseNeutralOtpAccount } from './neutral-otp-response';
 
-type NeutralOtpPreflight = { body: unknown; kind: NeutralOtpKind } | { response: Response };
+type NeutralOtpPreflight = { body: unknown; tenantId: TenantId } | { response: Response };
 
 export function shouldBypassAuthRateLimit(headers: Headers): boolean {
   const host = (headers.get('x-forwarded-host') ?? headers.get('host') ?? '').toLowerCase();
@@ -43,11 +45,15 @@ export async function prepareNeutralOtpRequest(
   if (!kind) return null;
   if (!evaluateNeutralOtpHost(request.headers)) return { response: otpUnavailable() };
   if (!evaluateNeutralOtpOrigin(request)) return { response: otpUnavailable(403) };
+  const admission = resolvePublicAdmission(request.headers);
+  if (admission?.kind !== 'door') {
+    return { response: refuseNeutralOtpAccount(kind) };
+  }
   const limited = await enforceOtpRateLimits({
     kind,
     headers: request.headers,
     dimensions: ['ip'],
   });
   if (limited) return { response: limited };
-  return { body: await parseAuthJsonBody(request), kind };
+  return { body: await parseAuthJsonBody(request), tenantId: admission.tenantId };
 }

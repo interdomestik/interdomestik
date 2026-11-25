@@ -91,10 +91,10 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
     setIsPaymentUpdatePending(false);
   };
 
-  const showPaymentUpdateError = () => {
+  const showPaymentUpdateError = (message = t('errors.payment_update_failed')) => {
     resetPaymentUpdatePending();
-    setPaymentUpdateStatus(t('errors.payment_update_failed'));
-    toast.error(t('errors.payment_update_failed'));
+    setPaymentUpdateStatus(message);
+    toast.error(message);
   };
 
   const handlePaymentUpdate = async () => {
@@ -108,6 +108,10 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
     try {
       const result = await getPaymentUpdateUrl(subscription.id);
       if (!isMountedRef.current) return;
+      if ('code' in result && result.code === 'CLOSED') {
+        showPaymentUpdateError(t('CLOSED'));
+        return;
+      }
       if (result.error || !result.url) {
         showPaymentUpdateError();
         return;
@@ -144,7 +148,9 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
         const result = await cancelSubscription(subscription.id, idempotencyKey);
         if (result.error || !result.success) {
           cancellationKeyRef.current = null;
-          toast.error(t('errors.action_failed'));
+          toast.error(
+            'code' in result && result.code === 'CLOSED' ? t('CLOSED') : t('errors.action_failed')
+          );
           return;
         }
 

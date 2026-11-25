@@ -46,14 +46,7 @@ vi.mock('@/lib/push', () => ({
   sendPushToUser: vi.fn().mockResolvedValue({ success: true, okCount: 1, failCount: 0 }),
 }));
 
-import {
-  notifyClaimAssigned,
-  notifyClaimSubmitted,
-  notifyNewMessage,
-  notifySupportHandoffPublicResponse,
-  notifyStatusChanged,
-  sendNotification,
-} from './notifications';
+import { notifyClaimAssigned, notifyNewMessage, sendNotification } from './notifications';
 
 const authorityMk = mintTestTenantAuthority('tenant_mk');
 const authorityKs = mintTestTenantAuthority('tenant_ks');
@@ -119,23 +112,6 @@ describe('Notifications Service', () => {
     });
   });
 
-  describe('notifyClaimSubmitted', () => {
-    it('should send claim submitted notification', async () => {
-      const result = await notifyClaimSubmitted(
-        'user-123',
-        'user@example.com',
-        {
-          id: 'claim-1',
-          title: 'My Claim',
-          category: 'consumer',
-        },
-        { authority: authorityMk }
-      );
-
-      expect(result.success).toBe(true);
-    });
-  });
-
   describe('notifyClaimAssigned', () => {
     it('should send claim assigned notification to agent', async () => {
       const result = await notifyClaimAssigned(
@@ -143,21 +119,6 @@ describe('Notifications Service', () => {
         'agent@example.com',
         { id: 'claim-1', title: 'Member Claim' },
         'Agent Smith',
-        { authority: authorityMk }
-      );
-
-      expect(result.success).toBe(true);
-    });
-  });
-
-  describe('notifyStatusChanged', () => {
-    it('should send status change notification', async () => {
-      const result = await notifyStatusChanged(
-        'user-123',
-        'user@example.com',
-        { id: 'claim-1', title: 'My Claim' },
-        'submitted',
-        'verification',
         { authority: authorityMk }
       );
 
@@ -173,18 +134,6 @@ describe('Notifications Service', () => {
         { id: 'claim-1', title: 'My Claim' },
         'Agent Smith',
         'Hello...',
-        { authority: authorityMk }
-      );
-
-      expect(result.success).toBe(true);
-    });
-  });
-
-  describe('notifySupportHandoffPublicResponse', () => {
-    it('should send an in-app support handoff public response notification', async () => {
-      const result = await notifySupportHandoffPublicResponse(
-        'member-1',
-        { id: 'handoff-1', publicResponseVersion: 2 },
         { authority: authorityMk }
       );
 

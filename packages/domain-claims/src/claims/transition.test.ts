@@ -9,6 +9,7 @@ import {
   writeAuthorizedTransitionStatus,
   type TransitionClaimStatusParams,
 } from './transition';
+import { buildTransitionClaimWhere } from './transition-read-context';
 import { authorizedRecoveryEvidence, makeTransitionTx } from './transition-test-support';
 
 type Params = TransitionClaimStatusParams;
@@ -81,7 +82,11 @@ describe('transitionClaimStatusInTransaction', () => {
       makeParams({ isPublic: true, note: 'staff-only detail' })
     );
     if (!authorized.success) throw new Error('expected an authorized transition');
-    const written = await writeAuthorizedTransitionStatus(tx, authorized.transition);
+    const written = await writeAuthorizedTransitionStatus(
+      tx,
+      authorized.transition,
+      buildTransitionClaimWhere(makeParams())
+    );
     expect(calls.updateValues).toBeDefined();
     expect(calls.historyValues).toBeUndefined();
     expect(authorized.transition).toEqual(

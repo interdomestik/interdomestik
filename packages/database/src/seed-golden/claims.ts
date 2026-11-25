@@ -160,7 +160,7 @@ export function buildClaimsToSeed({ at, schema }: Pick<SeedGoldenContext, 'at' |
       agentId: goldenId('ks_agent_a1'),
       status: 'resolved',
       title: 'E përfunduar – Demo',
-      category: 'other',
+      category: 'property',
       companyName: 'KS Insurance Co',
       claimAmount: '90.00',
       createdAt: at(-20 * 24 * 60 * 60 * 1000),

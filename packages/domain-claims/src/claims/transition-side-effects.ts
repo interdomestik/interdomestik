@@ -1,7 +1,11 @@
 import { claimStageHistory, db } from '@interdomestik/database';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { SQLWrapper } from 'drizzle-orm';
-import type { AuthorizedTransition, ClaimTransitionActor } from './transition-guard';
+import type {
+  AuthorizedTransition,
+  ClaimTransitionActor,
+  ClaimTransitionRejectionReason,
+} from './transition-guard';
 import type { TransitionCurrentState } from './transition-current-state';
 import { recordTransitionDomainEvents } from './transition-domain-events';
 
@@ -46,8 +50,10 @@ export type TransitionClaimStatusParams = {
 };
 /** A transition whose read context and guard decision were established in this transaction. */
 export type AuthorizeClaimTransitionResult =
-  | { success: true; transition: PersistAuthorizedTransitionArgs }
-  | { success: false; error: 'claim_not_found' | 'invalid_current_status' | 'transition_rejected' };
+  | { success: true; transition: Omit<PersistAuthorizedTransitionArgs, 'readWhere'> }
+  | { success: false; error: 'claim_not_found' }
+  | { success: false; error: 'invalid_current_status' }
+  | { success: false; error: 'transition_rejected'; reason: ClaimTransitionRejectionReason };
 /** The status write of an authorized transition: its new version and the write time. */
 export type WrittenTransitionStatus = {
   lifecycleVersion: number;

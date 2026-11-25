@@ -1,4 +1,5 @@
 import { parseOnboardingSelector } from '@/lib/auth/onboarding-authority';
+import { releaseClass } from '@/lib/runtime-environment';
 
 export type NeutralOtpKind = 'send' | 'verify';
 
@@ -26,19 +27,6 @@ function parseHostAuthority(
   return { hostname, authority: hostname + portSuffix };
 }
 
-function parseConfiguredAuthority(raw: string | undefined) {
-  const value = raw?.trim();
-  if (!value) return null;
-  if (!value.includes('://')) return parseHostAuthority(value);
-  try {
-    const url = new URL(value);
-    if (url.username || url.password || url.pathname !== '/' || url.search || url.hash) return null;
-    return parseHostAuthority(url.host);
-  } catch {
-    return null;
-  }
-}
-
 export function neutralOtpPathKind(url: string): NeutralOtpKind | null {
   if (!URL.canParse(url)) return null;
   const pathname = new URL(url).pathname;
@@ -51,17 +39,20 @@ export function classifyNeutralOtpRequest(url: string, body: unknown): NeutralOt
   return kind === 'send' && record(body)?.type !== 'sign-in' ? null : kind;
 }
 
-export function evaluateNeutralOtpHost(headers: Headers, env?: { IDA_HOST?: string }): boolean {
-  const direct = parseHostAuthority(headers.get('host'));
-  const configured = parseConfiguredAuthority(env ? env.IDA_HOST : process.env.IDA_HOST);
+export function evaluateNeutralOtpHost(headers: Headers): boolean {
+  const rawDirect = headers.get('host');
+  const direct = parseHostAuthority(rawDirect);
+  if (!direct) {
+    return false;
+  }
   const fixedHostAllowed =
-    direct?.hostname === 'ida.interdomestik.com'
-      ? direct.authority === 'ida.interdomestik.com'
-      : direct !== null && FIXED_HOSTS.has(direct.hostname);
-  const configuredHostAllowed =
-    direct?.hostname !== 'ida.interdomestik.com' && direct?.authority === configured?.authority;
-  const allowed = direct !== null && (fixedHostAllowed || configuredHostAllowed);
-  if (!allowed) return false;
+    FIXED_HOSTS.has(direct.hostname) &&
+    (direct.hostname !== 'ida.interdomestik.com' || direct.authority === direct.hostname);
+  const stagingHostAllowed =
+    rawDirect?.toLowerCase() === 'staging.interdomestik.com' && releaseClass() === 'staging';
+  if (!fixedHostAllowed && !stagingHostAllowed) {
+    return false;
+  }
   const forwardedRaw = headers.get('x-forwarded-host');
   return !forwardedRaw || parseHostAuthority(forwardedRaw)?.authority === direct.authority;
 }

@@ -64,7 +64,17 @@ describe('ClaimsFilters browser navigation cancellation', () => {
     rerender(<ClaimsFilters />);
     expect(searchInput().value).toBe('a');
     expect(screen.queryByTestId('member-claims-pending')).not.toBeInTheDocument();
-    expect(screen.getByTestId('member-claims-status-filter-draft')).not.toBeDisabled();
+    expect(screen.getByTestId('member-claims-status-filter-draft')).toHaveAttribute(
+      'aria-disabled',
+      'false'
+    );
+    fireEvent.click(screen.getByTestId('member-claims-status-filter-draft'));
+    expect(pushedUrls()).toEqual([
+      '/member/claims?search=a',
+      '/member/claims?search=b',
+      '/member/claims?search=a',
+      '/member/claims?search=a&status=draft',
+    ]);
   });
 
   it('keeps chips blocked until the latest search settles after prolonged typing', () => {
@@ -76,7 +86,7 @@ describe('ClaimsFilters browser navigation cancellation', () => {
     }
     advance(200);
     const status = screen.getByTestId('member-claims-status-filter-draft');
-    expect(status).toBeDisabled();
+    expect(status).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(status);
     expect(memberClaimsNav.push).not.toHaveBeenCalled();
     advance(50);
@@ -90,13 +100,13 @@ describe('ClaimsFilters browser navigation cancellation', () => {
     typeSearch('alpha beta');
     browserBack('search=previous');
     const status = screen.getByTestId('member-claims-status-filter-draft');
-    expect(status).toBeDisabled();
+    expect(status).toHaveAttribute('aria-disabled', 'true');
     fireEvent.click(status);
     advance(1_000);
     expect(memberClaimsNav.push).not.toHaveBeenCalled();
     setMemberClaimsUrl('search=previous');
     rerender(<ClaimsFilters />);
-    expect(status).not.toBeDisabled();
+    expect(status).toHaveAttribute('aria-disabled', 'false');
     fireEvent.click(status);
     expect(pushedUrls()).toEqual(['/member/claims?search=previous&status=draft']);
   });
@@ -124,7 +134,8 @@ describe('ClaimsFilters browser navigation cancellation', () => {
     fireEvent.click(screen.getByText('Navigate'));
     advance(300);
     expect(pushedUrls()).toEqual([href]);
-    expect(searchInput()).toBeDisabled();
+    expect(searchInput()).toHaveAttribute('readonly');
+    expect(searchInput()).not.toBeDisabled();
   });
 
   it.each([

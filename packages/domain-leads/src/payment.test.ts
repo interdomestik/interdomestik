@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
+  assertNewSalesOpen: vi.fn(),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   findLead: vi.fn(),
   insert: vi.fn(),
@@ -18,6 +19,11 @@ const mocks = vi.hoisted(() => ({
 
 vi.mock('@interdomestik/database', () => ({
   withTenantContext: mocks.withTenantContext,
+}));
+
+vi.mock('@interdomestik/database/pilot-switch', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database/pilot-switch')>()),
+  assertNewSalesOpen: mocks.assertNewSalesOpen,
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({
@@ -43,6 +49,7 @@ vi.mock('nanoid', () => ({
 }));
 
 import { startPayment } from './payment';
+import { SalesClosedError } from '@interdomestik/database/pilot-switch';
 
 function installTransactionHarness(updatedRows: Array<{ id: string }> = [{ id: 'lead-1' }]) {
   const tx = {
@@ -59,6 +66,7 @@ function installTransactionHarness(updatedRows: Array<{ id: string }> = [{ id: '
   mocks.withTenantContext.mockImplementation(
     async (_context: unknown, callback: (txArg: typeof tx) => Promise<unknown>) => callback(tx)
   );
+  return tx;
 }
 
 beforeEach(() => {
@@ -75,6 +83,7 @@ describe('startPayment', () => {
   const authority = mintTestTenantAuthority('tenant-1');
 
   it('carries optional agent and branch scope through payment validation and status update', async () => {
+    const tx = installTransactionHarness();
     await expect(
       startPayment(
         {
@@ -109,6 +118,8 @@ describe('startPayment', () => {
       expect(call[0]).toBe(authority);
     }
     expect(mocks.findLead).toHaveBeenCalledWith({ where: scopedWhere });
+    expect(mocks.assertNewSalesOpen).toHaveBeenCalledExactlyOnceWith(tx, 'tenant-1');
+    expect(mocks.assertNewSalesOpen).toHaveBeenCalledBefore(mocks.update);
     expect(mocks.where).toHaveBeenCalledWith({
       op: 'and',
       args: [
@@ -122,6 +133,40 @@ describe('startPayment', () => {
         tenantId: 'tenant-1',
       })
     );
+  });
+
+  it('refuses a closed sale before updating a lead or writing an attempt', async () => {
+    const err = new SalesClosedError();
+    mocks.assertNewSalesOpen.mockRejectedValueOnce(err);
+
+    await expect(
+      startPayment(
+        { authority },
+        { amountCents: 15000, leadId: 'lead-1', method: 'cash', priceId: 'default_membership' }
+      )
+    ).rejects.toBe(err);
+    expect(mocks.update).not.toHaveBeenCalled();
+    expect(mocks.insert).not.toHaveBeenCalled();
+  });
+
+  it('records a switch read failure and refuses the sale before any write', async () => {
+    const err = new Error('settings unavailable');
+    const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    mocks.assertNewSalesOpen.mockRejectedValueOnce(err);
+
+    try {
+      await expect(
+        startPayment(
+          { authority },
+          { amountCents: 15000, leadId: 'lead-1', method: 'cash', priceId: 'default_membership' }
+        )
+      ).rejects.toMatchObject({ code: 'CLOSED' });
+      expect(log).toHaveBeenCalledExactlyOnceWith('Lead sales switch read failed', err);
+      expect(mocks.update).not.toHaveBeenCalled();
+      expect(mocks.insert).not.toHaveBeenCalled();
+    } finally {
+      log.mockRestore();
+    }
   });
 
   it('does not insert a payment attempt when the scoped status update no longer matches', async () => {

@@ -1,5 +1,6 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import type { ReactNode } from 'react';
+import { toast } from 'sonner';
 import { describe, expect, it, vi } from 'vitest';
 
 const updateLeadStatus = vi.fn();
@@ -186,7 +187,12 @@ describe('AgentLeadsProPage', () => {
     expect(screen.getByText('Burimi: web_form')).toBeInTheDocument();
   });
 
-  it('routes the pay_cash action to payment_pending', () => {
+  it('routes the pay_cash action to payment_pending and displays a closed response', async () => {
+    updateLeadStatus.mockResolvedValueOnce({
+      success: false,
+      code: 'CLOSED',
+      error: 'Membership purchases are currently closed.',
+    });
     render(
       <AgentLeadsProPage
         leads={[
@@ -210,5 +216,9 @@ describe('AgentLeadsProPage', () => {
     fireEvent.click(screen.getByText('Paguaj me para në dorë'));
 
     expect(updateLeadStatus).toHaveBeenCalledWith('lead-1', 'payment_pending');
+    await waitFor(() =>
+      expect(toast.error).toHaveBeenCalledWith('Membership purchases are currently closed.')
+    );
+    expect(toast.success).not.toHaveBeenCalled();
   });
 });

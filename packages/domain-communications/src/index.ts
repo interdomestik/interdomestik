@@ -3,7 +3,6 @@ export type { AuditEvent, AuditLogger, Session, SessionUser } from './types';
 export { getMessagesForClaimCore } from './messages/get';
 export { markMessagesAsReadCore } from './messages/mark-read';
 export { normalizeSelectedMessages } from './messages/normalize';
-export { sendMessageDbCore } from './messages/send';
 export type { MessageWithSender, SelectedMessageRow } from './messages/types';
 
 export { getNotificationsCore } from './notifications/get';
@@ -12,15 +11,11 @@ export {
   clearSupportHandoffPublicResponseNotifications,
   notifyClaimAssigned,
   notifyClaimPackGenerated,
-  notifyClaimSubmitted,
   notifyDocumentRequested,
   notifyMembershipRenewal,
   notifyNewMessage,
   notifyPaymentVerificationUpdate,
-  notifyRecoveryDecision,
   notifySlaWarning,
-  notifyStatusChanged,
-  notifySupportHandoffPublicResponse,
   notifyTriageComplete,
   sendNotification,
 } from './notifications/notify';

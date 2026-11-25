@@ -15,7 +15,14 @@
       "filtered": "Try adjusting your filters or search query.",
       "createFirst": "Create Your First Claim"
     },
+    "memberList": {
+      "searchPlaceholder": "Search...",
+      "resultStatus": "Page {page} of {pages}: {count, plural, one {# case} other {# cases}}",
+      "updating": "Showing the previous results while updating…",
+      "pageEmpty": "There are no cases on this page."
+    },
     "table": {
+      "unavailable": "Unavailable",
       "title": "Title",
       "company": "Company",
       "category": "Category",

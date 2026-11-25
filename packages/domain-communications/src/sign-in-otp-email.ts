@@ -4,7 +4,9 @@ import {
   type EmailRecipients,
 } from './non-sending-email';
 export { automatedSmtpTarget } from './non-sending-email';
+import { createConnection } from 'node:net';
 import * as nodemailer from 'nodemailer';
+import type SMTPTransport from 'nodemailer/lib/smtp-transport';
 import type { Resend } from 'resend';
 
 export const SIGN_IN_OTP_LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
@@ -168,10 +170,45 @@ export function renderSignInOtpEmail(otp: string, locale: SignInOtpLocale) {
 
 const smtpTransports: Record<string, nodemailer.Transporter> = {};
 
-// One transport per destination; plain SMTP is for loopback and local development.
-export function smtpTransport(options: { host: string; port: number }) {
+type SmtpTarget = {
+  host: string;
+  port: number;
+  connectionTimeout?: number;
+  socketTimeout?: number;
+};
+
+// One transport per destination. Plain SMTP without TLS (the two NOSONAR lines, rule S5332) is limited to
+// local mail catchers: in automated runs the target comes from automatedSmtpTarget(), which admits only
+// loopback hosts; otherwise only from a developer's SMTP_HOST (docker-compose Mailpit; nothing else in the
+// repository sets it). Production mail is designed to go through Resend over HTTPS (email-delivery-outcome.ts).
+export function smtpTransport(options: SmtpTarget, signal?: AbortSignal) {
   const key = `${options.host}:${options.port}`;
   const defaults = { secure: false, ignoreTLS: true };
+  if (signal) {
+    const transportOptions: SMTPTransport.Options = {
+      ...defaults,
+      ...options,
+      getSocket(_configuration, callback) {
+        signal.throwIfAborted();
+        const socket = createConnection({ host: options.host, port: options.port, signal });
+        const failed = (error: Error) => callback(error);
+        const timedOut = () => {
+          socket.destroy(
+            Object.assign(new Error('SMTP connection timed out'), { code: 'ETIMEDOUT' })
+          );
+        };
+        socket.once('error', failed);
+        socket.once('connect', () => {
+          socket.off('error', failed);
+          socket.off('timeout', timedOut);
+          socket.setTimeout(0);
+          callback(null, { connection: socket });
+        });
+        socket.setTimeout(options.connectionTimeout ?? 0, timedOut);
+      },
+    };
+    return nodemailer.createTransport(transportOptions); // NOSONAR
+  }
   smtpTransports[key] ??= nodemailer.createTransport({ ...defaults, ...options }); // NOSONAR
   return smtpTransports[key];
 }

@@ -19,6 +19,7 @@ export function ActionForm({
   disabledReason?: string;
 }>): React.JSX.Element {
   const t = useTranslations('sponsors');
+  const pricing = useTranslations('pricing');
   const id = useId();
   const [state, action, pending] = useActionState<SponsorActionResult | null, FormData>(
     async (previous, form) => {
@@ -39,7 +40,8 @@ export function ActionForm({
   );
   let message = '';
   if (state?.ok) message = state.counts ? t('uploadSummary', state.counts) : t('saved');
-  else if (state) message = t(`errors.${state.error}`);
+  else if (state)
+    message = state.error === 'CLOSED' ? pricing('CLOSED') : t(`errors.${state.error}`);
 
   return (
     <form action={action} className="space-y-3 rounded-lg border p-4">

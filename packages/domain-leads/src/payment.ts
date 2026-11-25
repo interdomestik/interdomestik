@@ -7,10 +7,11 @@ import { and, eq, notInArray } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 import { z } from 'zod';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { assertLeadSalesOpen } from './sales-admission';
 // We might need to import paddle helper if we generate a transaction server-side
 // import { getPaddle } from '@interdomestik/domain-membership-billing/paddle-server';
 
-export const startPaymentSchema = z.object({
+export const startPaymentSchema = z.strictObject({
   leadId: z.string(),
   method: z.enum(['card', 'cash']),
   priceId: z.string(), // The membership price ID (Paddle or internal)
@@ -52,6 +53,7 @@ async function markLeadPaymentPending(
   const { tenantId } = readTenantAuthority(ctx.authority);
   // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
   await withTenantAuthority(ctx.authority, async tx => {
+    await assertLeadSalesOpen(tx, tenantId);
     // db-access-guard: tenant-scoped -- reason: tenant proof is enforced inside transaction by values or where clause
     const updatedRows = await tx
       .update(memberLeads)

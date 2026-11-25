@@ -64,4 +64,110 @@ export const RESOLVER_BASELINE = deepFreeze({
   },
 });
 
-export const RESOLVER_SUCCESSOR = null;
+export const RESOLVER_SUCCESSOR = deepFreeze({
+  id: 'wp10-closed-pilot-u1',
+  before: RESOLVER_BASELINE,
+  after: {
+    state: 'sha256:925174c110c639023fb65b98e3029ecb9ef7e7e89d90eae0d1ae1f3d34e79022',
+    bundler: {
+      files: [
+        [
+          'apps/web/next.config.mjs',
+          'c340cf96158e00cb74d8959619832e1b28c8067acd1c71e779d2b0d2ff677749',
+        ],
+        [
+          'apps/web/src/lib/pilot-env-refusals.mjs',
+          '0f4bdf77d750c3ca0b9cac0adc6b679721472d63a0ef3941341d8e144fc8106f',
+        ],
+        [
+          'apps/web/src/lib/supabase-deployment.mjs',
+          'abb080e7b2a72cf4efba6240fe547a3e31e412b98dee84278dd238d3c3e6f253',
+        ],
+      ],
+      edges: [
+        [
+          'apps/web/next.config.mjs',
+          './src/lib/pilot-env-refusals.mjs',
+          'apps/web/src/lib/pilot-env-refusals.mjs',
+        ],
+        [
+          'apps/web/next.config.mjs',
+          './src/lib/supabase-deployment.mjs',
+          'apps/web/src/lib/supabase-deployment.mjs',
+        ],
+        ['apps/web/next.config.mjs', '@next/bundle-analyzer', 'external:@next/bundle-analyzer'],
+        ['apps/web/next.config.mjs', '@sentry/nextjs', 'external:@sentry/nextjs'],
+        ['apps/web/next.config.mjs', 'next-axiom', 'external:next-axiom'],
+        ['apps/web/next.config.mjs', 'next-intl/plugin', 'external:next-intl/plugin'],
+        ['apps/web/next.config.mjs', 'next/constants.js', 'external:next/constants.js'],
+      ],
+      externals: [
+        '@next/bundle-analyzer',
+        '@sentry/nextjs',
+        'next-axiom',
+        'next-intl/plugin',
+        'next/constants.js',
+      ],
+      scopes: [
+        [
+          'apps/web/next.config.mjs',
+          'apps/web/package.json',
+          {
+            name: '@interdomestik/web',
+            exports: null,
+            imports: null,
+            type: null,
+          },
+        ],
+        [
+          'apps/web/src/lib/pilot-env-refusals.mjs',
+          'apps/web/package.json',
+          {
+            name: '@interdomestik/web',
+            exports: null,
+            imports: null,
+            type: null,
+          },
+        ],
+        [
+          'apps/web/src/lib/supabase-deployment.mjs',
+          'apps/web/package.json',
+          {
+            name: '@interdomestik/web',
+            exports: null,
+            imports: null,
+            type: null,
+          },
+        ],
+      ],
+    },
+  },
+  files: [
+    {
+      path: 'apps/web/next.config.mjs',
+      before: 'sha256:a26096d3b440844ebd8f7a33f65f4953c24f6d2a56b2480d654290e0add10b39',
+      after: 'sha256:c340cf96158e00cb74d8959619832e1b28c8067acd1c71e779d2b0d2ff677749',
+    },
+    {
+      path: 'apps/web/package.json',
+      before: 'sha256:ba0be3e9fe5eed9d8be0aaf94a52e7d62d1c87442ecbecd63fdbd34c1653adb6',
+      after: 'sha256:b1d2a56e6c6277ce0c0a187102e1579be63fb1c466035df18941518193a80d39',
+    },
+    {
+      path: 'apps/web/playwright.config.ts',
+      before: 'sha256:a42566261753b2176988e6abd3f2b1e67809b87266943332f28e8c8b3a350c0e',
+      after: 'sha256:b0732fbd7c95332a05e5b28d3c48e276f73aaeb189b69a3dd62124a996d56a9b',
+    },
+    {
+      path: 'apps/web/vitest.config.ts',
+      before: 'sha256:f243f0bcfc23c246530a53d600f08f3a7c1a66f1b7166f8d9eb5c155734c3725',
+      after: 'sha256:d34925f361546eb30583a280acf9dfd02187ba9eb5e984ecd80446f071c18433',
+    },
+    {
+      path: 'packages/database/package.json',
+      before: 'sha256:cb844454e6ee7d4a3e4280031500407bc864489e2044caf43e3264acc66c4110',
+      after: 'sha256:9ef246c1c8e4dcc54022bd2f0ed31637b9b00a657f24c162bbcdaa21323a54a7',
+    },
+  ],
+  lock: null,
+});

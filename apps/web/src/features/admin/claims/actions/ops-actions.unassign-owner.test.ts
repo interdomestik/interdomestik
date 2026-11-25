@@ -6,6 +6,7 @@ import {
 } from './ops-assignment.test-bootstrap';
 import {
   createFakeTx,
+  expectRedactedAssignmentLog,
   guardMatchesRow,
   routeTenantContext,
   sessionFor,
@@ -87,7 +88,7 @@ describe('unassignOwner single transaction', () => {
     const result = await unassignOwner('claim-1', 'en');
 
     expect(result).toEqual({ success: false, error: ASSIGNMENT_CONFLICT_ERROR });
-    expect(outcomes).toEqual(['returned']);
+    expect(outcomes).toEqual(['threw']);
     expect(auditValues).not.toHaveBeenCalled();
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
@@ -107,7 +108,12 @@ describe('unassignOwner single transaction', () => {
   });
 
   it('rolls the clear back when the audit fails and returns only the generic error', async () => {
-    const auditError = new Error(`Failed query: insert into "audit_log"\nparams: ${SENTINEL}`);
+    const detail = 'Private unassignment detail';
+    const address = 'unassignment-private@example.test';
+    const body = 'Private unassignment message body';
+    const auditError = new Error(`Failed query: insert into "audit_log"\nparams: ${SENTINEL}`, {
+      cause: Object.assign(new Error(body), { detail, address }),
+    });
     const { tx, updateSet } = createFakeTx({ claim: ASSIGNED_CLAIM, auditError });
     const outcomes = routeTenantContext(mocks.withTenantContext, tx);
 
@@ -117,8 +123,16 @@ describe('unassignOwner single transaction', () => {
     expect(updateSet).toHaveBeenCalledTimes(1);
     expect(outcomes).toEqual(['threw']);
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
-    expect(consoleError).toHaveBeenCalledWith('Action Failed: unassignOwner', 'Error');
-    expect(JSON.stringify([result, consoleError.mock.calls])).not.toContain(SENTINEL);
+    expectRedactedAssignmentLog(consoleError.mock.calls, { name: 'Error' }, [
+      SENTINEL,
+      'insert into',
+      'audit_log',
+      'params',
+      detail,
+      address,
+      body,
+    ]);
+    expect(JSON.stringify(result)).not.toContain(SENTINEL);
   });
 
   it('returns the exact terminal and missing-claim denials', async () => {

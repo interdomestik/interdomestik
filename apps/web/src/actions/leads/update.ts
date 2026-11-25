@@ -5,8 +5,9 @@ import { ROLE_AGENT } from '@/lib/roles.core';
 import { runAuthenticatedAction } from '@/lib/safe-action';
 import { z } from 'zod';
 import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
+import { leadSalesClosedFailure } from './sales-closed';
 
-const updateLeadStatusSchema = z.object({
+const updateLeadStatusSchema = z.strictObject({
   leadId: z.string(),
   status: z.enum([
     'new',
@@ -32,17 +33,19 @@ export async function updateLeadStatusAction(input: unknown) {
       throw new UnauthorizedError('Unauthorized');
     }
 
-    await updateScopedAgentLeadStatus({
-      notes,
-      scope: {
-        agentId: actorAgentId,
-        authority,
-        branchId,
-        leadId,
-      },
-      status,
-    });
-
-    return { success: true };
+    try {
+      return await updateScopedAgentLeadStatus({
+        notes,
+        scope: {
+          agentId: actorAgentId,
+          authority,
+          branchId,
+          leadId,
+        },
+        status,
+      });
+    } catch (error) {
+      return leadSalesClosedFailure(error);
+    }
   });
 }

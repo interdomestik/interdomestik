@@ -181,6 +181,8 @@ run_outer() {
 
 export_ci_defaults() {
   export CI=1 PLAYWRIGHT=1 HUSKY=0 NEXT_PUBLIC_BILLING_TEST_MODE=1
+  export INTERDOMESTIK_LOCAL_E2E=1 IDENTITY_PUBLIC_SIGN_UP=open
+  d DEFAULT_PUBLIC_TENANT_ID tenant_ks
   d PORT 3000
   d NEXT_PUBLIC_APP_URL http://127.0.0.1:3000
   d BETTER_AUTH_URL http://127.0.0.1:3000
@@ -216,7 +218,6 @@ wait_for_postgres() {
     pg_isready -h ci-postgres -p 5432 -U postgres >/dev/null 2>&1 && return 0
     sleep 1
   done
-
   echo "Postgres did not become ready at ci-postgres:5432." >&2
   exit 1
 }
@@ -226,7 +227,6 @@ resolve_ci_base_ref() {
     echo "${CI_LOCAL_BASE_REF:-origin/main}"
     return 0
   fi
-
   echo 'HEAD~1'
 }
 

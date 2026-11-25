@@ -8,7 +8,13 @@ Holds memberships and subscriptions, the Paddle integration (**parked**), compan
 
 ## Public API
 
+`./paddle-closed` exposes the client-safe `PADDLE_CLOSED` constant, `PaddleClosedError` and `assertPaddleOpen`. Paddle clients, webhook routes and member actions refuse before provider or local effects in every environment. Reopening requires a code change.
+
+Sponsor term approvals and new roster provisioning check `pilot/new_sales` in the transaction that applies their effects. The provisioning pass reports entries left pending as `sales_closed`. Staff evidence and coverage continuity for existing handovers use the approval already recorded for the company term.
+
 `package.json:7-62` declares 54 subpath exports (recounted in R3). The ones other code uses for entitlement and coverage: `.` (`src/index.ts`), `./subscription`, `./sponsor-coverage`, `./annual-membership`, `./membership-hierarchy`, `./billing-snapshot`, the 16 `./sponsors/*` entries and the 12 entries that begin with `./paddle-webhooks`. The provider surface is exported directly (`./paddle`, `./paddle-server`, `./paddle-webhooks`), which is the opposite of a port: **no provider-neutral interface exists**, and billing-entity resolution is a table in code (`src/paddle-server.ts:59-68`, cited by `docs/engineering/DIRECTION.md:72`).
+
+`./sponsor-coverage` exports `lockPersonCoverageInputs(tx, tenantId, userId)` for the claim recovery command's existing tenant transaction. It takes the sponsor worker's advisory person lock, then locks the person's terms `FOR SHARE` and roster entries `FOR UPDATE` in ID order.
 
 ## Owned tables
 

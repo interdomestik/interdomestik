@@ -14,6 +14,8 @@ import { ne } from 'drizzle-orm';
 import { lockSponsorEntryIdentity, lockSponsorPerson } from '@interdomestik/database/sponsor-locks';
 import { nanoid } from 'nanoid';
 
+import { assertSponsorSalesOpen } from './sales-admission';
+
 /**
  * ACQ-3b §3.5/§3.7 identity binding for one unbound entry, under lock 1. The address is matched
  * against the users this tenant can see; a new account is created only while the term is
@@ -160,6 +162,7 @@ async function createSponsoredMember(
   params: { tenantId: string; entry: UnboundEntry; branchId: string; now: Date }
 ): Promise<string | null> {
   const { entry } = params;
+  await assertSponsorSalesOpen(tx, params.tenantId);
   const id = `usr_${nanoid()}`;
   const name = [entry.firstName, entry.lastName].filter(Boolean).join(' ').trim();
   const inserted = await tx
