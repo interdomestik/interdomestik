@@ -30,6 +30,23 @@ type Explain = { Plan: ExplainNode; 'Execution Time': number; 'Planning Time': n
 export const documentId = (claimId: string, index: number, width = 2) =>
   `${claimId}-doc-${String(index).padStart(width, '0')}`;
 
+export type ClaimDetailReader =
+  typeof import('@interdomestik/domain-documents/claim-documents').readOpsClaimDetailData;
+export type FixtureController = typeof import('@interdomestik/database/db').dbRls.$client;
+
+export function assertPage(
+  documents: NonNullable<Awaited<ReturnType<ClaimDetailReader>>>['documents'],
+  ids: string[],
+  nextCursor: string | null
+) {
+  assert.equal(documents.kind, 'page');
+  assert.deepEqual(
+    documents.items.map(item => item.id),
+    ids
+  );
+  assert.equal(documents.nextCursor, nextCursor);
+}
+
 // Fixed before the run. Both ceilings apply to every document case. One warm-up is discarded.
 // The buffer ceiling detects scans in a warm cache. The execution budget is per SQL statement.
 const DOCUMENT_BUDGET = {
