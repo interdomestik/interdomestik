@@ -1,4 +1,5 @@
-import { and, claims, eq, type TenantTransaction } from '@interdomestik/database';
+import type { TenantTransaction } from '@interdomestik/database';
+import { claims } from '@interdomestik/database/schema';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -6,7 +7,7 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withAccessTenant, withTenant } from '@interdomestik/database/tenant-security';
 import { isSuperAdmin, isTenantAdmin, ROLES } from '@interdomestik/shared-auth';
-import { isNull, or, sql, type SQL } from 'drizzle-orm';
+import { and, eq, isNull, or, sql, type SQL } from 'drizzle-orm';
 
 type Viewer = Pick<TenantAuthorityPrincipal, 'role' | 'branchId'>;
 
