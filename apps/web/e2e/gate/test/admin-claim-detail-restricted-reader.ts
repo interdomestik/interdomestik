@@ -58,7 +58,7 @@ async function seedPlanData<T>(
     await tx`
       insert into public.claim (id, tenant_id, "userId", title, category, "companyName")
       select ${noisePrefix} || n, case when n % 4 < 2 then ${f.home} else ${f.access} end,
-        ${member}, 'Synthetic unrelated claim', 'other', 'Synthetic company'
+        ${member}, 'Synthetic unrelated claim', 'vehicle', 'Synthetic company'
       from generate_series(1, 1000) as series(n)
     `;
     await tx`
@@ -78,7 +78,7 @@ async function seedPlanData<T>(
         insert into public.claim
           (id, tenant_id, access_tenant_id, branch_id, "userId", title, category, "companyName")
         values (${claimId}, ${f.home}, ${accessTenant}, ${branchId}, ${member},
-          'Synthetic measured claim', 'other', 'Synthetic company')
+          'Synthetic measured claim', 'vehicle', 'Synthetic company')
       `;
       await tx`
         insert into public.claim_documents

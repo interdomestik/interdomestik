@@ -81,7 +81,7 @@ const pagingTest = test.extend<{
             title: id,
             userId: E2E_USER_IDS.KS_MEMBER,
             staffId: id === localId ? staff[25].id : null,
-            category: 'other',
+            category: 'vehicle',
             companyName: 'Synthetic company',
             caseLifecycleState: 'submitted' as const,
             recoveryLifecycleState: 'not_started' as const,
