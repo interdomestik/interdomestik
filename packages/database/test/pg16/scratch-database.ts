@@ -3,8 +3,13 @@
 // clients come from the guarded factory, which refuses every server that is not loopback or the
 // confirmed CI container before it constructs a driver (R-13).
 import { randomBytes } from 'node:crypto';
-import { type DisposableClient, withDisposableClient } from '../../src/disposable-client';
+import {
+  type DisposableClient,
+  withDisposableCleanup,
+  withDisposableClient,
+} from '../../src/disposable-client';
 import { assertDisposableTarget } from '../../src/seed-target-guard';
+import { quoteIdentifier } from '../rls-test-connection';
 
 export type ScratchClient = DisposableClient;
 export { migrateJournal } from './journal-migrator';
@@ -29,43 +34,63 @@ export async function withScratchDatabase<T>(
     assertDisposableTarget({ DATABASE_URL: adminUrl, PGHOST, PGHOSTADDR, PGUSER, PGUSERNAME });
   }
   const name = `${prefix}_${randomBytes(6).toString('hex')}`;
-  let workFailure: { error: unknown } | undefined;
-  try {
-    return await withDisposableClient(
-      adminUrl,
-      { applicationName: 'wp04_scratch_admin' },
-      async admin => {
-        const scratchUrl = new URL(adminUrl);
-        scratchUrl.pathname = `/${name}`;
-        await admin.unsafe(`create database "${name}"`);
-        try {
-          return await withDisposableClient(
-            scratchUrl.toString(),
-            { applicationName: 'wp04_scratch', max: maxConnections },
-            async client => {
-              try {
-                return await work(client, admin);
-              } catch (error) {
-                workFailure = { error };
-                throw error;
-              }
-            }
-          );
-        } finally {
-          await admin.unsafe(`drop database if exists "${name}" with (force)`);
-        }
-      }
+  return withDisposableClient(adminUrl, { applicationName: 'wp04_scratch_admin' }, async admin => {
+    const scratchUrl = new URL(adminUrl);
+    scratchUrl.pathname = `/${name}`;
+    return withCreatedScratchDatabase(admin, name, () =>
+      withDisposableClient(
+        scratchUrl.toString(),
+        { applicationName: 'wp04_scratch', max: maxConnections },
+        client => work(client, admin)
+      )
     );
-  } catch (error) {
-    if (workFailure && !Object.is(error, workFailure.error)) {
-      throw new AggregateError(
-        [workFailure.error, error],
-        'Scratch database work and teardown both failed',
-        {
-          cause: workFailure.error,
-        }
-      );
-    }
-    throw error;
+  });
+}
+
+type DatabaseIdentity = { oid: string; name: string; owner: string };
+
+export async function withCreatedScratchDatabase<T>(
+  admin: Pick<ScratchClient, 'unsafe'>,
+  name: string,
+  work: () => Promise<T>
+): Promise<T> {
+  if (name.length > 63 || !/^[a-z][a-z0-9_]*_[0-9a-f]{12}$/u.test(name)) {
+    throw new Error(
+      'Invalid scratch database identifier (expected a generated name of up to 63 ASCII bytes)'
+    );
   }
+
+  const identifier = quoteIdentifier(name);
+  await admin.unsafe(`create database ${identifier}`);
+  const [created] = await admin.unsafe<DatabaseIdentity[]>(
+    `select oid::text as oid, datname as name, datdba::text as owner
+     from pg_catalog.pg_database where datname = $1`,
+    [name]
+  );
+  if (!created || created.name !== name) {
+    throw new Error(`Cannot record identity of scratch database ${identifier} after creation`);
+  }
+
+  return withDisposableCleanup(
+    work,
+    async () => {
+      const [current] = await admin.unsafe<Pick<DatabaseIdentity, 'name' | 'owner'>[]>(
+        `select datname as name, datdba::text as owner
+         from pg_catalog.pg_database where oid = $1::oid`,
+        [created.oid]
+      );
+      if (!current) {
+        throw new Error(
+          `Refusing to drop scratch database ${identifier}: OID ${created.oid} is missing`
+        );
+      }
+      if (current.name !== created.name || current.owner !== created.owner) {
+        throw new Error(
+          `Refusing to drop scratch database ${identifier}: name or owner changed for OID ${created.oid}`
+        );
+      }
+      await admin.unsafe(`drop database ${identifier} with (force)`);
+    },
+    'Scratch database work and teardown both failed'
+  );
 }

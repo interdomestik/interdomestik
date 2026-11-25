@@ -57,9 +57,33 @@ export async function withDisposableClient<T>(
   work: (client: DisposableClient) => Promise<T>
 ): Promise<T> {
   const client = openDisposableClient(url, options);
+  return withDisposableCleanup(
+    () => work(client),
+    () => client.end({ timeout: 5 }),
+    `${options.applicationName}: client work and close both failed`
+  );
+}
+
+/** Preserve both errors when work and its cleanup fail. */
+export async function withDisposableCleanup<T>(
+  work: () => Promise<T>,
+  cleanup: () => Promise<void>,
+  failureMessage: string
+): Promise<T> {
+  let workFailure: { error: unknown } | undefined;
   try {
-    return await work(client);
+    return await work();
+  } catch (error) {
+    workFailure = { error };
+    throw error;
   } finally {
-    await client.end({ timeout: 5 });
+    try {
+      await cleanup();
+    } catch (error) {
+      if (!workFailure) throw error;
+      throw new AggregateError([workFailure.error, error], failureMessage, {
+        cause: workFailure.error,
+      });
+    }
   }
 }
