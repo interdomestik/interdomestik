@@ -67,12 +67,18 @@ function signalBudget(info: TestInfo): number {
   return Math.min(info.timeout, deadline - iso.monotonicTime()) - CLEANUP_RESERVE_MS;
 }
 
+export function waitForTestSignal<T>(
+  info: TestInfo,
+  phase: string,
+  signal: Promise<T> | SignalOperation<T>
+): Promise<T> {
+  return base.step(phase, () => withSignalTimeout(phase, signalBudget(info), signal));
+}
+
 export const signalTest = base.extend<{ waitForSignal: WaitForSignal }>({
   waitForSignal: [
     async ({}, use, info) => {
-      await use((phase, signal) =>
-        base.step(phase, () => withSignalTimeout(phase, signalBudget(info), signal))
-      );
+      await use((phase, signal) => waitForTestSignal(info, phase, signal));
     },
     { auto: true },
   ],
