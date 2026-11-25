@@ -9,8 +9,10 @@ const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..
 const CONTRACT_DIR = 'scripts/ci';
 const EXTRA_CONTRACT_FILES = Object.freeze(['scripts/check-modularity-guard.test.mjs']);
 const NODE_TEST_ARGS = Object.freeze(['--test', '--test-concurrency=1']);
+// These checker families account for roughly half the old core time in the #2127 Mac sample.
+const CORE_CHECK = /^scripts\/ci\/(?:db-access-|screen-contract-check\.|server-mutation-check\.)/u;
 
-// Long-running guard-trust suites leave core by exact name only; any other test stays in core.
+// Guard-trust suites take precedence over the core split and keep their exact membership.
 export const GUARD_TRUST_SHARDS = Object.freeze({
   authority: Object.freeze(['scripts/ci/db-access-required-authority.test.mjs']),
   candidate: Object.freeze(['scripts/ci/db-access-required-candidate.test.mjs']),
@@ -106,12 +108,10 @@ export function contractTestPlan(root = REPO_ROOT) {
     throw new Error('a guard-trust shard names a retired legacy file');
   }
   const excluded = new Set([...guardTrust, ...retired.files]);
-  return {
-    all,
-    retired: [...retired.files],
-    skipArgs: retired.skipArgs,
-    shards: { core: all.filter(file => !excluded.has(file)), ...GUARD_TRUST_SHARDS },
-  };
+  const core = all.filter(file => !excluded.has(file));
+  const shards = { core: [], 'core-checks': [], ...GUARD_TRUST_SHARDS };
+  for (const file of core) shards[CORE_CHECK.test(file) ? 'core-checks' : 'core'].push(file);
+  return { all, core, retired: [...retired.files], skipArgs: retired.skipArgs, shards };
 }
 
 function runShard(root, name, files, { capture, skipArgs = [] }) {
@@ -228,10 +228,8 @@ async function waitForShards(running, onResult = outcome => outcome) {
   }
 }
 
-// Runs every shard concurrently without fail-fast. Each shard is still serialized internally and
-// the run fails unless every shard exits 0. `select` (the pre-push selector) keeps a subset of
-// each shard's files; with it, a shard left empty is not started, so `node --test` never
-// auto-discovers. Without it (the hosted command) every shard runs exactly as planned.
+// Run every nonempty shard concurrently, each serialized internally. An empty shard must never
+// start Node's test auto-discovery, whether empty by plan or narrowed by the caller's selector.
 export async function runParallel({
   root = REPO_ROOT,
   write = text => process.stdout.write(text),
@@ -241,7 +239,7 @@ export async function runParallel({
   const grouped = process.env.GITHUB_ACTIONS === 'true';
   const running = Object.entries(shards)
     .map(([name, files]) => [name, select ? select(files) : files])
-    .filter(([, files]) => !select || files.length > 0)
+    .filter(([, files]) => files.length > 0)
     .map(([name, files]) => runShard(root, name, files, { capture: true, skipArgs }));
   const { outcomes, interrupted } = await waitForShards(running, outcome => {
     write(grouped ? `::group::contract shard ${outcome.name}\n` : `--- shard ${outcome.name}\n`);
@@ -273,12 +271,12 @@ export async function main(argv, root = REPO_ROOT, { capture = false } = {}) {
   if (mode === 'z620' && shard === undefined) {
     return runSerial(root, ['scripts/ci/z620-runner.test.mjs'], [], capture);
   }
-  const { shards, skipArgs } = contractTestPlan(root);
-  const serial = files => runSerial(root, files, skipArgs, capture);
   if (mode === 'parallel') return runParallel({ root });
-  // Every active contract file in one serialized runner: the full local and Z620 parity lane.
+  const { core, shards, skipArgs } = contractTestPlan(root);
+  const serial = files => runSerial(root, files, skipArgs, capture);
+  // The serial lanes keep their original membership for local and Z620 parity.
   if (mode === 'all') return serial(Object.values(shards).flat().sort(byCodeUnit));
-  if (mode === 'core') return serial(shards.core);
+  if (mode === 'core') return serial(core);
   if (mode === 'guard-trust' && shard === undefined) {
     return serial(Object.values(GUARD_TRUST_SHARDS).flat());
   }
