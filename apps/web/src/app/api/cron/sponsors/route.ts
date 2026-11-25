@@ -23,7 +23,11 @@ export async function GET(req: NextRequest) {
   const now = new Date();
   try {
     const tenants = await runSponsorCronCore({ ingress, now });
-    return NextResponse.json({ success: true, tenants, timestamp: now.toISOString() });
+    const success = tenants.every(tenant => !tenant.failed);
+    return NextResponse.json(
+      { success, tenants, timestamp: now.toISOString() },
+      { status: success ? 200 : 500 }
+    );
   } catch (error) {
     console.error('[Sponsor Cron] Error:', error instanceof Error ? error.name : 'unknown');
     return NextResponse.json({ error: 'Internal server error' }, { status: 500 });

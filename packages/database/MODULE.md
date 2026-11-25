@@ -95,6 +95,8 @@ The five tables force RLS. The runtime role has no `DELETE` on any of them. It h
 
 ## Tests to run
 
+`test/sponsor-test-fixture.ts` provides the restricted-role sponsor fixture. `test/sponsor-seed.test-support.ts` owns the synthetic sponsor rows and tenant seeding shared with the billing and web RLS proofs.
+
 `test/pilot-switch.test.ts` covers the reader and command with a fake transaction. `test/pilot-switch-rls.test.ts` is in the `test:rls` lane and proves tenant isolation, revision conflicts and atomic audits under the restricted role.
 
 From `package.json:31-48`: `pnpm --filter @interdomestik/database test:unit`; `test:rls` (an explicit list of 24 test files at `:42`, the row-security and tenant-authority suite; the other 124 of the 148 files run in no workflow, TEST-03); `test:migration-runtime-role`; `test:journal-parity` (needs a disposable PostgreSQL 16 server); `type-check`; `seed:assert-e2e`. `test:rls` runs in CI (`.github/workflows/ci.yml:196`, `pnpm db:rls:test`, with `REQUIRE_RLS_INTEGRATION=1` and `REQUIRE_RLS_COVERAGE=1`) and `seed:assert-e2e` in the same job; no workflow step runs this package's `test:unit`, `test:migration-runtime-role` or `type-check` (the unit's search of the workflows, which agrees with TEST-03); `A/modules/data-layer.md:246` records that no workflow has a migration step (DATA-03).

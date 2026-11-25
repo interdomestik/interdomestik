@@ -70,6 +70,21 @@ export function addMonths(date: Date, months: number): Date {
   return result;
 }
 
+export function sponsorRosterRetentionDeadline(termEnd: string): Date {
+  return addMonths(parseTimestamp(termEnd), 12);
+}
+
+export function sponsorOptOutExpired(
+  term: Pick<Term, 'termEnd' | 'terminatedEffectiveAt'>,
+  now: Date
+): boolean {
+  const effectiveEnd = parseTimestamp(term.terminatedEffectiveAt ?? term.termEnd);
+  return (
+    effectiveEnd.getTime() + 30 * DAY_MS <= now.getTime() ||
+    sponsorRosterRetentionDeadline(term.termEnd) <= now
+  );
+}
+
 export function outboxRetentionCutoff(now: Date): Date {
   return new Date(addMonths(now, 0).getTime() - 30 * DAY_MS);
 }
@@ -95,10 +110,8 @@ export function planRetention(rows: RetentionRows, now: Date): RetentionPlan {
   if (!Number.isFinite(now.getTime())) throw new RangeError('Invalid retention clock');
   const { term } = rows;
   const termEnd = parseTimestamp(term.termEnd);
-  const eraseDue = addMonths(termEnd, 12) <= now;
-  const tokenDue =
-    parseTimestamp(term.terminatedEffectiveAt ?? term.termEnd).getTime() + 30 * DAY_MS <=
-    now.getTime();
+  const eraseDue = sponsorRosterRetentionDeadline(term.termEnd) <= now;
+  const tokenDue = sponsorOptOutExpired(term, now);
   const terms = rows.sponsorTerms.filter(row => row.sponsorId === term.sponsorId);
   const lastEnd = terms.reduce(
     (last, row) => Math.max(last, parseTimestamp(row.termEnd).getTime()),
@@ -111,7 +124,7 @@ export function planRetention(rows: RetentionRows, now: Date): RetentionPlan {
     row => row.rosterEntryId !== null && entryIds.has(row.rosterEntryId)
   );
   const invalidateTokenIds = entries
-    .filter(row => row.optoutTokenHash !== null && (row.revokedAt !== null || tokenDue || eraseDue))
+    .filter(row => row.optoutTokenHash !== null && (row.revokedAt !== null || tokenDue))
     .map(row => row.id);
   const eraseAddressIds = entries.filter(row => eraseDue && !addressErased(row)).map(row => row.id);
   const eraseHmacIds = entries

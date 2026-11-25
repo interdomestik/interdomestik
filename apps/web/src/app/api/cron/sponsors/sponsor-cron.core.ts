@@ -8,13 +8,20 @@ import {
   queueEndOffers,
   queueRenewalNotices,
 } from '@interdomestik/domain-membership-billing/sponsors/mail-producers';
-import { runSponsorMailOutbox } from '@interdomestik/domain-membership-billing/sponsors/mail-sender';
+import {
+  runSponsorMailOutbox,
+  type SponsorMailSummary,
+} from '@interdomestik/domain-membership-billing/sponsors/mail-sender';
 import { createHandoverPaddleClient } from '@interdomestik/domain-membership-billing/sponsors/paddle-handover-client';
-import { runSponsorRetention } from '@interdomestik/domain-membership-billing/sponsors/retention';
+import {
+  runSponsorRetention,
+  type SponsorRetentionResult,
+} from '@interdomestik/domain-membership-billing/sponsors/retention';
 import {
   runSponsorProvisioning,
   sponsorCredentialCheck,
 } from '@interdomestik/domain-membership-billing/sponsors/sponsor-jobs';
+import { captureException } from '@sentry/nextjs';
 
 import { sponsorMailDeps } from './_mail';
 
@@ -30,8 +37,9 @@ export type SponsorCronTenantResult = {
     salesClosed?: number;
   } | null;
   handovers: { processed: number; failed: number } | null;
-  mail: { claimed: number } | null;
-  /** Steps that threw; the next pass retries them. */
+  retention: SponsorRetentionResult | null;
+  mail: SponsorMailSummary | null;
+  /** Steps that threw or reported incomplete work. */
   failedSteps: SponsorCronStep[];
   failed: boolean;
 };
@@ -52,6 +60,7 @@ async function runTenant(
     tenantId,
     provisioning: null,
     handovers: null,
+    retention: null,
     mail: null,
     failedSteps: [],
     failed: false,
@@ -59,8 +68,9 @@ async function runTenant(
   const step = async (name: SponsorCronStep, run: () => Promise<void>): Promise<void> => {
     try {
       await run();
-    } catch {
+    } catch (error) {
       result.failedSteps.push(name);
+      captureException(error, { tags: { operation: `sponsor.cron.${name}` } });
     }
   };
   // The tenant switch gates only new provisioning; every other job always runs (§3.1).
@@ -75,6 +85,7 @@ async function runTenant(
       summary.salesClosed = provisioning.outcomes.sales_closed;
     }
     result.provisioning = summary;
+    if (summary.failed > 0) result.failedSteps.push('provisioning');
   });
   await step('handovers', async () => {
     const handovers = await runSponsorHandovers(
@@ -86,6 +97,7 @@ async function runTenant(
       { now }
     );
     result.handovers = { processed: handovers.processed, failed: handovers.failed };
+    if (handovers.failed > 0) result.failedSteps.push('handovers');
   });
   if (isHourlyPass(now)) {
     await step('cache', async () => {
@@ -96,14 +108,24 @@ async function runTenant(
       await queueEndOffers(authority, now);
     });
     await step('retention', async () => {
-      await runSponsorRetention(authority, { now });
+      result.retention = await runSponsorRetention(authority, { now });
     });
   }
   await step('mail', async () => {
     const deps = sponsorMailDeps(tenantId, authority);
     if (!deps) throw new Error('sponsor_mail_unavailable');
-    const mail = await runSponsorMailOutbox(authority, deps, { now, limit: MAIL_BATCH });
-    result.mail = { claimed: mail.claimed };
+    const mail = await runSponsorMailOutbox(authority, deps, {
+      now: new Date(),
+      limit: MAIL_BATCH,
+    });
+    result.mail = mail;
+    if (
+      Object.entries(mail.outcomes).some(
+        ([outcome, count]) => count > 0 && outcome !== 'sent' && outcome !== 'skipped'
+      )
+    ) {
+      result.failedSteps.push('mail');
+    }
   });
   result.failed = result.failedSteps.length > 0;
   return result;

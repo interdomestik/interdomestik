@@ -26,6 +26,7 @@ export type SponsorMailFacts = {
   nonSponsorCovered: boolean;
 };
 export type MailSkipReason =
+  | 'aged_mail'
   | 'email_suppressed'
   | 'recipient_missing'
   | 'entry_missing'
