@@ -115,7 +115,7 @@ function usage() {
   const lanes = Object.keys(laneDefinitions).join(', ');
   console.error(
     `Usage: node scripts/run-e2e-lane.mjs <lane> [playwright args...]\n\nLanes: ${lanes}\n\n` +
-      `Local Mac setup, gate and smoke write JSON to ${localMacReportDir}/<head>/<lane>-<invocation>/report.json`
+      `Local Mac setup, gate and smoke write reports and artifacts to ${localMacReportDir}/<head>/<lane>-<invocation>/`
   );
 }
 
@@ -154,19 +154,20 @@ async function runPlaywright(name, args, env) {
     cwd: rootDir,
     encoding: 'utf8',
   }).trim();
-  // Playwright clears its output directory, which defaults to test-results, on startup.
-  const report = path.join(
-    rootDir,
-    localMacReportDir,
-    head,
-    `${name}-${randomUUID()}`,
-    'report.json'
-  );
+  // Playwright clears the artifacts directory on startup. Keep it unique and beside the report.
+  const invocationDir = path.join(rootDir, localMacReportDir, head, `${name}-${randomUUID()}`);
+  const report = path.join(invocationDir, 'report.json');
+  const output = path.join(invocationDir, 'artifacts');
   console.log(`[e2e] ${name} JSON report: ${report}`);
-  return run('pnpm', [...args, '--retries=0', '--workers=1', '--reporter=line,json'], {
-    ...env,
-    PLAYWRIGHT_JSON_OUTPUT_FILE: report,
-  });
+  return run(
+    'pnpm',
+    [...args, '--retries=0', '--workers=1', '--reporter=line,json', `--output=${output}`],
+    {
+      ...env,
+      PW_LOCAL_MAC_RESULTS_DIR: invocationDir,
+      PLAYWRIGHT_JSON_OUTPUT_FILE: report,
+    }
+  );
 }
 
 if (lane.pnpmArgs) {

@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -109,19 +109,37 @@ const laneProbe = `
   const stubs = {
     './ci/ensure-local-test-hosts.mjs': 'export async function ensureLocalTestHosts() {}',
     './ci/run-detached-command.mjs': \`
-      import { mkdirSync, writeFileSync } from 'node:fs';
+      import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
       import path from 'node:path';
       export async function runDetachedCommand(command, args, { cwd, env }) {
         if (command !== 'pnpm' || !(args.includes('playwright') || args.includes('e2e:smoke'))) return;
         const report = env.PLAYWRIGHT_JSON_OUTPUT_FILE ?? null;
+        const resultsDir = env.PW_LOCAL_MAC_RESULTS_DIR ?? null;
         const exitCode = args.includes(env.TEST_FAIL_ARG) ? 17 : 0;
-        console.log(JSON.stringify({ args, report, ci: env.CI }));
+        console.log(JSON.stringify({ args, report, resultsDir, ci: env.CI }));
         if (report && env.TEST_REPORT_ROOT) {
-          const relative = path.relative(cwd, report);
-          if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('report outside the worktree');
-          const file = path.join(env.TEST_REPORT_ROOT, relative);
+          const fixturePath = file => {
+            const relative = path.relative(cwd, file);
+            if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('output outside the worktree');
+            return path.join(env.TEST_REPORT_ROOT, relative);
+          };
+          const outputArg = args.findLast(arg => arg.startsWith('--output='));
+          const outputDir = fixturePath(
+            outputArg?.slice('--output='.length) ?? path.join(cwd, 'apps/web/test-results/artifacts')
+          );
+          // Playwright clears the selected output directory before running tests.
+          rmSync(outputDir, { recursive: true, force: true });
+          mkdirSync(outputDir, { recursive: true });
+          const attachments = [];
+          if (exitCode) {
+            const trace = path.join(outputDir, 'trace.zip');
+            writeFileSync(trace, 'failed gate trace');
+            attachments.push({ name: 'trace', contentType: 'application/zip', path: trace });
+          }
+          const suites = [{ specs: [{ tests: [{ results: [{ attachments }] }] }] }];
+          const file = fixturePath(report);
           mkdirSync(path.dirname(file), { recursive: true });
-          writeFileSync(file, JSON.stringify({ exitCode }));
+          writeFileSync(file, JSON.stringify({ exitCode, suites }));
         }
         if (exitCode) throw Object.assign(new Error('fixture Playwright failure'), { exitCode });
       }
@@ -239,7 +257,7 @@ test('hosted and Linux setup, gate and smoke preserve their existing arguments',
       assert.equal(result.status, 0, `${label}: ${result.stderr}`);
       assert.deepEqual(
         result.invocations,
-        expected.map(args => ({ args, report: null, ci: 'true' })),
+        expected.map(args => ({ args, report: null, resultsDir: null, ci: 'true' })),
         label
       );
     }
@@ -277,16 +295,24 @@ test('local Mac setup, full gate and smoke use zero retries and one worker with 
     })) {
       const result = probeLane(lane, { ci });
       assert.equal(result.status, 0, `${lane}: ${result.stderr}`);
-      assert.deepEqual(
-        result.invocations.map(invocation => invocation.args),
-        expected,
-        lane
-      );
-      for (const { report, ci: actualCi } of result.invocations) {
+      assert.equal(result.invocations.length, expected.length, lane);
+      for (const [
+        index,
+        { args, report, resultsDir, ci: actualCi },
+      ] of result.invocations.entries()) {
         assert.equal(actualCi, ci);
         assert.ok(path.isAbsolute(report), lane);
+        const invocationDir = path.dirname(report);
+        const name = lane === 'gate' && index === 0 ? 'state' : lane;
         assert.equal(path.basename(report), 'report.json');
-        assert.equal(path.dirname(path.dirname(report)), reportRoot);
+        assert.equal(path.dirname(invocationDir), reportRoot);
+        assert.equal(resultsDir, invocationDir);
+        assert.ok(path.basename(invocationDir).startsWith(`${name}-`), lane);
+        assert.deepEqual(
+          args,
+          [...expected[index], `--output=${path.join(invocationDir, 'artifacts')}`],
+          lane
+        );
         paths.push(report);
       }
     }
@@ -294,7 +320,7 @@ test('local Mac setup, full gate and smoke use zero retries and one worker with 
   }
 });
 
-test('a failed local Mac gate keeps its report and status through follow-up smoke', t => {
+test('a failed local Mac gate keeps its report, trace and status through follow-up smoke', t => {
   const temp = mkdtempSync(path.join(tmpdir(), 'e2e-lane-reports-'));
   t.after(() => rmSync(temp, { recursive: true, force: true }));
   const env = { TEST_REPORT_ROOT: temp };
@@ -305,15 +331,16 @@ test('a failed local Mac gate keeps its report and status through follow-up smok
   const gateReport = gate.invocations[1].report;
   const smokeReport = smoke.invocations[0].report;
   assert.notEqual(gateReport, smokeReport);
-  assert.deepEqual(JSON.parse(readFileSync(path.join(temp, path.relative(repoRoot, gateReport)))), {
-    exitCode: 17,
-  });
-  assert.deepEqual(
-    JSON.parse(readFileSync(path.join(temp, path.relative(repoRoot, smokeReport)))),
-    {
-      exitCode: 0,
-    }
-  );
+  const readReport = report =>
+    JSON.parse(readFileSync(path.join(temp, path.relative(repoRoot, report)), 'utf8'));
+  const failed = readReport(gateReport);
+  assert.equal(failed.exitCode, 17);
+  const { attachments } = failed.suites[0].specs[0].tests[0].results[0];
+  const trace = attachments.find(attachment => attachment.name === 'trace');
+  assert.ok(trace, 'the failed gate report must reference a trace');
+  assert.equal(readFileSync(trace.path, 'utf8'), 'failed gate trace');
+  assert.equal(readReport(smokeReport).exitCode, 0);
+  assert.ok(!existsSync(path.join(temp, 'apps/web/test-results')));
 });
 
 test('an empty or unknown lane is refused before any preparation runs', () => {
