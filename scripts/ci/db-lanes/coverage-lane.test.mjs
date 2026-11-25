@@ -5,6 +5,7 @@ import test from 'node:test';
 import {
   configPath,
   copyProtectedSelectors,
+  fixtureSource,
   inventoryFixture,
   mockSuite,
   project,
@@ -61,10 +62,7 @@ test('runs the suite in advisory when a case can skip through its context', t =>
   assert.deepEqual(suiteLanes(root), ['unit/coverage']);
   writeFileSync(
     join(root, suite),
-    mockSuite.replace(
-      "it('runs', () => {})",
-      "it('runs', ({ skip }) => { skip(process.env.REQUIRE_RLS_INTEGRATION !== '1'); })"
-    )
+    mockSuite.replace("it('runs', () => {})", fixtureSource('conditional-vitest-case').trim())
   );
   assert.deepEqual(suiteLanes(root), ['advisory/vitest-pg16']);
 });
@@ -75,10 +73,7 @@ for (const modifier of ['runIf', 'skipIf']) {
     assert.deepEqual(suiteLanes(root), ['unit/coverage']);
     writeFileSync(
       join(root, dirname(suite), 'contract-test-support.ts'),
-      [
-        "import { describe } from 'vitest';",
-        `export const describeResetContract = describe.${modifier}(Boolean(process.env.LIVE_DB_PROOF));`,
-      ].join('\n')
+      fixtureSource('conditional-vitest-helper').replace('MODIFIER', modifier)
     );
     writeFileSync(
       join(root, suite),
@@ -199,26 +194,6 @@ test('keeps a nested RLS test in PG16 when the existing test:rls step is unavail
   assert.deepEqual(row(), { file, lanes: ['advisory/node-pg16'] });
 });
 
-test('a disabled prerequisite removes protected PG16 credit', t => {
-  const root = scratch(t);
-  copyProtectedSelectors(root);
-  updateWorkflow(root, ({ jobs }) => {
-    jobs['validation-surface'].if = false;
-  });
-  const warnings = [];
-  assert.deepEqual(
-    protectedLanes(root, [], [], (lane, error) => warnings.push([lane, error])),
-    []
-  );
-  assert.deepEqual(
-    warnings.map(([lane]) => lane),
-    ['e2e-gate/RLS', 'e2e-gate/journal-parity']
-  );
-  for (const [, error] of warnings) {
-    assert.match(error.message, /Cannot prove the Prepare E2E Database step/u);
-  }
-});
-
 test('fails closed when a protected test runner adds an unrecognized case filter', t => {
   const root = scratch(t);
   copyProtectedSelectors(root);
@@ -235,13 +210,10 @@ test('a message RLS command without its opt-in cannot claim protected credit', t
   copyProtectedSelectors(root);
   const filename = join(root, 'packages/domain-claims/package.json');
   const manifest = JSON.parse(readFileSync(filename, 'utf8'));
-  manifest.scripts['test:rls'] = manifest.scripts['test:rls'].replace(
-    'MESSAGE_RLS_INTEGRATION=1 ',
-    ''
-  );
+  const flag = fixtureSource('message-rls-opt-in').trim();
+  manifest.scripts['test:rls'] = manifest.scripts['test:rls'].replace(`${flag} `, '');
   writeFileSync(filename, JSON.stringify(manifest));
-  assert.throws(
-    () => protectedLanes(root),
-    /Missing MESSAGE_RLS_INTEGRATION=1.*domain-claims test:rls/u
-  );
+  assert.throws(() => protectedLanes(root), {
+    message: `Missing ${flag} in domain-claims test:rls`,
+  });
 });

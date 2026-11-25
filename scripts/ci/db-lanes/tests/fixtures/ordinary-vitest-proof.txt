@@ -1,0 +1,6 @@
+import assert from 'node:assert/strict';
+import { test } from 'vitest';
+test('does not receive the staff credentials', () => {
+  assert.equal(process.env.E2E_DATABASE_URL, undefined);
+  assert.equal(process.env.DATABASE_URL_RLS, undefined);
+});

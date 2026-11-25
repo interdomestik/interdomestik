@@ -1,0 +1,2 @@
+import test from 'node:test';
+test('database proof', { skip: !process.env.DATABASE_URL }, () => {});

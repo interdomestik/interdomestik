@@ -216,6 +216,12 @@
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },
   {
+    "file": "apps/web/e2e/gate/member-legal-acceptance.spec.ts",
+    "reason": "This browser E2E spec runs in the Playwright gate lanes and uses database imports as fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
     "file": "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts",
     "reason": "The gate/member-staff-evidence-journey browser spec requires a running web application and Playwright project fixtures.",
     "owner": "Web E2E",
@@ -706,30 +712,6 @@
     "reason": "This historical routing assertion is retired by the contract selector and exercises the old workflow.",
     "owner": "CI Tooling",
     "removeWhen": "A current database test replaces the historical routing assertion."
-  },
-  {
-    "file": "scripts/ci/db-lanes/coverage-lane.test.mjs",
-    "reason": "The advisory contract step runs this file against scratch workflow and Vitest fixtures.",
-    "owner": "CI Tooling",
-    "removeWhen": "The coverage proof fixtures require a live database."
-  },
-  {
-    "file": "scripts/ci/db-lanes/execution.test.mjs",
-    "reason": "The advisory contract step runs this file against synthetic execution reports.",
-    "owner": "CI Tooling",
-    "removeWhen": "The execution report fixtures require a live database."
-  },
-  {
-    "file": "scripts/ci/db-lanes/inventory.test.mjs",
-    "reason": "The advisory contract step runs this file against synthetic tracked sources and manifests.",
-    "owner": "CI Tooling",
-    "removeWhen": "The inventory fixtures require a live database."
-  },
-  {
-    "file": "scripts/ci/db-lanes/workflow.test.mjs",
-    "reason": "The advisory contract step runs this file against workflow structure and simulated outcomes.",
-    "owner": "CI Tooling",
-    "removeWhen": "The workflow fixtures require a live database."
   },
   {
     "file": "scripts/docker-workflow.test.mjs",

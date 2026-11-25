@@ -8,6 +8,10 @@ import { checkExecution, readExecution } from './execution.mjs';
 import {
   copyLaneRunner,
   copyProtectedSelectors,
+  fixtureEnvironment,
+  fixtureSource,
+  pg16EnvironmentKeys,
+  runNodeFixture,
   scratch,
   updateWorkflow,
 } from './inventory-fixture.mjs';
@@ -81,10 +85,9 @@ test('a real Node run reports cases per file and gives a testless file no credit
     `import { nodeExecution } from ${JSON.stringify(module)};
     console.log(JSON.stringify(await nodeExecution(import.meta.dirname, ['pass.mjs', 'empty.mjs'], [])));`
   );
-  const env = { ...process.env };
-  delete env.NODE_TEST_CONTEXT;
-  const output = execFileSync(process.execPath, [join(root, 'run.mjs')], { env, encoding: 'utf8' });
-  const report = JSON.parse(output);
+  const run = runNodeFixture([join(root, 'run.mjs')], root);
+  assert.equal(run.status, 0, run.stdout + run.stderr);
+  const report = JSON.parse(run.stdout);
   assert.deepEqual(report.files, [{ ...passed, file: 'pass.mjs' }]);
   assert.match(
     checkExecution(['pass.mjs', 'empty.mjs'], report).join(),
@@ -127,7 +130,7 @@ test('a real Vitest run records skips, TODOs and retries even when Vitest exits 
     ],
     {
       cwd: join(repoRoot, 'packages/domain-users'),
-      env: { ...process.env, DB_LANES_ROOT: root, DB_LANES_REPORT: filename },
+      env: fixtureEnvironment({ DB_LANES_ROOT: root, DB_LANES_REPORT: filename }),
       stdio: 'ignore',
     }
   );
@@ -187,39 +190,11 @@ test('advisory staff proofs receive the restricted fixture and report every pass
   const ordinary = 'apps/web/src/lib/ordinary.integration.test.ts';
   const nodeProof = 'packages/database/test/claim-information-requests.test.ts';
   const exempt = 'scripts/exempt.rls.test.ts';
-  const staffProof = `import assert from 'node:assert/strict';
-    import { test } from 'vitest';
-    test('uses the provisioned login and disposable admin', () => {
-      assert.equal(process.env.E2E_DATABASE_URL, process.env.DATABASE_URL);
-      assert.equal(new URL(process.env.DATABASE_URL_RLS).username, 'interdomestik_e2e_runtime');
-      assert.equal(process.env.REQUIRE_RLS_INTEGRATION, '1');
-      assert.equal(process.env.S8_STAFF_DETAIL_DB_PROOF, '1');
-      assert.equal(process.env.DB_MAX_CONNECTIONS, '1');
-      assert.match(process.env.S8_STAFF_DETAIL_RUN_TOKEN, /^[a-f0-9]{16}$/u);
-      assert.equal(typeof globalThis.document, 'undefined');
-    });`;
+  const staffProof = fixtureSource('staff-vitest-proof');
   const fixtures = new Map([
     ...staff.map(file => [file, staffProof]),
-    [
-      ordinary,
-      `import assert from 'node:assert/strict';
-      import { test } from 'vitest';
-      test('does not receive the staff credentials', () => {
-        assert.equal(process.env.E2E_DATABASE_URL, undefined);
-        assert.equal(process.env.DATABASE_URL_RLS, undefined);
-      });`,
-    ],
-    [
-      nodeProof,
-      `import assert from 'node:assert/strict';
-      import test from 'node:test';
-      test('receives mandatory PostgreSQL setup', () => {
-        assert.equal(new URL(process.env.DATABASE_URL).pathname, '/interdomestik_test');
-        assert.equal(process.env.REQUIRE_RLS_INTEGRATION, '1');
-        assert.equal(process.env.REQUIRE_RLS_COVERAGE, '1');
-        assert.equal(process.env.REQUIRE_DOMAIN_EVENT_RELAY_SQL_PROOF, '1');
-      });`,
-    ],
+    [ordinary, fixtureSource('ordinary-vitest-proof')],
+    [nodeProof, fixtureSource('pg16-node-proof')],
     ...protectedLanes(root, [], [], () => {}).flatMap(lane => lane.files.map(file => [file, ''])),
     [exempt, ''],
     [
@@ -240,42 +215,18 @@ test('advisory staff proofs receive the restricted fixture and report every pass
     join(root, 'apps/web/vitest.config.mjs'),
     'export default { test: { environment: "jsdom" } };'
   );
-  writeFileSync(
-    join(root, 'scripts/e2e-runtime-role.mjs'),
-    `
-    import assert from 'node:assert/strict';
-    export function describeRuntimeRoleFailure(error) { return error.message; }
-    export async function provisionE2eRuntimeRole({ adminUrl, runtimeUrl }) {
-      assert.equal(adminUrl, process.env.DATABASE_URL);
-      assert.equal(runtimeUrl, undefined);
-      const url = new URL(adminUrl);
-      url.username = 'interdomestik_e2e_runtime';
-      return url.href;
-    }
-  `
-  );
+  writeFileSync(join(root, 'scripts/e2e-runtime-role.mjs'), fixtureSource('stub-runtime-role'));
   const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
   git('init', '-q');
   git('add', '--', ...fixtures.keys());
 
-  const env = {
-    ...process.env,
+  const [databaseUrlKey, ...staffKeys] = pg16EnvironmentKeys;
+  const env = fixtureEnvironment({
     CI: 'true',
-    DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test',
-  };
-  for (const key of [
-    'NODE_TEST_CONTEXT',
-    'DATABASE_URL_RLS',
-    'E2E_DATABASE_URL',
-    'E2E_SERVER_DATABASE_URL_RLS',
-  ]) {
-    delete env[key];
-  }
-  const run = spawnSync(process.execPath, [`${directory}/run.mjs`, 'pg16'], {
-    cwd: root,
-    env,
-    encoding: 'utf8',
+    [databaseUrlKey]: 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test',
   });
+  for (const key of staffKeys) delete env[key];
+  const run = runNodeFixture([`${directory}/run.mjs`, 'pg16'], root, env);
   const reports = run.stdout
     .trim()
     .split('\n')

@@ -3,16 +3,11 @@ import { join } from 'node:path';
 import yaml from 'js-yaml';
 import { productContractSelector } from '../contract-suite-run.mjs';
 import { contractTestPlan } from '../contract-test-shards.mjs';
-import { inLane, readE2eLane } from '../screen-contract/registry-lanes.mjs';
-import { ScanError } from '../server-mutation/ast.mjs';
 import { coverageTargets } from './coverage-lane.mjs';
-import { provesHostedGateArguments } from './playwright-gate-runner.mjs';
 import { provenWorkflowStep } from './workflow-selectors.mjs';
 
 export const isContractTest = file => /^scripts\/ci\/(?!\.)[^/]+\.test\.mjs$/u.test(file);
 export const isReleaseGateTest = file => /^scripts\/release-gate\/[\w.-]+\.test\.ts$/u.test(file);
-export const isBrowserGateSpec = file =>
-  /^apps\/web\/e2e\/(?:gate|security)\/.+\.spec\.ts$/u.test(file);
 
 const requiredFlags = new Set([
   'REQUIRE_DOMAIN_EVENT_RELAY_SQL_PROOF=1',
@@ -28,7 +23,6 @@ const runnerPrefixes = [
 ];
 
 const packageInvocation = /^pnpm --filter @interdomestik\/([\w-]+) (test:[\w-]+)$/u;
-const broadGateCondition = "needs.validation-surface.outputs.run_broad == 'true'";
 const prepareCommand = [
   'pnpm db:migrate',
   'if [[ "${{ github.event_name }}" != "pull_request" ]]; then',
@@ -69,7 +63,13 @@ function testArguments(part, name, script) {
 
 function pg16WorkflowSelectors(workflow, roots, packageTargets, webTargets, onUnproven) {
   const job = workflow.jobs?.['e2e-gate'];
-  const step = name => provenWorkflowStep(workflow, 'e2e-gate', name, broadGateCondition);
+  const step = name =>
+    provenWorkflowStep(
+      workflow,
+      'e2e-gate',
+      name,
+      "needs.validation-surface.outputs.run_broad == 'true'"
+    );
   const prepare = step('Prepare E2E Database');
   const rls = step('RLS Integration Test');
   const prepared =
@@ -120,37 +120,6 @@ function pg16WorkflowSelectors(workflow, roots, packageTargets, webTargets, onUn
       return [];
     }
   });
-}
-
-function browserGateTargets(root, workflow, roots, databaseFiles) {
-  const candidates = databaseFiles.filter(isBrowserGateSpec);
-  const branches = workflow.on?.push?.branches;
-  const needs = [workflow.jobs?.['e2e-gate']?.needs].flat();
-  if (
-    !candidates.length ||
-    !Array.isArray(branches) ||
-    !branches.includes('main') ||
-    !needs.includes('validation-surface')
-  )
-    return [];
-  const step = provenWorkflowStep(
-    workflow,
-    'e2e-gate',
-    'E2E Gate Suite',
-    broadGateCondition,
-    "github.event_name != 'pull_request' && needs.validation-surface.outputs.main_e2e_reuse != '1'"
-  );
-  if (step?.run !== 'pnpm e2e:gate' || roots['e2e:gate'] !== 'node scripts/run-e2e-lane.mjs gate') {
-    return [];
-  }
-  try {
-    if (!provesHostedGateArguments(root)) return [];
-    const config = readE2eLane(root, ['gate-mk-mk']);
-    return candidates.filter(file => inLane(config, file));
-  } catch (error) {
-    if (error instanceof ScanError || error.code === 'ENOENT') return [];
-    throw error;
-  }
 }
 
 // Inventory the existing runners without executing or rewriting them.
@@ -238,8 +207,6 @@ export function protectedLanes(
   }
 
   const lanes = pg16WorkflowSelectors(workflow, roots, packageTargets, webTargets, onUnproven);
-  const browser = browserGateTargets(root, workflow, roots, databaseFiles);
-  if (browser.length) lanes.push({ name: 'e2e-gate/playwright', files: browser });
   const coverage = coverageTargets(root, workflow, roots, read, coverageCandidates);
   if (coverage.length) lanes.push({ name: 'unit/coverage', files: coverage });
 

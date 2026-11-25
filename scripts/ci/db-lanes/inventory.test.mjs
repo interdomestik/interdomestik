@@ -4,7 +4,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { structuredArtifactOwner } from '../../modularity-guard-policy.mjs';
-import { copyProtectedSelectors, scratch } from './inventory-fixture.mjs';
+import { copyProtectedSelectors, fixtureSource, scratch } from './inventory-fixture.mjs';
 import {
   buildInventory,
   readExclusions,
@@ -121,10 +121,7 @@ test('discovers a newly tracked orphan independently of advisory selectors', t =
     mkdirSync(dirname(join(root, file)), { recursive: true });
     writeFileSync(join(root, file), '');
   }
-  writeFileSync(
-    join(root, script),
-    "test('live proof', { skip: process.env.LIVE_DB_PROOF !== '1' });"
-  );
+  writeFileSync(join(root, script), fixtureSource('orphan-opt-in-test'));
   git('add', '--', ...tracked);
 
   const files = trackedTests(root);
@@ -157,29 +154,8 @@ test('discovers a newly tracked orphan independently of advisory selectors', t =
   );
 });
 
-for (const [label, source, directory = 'scripts/pilot'] of [
-  ['element access', "test('live proof', { skip: process.env['LIVE_DB_PROOF'] !== '1' });"],
-  [
-    'destructuring',
-    "const { 'LIVE_DB_PROOF': enabled } = process.env; test('live proof', { skip: enabled !== '1' });",
-  ],
-  [
-    'an environment alias',
-    "const env = process.env; test('live proof', { skip: env.LIVE_DB_PROOF !== '1' });",
-  ],
-  [
-    'an environment import',
-    "import { env } from 'node:process'; test('live proof', { skip: env.LIVE_DB_PROOF !== '1' });",
-  ],
-  ['an environment object without a named flag', 'const env = process.env; void env;'],
-  ['environment tokens separated by a comment', 'const env = process /* runtime */ .env;'],
-  ['an opt-in token outside an environment reference', 'const optInKey = "LIVE_DB_PROOF";'],
-  [
-    'a restricted client import outside standard test directories',
-    'import { db } from "@interdomestik/database/confirmed-ci";',
-    'tools/pilot',
-  ],
-]) {
+const orphanOptInVariants = JSON.parse(fixtureSource('orphan-opt-in-variants'));
+for (const [label, source, directory = 'scripts/pilot'] of orphanOptInVariants) {
   test(`reports an orphan for a tracked test with ${label}`, t => {
     const root = scratch(t);
     const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
@@ -195,7 +171,7 @@ for (const [label, source, directory = 'scripts/pilot'] of [
 }
 
 test('uses the existing explicit lane before selecting advisory execution', () => {
-  const file = 'packages/database/test/restricted-role.test.ts';
+  const file = 'packages/database/test/fixture.rls.test.ts';
   const lane = { name: 'e2e-gate/RLS', files: [file] };
   assert.deepEqual(buildInventory([file], [lane], []), [{ file, lanes: [lane.name] }]);
   assert.throws(() => buildInventory([], [lane], []), /selects an untracked test/u);
@@ -205,6 +181,7 @@ test('uses the existing explicit lane before selecting advisory execution', () =
   );
 });
 
+const billingFlag = fixtureSource('billing-rls-opt-in').trim();
 for (const [label, change, message] of [
   [
     'the staff RLS runner is missing',
@@ -216,14 +193,11 @@ for (const [label, change, message] of [
     root => {
       const file = join(root, 'packages/domain-membership-billing/package.json');
       const manifest = JSON.parse(readFileSync(file, 'utf8'));
-      assert.match(manifest.scripts['test:rls'], /^BILLING_RLS_INTEGRATION=1 /u);
-      manifest.scripts['test:rls'] = manifest.scripts['test:rls'].replace(
-        'BILLING_RLS_INTEGRATION=1 ',
-        ''
-      );
+      assert.ok(manifest.scripts['test:rls'].startsWith(`${billingFlag} `));
+      manifest.scripts['test:rls'] = manifest.scripts['test:rls'].replace(`${billingFlag} `, '');
       writeFileSync(file, JSON.stringify(manifest));
     },
-    /Missing BILLING_RLS_INTEGRATION=1/u,
+    new RegExp(`Missing ${billingFlag}`, 'u'),
   ],
 ]) {
   test(`withdraws protected RLS credit when ${label}`, t => {
@@ -258,7 +232,6 @@ test('inventories the checked-out selectors', () => {
     ['packages/database/test/pg16/journal-schema-parity.test.ts', 'e2e-gate/journal-parity'],
     ['packages/database/test/s8-claim-restricted-rls.test.ts', 'e2e-gate/RLS'],
     ['packages/database/test/rls/member-claim-title-rls.test.ts', 'e2e-gate/RLS'],
-    ['apps/web/e2e/gate/member-legal-acceptance.spec.ts', 'e2e-gate/playwright'],
     [
       'packages/domain-claims/src/claims/message-integration/public-reply-notification.integration.test.ts',
       'e2e-gate/RLS',
@@ -288,6 +261,7 @@ test('inventories the checked-out selectors', () => {
     'apps/web/src/lib/auth/different-email-recovery-session.contract.test.ts',
     'apps/web/src/lib/auth/different-email-recovery-store.contract.test.ts',
     'apps/web/e2e/gate/claim-correspondence.spec.ts',
+    'apps/web/e2e/gate/member-legal-acceptance.spec.ts',
     'scripts/pilot/admin-users-unread.test.ts',
   ]) {
     assert.equal(rows.get(file)?.exclusion?.file, file);

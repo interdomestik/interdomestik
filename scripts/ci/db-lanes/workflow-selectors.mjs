@@ -29,7 +29,7 @@ function jobRuns(jobs, name, expectedCondition, ancestors = new Set()) {
   );
 }
 
-export function provenWorkflowStep(workflow, jobName, stepName, jobCondition, stepCondition) {
+export function provenWorkflowStep(workflow, jobName, stepName, jobCondition) {
   const { jobs } = workflow;
   if (!jobs || workflow.defaults !== undefined || !jobRuns(jobs, jobName, jobCondition))
     return undefined;
@@ -39,7 +39,7 @@ export function provenWorkflowStep(workflow, jobName, stepName, jobCondition, st
   if (steps.length !== 1) return undefined;
   const [step] = steps;
   if (
-    !(stepCondition === undefined ? unconditional(step.if) : step.if === stepCondition) ||
+    !unconditional(step.if) ||
     step['continue-on-error'] ||
     step['working-directory'] !== undefined ||
     step.shell !== undefined

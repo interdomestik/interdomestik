@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import {
   cpSync,
   mkdtempSync,
@@ -21,18 +21,32 @@ export function scratch(t) {
   return root;
 }
 
+export function fixtureSource(name) {
+  return readFileSync(join(import.meta.dirname, 'tests', 'fixtures', `${name}.txt`), 'utf8');
+}
+
+export function fixtureEnvironment(overrides) {
+  const env = { ...process.env, ...overrides };
+  delete env.NODE_TEST_CONTEXT;
+  return env;
+}
+
+export function runNodeFixture(args, cwd, env = fixtureEnvironment()) {
+  return spawnSync(process.execPath, args, { cwd, env, encoding: 'utf8' });
+}
+
+export const pg16EnvironmentKeys = fixtureSource('pg16-environment-keys').trim().split('\n');
+
 export function copyProtectedSelectors(root) {
   for (const file of [
     '.github/workflows/ci.yml',
     'apps/web/package.json',
-    'apps/web/playwright.config.ts',
     'package.json',
     'packages/database/package.json',
     'packages/domain-claims/package.json',
     'packages/domain-communications/package.json',
     'packages/domain-membership-billing/package.json',
     'packages/domain-users/package.json',
-    'scripts/run-e2e-lane.mjs',
     'scripts/run-staff-detail-rls.mjs',
   ]) {
     mkdirSync(dirname(join(root, file)), { recursive: true });
@@ -56,10 +70,6 @@ export function copyLaneRunner(root) {
     recursive: true,
     filter: file => !file.endsWith('.json'),
   });
-  for (const dependency of ['screen-contract', 'server-mutation']) {
-    const path = `scripts/ci/${dependency}`;
-    symlinkSync(join(repoRoot, path), join(root, path));
-  }
   symlinkSync(
     join(repoRoot, 'packages/database/node_modules'),
     join(root, 'packages/database/node_modules')
@@ -70,11 +80,7 @@ const workflowPath = '.github/workflows/ci.yml';
 export const project = 'packages/domain-users';
 export const configPath = `${project}/vitest.config.ts`;
 export const suite = `${project}/src/admin/get-users.rls.test.ts`;
-export const mockSuite = [
-  "import { describe, it, vi } from 'vitest';",
-  "vi.mock('@interdomestik/database', () => ({}));",
-  "describe('mocked suite', () => { it('runs', () => {}); });",
-].join('\n');
+export const mockSuite = fixtureSource('mocked-vitest-suite');
 
 export function updateWorkflow(root, update) {
   const file = join(root, workflowPath);

@@ -13,7 +13,10 @@ import {
 import {
   copyLaneRunner,
   copyProtectedSelectors,
+  fixtureSource,
   inventoryFixture,
+  pg16EnvironmentKeys,
+  runNodeFixture,
   scratch,
   updateWorkflow,
 } from './inventory-fixture.mjs';
@@ -41,7 +44,8 @@ test('the PR-only workflow keeps database lane execution independent of protecte
     ...ci.jobs['e2e-gate'].services.postgres,
     ports: ['127.0.0.1:5432:5432'],
   });
-  assert.equal(job.env.DATABASE_URL, ci.jobs['e2e-gate'].env.DATABASE_URL);
+  const [databaseUrlKey] = pg16EnvironmentKeys;
+  assert.equal(job.env[databaseUrlKey], ci.jobs['e2e-gate'].env[databaseUrlKey]);
   const [contract, inventory, unit, migration, pg16, summary] = job.steps.filter(step => step.run);
   assert.deepEqual(
     [contract.run, inventory.run, unit.run, migration.run],
@@ -112,6 +116,7 @@ test('the advisory summary reports each execution and fails on failed or missing
 const toolingOnly = 'scripts/ci/db-access-closed-data-source.test.mjs';
 const everyMode = 'scripts/ci/contract-always.test.mjs';
 const release = 'scripts/release-gate/env-log-redaction.test.ts';
+const environmentReference = fixtureSource('environment-reference');
 
 function contractFixture(t, extra = []) {
   const planFiles = [...Object.values(GUARD_TRUST_SHARDS).flat(), ...RETIRED_LEGACY_FILES];
@@ -122,9 +127,9 @@ function contractFixture(t, extra = []) {
         .map(name => `test(${JSON.stringify(name)}, () => {});`)
         .join('\n'),
     ]),
-    [toolingOnly, 'void process.env;'],
-    [everyMode, 'void process.env;'],
-    [release, 'void process.env;'],
+    [toolingOnly, environmentReference],
+    [everyMode, environmentReference],
+    [release, environmentReference],
     ['scripts/ci/contract-tooling-only.json', JSON.stringify({ files: [toolingOnly] })],
     ['scripts/check-modularity-guard.test.mjs', ''],
     ...extra,
@@ -134,11 +139,10 @@ function contractFixture(t, extra = []) {
 test('advisory unit fails for each selected contract with zero executed cases', t => {
   const legacy = 'scripts/ci/db-access-guard.test.mjs';
   const sibling = 'scripts/ci/contract-sibling.test.mjs';
-  const imports = "import test from 'node:test'; void process.env.DATABASE_URL;\n";
-  const passing = `${imports}test('active proof', () => {});`;
+  const passing = fixtureSource('contract-passing-case');
   const root = contractFixture(t, [
-    [everyMode, `${imports}test('database proof', { skip: !process.env.DATABASE_URL }, () => {});`],
-    [toolingOnly, 'void process.env.DATABASE_URL;'],
+    [everyMode, fixtureSource('contract-skipped-case')],
+    [toolingOnly, environmentReference],
     [sibling, passing],
     [release, passing],
     ['packages/database/test/fixture.test.ts', passing],
@@ -153,14 +157,7 @@ test('advisory unit fails for each selected contract with zero executed cases', 
   ]);
   copyLaneRunner(root);
   const directory = 'scripts/ci/db-lanes';
-  const env = { ...process.env };
-  delete env.NODE_TEST_CONTEXT;
-  const run = () =>
-    spawnSync(process.execPath, [`${directory}/run.mjs`, 'unit'], {
-      cwd: root,
-      env,
-      encoding: 'utf8',
-    });
+  const run = () => runNodeFixture([`${directory}/run.mjs`, 'unit'], root);
 
   const zero = run();
   const output = zero.stdout + zero.stderr;
@@ -225,6 +222,26 @@ for (const [label, command, problem] of [
     ]);
   });
 }
+
+test('a disabled prerequisite removes protected PG16 credit', t => {
+  const root = scratch(t);
+  copyProtectedSelectors(root);
+  updateWorkflow(root, ({ jobs }) => {
+    jobs['validation-surface'].if = false;
+  });
+  const warnings = [];
+  assert.deepEqual(
+    protectedLanes(root, [], [], (lane, error) => warnings.push([lane, error])),
+    []
+  );
+  assert.deepEqual(
+    warnings.map(([lane]) => lane),
+    ['e2e-gate/RLS', 'e2e-gate/journal-parity']
+  );
+  for (const [, error] of warnings) {
+    assert.match(error.message, /Cannot prove the Prepare E2E Database step/u);
+  }
+});
 
 test('contract credit requires selection in both product and full audit modes', t => {
   const root = contractFixture(t);

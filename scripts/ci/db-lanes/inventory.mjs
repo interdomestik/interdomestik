@@ -5,12 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { RETIRED_LEGACY_FILES } from '../contract-test-shards.mjs';
 import { compareCodeUnits } from '../db-access-order.mjs';
 import { listVitestFiles, vitestProjects } from './coverage-lane.mjs';
-import {
-  isBrowserGateSpec,
-  isContractTest,
-  isReleaseGateTest,
-  protectedLanes,
-} from './protected-lanes.mjs';
+import { isContractTest, isReleaseGateTest, protectedLanes } from './protected-lanes.mjs';
 
 export const repoRoot = resolve(import.meta.dirname, '../../..');
 const testFile = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
@@ -199,10 +194,7 @@ export function repositoryInventory(root = repoRoot) {
   const excludedFiles = new Set(exclusions.map(entry => entry.file));
   const files = trackedTests(root, excludedFiles);
   const candidates = files.filter(file => isVitestCandidate(file) && !excludedFiles.has(file));
-  const existingCandidates = files.filter(
-    file => !isBrowserGateSpec(file) || !excludedFiles.has(file)
-  );
-  const existing = protectedLanes(root, candidates, existingCandidates, (name, error) => {
+  const existing = protectedLanes(root, candidates, files, (name, error) => {
     console.warn(`Database lane ${name}: ${error.message}; using advisory selectors.`);
   });
   const protectedFiles = new Set(existing.flatMap(lane => lane.files));

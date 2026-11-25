@@ -1,0 +1,1 @@
+test('live proof', { skip: process.env.LIVE_DB_PROOF !== '1' });
