@@ -190,6 +190,14 @@ async function seed(admin: postgres.Sql, s: Scope): Promise<void> {
     revision: 2,
   });
 }
+
+/** Seeds one synthetic tenant in a caller-owned disposable database. */
+export async function seedSponsorScope(admin: postgres.Sql): Promise<Scope> {
+  const s = scope();
+  await seed(admin, s);
+  return s;
+}
+
 export async function restricted<T>(
   client: postgres.Sql,
   s: Scope,

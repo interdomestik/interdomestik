@@ -1,3 +1,5 @@
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({
@@ -6,15 +8,15 @@ const h = vi.hoisted(() => ({
   cache: vi.fn(),
   renewals: vi.fn(),
   offers: vi.fn(),
-  retention: vi.fn(),
+  captureException: vi.fn(),
   outbox: vi.fn(),
   deps: vi.fn(),
 }));
 
 vi.mock('@interdomestik/database', () => ({
   listScheduledTenantWork: async () => [
-    { tenantId: 'tenant_ks', authority: 'auth-ks' },
-    { tenantId: 'tenant_mk', authority: 'auth-mk' },
+    { tenantId: 'tenant_ks', authority: mintTestTenantAuthority('tenant_ks') },
+    { tenantId: 'tenant_mk', authority: mintTestTenantAuthority('tenant_mk') },
   ],
 }));
 vi.mock('@interdomestik/domain-membership-billing/sponsors/sponsor-jobs', () => ({
@@ -34,9 +36,12 @@ vi.mock('@interdomestik/domain-membership-billing/sponsors/mail-producers', () =
   queueRenewalNotices: h.renewals,
   queueEndOffers: h.offers,
 }));
-vi.mock('@interdomestik/domain-membership-billing/sponsors/retention', () => ({
-  runSponsorRetention: h.retention,
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: vi.fn(() => {
+    throw new Error('Unexpected retention transaction');
+  }),
 }));
+vi.mock('@sentry/nextjs', () => ({ captureException: h.captureException }));
 vi.mock('@interdomestik/domain-membership-billing/sponsors/mail-sender', () => ({
   runSponsorMailOutbox: h.outbox,
 }));
@@ -60,19 +65,26 @@ describe('sponsor cron core', () => {
     expect(isHourlyPass(new Date('2027-01-01T10:05:00Z'))).toBe(false);
   });
 
-  it('runs every step for every tenant in order on an hourly pass', async () => {
+  it('records dormant retention without any database effects for each hourly tenant', async () => {
     const results = await run('2027-01-01T10:00:00Z');
     expect(results.map(result => result.tenantId)).toEqual(['tenant_ks', 'tenant_mk']);
-    expect(results[0]).toMatchObject({ mail: { claimed: 3 }, failedSteps: [], failed: false });
-    for (const job of [h.cache, h.renewals, h.offers, h.retention]) {
+    for (const result of results)
+      expect(result).toMatchObject({
+        retention: { state: 'skipped', reason: 'sponsor_retention_dormant' },
+        mail: { claimed: 3 },
+        failedSteps: [],
+        failed: false,
+      });
+    for (const job of [h.cache, h.renewals, h.offers]) {
       expect(job).toHaveBeenCalledTimes(2);
     }
+    expect(withTenantAuthority).not.toHaveBeenCalled();
   });
 
   it('skips hourly work between hours but still sends mail', async () => {
-    await run('2027-01-01T10:30:00Z');
+    const results = await run('2027-01-01T10:30:00Z');
     expect(h.cache).not.toHaveBeenCalled();
-    expect(h.retention).not.toHaveBeenCalled();
+    expect(results.map(result => result.retention)).toEqual([null, null]);
     expect(h.outbox).toHaveBeenCalledTimes(2);
   });
 
@@ -91,7 +103,8 @@ describe('sponsor cron core', () => {
   });
 
   it('reports a failing step and keeps running the other steps and tenants', async () => {
-    h.provisioning.mockRejectedValueOnce(new Error('boom'));
+    const provisioningError = new Error('boom');
+    h.provisioning.mockRejectedValueOnce(provisioningError);
     h.deps.mockImplementationOnce(() => {
       throw new Error('missing secret');
     });
@@ -99,5 +112,23 @@ describe('sponsor cron core', () => {
     expect(results[0]).toMatchObject({ failedSteps: ['provisioning', 'mail'], failed: true });
     expect(results[0].handovers).toEqual({ processed: 1, failed: 0 });
     expect(results[1]).toMatchObject({ failedSteps: [], failed: false });
+    expect(h.captureException).toHaveBeenCalledWith(provisioningError, {
+      tags: { operation: 'sponsor.cron.provisioning' },
+    });
+  });
+
+  it('stops the producer sequence after a failure and delivers independently claimed mail', async () => {
+    const producerError = new Error('producer unavailable');
+    h.renewals.mockRejectedValueOnce(producerError);
+    const [failed, next] = await run('2027-01-01T10:00:00Z');
+    expect(h.outbox).toHaveBeenCalledTimes(2);
+    expect(h.offers.mock.calls.map(([authority]) => authority)).toEqual([
+      h.outbox.mock.calls[1][0],
+    ]);
+    expect(h.captureException).toHaveBeenCalledWith(producerError, {
+      tags: { operation: 'sponsor.cron.producers' },
+    });
+    expect(failed).toMatchObject({ failedSteps: ['producers'], failed: true });
+    expect(next).toMatchObject({ failed: false });
   });
 });

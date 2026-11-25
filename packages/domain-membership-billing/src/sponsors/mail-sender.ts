@@ -27,6 +27,7 @@ import {
 } from './mail-outbox';
 import { nonSponsorGrantsAccess } from './mail-producers';
 import { readProvisioningFacts } from './provisioning-facts';
+import { sponsorRosterRetentionDeadline } from './retention-plan';
 import { optOutToken } from './roster-crypto';
 
 type SendResult = { ok: boolean; code?: string };
@@ -39,6 +40,7 @@ export type SponsorMailDeps = {
   hasCredential(userId: string): Promise<boolean>;
   sendMail(to: string, input: SponsorMailInput): Promise<SendResult>;
   sendActivation(email: string): Promise<SendResult>;
+  reportError(error: unknown, stage: 'prepare' | 'send' | 'finish'): void;
 };
 export type PreparedMail = {
   kind: MailRow['kind'];
@@ -50,6 +52,7 @@ export type PreparedMail = {
   start: Date | null;
   end: Date | null;
   check: SponsorMailCheck;
+  retentionDeadline: Date | null;
 };
 
 async function readMailIntent(
@@ -102,8 +105,15 @@ async function prepareMail(
   row: MailRow,
   deps: SponsorMailDeps,
   now: Date
-): Promise<PreparedMail> {
+): Promise<PreparedMail | MailFinish> {
   const target = row.rosterEntryId ? await readEntryTarget(tx, tenantId, row.rosterEntryId) : null;
+  if (row.rosterEntryId !== null && target?.entry.id !== row.rosterEntryId) {
+    throw new Error('Sponsor mail originating entry or term unavailable');
+  }
+  const retentionDeadline = target ? sponsorRosterRetentionDeadline(target.termEnd) : null;
+  if (retentionDeadline && retentionDeadline <= new Date()) {
+    return { state: 'skipped', reason: 'aged_mail' };
+  }
   const userId = target?.entry.userId ?? row.userId;
   const [account] = userId
     ? await tx
@@ -150,6 +160,7 @@ async function prepareMail(
     start: interval?.start ?? null,
     end: preparedMailEnd(entry, target),
     check,
+    retentionDeadline,
   };
 }
 
@@ -193,17 +204,25 @@ export async function deliverSponsorMail(
   mail: PreparedMail,
   deps: SponsorMailDeps
 ): Promise<MailFinish> {
+  if (mail.retentionDeadline && mail.retentionDeadline <= new Date()) {
+    return { state: 'skipped', reason: 'aged_mail' };
+  }
   if (!mail.check.send) return { state: 'skipped', reason: mail.check.reason };
   if (!mail.recipient) return { state: 'skipped', reason: 'recipient_missing' };
   try {
-    const result =
-      mail.kind === 'activation'
-        ? await deps.sendActivation(mail.recipient)
-        : await deps.sendMail(mail.recipient, sponsorMailInput(mail, deps));
+    const input = mail.kind === 'activation' ? null : sponsorMailInput(mail, deps);
+    // Payload preparation can itself cross the deadline.
+    if (mail.retentionDeadline && mail.retentionDeadline <= new Date()) {
+      return { state: 'skipped', reason: 'aged_mail' };
+    }
+    const result = input
+      ? await deps.sendMail(mail.recipient, input)
+      : await deps.sendActivation(mail.recipient);
     if (result.code === 'email_suppressed') return { state: 'skipped', reason: 'email_suppressed' };
     // There is no durable success counter. §brief fallback: finish activation after one success.
     return result.ok ? { state: 'sent' } : { state: 'error', code: 'send_failed' };
-  } catch {
+  } catch (error) {
+    deps.reportError(error, 'send');
     return { state: 'error', code: 'send_exception' };
   }
 }
@@ -215,18 +234,20 @@ async function runMail(
   now: Date
 ): Promise<string> {
   const { tenantId } = readTenantAuthority(authority);
-  let prepared: PreparedMail | null;
+  let prepared: PreparedMail | MailFinish | null;
   try {
     prepared = await withTenantAuthority(authority, async tx => {
       const row = await readClaimedMail(tx, tenantId, lease);
-      if (!row) return null;
+      if (!row || new Date().toISOString() >= lease.leaseUntil) return null;
       return await prepareMail(tx, tenantId, row, deps, now);
     });
-  } catch {
-    return finishMail(authority, lease, { state: 'error', code: 'facts_unavailable' }, now);
+  } catch (error) {
+    deps.reportError(error, 'prepare');
+    return finishMail(authority, lease, { state: 'error', code: 'facts_unavailable' }, new Date());
   }
-  if (!prepared) return 'lease_lost';
-  return finishMail(authority, lease, await deliverSponsorMail(prepared, deps), now);
+  if (!prepared || new Date().toISOString() >= lease.leaseUntil) return 'lease_lost';
+  const result = 'state' in prepared ? prepared : await deliverSponsorMail(prepared, deps);
+  return finishMail(authority, lease, result, new Date());
 }
 
 export type SponsorMailSummary = { claimed: number; outcomes: Record<string, number> };
@@ -249,7 +270,8 @@ export async function runSponsorMailOutbox(
             { id, leaseUntil: mailLeaseUntil(options.now) },
             options.now
           );
-        } catch {
+        } catch (error) {
+          deps.reportError(error, 'finish');
           outcome = 'finish_failed'; // Lease recovery owns failures to persist a result.
         }
         summary.outcomes[outcome] = (summary.outcomes[outcome] ?? 0) + 1;

@@ -10,6 +10,7 @@ import { renderSponsorMail } from '@interdomestik/domain-communications/sponsor-
 import type { SponsorMailDeps } from '@interdomestik/domain-membership-billing/sponsors/mail-sender';
 import { readSponsorRosterSecret } from '@interdomestik/domain-membership-billing/sponsors/roster-crypto';
 import { sponsorCredentialCheck } from '@interdomestik/domain-membership-billing/sponsors/sponsor-jobs';
+import { captureException } from '@sentry/nextjs';
 
 const DEFAULT_SUPPORT_EMAIL = 'support@interdomestik.com';
 // Every pilot tenant is in Central European time; term dates are shown as calendar dates there.
@@ -35,6 +36,8 @@ export function sponsorMailDeps(
     appUrl: resolveTenantAppOrigin(tenant),
     supportEmail: process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || DEFAULT_SUPPORT_EMAIL,
     hasCredential: sponsorCredentialCheck(authority),
+    reportError: (error, stage) =>
+      captureException(error, { tags: { operation: `sponsor.mail.${stage}` } }),
     sendMail: async (to, input) => {
       const result = await sendEmail(to, renderSponsorMail(input));
       if (result.suppressed || (!result.success && result.error === 'email_suppressed'))

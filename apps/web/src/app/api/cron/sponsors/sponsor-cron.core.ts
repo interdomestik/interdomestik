@@ -10,11 +10,15 @@ import {
 } from '@interdomestik/domain-membership-billing/sponsors/mail-producers';
 import { runSponsorMailOutbox } from '@interdomestik/domain-membership-billing/sponsors/mail-sender';
 import { createHandoverPaddleClient } from '@interdomestik/domain-membership-billing/sponsors/paddle-handover-client';
-import { runSponsorRetention } from '@interdomestik/domain-membership-billing/sponsors/retention';
+import {
+  runSponsorRetention,
+  type SponsorRetentionResult,
+} from '@interdomestik/domain-membership-billing/sponsors/retention';
 import {
   runSponsorProvisioning,
   sponsorCredentialCheck,
 } from '@interdomestik/domain-membership-billing/sponsors/sponsor-jobs';
+import { captureException } from '@sentry/nextjs';
 
 import { sponsorMailDeps } from './_mail';
 
@@ -30,6 +34,7 @@ export type SponsorCronTenantResult = {
     salesClosed?: number;
   } | null;
   handovers: { processed: number; failed: number } | null;
+  retention: SponsorRetentionResult | null;
   mail: { claimed: number } | null;
   /** Steps that threw; the next pass retries them. */
   failedSteps: SponsorCronStep[];
@@ -52,6 +57,7 @@ async function runTenant(
     tenantId,
     provisioning: null,
     handovers: null,
+    retention: null,
     mail: null,
     failedSteps: [],
     failed: false,
@@ -59,8 +65,9 @@ async function runTenant(
   const step = async (name: SponsorCronStep, run: () => Promise<void>): Promise<void> => {
     try {
       await run();
-    } catch {
+    } catch (error) {
       result.failedSteps.push(name);
+      captureException(error, { tags: { operation: `sponsor.cron.${name}` } });
     }
   };
   // The tenant switch gates only new provisioning; every other job always runs (§3.1).
@@ -96,13 +103,16 @@ async function runTenant(
       await queueEndOffers(authority, now);
     });
     await step('retention', async () => {
-      await runSponsorRetention(authority, { now });
+      result.retention = await runSponsorRetention(authority, { now });
     });
   }
   await step('mail', async () => {
     const deps = sponsorMailDeps(tenantId, authority);
     if (!deps) throw new Error('sponsor_mail_unavailable');
-    const mail = await runSponsorMailOutbox(authority, deps, { now, limit: MAIL_BATCH });
+    const mail = await runSponsorMailOutbox(authority, deps, {
+      now: new Date(),
+      limit: MAIL_BATCH,
+    });
     result.mail = { claimed: mail.claimed };
   });
   result.failed = result.failedSteps.length > 0;

@@ -1,10 +1,12 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import type { SQL } from 'drizzle-orm';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const fake = vi.hoisted(() => ({
   rows: [] as unknown[][],
+  answerSelect: undefined as
+    ((columns?: Record<string, unknown>) => unknown[] | undefined) | undefined,
   predicates: [] as unknown[],
   locks: [] as unknown[],
   writes: [] as unknown[],
@@ -44,7 +46,8 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => {
       fake.inTransaction = true;
       try {
         return await work({
-          select: (): object => chain(fake.rows.shift() ?? []),
+          select: (columns?: Record<string, unknown>): object =>
+            chain(fake.answerSelect?.(columns) ?? fake.rows.shift() ?? []),
           update: (): object => chain([{ id: 'm1' }]),
         });
       } finally {
@@ -66,7 +69,7 @@ import { optOutToken } from './roster-crypto';
 
 const now = new Date('2027-01-01T00:00:00.000Z');
 const lease = { id: 'm1', leaseUntil: mailLeaseUntil(now) };
-const authority = mintTestTenantAuthority('tenant-1');
+let authority: ReturnType<typeof mintTestTenantAuthority>;
 function deps(): SponsorMailDeps {
   return {
     secret: 'x'.repeat(32),
@@ -77,6 +80,7 @@ function deps(): SponsorMailDeps {
     hasCredential: vi.fn(async () => false),
     sendMail: vi.fn(async () => ({ ok: true })),
     sendActivation: vi.fn(async () => ({ ok: true })),
+    reportError: vi.fn(),
   };
 }
 function mail(overrides: Partial<PreparedMail> = {}): PreparedMail {
@@ -90,6 +94,7 @@ function mail(overrides: Partial<PreparedMail> = {}): PreparedMail {
     start: now,
     end: new Date('2028-01-01'),
     check: { send: true },
+    retentionDeadline: null,
     ...overrides,
   };
 }
@@ -97,12 +102,17 @@ const sqlQueries = (): { sql: string; params: unknown[] }[] =>
   fake.predicates.map(value => new PgDialect().sqlToQuery(value as SQL));
 
 beforeEach(() => {
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(now);
+  authority = mintTestTenantAuthority('tenant-1');
   fake.rows = [];
+  fake.answerSelect = undefined;
   fake.predicates = [];
   fake.locks = [];
   fake.writes = [];
   fake.inTransaction = false;
 });
+afterEach(() => vi.useRealTimers());
 
 describe('mail lease and completion', () => {
   it('claims queued due and expired leases with SKIP LOCKED and one batched increment', async () => {
@@ -224,8 +234,9 @@ describe('mail delivery', () => {
         attempts: 1,
       };
       const entryTarget = {
-        entry: { userId: 'u1', emailNormalized: 'stale@example.test' },
+        entry: { id: 'e1', userId: 'u1', emailNormalized: 'stale@example.test' },
         effectiveEnd: now.toISOString(),
+        termEnd: now.toISOString(),
       };
       fake.rows.push(
         [{ id: 'm1' }, { id: 'm2' }],
@@ -258,6 +269,111 @@ describe('mail delivery', () => {
       ).toBe(true);
     }
   );
+});
+
+describe('dispatch-time roster mail cutoff', () => {
+  const delivery = {
+    id: 'm1',
+    kind: 'opt_out_confirmation',
+    rosterEntryId: 'e1',
+    handoverIntentId: null,
+    userId: null,
+    attempts: 1,
+  };
+  const origin = {
+    entry: { id: 'e1', userId: 'u1' },
+    // Early termination alone never moves this mail cutoff.
+    effectiveEnd: '2025-12-01T00:00:00.000Z',
+    termEnd: '2026-01-01T00:00:00.000Z',
+  };
+  const answerOriginReads = (columns?: Record<string, unknown>): unknown[] | undefined => {
+    if (columns?.effectiveEnd) return [origin];
+    if (columns?.email) return [{ email: 'current@example.test' }];
+    if (columns?.subscription) return [];
+    return undefined;
+  };
+
+  it.each(['queued', 'reclaimed'])('keeps aged %s work and terminally skips it', async state => {
+    const row = { ...delivery, attempts: state === 'queued' ? 1 : 2 };
+    fake.rows.push([{ id: row.id }], [row], [row]);
+    fake.answerSelect = answerOriginReads;
+    const d = deps();
+    const outcome = await runSponsorMailOutbox(authority, d, { now, limit: 1 });
+    expect(d.sendMail).not.toHaveBeenCalled();
+    expect(d.sendActivation).not.toHaveBeenCalled();
+    expect(outcome).toEqual({
+      claimed: 1,
+      outcomes: { skipped: 1 },
+    });
+    expect(fake.writes).toHaveLength(2);
+    expect(fake.writes[1]).toEqual({
+      state: 'skipped',
+      terminalAt: now.toISOString(),
+      leaseUntil: null,
+      lastErrorCode: 'aged_mail',
+    });
+  });
+
+  it('sends eligible mail and suppresses its next attempt once the cutoff is reached', async () => {
+    const before = new Date(now.getTime() - 1);
+    vi.setSystemTime(before);
+    const d = deps();
+    d.sendMail = vi.fn().mockResolvedValueOnce({ ok: false }).mockResolvedValue({ ok: true });
+    fake.answerSelect = answerOriginReads;
+    fake.rows.push([{ id: delivery.id }], [delivery], [delivery]);
+    expect(await runSponsorMailOutbox(authority, d, { now: before, limit: 1 })).toEqual({
+      claimed: 1,
+      outcomes: { queued: 1 },
+    });
+    expect(d.sendMail).toHaveBeenCalledWith(
+      'current@example.test',
+      expect.objectContaining({ kind: 'opt_out_confirmation' })
+    );
+    const retryAt = new Date(before.getTime() + 15 * 60_000);
+    vi.setSystemTime(retryAt);
+    const retry = { ...delivery, attempts: 2 };
+    fake.rows.push([{ id: retry.id }], [retry], [retry]);
+    const outcome = await runSponsorMailOutbox(authority, d, { now: retryAt, limit: 1 });
+    expect(d.sendMail).toHaveBeenCalledTimes(1);
+    expect(outcome).toEqual({
+      claimed: 1,
+      outcomes: { skipped: 1 },
+    });
+    expect(fake.writes.at(-1)).toMatchObject({
+      state: 'skipped',
+      lastErrorCode: 'aged_mail',
+      terminalAt: retryAt.toISOString(),
+    });
+  });
+
+  it('rechecks the clock after preparing an eligible provider payload', async () => {
+    vi.setSystemTime(new Date(now.getTime() - 1));
+    const d = deps();
+    d.formatDate = date => {
+      vi.setSystemTime(now);
+      return date.toISOString();
+    };
+    expect(await deliverSponsorMail(mail({ retentionDeadline: now }), d)).toEqual({
+      state: 'skipped',
+      reason: 'aged_mail',
+    });
+    expect(d.sendMail).not.toHaveBeenCalled();
+  });
+
+  it('records missing origin facts as a retryable error without provider calls', async () => {
+    const d = deps();
+    fake.rows.push([{ id: delivery.id }], [delivery], [], [delivery]);
+    expect(await runSponsorMailOutbox(authority, d, { now, limit: 1 })).toEqual({
+      claimed: 1,
+      outcomes: { queued: 1 },
+    });
+    expect(fake.writes.at(-1)).toMatchObject({
+      state: 'queued',
+      lastErrorCode: 'facts_unavailable',
+    });
+    expect(d.reportError).toHaveBeenCalledWith(expect.any(Error), 'prepare');
+    expect(d.sendMail).not.toHaveBeenCalled();
+  });
 });
 
 it.each(['sponsor_notice', 'activation'] as const)(
