@@ -37,6 +37,19 @@ function edit(tree, changes) {
 
 const successor = edit(predecessor, rateBookFiles);
 
+function appendTable(tree, physicalName) {
+  const barrel = `${SCHEMA}/index.ts`;
+  return edit(tree, [
+    [
+      `${SCHEMA}/wp07-next-table.ts`,
+      "import { pgTable, text } from 'drizzle-orm/pg-core';\n" +
+        `export const wp07NextTable = pgTable('${physicalName}', ` +
+        "{ id: text('id').primaryKey() }).enableRLS();\n",
+    ],
+    [barrel, `${tree.sources.get(barrel)}export * from './wp07-next-table';\n`],
+  ]);
+}
+
 function prove(base, candidate, { checkout = candidate, transitionRecord } = {}) {
   return proveSchemaAdmission(
     { anchor, base, candidate },
@@ -69,6 +82,39 @@ test('a landed successor can serve as the protected base and refuses reversal', 
   const result = prove(successor, next);
   assert.equal(result.ok, true, result.reason);
   assert.match(prove(successor, predecessor).reason, /^candidate: changed kernel module /u);
+});
+
+test('an ordinary table append after the landed successor fails as candidate and next base', () => {
+  const table = 'wp07_next_table';
+  const ordinary = prove(predecessor, appendTable(predecessor, table));
+  assert.equal(ordinary.ok, true, ordinary.reason);
+
+  const next = appendTable(successor, table);
+  const changed = `changed kernel module ${SCHEMA}/exchange-rates.ts`;
+  assert.deepEqual(prove(successor, next), {
+    version: 2,
+    ok: false,
+    reason: `next base: ${changed}`,
+  });
+  assert.deepEqual(prove(next, next), {
+    version: 2,
+    ok: false,
+    reason: `base: ${changed}`,
+  });
+});
+
+test('an append with a duplicate table identity fails as candidate and next base', () => {
+  const next = appendTable(successor, 'exchange_rates');
+  assert.deepEqual(prove(successor, next), {
+    version: 2,
+    ok: false,
+    reason: 'candidate: duplicate database identity public.exchange_rates',
+  });
+  assert.deepEqual(prove(next, next), {
+    version: 2,
+    ok: false,
+    reason: `base: changed kernel module ${SCHEMA}/exchange-rates.ts`,
+  });
 });
 
 test('a mixed kernel and a missing checks module are refused', () => {

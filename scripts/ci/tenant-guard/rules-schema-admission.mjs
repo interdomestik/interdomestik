@@ -195,7 +195,7 @@ function retainedKernelProblem(before, after, transition) {
 
 function compare(before, after, anchor, role, inventoryOf, record, rateBook) {
   const reject = reason => `${role}: ${reason}`;
-  const accumulated = role === 'base';
+  const accumulated = role === 'base' || role === 'next base';
   const transition = rateBookTransition(before, after, accumulated, rateBook);
   const retained = retainedKernelProblem(before, after, transition);
   if (retained) return reject(retained);
@@ -279,6 +279,9 @@ export function proveSchemaAdmission(
   const reason =
     compare(anchor, base, anchor, 'base', inventoryOf, record, rateBook) ??
     compare(base, candidate, anchor, 'candidate', inventoryOf, record, rateBook) ??
+    // Once the rate-book successor lands, the candidate must also pass the next base proof.
+    (rateBookTransition(anchor, base, true, rateBook) &&
+      compare(anchor, candidate, anchor, 'next base', inventoryOf, record, rateBook)) ??
     checkoutProblem(candidate, scanGraph, sources);
   if (reason) return fail(reason);
   return { version: 2, ok: true, reason: 'anchor and protected base verified' };
