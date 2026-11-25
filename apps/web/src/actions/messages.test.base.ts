@@ -17,6 +17,10 @@ export const mockSelectChain = {
   where: vi.fn().mockReturnThis(),
   orderBy: vi.fn().mockReturnValue([]),
   limit: vi.fn().mockReturnValue([]),
+  for: vi.fn(async strength => {
+    const row = await (strength === 'share' ? mocks.dbUserQuery() : mocks.dbQuery());
+    return row ? [row] : [];
+  }),
 };
 
 vi.mock('@/lib/auth', () => ({
@@ -86,8 +90,20 @@ vi.mock('@/lib/notifications', () => ({
   notifyNewMessage: vi.fn().mockResolvedValue({ success: true }),
 }));
 
-vi.mock('@/lib/notifications/recipient-role', () => ({
-  getNotificationRecipientRole: vi.fn().mockResolvedValue('member'),
+vi.mock('@/lib/claim-notification-delivery-kick', () => ({
+  kickClaimNotificationDeliveries: vi.fn(),
+}));
+vi.mock('@interdomestik/domain-claims/claims/response-requests', () => ({
+  answerClaimResponseRequests: vi.fn(),
+  createClaimResponseRequest: vi.fn(),
+}));
+vi.mock('../../../../packages/domain-claims/src/staff-claims/notification-recipients', () => ({
+  resolveStaffClaimNotificationRecipients: vi.fn().mockResolvedValue([]),
+}));
+vi.mock('@interdomestik/domain-communications/notification-deliveries', () => ({
+  lockClaimNotificationRecipient: vi.fn(),
+  enqueueClaimMessageNotification: vi.fn().mockResolvedValue([]),
+  enqueueStaffClaimNotification: vi.fn().mockResolvedValue([]),
 }));
 
 vi.mock('@/lib/audit', () => ({

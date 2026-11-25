@@ -67,28 +67,3 @@ export async function dispatchQueuedClaimAiRuns(
     }
   });
 }
-
-export function notifyClaimSubmitted(args: {
-  deps: ClaimsDeps;
-  session: ClaimsSession;
-  authority: TenantAuthority;
-  claimId: string;
-  data: CreateClaimValues;
-}) {
-  if (!args.deps.notifyClaimSubmitted) {
-    return;
-  }
-
-  Promise.resolve(
-    args.deps.notifyClaimSubmitted(
-      args.session.user.id,
-      args.session.user.email || '',
-      {
-        id: args.claimId,
-        title: args.data.title,
-        category: args.data.category,
-      },
-      { authority: args.authority }
-    )
-  ).catch((err: Error) => console.error('Failed to send claim submitted notification:', err));
-}

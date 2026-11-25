@@ -129,7 +129,10 @@ vi.mock('@/features/staff/claims/server/authorize-staff-claim-page', async () =>
 });
 
 vi.mock('@/features/staff/claims/server/get-assigned-claim-documents', () => ({
-  getAssignedStaffClaimDocuments: vi.fn(() => Promise.resolve([])),
+  getAssignedStaffClaimDocuments: vi.fn(() =>
+    Promise.resolve({ page: 1, documents: [], hasNextPage: false })
+  ),
+  getRegisterPickerDocuments: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));

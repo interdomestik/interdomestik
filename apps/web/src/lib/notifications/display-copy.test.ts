@@ -32,6 +32,28 @@ describe('notification presentation mapping', () => {
     }
     if (locale !== 'en') expect(notificationDisplayCopy(row, t).title).not.toBe('New Message');
   });
+  it.each(LOCALES)('localizes staff notices without loading claim detail in %s', locale => {
+    const messages = modules[`../../messages/${locale}/notifications.json`] as Parameters<
+      typeof createTranslator
+    >[0]['messages'];
+    const t = createTranslator({ locale, messages, namespace: 'notifications' });
+    const staff = {
+      ...row,
+      type: 'staff_member_message',
+      title: '—',
+      content: 'vehicle',
+      actionUrl: '/staff/claims/claim',
+    };
+    expect(notificationClaimId(staff)).toBeNull();
+    expect(notificationDisplayCopy(staff, t, 'Private title')).toEqual({
+      title: t('staff.claimWithoutNumber'),
+      content: t('staff.content', {
+        event: t('events.staff_member_message.title'),
+        category: t('staff.categories.vehicle'),
+      }),
+    });
+  });
+
   it('keeps a stored human title and substitutes neutral copy for unavailable claims', () => {
     const t = (key: string, args?: Record<string, string>) => args?.claim ?? key;
     expect(notificationDisplayCopy({ ...row, content: 'Update on: Car damage' }, t).content).toBe(

@@ -3,6 +3,8 @@ import { inngestFunctions } from '@/lib/inngest/functions';
 import { Inngest, InngestCommHandler, headerKeys, type ServeHandlerOptions } from 'inngest';
 import { frameworkName } from 'inngest/next';
 
+const privateCacheControl = 'private, no-store';
+
 function serve(options: ServeHandlerOptions) {
   const receiver = new InngestCommHandler({
     ...options,
@@ -13,7 +15,11 @@ function serve(options: ServeHandlerOptions) {
       url: () => new URL(request.url),
       headers: name => request.headers.get(name),
       body: () => request.text(),
-      transformResponse: ({ body, status, headers }) => new Response(body, { status, headers }),
+      transformResponse: ({ body, status, headers }) => {
+        const response = new Response(body, { status, headers });
+        if (status === 401) response.headers.set('Cache-Control', privateCacheControl);
+        return response;
+      },
     }),
   });
   return { handle: receiver.createHandler() };
@@ -24,8 +30,6 @@ const handler = serve({
   client: new Inngest({ id: inngest.id, isDev: false }),
   functions: inngestFunctions,
 });
-
-const privateCacheControl = 'private, no-store';
 
 function unauthorized() {
   return Response.json(

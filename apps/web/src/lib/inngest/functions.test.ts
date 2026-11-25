@@ -21,6 +21,7 @@ const mocks = vi.hoisted(() => {
     processEmailSequences: vi.fn(),
     processPolicyAnalysisRunService: vi.fn(),
     processSeasonalCampaigns: vi.fn(),
+    runNotificationDeliverySchedule: vi.fn(),
   };
 });
 
@@ -39,6 +40,9 @@ vi.mock('@/lib/ai/claim-workflows', () => ({
 vi.mock('@/app/api/policies/analyze/_services', () => ({
   processPolicyAnalysisRunService: mocks.processPolicyAnalysisRunService,
 }));
+vi.mock('@/lib/notification-delivery-schedule', () => ({
+  runNotificationDeliverySchedule: mocks.runNotificationDeliverySchedule,
+}));
 
 import { NonRetriableError } from 'inngest';
 import scheduledJobs from '../cron/scheduled-jobs.json';
@@ -48,13 +52,18 @@ import {
   dailyEmailSequences,
   inngestFunctions,
   legalDocumentExtractionRequested,
+  notificationDeliveries,
   policyExtractionRequested,
   seasonalCampaigns,
 } from './functions';
 
-const declaredTimerIds = mocks.createFunction.mock.calls
-  .filter(([, trigger]) => trigger.cron !== undefined)
-  .map(([config]) => config.id);
+const timerInventory = mocks.createFunction.mock.calls.flatMap(([{ id }, { cron }], index) => {
+  if (cron === undefined) return [];
+  const timer = mocks.createFunction.mock.results[index].value;
+  return inngestFunctions.some(served => Object.is(served, timer))
+    ? [{ id, state: 'scheduled', schedule: cron }]
+    : [{ id, state: 'dormant' }];
+});
 
 type AiRunHandler = (args: {
   event: { data: Record<string, unknown> | undefined };
@@ -250,16 +259,21 @@ describe('scheduled email campaign Inngest handlers', () => {
     );
   });
 
-  it('registers only extraction and leaves every declared mail timer dormant', async () => {
+  it('serves the notification timer and extraction while leaving both campaign timers dormant', async () => {
     expect(inngestFunctions).toEqual([
+      notificationDeliveries,
       policyExtractionRequested,
       claimIntakeExtractionRequested,
       legalDocumentExtractionRequested,
     ]);
     expect(inngestFunctions).not.toContain(dailyEmailSequences);
     expect(inngestFunctions).not.toContain(seasonalCampaigns);
-    expect(declaredTimerIds).toEqual(scheduledJobs.inngestTimers.map(({ id }) => id));
-    expect(scheduledJobs.inngestTimers.every(({ state }) => state === 'dormant')).toBe(true);
+    expect(timerInventory).toEqual([
+      { id: 'daily-email-sequences', state: 'dormant' },
+      { id: 'notification-deliveries', state: 'scheduled', schedule: '*/5 * * * *' },
+      { id: 'seasonal-campaigns', state: 'dormant' },
+    ]);
+    expect(scheduledJobs.inngestTimers).toEqual(timerInventory);
     await handlers[0].handler({
       event: { data: { runId: 'run-1', tenantId: 'tenant_mk' } },
       step,

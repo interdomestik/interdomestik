@@ -43,7 +43,7 @@ export async function seedWorkloadClaims(
       assignedById: s.id, // self-assigned for seed sim
       description: `Workload demo claim #${i + 1} for KS`,
       title: `Claim #${i + 1} - ${status}`,
-      category: 'consumer_rights',
+      category: 'property',
       companyName: 'Demo Company KS',
     });
   }
@@ -76,7 +76,7 @@ export async function seedWorkloadClaims(
       assignedById: s.id,
       description: `Workload demo claim #${i + 1} for MK`,
       title: `Claim #${i + 1} - ${status}`,
-      category: 'consumer_rights',
+      category: 'property',
       companyName: 'Demo Company MK',
     });
   }

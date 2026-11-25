@@ -118,7 +118,7 @@ export async function seedGrantProofRows(
     userId: ids.homeUserId,
     title: 'Case-scoped grant RLS proof',
     description: 'no sensitive narrative',
-    category: 'retail',
+    category: 'property',
     companyName: 'RLS Test Co',
     origin: 'portal',
   });

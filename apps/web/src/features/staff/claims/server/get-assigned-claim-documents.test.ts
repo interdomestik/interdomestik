@@ -1,98 +1,7 @@
+import { authority, hoisted, staff, tx } from './get-assigned-claim-documents.test-support';
+import { describe, expect, it } from 'vitest';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-type QueryChain = {
-  from: (table: unknown) => QueryChain;
-  innerJoin: (table: unknown, predicate: unknown) => QueryChain;
-  leftJoin: (table: unknown, predicate: unknown) => QueryChain;
-  limit: (count: number) => Promise<unknown[]>;
-  orderBy: (order: unknown) => Promise<unknown[]>;
-  where: (predicate: unknown) => QueryChain;
-};
-type StaffUser = {
-  id: string;
-  role: string | null;
-};
-
-const hoisted = vi.hoisted(() => ({
-  froms: [] as unknown[],
-  joins: [] as unknown[],
-  limit: vi.fn(),
-  orderBy: vi.fn(),
-  selections: [] as unknown[],
-  wheres: [] as unknown[],
-  withTenantContext: vi.fn(),
-}));
-
-vi.mock('@interdomestik/database', () => ({
-  claimDocuments: {
-    bucket: 'claim_documents.bucket',
-    claimId: 'claim_documents.claim_id',
-    createdAt: 'claim_documents.created_at',
-    filePath: 'claim_documents.file_path',
-    fileSize: 'claim_documents.file_size',
-    fileType: 'claim_documents.file_type',
-    id: 'claim_documents.id',
-    name: 'claim_documents.name',
-    tenantId: 'claim_documents.tenant_id',
-  },
-  claimInformationRequestEvidence: {
-    tenantId: 'link.tenant_id',
-    claimId: 'link.claim_id',
-    documentId: 'link.document_id',
-  },
-  claims: {
-    caseLifecycleState: 'claims.case_lifecycle_state',
-    id: 'claims.id',
-    staffId: 'claims.staff_id',
-    tenantId: 'claims.tenant_id',
-  },
-  withTenantContext: hoisted.withTenantContext,
-}));
-
-vi.mock('drizzle-orm', () => ({
-  and: (...args: unknown[]) => ({ op: 'and', args }),
-  desc: (column: unknown) => ({ op: 'desc', column }),
-  eq: (left: unknown, right: unknown) => ({ op: 'eq', left, right }),
-  isNull: (column: unknown) => ({ op: 'isNull', column }),
-  ne: (left: unknown, right: unknown) => ({ op: 'ne', left, right }),
-}));
-
 import { getAssignedStaffClaimDocuments } from './get-assigned-claim-documents';
-
-const tx = {
-  select: vi.fn((selection: unknown) => {
-    hoisted.selections.push(selection);
-    const chain: QueryChain = {
-      from: table => {
-        hoisted.froms.push(table);
-        return chain;
-      },
-      innerJoin: (table, predicate) => {
-        hoisted.joins.push({ table, predicate });
-        return chain;
-      },
-      leftJoin: (table, predicate) => {
-        hoisted.joins.push({ table, predicate });
-        return chain;
-      },
-      limit: hoisted.limit,
-      orderBy: hoisted.orderBy,
-      where: predicate => {
-        hoisted.wheres.push(predicate);
-        return chain;
-      },
-    };
-    return chain;
-  }),
-};
-
-function staff(overrides: Partial<StaffUser> = {}) {
-  const user: StaffUser = { id: 'staff-1', role: 'staff', ...overrides };
-  return { user };
-}
-
-const authority = mintTestTenantAuthority('tenant-a');
 
 function read(session = staff(), sessionAuthority: typeof authority | null = authority) {
   return getAssignedStaffClaimDocuments({
@@ -101,20 +10,12 @@ function read(session = staff(), sessionAuthority: typeof authority | null = aut
     authority: sessionAuthority,
   });
 }
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  for (const list of [hoisted.froms, hoisted.selections, hoisted.wheres, hoisted.joins])
-    list.length = 0;
-  hoisted.withTenantContext.mockImplementation(
-    async (_context: unknown, action: (handle: typeof tx) => Promise<unknown>) => action(tx)
-  );
-});
+const emptyPage = { page: 1, documents: [], hasNextPage: false };
 
 describe('getAssignedStaffClaimDocuments', () => {
   it('returns the minimal projection and canonical links to assigned staff', async () => {
     hoisted.limit.mockResolvedValueOnce([{ id: 'claim-1' }]);
-    hoisted.orderBy.mockResolvedValueOnce([
+    hoisted.limit.mockResolvedValueOnce([
       {
         id: 'doc-1',
         name: 'evidence.pdf',
@@ -126,7 +27,7 @@ describe('getAssignedStaffClaimDocuments', () => {
 
     const documents = await read();
 
-    expect(documents).toEqual([
+    expect(documents.documents).toEqual([
       {
         id: 'doc-1',
         name: 'evidence.pdf',
@@ -194,19 +95,21 @@ describe('getAssignedStaffClaimDocuments', () => {
         },
       }),
     ]);
-    expect(hoisted.orderBy).toHaveBeenCalledWith({
-      op: 'desc',
-      column: 'claim_documents.created_at',
-    });
+    expect(hoisted.orderBy).toHaveBeenCalledWith(
+      'claim_documents.created_at desc nulls last',
+      'claim_documents.id'
+    );
+    expect(hoisted.limit).toHaveBeenLastCalledWith(21);
+    expect(hoisted.offset).toHaveBeenCalledWith(0);
   });
 
   it('encodes document ids in the canonical authorized download route', async () => {
     hoisted.limit.mockResolvedValueOnce([{ id: 'claim-1' }]);
-    hoisted.orderBy.mockResolvedValueOnce([
+    hoisted.limit.mockResolvedValueOnce([
       { id: 'doc/1?x', name: 'a.pdf', fileType: 'application/pdf', fileSize: 1 },
     ]);
 
-    await expect(read()).resolves.toEqual([
+    expect((await read()).documents).toEqual([
       expect.objectContaining({ url: '/api/documents/doc%2F1%3Fx/download' }),
     ]);
   });
@@ -214,7 +117,7 @@ describe('getAssignedStaffClaimDocuments', () => {
   it('issues no document query for a wrong assignee, even in the same branch', async () => {
     hoisted.limit.mockResolvedValueOnce([]);
 
-    await expect(read(staff({ id: 'staff-2' }))).resolves.toEqual([]);
+    await expect(read(staff({ id: 'staff-2' }))).resolves.toEqual(emptyPage);
     expect(tx.select).toHaveBeenCalledTimes(1);
     expect(hoisted.wheres[0]).toEqual(
       expect.objectContaining({
@@ -227,14 +130,14 @@ describe('getAssignedStaffClaimDocuments', () => {
   it.each(['branch_manager', 'admin', 'agent', 'member', null])(
     'returns no documents and opens no context for role %s',
     async role => {
-      await expect(read(staff({ role }))).resolves.toEqual([]);
+      await expect(read(staff({ role }))).resolves.toEqual(emptyPage);
       expect(hoisted.withTenantContext).not.toHaveBeenCalled();
       expect(tx.select).not.toHaveBeenCalled();
     }
   );
 
   it('returns no documents and opens no context without a session authority', async () => {
-    await expect(read(staff(), null)).resolves.toEqual([]);
+    await expect(read(staff(), null)).resolves.toEqual(emptyPage);
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
     expect(tx.select).not.toHaveBeenCalled();
   });
@@ -242,10 +145,10 @@ describe('getAssignedStaffClaimDocuments', () => {
   it('reads under the authority it is given, never a tenant carried by the session object', async () => {
     const other = mintTestTenantAuthority('tenant-b');
     hoisted.limit.mockResolvedValueOnce([{ id: 'claim-1' }]);
-    hoisted.orderBy.mockResolvedValueOnce([
+    hoisted.limit.mockResolvedValueOnce([
       { id: 'doc-b', name: 'access.pdf', fileType: 'application/pdf', fileSize: 2 },
     ]);
-    await expect(read(staff(), other)).resolves.toEqual([
+    expect((await read(staff(), other)).documents).toEqual([
       {
         id: 'doc-b',
         name: 'access.pdf',

@@ -1,10 +1,18 @@
 // @vitest-environment node
 import publicEntries from '@/lib/public-entry-points.json';
-import { createHmac } from 'node:crypto';
 import { headerKeys } from 'inngest';
-import { NextRequest } from 'next/server';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { GET, POST, PUT } from './route';
+import {
+  callbackUrl,
+  expectedFunctions,
+  fallback,
+  primary,
+  request,
+  signedResponseBody,
+  signingFlows,
+  unrelated,
+} from './route.test-support';
 
 const effects = vi.hoisted(() => {
   const fetch = vi
@@ -28,6 +36,7 @@ const effects = vi.hoisted(() => {
     processClaimDocumentWorkflowRunService: vi.fn(),
     processEmailSequences: vi.fn(),
     processSeasonalCampaigns: vi.fn(),
+    runNotificationDeliverySchedule: vi.fn(),
   };
 });
 
@@ -45,49 +54,9 @@ vi.mock('@interdomestik/domain-communications/cron-service', () => ({
   processEmailSequences: effects.processEmailSequences,
   processSeasonalCampaigns: effects.processSeasonalCampaigns,
 }));
-
-const primary = '01'.repeat(32);
-const fallback = '02'.repeat(32);
-const unrelated = '03'.repeat(32);
-const callbackUrl = 'https://release-candidate.example.test/api/inngest';
-const registrationBody = JSON.stringify({ url: callbackUrl });
-const extractionFunctions = [
-  ['interdomestik-web-policy-extraction-requested', 'policy/extract.requested'],
-  ['interdomestik-web-claim-intake-extraction-requested', 'claim/intake-extract.requested'],
-  ['interdomestik-web-legal-document-extraction-requested', 'legal/extract.requested'],
-] as const;
-
-function signature(body: string, key: string, timestamp = String(Math.floor(Date.now() / 1000))) {
-  const digest = createHmac('sha256', key).update(body).update(timestamp).digest('hex');
-  return `t=${timestamp}&s=${digest}`;
-}
-
-function request(
-  method: 'GET' | 'POST' | 'PUT',
-  options: { key?: string; timestamp?: string; syncKind?: string } = {}
-) {
-  const [functionId, eventName] = extractionFunctions[0];
-  // The provider signs canonical JSON. Fixture keys are in canonical order.
-  const executionBody = JSON.stringify({
-    ctx: { attempt: 0, run_id: 'run-test', stack: { current: 0, stack: [] }, use_api: false },
-    event: { data: { runId: 'policy-test', tenantId: 'synthetic-tenant' }, name: eventName },
-    events: [],
-    steps: {},
-    version: 1,
-  });
-  const body = method === 'PUT' ? registrationBody : method === 'POST' ? executionBody : undefined;
-  const headers = new Headers({ 'Content-Type': 'application/json' });
-  if (options.key) {
-    headers.set(headerKeys.Signature, signature(body ?? '', options.key, options.timestamp));
-  }
-  if (options.syncKind) headers.set(headerKeys.InngestSyncKind, options.syncKind);
-
-  return new NextRequest(method === 'POST' ? `${callbackUrl}?fnId=${functionId}` : callbackUrl, {
-    method,
-    headers,
-    body,
-  });
-}
+vi.mock('@/lib/notification-delivery-schedule', () => ({
+  runNotificationDeliverySchedule: effects.runNotificationDeliverySchedule,
+}));
 
 function expectNoEffects() {
   for (const effect of Object.values(effects)) expect(effect).not.toHaveBeenCalled();
@@ -99,17 +68,6 @@ async function expectNoIntrospection(response: Response) {
   expect(await response.json()).toEqual({ error: 'Unauthorized' });
 }
 
-async function signedResponseBody(response: Response, key: string) {
-  const body = await response.text();
-  const responseSignature = response.headers.get(headerKeys.Signature);
-  expect(responseSignature).toBeTruthy();
-  const timestamp = new URLSearchParams(responseSignature ?? '').get('t');
-  expect(timestamp).toBeTruthy();
-  expect(responseSignature === signature(body, key, timestamp ?? '')).toBe(true);
-  const parsed: unknown = JSON.parse(body);
-  return parsed;
-}
-
 beforeEach(() => {
   vi.clearAllMocks();
   vi.stubEnv('INNGEST_SIGNING_KEY', primary);
@@ -118,7 +76,7 @@ beforeEach(() => {
   vi.stubEnv('INNGEST_DEV', undefined);
   vi.stubEnv('INNGEST_STREAMING', undefined);
   vi.stubEnv('INNGEST_ALLOW_IN_BAND_SYNC', undefined);
-  vi.stubEnv('INNGEST_SERVE_HOST', 'https://release-candidate.example.test');
+  vi.stubEnv('INNGEST_SERVE_HOST', new URL(callbackUrl).origin);
   vi.stubEnv('INNGEST_SERVE_PATH', '/api/inngest');
   effects.processPolicyAnalysisRunService.mockResolvedValue({ status: 'completed' });
 });
@@ -135,9 +93,9 @@ it('refuses unsigned GET without side effects', async () => {
 });
 
 it('refuses unsigned POST without side effects', async () => {
-  const response = await POST(request('POST'));
-  expect(response.status).toBe(401);
-  await expectNoIntrospection(response);
+  for (const execution of ['extraction', 'notifications'] as const) {
+    await expectNoIntrospection(await POST(request('POST', { execution })));
+  }
   expectNoEffects();
 });
 
@@ -159,32 +117,36 @@ it.each(['invalid', 'expired'] as const)(
 
     for (const response of [
       await POST(request('POST', options)),
+      await POST(request('POST', { ...options, execution: 'notifications' })),
       await PUT(request('PUT', { ...options, syncKind: 'in_band' })),
     ]) {
       expect(response.status).toBe(401);
+      expect.soft(response.headers.get('Cache-Control')).toBe('private, no-store');
       expect(await response.json()).not.toHaveProperty('authentication_succeeded');
     }
     expectNoEffects();
   }
 );
 
-it.each(['invalid', 'expired'] as const)(
+it.each(['missing', 'invalid', 'expired'] as const)(
   'returns HTTP 401 for %s POST signatures when streaming is forced',
   async kind => {
     vi.stubEnv('INNGEST_STREAMING', 'force');
     vi.resetModules();
     const fresh = await import('./route');
 
-    const response = await fresh.POST(
-      request('POST', {
-        key: kind === 'invalid' ? unrelated : primary,
-        timestamp: kind === 'expired' ? String(Math.floor(Date.now() / 1000) - 301) : undefined,
-      })
-    );
-    // Wait for the full response so the denial also proves no deferred side effects.
-    await response.text();
+    const options = {
+      key: { missing: undefined, invalid: unrelated, expired: primary }[kind],
+      timestamp: kind === 'expired' ? String(Math.floor(Date.now() / 1000) - 301) : undefined,
+    };
+    for (const execution of ['extraction', 'notifications'] as const) {
+      const response = await fresh.POST(request('POST', { ...options, execution }));
+      // Wait for the full response so the denial also proves no deferred side effects.
+      await response.text();
+      expect(response.status).toBe(401);
+      expect(response.headers.get('Cache-Control')).toBe('private, no-store');
+    }
     expectNoEffects();
-    expect(response.status).toBe(401);
   }
 );
 
@@ -233,57 +195,91 @@ it.each([
   expectNoEffects();
 });
 
-it.each([
-  ['primary', primary, undefined],
-  ['fallback', fallback, undefined],
-  ['fallback under forced streaming', fallback, 'force'],
-] as const)('serves the signed %s flow', async (_case, key, streaming) => {
-  vi.stubEnv('INNGEST_STREAMING', streaming);
-  vi.resetModules();
-  const fresh = await import('./route');
+it.each(signingFlows)(
+  'serves the signed %s inspection, sync and extraction flow',
+  async (_case, key, streaming) => {
+    vi.stubEnv('INNGEST_STREAMING', streaming);
+    vi.resetModules();
+    const fresh = await import('./route');
 
-  const get = await fresh.GET(request('GET', { key }));
-  expect(get.status).toBe(200);
-  expect(get.headers.get('Cache-Control')).toBe('private, no-store');
-  expect(get.headers.get('Vary')).toContain(headerKeys.Signature);
-  expect(await signedResponseBody(get, key)).toMatchObject({
-    app_id: 'interdomestik-web',
-    authentication_succeeded: true,
-    extra: { is_streaming: false },
-    function_count: 3,
-    mode: 'cloud',
-  });
+    const get = await fresh.GET(request('GET', { key }));
+    expect(get.status).toBe(200);
+    expect(get.headers.get('Cache-Control')).toBe('private, no-store');
+    expect(get.headers.get('Vary')).toContain(headerKeys.Signature);
+    expect(await signedResponseBody(get, key)).toMatchObject({
+      app_id: 'interdomestik-web',
+      authentication_succeeded: true,
+      extra: { is_streaming: false },
+      function_count: 4,
+      mode: 'cloud',
+    });
 
-  const put = await fresh.PUT(request('PUT', { key, syncKind: 'in_band' }));
-  expect(put.status).toBe(200);
-  expect(put.headers.get(headerKeys.InngestSyncKind)).toBe('in_band');
-  expect(await signedResponseBody(put, key)).toMatchObject({
-    url: callbackUrl,
-    functions: extractionFunctions.map(([id, event]) => ({
-      id,
-      triggers: [{ event }],
-      steps: { step: { runtime: { url: `${callbackUrl}?fnId=${id}&stepId=step` } } },
-    })),
-  });
-  expectNoEffects();
+    const put = await fresh.PUT(request('PUT', { key, syncKind: 'in_band' }));
+    expect(put.status).toBe(200);
+    expect(put.headers.get(headerKeys.InngestSyncKind)).toBe('in_band');
+    const manifest = await signedResponseBody(put, key);
+    expect(manifest).toHaveProperty('url', callbackUrl);
+    expect(manifest).toHaveProperty('functions', expectedFunctions);
+    expectNoEffects();
 
-  const post = await fresh.POST(request('POST', { key }));
-  expect(post.status).toBe(206);
-  expect(await signedResponseBody(post, key)).toMatchObject([{ data: { status: 'completed' } }]);
-  expect(effects.mintIngressCapability).toHaveBeenCalledExactlyOnceWith('inngest');
-  expect(effects.processPolicyAnalysisRunService).toHaveBeenCalledExactlyOnceWith({
-    runId: 'policy-test',
-    tenantId: 'synthetic-tenant',
-    ingress: expect.any(Object),
-  });
-  expect(effects.processClaimDocumentWorkflowRunService).not.toHaveBeenCalled();
-  expect(effects.processEmailSequences).not.toHaveBeenCalled();
-  expect(effects.processSeasonalCampaigns).not.toHaveBeenCalled();
-  expect(effects.fetch).not.toHaveBeenCalled();
-});
+    const post = await fresh.POST(request('POST', { key }));
+    expect(post.status).toBe(206);
+    expect(await signedResponseBody(post, key)).toMatchObject([{ data: { status: 'completed' } }]);
+    expect(effects.mintIngressCapability).toHaveBeenCalledExactlyOnceWith('inngest');
+    expect(effects.processPolicyAnalysisRunService).toHaveBeenCalledExactlyOnceWith({
+      runId: 'policy-test',
+      tenantId: 'synthetic-tenant',
+      ingress: expect.any(Object),
+    });
+    expect(effects.processClaimDocumentWorkflowRunService).not.toHaveBeenCalled();
+    expect(effects.processEmailSequences).not.toHaveBeenCalled();
+    expect(effects.processSeasonalCampaigns).not.toHaveBeenCalled();
+    expect(effects.runNotificationDeliverySchedule).not.toHaveBeenCalled();
+    expect(effects.fetch).not.toHaveBeenCalled();
+  }
+);
 
-it('registers Inngest PUT as read-only', () => {
-  expect(publicEntries.entries.find(entry => entry.id === 'inngest-put')).toMatchObject({
-    writes: false,
-  });
+it.each(signingFlows)(
+  'drains signed %s notification executions with a fresh capability each time',
+  async (_case, key, streaming) => {
+    vi.stubEnv('INNGEST_STREAMING', streaming);
+    vi.resetModules();
+    const fresh = await import('./route');
+    const summary = { tenants: 1, tenantFailures: 1, sent: 1 };
+    effects.runNotificationDeliverySchedule.mockResolvedValue(summary);
+
+    for (const execution of [1, 2]) {
+      const post = await fresh.POST(
+        request('POST', { key, execution: 'notifications', runId: `notification-run-${execution}` })
+      );
+      expect(post.status).toBe(206);
+      expect(await signedResponseBody(post, key)).toMatchObject([{ data: summary }]);
+      expect(effects.runNotificationDeliverySchedule).toHaveBeenCalledTimes(execution);
+      const drainArgs = effects.runNotificationDeliverySchedule.mock.calls[execution - 1];
+      expect(drainArgs).toHaveLength(1);
+      expect(drainArgs[0]).toBe(effects.mintIngressCapability.mock.results[execution - 1].value);
+    }
+
+    expect(effects.mintIngressCapability.mock.calls).toEqual([['inngest'], ['inngest']]);
+    expect(effects.runNotificationDeliverySchedule.mock.calls[0][0]).not.toBe(
+      effects.runNotificationDeliverySchedule.mock.calls[1][0]
+    );
+    expect(effects.processPolicyAnalysisRunService).not.toHaveBeenCalled();
+    expect(effects.processClaimDocumentWorkflowRunService).not.toHaveBeenCalled();
+    expect(effects.processEmailSequences).not.toHaveBeenCalled();
+    expect(effects.processSeasonalCampaigns).not.toHaveBeenCalled();
+    expect(effects.fetch).not.toHaveBeenCalled();
+  }
+);
+
+it('registers exactly three SDK-authenticated Inngest methods with writes limited to POST', () => {
+  const module = 'apps/web/src/app/api/inngest/route.ts';
+  const entries = publicEntries.entries.filter(
+    entry => entry.module === module || entry.id.startsWith('inngest-')
+  );
+  expect(entries).toMatchObject([
+    { id: 'inngest-get', module, method: 'GET', authentication: 'library', writes: false },
+    { id: 'inngest-post', module, method: 'POST', authentication: 'library', writes: true },
+    { id: 'inngest-put', module, method: 'PUT', authentication: 'library', writes: false },
+  ]);
 });

@@ -45,3 +45,24 @@ it('schedules forecast snapshots only and declares backfill manual-only', () => 
     state: 'dormant',
   });
 });
+
+it('declares a single unscheduled bearer GET that can drain notification deliveries', () => {
+  expect(jobs.routes.filter(job => job.path === '/api/cron/notifications')).toEqual([
+    { path: '/api/cron/notifications', method: 'GET', state: 'dormant' },
+  ]);
+  const entries = publicEntries.entries.filter(entry => entry.id === 'cron-notifications');
+  expect(entries).toMatchObject([
+    {
+      kind: 'route',
+      module: routeModule('/api/cron/notifications'),
+      method: 'GET',
+      authentication: 'secret-header',
+      effect: 'runNotificationDeliverySchedule',
+      writes: true,
+      deniedTest: {
+        path: 'apps/web/src/app/api/cron/notifications/route.test.ts',
+        title: 'returns 401 when unauthorized',
+      },
+    },
+  ]);
+});

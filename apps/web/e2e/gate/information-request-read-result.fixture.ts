@@ -6,6 +6,7 @@ import {
   verifyEmptyInformationRequestRead,
   type ReadResultTarget,
 } from './information-request-read-projection.fixture';
+import { createGate, createReadSignals } from './information-request-read-signals.fixture';
 
 export {
   failInformationRequestRead,
@@ -46,8 +47,11 @@ export type ReadSeamCounts = {
   awaitingRelease: boolean;
 };
 
+export type ReadSeamPhase = 'navigation' | 'background' | 'held' | 'settled';
+
 export type InformationRequestReadSeam = {
   arm(mode: ReadSeamMode): void;
+  waitForRead(phase: ReadSeamPhase): Promise<void>;
   /** Closes the initial phase now; resolves once every read that entered it has settled. */
   finishInitial(): Promise<void>;
   release(): void;
@@ -55,24 +59,6 @@ export type InformationRequestReadSeam = {
   assertNoError(): void;
   restore(): Promise<void>;
 };
-
-type Gate = { promise: Promise<void>; open: () => void; isOpen: () => boolean };
-
-function createGate(): Gate {
-  let opened = false;
-  let resolveGate: () => void = () => undefined;
-  const promise = new Promise<void>(resolve => {
-    resolveGate = resolve;
-  });
-  return {
-    promise,
-    open: () => {
-      opened = true;
-      resolveGate();
-    },
-    isOpen: () => opened,
-  };
-}
 
 type Classification = 'ignore' | 'prefetch' | 'read';
 
@@ -84,8 +70,8 @@ function classify(request: Request): Classification {
   return prefetch ? 'prefetch' : 'read';
 }
 
-type Slot = { mode: ReadSeamMode; gate: Gate | null; held: boolean };
-type InitialPhase = { entered: number };
+type Slot = { mode: ReadSeamMode } & ReturnType<typeof createReadSignals>;
+type InitialPhase = { entered: number; navigationFinished: ReturnType<typeof createGate> };
 
 /**
  * Test-only transport seam for the information-request read of one case detail. It handles
@@ -116,13 +102,16 @@ export async function installInformationRequestReadSeam(
     deliberatePassed: 0,
   };
   let initial: InitialPhase | null = null;
+  let initialReadSettled = createGate();
   const outstanding = new Set<Promise<void>>();
   let armed: Slot | null = null;
   let active: Slot | null = null;
+  let lastArmed: Slot | null = null;
   let storedError: Error | null = null;
 
   // True only while the one active request's held response still waits for release().
-  const awaiting = (): boolean => active?.held === true && active.gate?.isOpen() === false;
+  const awaiting = (): boolean =>
+    active?.readyToRelease.isOpen() === true && active.gate?.isOpen() === false;
 
   // Opens the armed or active gate; an early release can never strand a later hold.
   const release = (): void => {
@@ -166,13 +155,15 @@ export async function installInformationRequestReadSeam(
     const response = await fetchRsc(route);
     let body: string | undefined;
     if (slot.mode.kind === 'failure') {
-      body = failInformationRequestRead(await response.text(), target);
+      const text = await response.text();
+      requireListedInformationRequestRead(text, target);
+      body = failInformationRequestRead(text, target);
     } else if (slot.mode.verifyEmpty) {
       verifyEmptyInformationRequestRead(await response.text(), target);
     }
     if (slot.gate) {
       counts.held += 1;
-      slot.held = true;
+      slot.readyToRelease.open();
       await slot.gate.promise;
     }
     if (body === undefined) {
@@ -194,16 +185,20 @@ export async function installInformationRequestReadSeam(
       return route.fallback();
     }
     counts.eligible += 1;
-    if (initial) {
+    const phase = initial;
+    if (phase) {
       // Captured synchronously at entry: this read stays initial however late it settles.
-      const navigation = initial.entered === 0;
-      initial.entered += 1;
+      const navigation = phase.entered === 0;
+      phase.entered += 1;
       const settled = settleInitial(route, navigation);
       outstanding.add(settled);
       try {
         await settled;
       } finally {
         outstanding.delete(settled);
+        if (navigation || storedError) phase.navigationFinished.open();
+        initialReadSettled.open();
+        initialReadSettled = createGate();
       }
       return;
     }
@@ -220,6 +215,7 @@ export async function installInformationRequestReadSeam(
       await abort(route, error);
     } finally {
       if (active === slot) active = null;
+      slot.finished.open();
     }
   };
 
@@ -236,12 +232,27 @@ export async function installInformationRequestReadSeam(
         throw new ReadSeamError('S7 read-result seam is already armed');
       }
       if (!mode.initialFailure) {
-        armed = { mode, gate: mode.hold ? createGate() : null, held: false };
+        armed = { mode, ...createReadSignals(mode.hold) };
+        lastArmed = armed;
       } else if (mode.kind !== 'failure' || mode.hold || mode.verifyEmpty) {
         throw new ReadSeamError('S7 read-result seam initial phase is failure-only and unheld');
       } else {
-        initial = { entered: 0 };
+        initial = { entered: 0, navigationFinished: createGate() };
       }
+    },
+    async waitForRead(phase) {
+      if (storedError) return;
+      if (phase === 'navigation' || phase === 'background') {
+        if (!initial) throw new ReadSeamError('S7 read-result seam has no initial phase');
+        if (phase === 'navigation') return initial.navigationFinished.promise;
+        // Keep the initial phase open until a background read settled and none remain pending.
+        while (!storedError && (counts.backgroundInitial === 0 || outstanding.size > 0)) {
+          await initialReadSettled.promise;
+        }
+        return;
+      }
+      if (!lastArmed) throw new ReadSeamError('S7 read-result seam has no armed retry');
+      return lastArmed.waitForRead(phase);
     },
     finishInitial,
     release,

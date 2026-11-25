@@ -14,7 +14,9 @@ for (const mode of ['restricted', 'permissive'] as const) {
   describe(`${mode} ambient boundary model (not PostgreSQL attestation)`, () => {
     beforeEach(() => reset(mode));
     it('persists exactly one notification for the admitted claim owner', async () => {
-      expect(await reply()).toMatchObject({ success: true });
+      const result = await reply();
+      expect(errors.mock.calls).toEqual([]);
+      expect(result).toMatchObject({ success: true });
       expect(state.rows.claimMessages).toHaveLength(1);
       expect(state.rows.notifications).toHaveLength(1);
       expect(state.rows.notifications[0]).toMatchObject({
@@ -23,11 +25,26 @@ for (const mode of ['restricted', 'permissive'] as const) {
         type: 'new_message',
       });
       expect(state.ambientReads).toEqual([]);
-      expect(state.scheduled).toEqual([{ commits: 3, notifications: 1 }]);
+      expect(state.scheduled).toEqual([{ commits: 1, notifications: 1 }]);
+      expect(state.rows.notificationDeliveries).toHaveLength(1);
+      expect(state.rows.notificationDeliveries[0]).toMatchObject({
+        tenantId: ids.tenant,
+        recipientUserId: ids.member,
+        kind: 'claim_message_to_member',
+      });
+      // The member may see the preview: the inbox flag and the delivery facts agree.
+      expect(state.rows.notificationDeliveries[0].facts).toEqual({ previewRestricted: false });
+      expect(state.rows.notificationPreviewRestrictions).toEqual([
+        expect.objectContaining({
+          tenantId: ids.tenant,
+          notificationId: state.rows.notifications[0].id,
+          restricted: false,
+        }),
+      ]);
       expect(state.external).toHaveLength(1);
       expect(state.external[0]).toMatchObject({
         kind: 'delivery',
-        args: [{ tenantId: ids.tenant, recipientId: ids.member }],
+        args: [state.rows.notificationDeliveries[0].id],
       });
       expect(state.rows.notifications[0].actionUrl).toBe(`/member/claims/${ids.claim}`);
     });
@@ -52,7 +69,10 @@ for (const mode of ['restricted', 'permissive'] as const) {
         expect(state.rows.notifications).toHaveLength(1);
         expect(state.scheduled).toHaveLength(1);
         expect(state.external).toHaveLength(1);
-        expect(errors).toHaveBeenCalledWith('Message cache refresh failed after commit');
+        expect(errors).toHaveBeenCalledWith(
+          'Message cache refresh failed after commit',
+          expect.any(Error)
+        );
       }
     );
     it('blocks a missing tenant before notification effects', async () => {
@@ -81,10 +101,31 @@ for (const mode of ['restricted', 'permissive'] as const) {
       expect(await reply(ids.claim, true)).toMatchObject({ success: true });
       noNotification();
     });
-    it.each(['member', 'agent'])('does not send a staff notification for %s', async role => {
-      state.session = session(role);
+    it('does not send a staff notification for an agent', async () => {
+      state.session = session('agent');
       expect(await reply()).toMatchObject({ success: true });
       noNotification();
+    });
+    it('queues a member request and a staff row for an unnumbered claim when the message commits', async () => {
+      state.session = session('member');
+      expect(await reply()).toMatchObject({ success: true });
+      expect(state.rows.claimResponseRequests).toMatchObject([
+        {
+          kind: 'member_message',
+          sourceMessageId: state.rows.claimMessages[0].id,
+        },
+      ]);
+      expect(state.rows.notifications).toMatchObject([
+        {
+          userId: ids.staff,
+          tenantId: ids.tenant,
+          type: 'staff_member_message',
+          title: '—',
+          content: 'retail',
+          actionUrl: `/staff/claims/${ids.claim}`,
+        },
+      ]);
+      expect(state.scheduled).toEqual([{ commits: 1, notifications: 1 }]);
     });
     it('replays a resent keyed reply without a second message or notification', async () => {
       const first = await reply(ids.claim, false, 'retry-key-0001');
@@ -103,6 +144,14 @@ for (const mode of ['restricted', 'permissive'] as const) {
       state.projectionFault = true;
       expect(await reply()).toMatchObject({ success: false });
       expect(state.rows.claimMessages).toEqual([]);
+      expect(state.rollbacks).toBe(1);
+      noNotification();
+    });
+    it('rolls the message back when its inbox row fails to write', async () => {
+      state.notificationFault = true;
+      expect(await reply()).toMatchObject({ success: false });
+      expect(state.rows.claimMessages).toEqual([]);
+      expect(state.rows.notificationDeliveries).toEqual([]);
       expect(state.rollbacks).toBe(1);
       noNotification();
     });

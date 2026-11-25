@@ -20,6 +20,8 @@ The lead-approved `@interdomestik/database/seed-target-classification` export ex
 
 ## Owned tables
 
+Migration `0106` adds the WP-12 tables declared at the schema barrel tail. `claim-correspondence` declares `claim_authorities`, `claim_correspondence` and `claim_correspondence_documents`, and `claim-case-fields` declares `claim_case_fields`. Their composite foreign keys to `claim` use the unique `(tenant_id, id)` index created by WP-11's migration `0105`. The correspondence integration suites cover these tables under the restricted role.
+
 This package _declares_ every table — the schema module is the only declaration site for the 97 tables, and R1 names 91 as tenant tables (`A/modules/tenancy.md:213-218`, TEN-01) — and it carries the migrations, the seeds and the row policies. Declaring is stewardship of the schema; the owner of a table is the domain package named in that package's `MODULE.md`, and the owner map of CHK-16 is the list (R-16). The R2b text said "all of them", which made every table owned twice (review comment R2b-C03). Two tables that no contract named are assigned by this review: `share_packs` to the documents area, and `case_scoped_access_grants` to `domain-claims` (TEN-03: the only code that inserts a grant, `packages/domain-claims/src/claims/jurisdiction-handoff-store-insert.ts:31`, has no production caller today; the claims contract lists the table since the closing pass). Every domain package and `apps/web` write through the exported transaction handle (902 of 996 Drizzle call sites take a transaction handle; 52 take `db`/`dbRls`, 42 take `dbAdmin` — MEASURED in `A/modules/tenancy.md:84-100`). The schema is not the whole truth: 33 indexes, 11 triggers, 12 functions and 1 exclusion constraint exist only in SQL (DATA-05; recounted in R3, `A/raw/R3/corrections/c13-recounts.json`), which is why the build check compares with the schema **and** a registry of those objects (R-12, CHK-12).
 
 This package owns commands for the `pilot` category of `tenant_settings` (WP-10).
@@ -70,6 +72,24 @@ REVOKE ALL ON public.exchange_rate_verifications, public.exchange_rate_verificat
 GRANT SELECT, INSERT ON public.exchange_rate_verifications TO interdomestik_runtime_rls;
 GRANT SELECT ON public.exchange_rate_verification_limits TO interdomestik_runtime_rls;
 ```
+
+WP-11 adds five tables, each declared in its own module exported before the WP-12 modules in `src/schema/index.ts`:
+
+- `notification_deliveries` and `claim_response_requests`;
+- `user_locale_preferences`: the recipient locale, one row per user;
+- `support_handoff_first_responses`: the first public response time, one row per handoff;
+- `notification_preview_restrictions`: the sticky preview flag, one row per inbox notification that WP-11 created.
+
+No WP-11 column is added to an existing table. The owning domain is `domain-communications` for deliveries, locale preferences and preview restrictions, and `domain-claims` for response requests and first responses.
+
+Their foreign keys and the composite unique indexes they target, on `claim`, `claim_messages`, `notifications` and `support_handoffs`, are SQL-managed:
+
+- They are declared only in migration `0105`, not in Drizzle.
+- Each is registered in `scripts/ci/sql-managed-objects.json`.
+- Each deletes with its parent (`ON DELETE CASCADE`), so seed and test cleanups need no extra step.
+- The exception is `claim_response_requests.answered_by`, which is set to null when its user is deleted.
+
+The five tables force RLS. The runtime role has no `DELETE` on any of them. It has no `UPDATE` on first responses or preview restrictions, so a restriction never changes once written.
 
 ## Tests to run
 

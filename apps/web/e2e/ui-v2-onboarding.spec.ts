@@ -56,7 +56,7 @@ test.describe('Member portal intake', () => {
     const intake = page.locator('[data-testid="claim-draft-intake"]:visible').first();
     await expect(intake).toBeVisible();
     await expect(intake.getByTestId('claim-draft-category-vehicle')).toBeEnabled();
-    await expect(intake.getByTestId('claim-draft-category-injury')).toBeDisabled();
+    await expect(intake.getByTestId('claim-draft-category-injury')).toHaveCount(0);
     await intake.getByTestId('claim-draft-category-vehicle').click();
     await intake.getByTestId('claim-draft-category-continue').click();
     const panel = intake.getByTestId('claim-draft-main-panel');

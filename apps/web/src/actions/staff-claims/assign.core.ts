@@ -1,32 +1,36 @@
-import { assignClaimCore as assignClaimCoreDomain } from '@interdomestik/domain-claims/staff-claims/assign';
-
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-
+import { ROLES } from '@interdomestik/shared-auth';
+import { LOCALES } from '@/i18n/locales';
+import { actionFailure, defineAction } from '@/lib/safe-action';
+import {
+  changeClaimAssignment,
+  changeClaimAssignmentInputSchema,
+} from '@interdomestik/domain-claims/staff-claims/assign';
 import { revalidatePath } from 'next/cache';
+import { getTranslations } from 'next-intl/server';
 
-import type { Session } from './context';
-
-const LOCALES = ['sq', 'en', 'sr', 'mk', 'de'] as const;
-
-function revalidatePathForAllLocales(path: string) {
-  for (const locale of LOCALES) {
-    revalidatePath(`/${locale}${path}`);
-  }
-}
-
-export async function assignClaimCore(params: {
-  authority: TenantAuthority | null;
-  claimId: string;
-  session: NonNullable<Session> | null;
-  requestHeaders?: Headers;
-  staffId?: string | null;
-}) {
-  const result = await assignClaimCoreDomain(params);
-
-  if (result.success) {
-    revalidatePathForAllLocales(`/staff/claims/${params.claimId}`);
-    revalidatePathForAllLocales('/staff/claims');
-  }
-
-  return result;
-}
+export const assignClaimCore = defineAction({
+  name: 'staffClaims.assign',
+  basis: { kind: 'role', roles: [ROLES.staff] },
+  input: changeClaimAssignmentInputSchema,
+  subject: { type: 'claim', from: 'claimId' },
+  async handler(input, { authority, requestHeaders }) {
+    const outcome = await changeClaimAssignment(authority, input, { requestHeaders });
+    if (!outcome.ok) {
+      const t = await getTranslations('common.claimStatusErrors');
+      if (outcome.code === 'forbidden_role') return actionFailure('FORBIDDEN', t('forbidden'));
+      if (outcome.code === 'not_found') return actionFailure('NOT_FOUND', t('notFound'));
+      if (outcome.code === 'conflict') return actionFailure('conflict', t('conflict'));
+      if (outcome.code === 'target_denied')
+        return actionFailure('target_denied', t('assignmentTarget'));
+      return actionFailure(outcome.code, t('assignmentFailed'));
+    }
+    try {
+      for (const locale of LOCALES) {
+        revalidatePath(`/${locale}/staff/claims/${input.claimId}`);
+        revalidatePath(`/${locale}/staff/claims`);
+      }
+    } catch (error) {
+      console.error('Staff assignment refresh failed after commit', error);
+    }
+  },
+});

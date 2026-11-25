@@ -1,6 +1,6 @@
 import { claims } from '@interdomestik/database/schema';
 import { and, eq, isNull } from 'drizzle-orm';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   ASSIGNMENT_CONFLICT_ERROR,
   ASSIGNMENT_DRAFT_ERROR,
@@ -12,7 +12,7 @@ import {
   createFakeTx,
   guardMatchesRow,
   routeTenantContext,
-  sessionFor,
+  useAdminAssignmentTest,
   sqlOf,
   UNASSIGNED_CLAIM,
 } from './ops-assignment.test-fixture';
@@ -23,18 +23,7 @@ function expectNoWritesOrRevalidation(tx: ReturnType<typeof createFakeTx>['tx'])
   expect(mocks.revalidatePath).not.toHaveBeenCalled();
 }
 
-let consoleError: ReturnType<typeof vi.spyOn>;
-
-beforeEach(() => {
-  vi.clearAllMocks();
-  consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
-  mocks.directDbAccess.length = 0;
-  mocks.getSession.mockResolvedValue(sessionFor('admin'));
-});
-
-afterEach(() => {
-  consoleError.mockRestore();
-});
+useAdminAssignmentTest(mocks);
 
 describe('assignOwner tenant transaction', () => {
   it('assigns an unassigned claim to the chosen staff member', async () => {
@@ -235,7 +224,7 @@ describe('assignOwner tenant transaction', () => {
       });
       expect(guardMatchesRow(updateWhere.mock.calls[0][0], closedRow)).toBe(false);
       expect(updateSet).toHaveBeenCalledTimes(1);
-      expect(outcomes).toEqual(['returned']);
+      expect(outcomes).toEqual(['threw']);
       expect(tx.insert).not.toHaveBeenCalled();
       expect(mocks.revalidatePath).not.toHaveBeenCalled();
     }

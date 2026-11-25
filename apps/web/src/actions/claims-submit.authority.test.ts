@@ -14,8 +14,7 @@ vi.mock('@/lib/safe-action', () => ({
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimitForAction: mocks.rateLimit }));
 vi.mock('./claims/submit', () => ({ submitClaimCore: mocks.submitClaimCore }));
 vi.mock('./claims/create', () => ({ createClaimCore: vi.fn() }));
-vi.mock('./claims/draft', () => ({ cancelClaimCore: vi.fn(), updateDraftClaimCore: vi.fn() }));
-vi.mock('./claims/status', () => ({ updateClaimStatusCore: vi.fn() }));
+vi.mock('./claims/draft', () => ({ updateDraftClaimCore: vi.fn() }));
 
 import type { CreateClaimValues } from '@/lib/validators/claims';
 import { submitClaim } from './claims.core';

@@ -87,7 +87,7 @@ test.describe('IDA-UI03a2-B5 existing-case copy truth', () => {
         marker: 'new-claim-page-ready',
       });
       const intake = visibleIntake(page);
-      await expect(intake.getByTestId('claim-draft-category-injury')).toBeDisabled();
+      await expect(intake.getByTestId('claim-draft-category-injury')).toHaveCount(0);
       await fillSupportedDraft(page);
       await expect(intake.getByTestId('account-draft-status')).toHaveAttribute(
         'data-state',

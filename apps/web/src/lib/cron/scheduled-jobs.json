@@ -4,6 +4,7 @@
     { "path": "/api/cron/nps", "method": "GET", "state": "closed" },
     { "path": "/api/cron/dunning", "method": "GET", "state": "closed" },
     { "path": "/api/cron/sponsors", "method": "GET", "state": "dormant" },
+    { "path": "/api/cron/notifications", "method": "GET", "state": "dormant" },
     {
       "path": "/api/cron/crm/forecast-snapshots",
       "method": "GET",
@@ -18,6 +19,7 @@
   ],
   "inngestTimers": [
     { "id": "daily-email-sequences", "state": "dormant" },
+    { "id": "notification-deliveries", "state": "scheduled", "schedule": "*/5 * * * *" },
     { "id": "seasonal-campaigns", "state": "dormant" }
   ]
 }

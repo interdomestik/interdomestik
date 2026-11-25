@@ -43,7 +43,8 @@
             "member": "Als Nächstes: Upload durch das Mitglied",
             "untracked": "Keine offene Nachweisanfrage erfasst"
           },
-          "overdue_follow_up": "Operatives Nachfassen: Das erfasste Fälligkeitsdatum der Anfrage {date} UTC ist überschritten. Fragen Sie beim Mitglied nach."
+          "overdue_follow_up": "Operatives Nachfassen: Das erfasste Fälligkeitsdatum der Anfrage {date} ist überschritten. Fragen Sie beim Mitglied nach.",
+          "overdue_register_follow_up": "Operatives Nachfassen: Das Nachfassdatum im Fallregister {date} ist überschritten. Prüfen Sie das Fallregister."
         },
         "assignment_state": {
           "unassigned": "Nicht zugewiesen",

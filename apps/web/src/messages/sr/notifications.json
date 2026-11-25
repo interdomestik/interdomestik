@@ -94,7 +94,40 @@
     "updateOn": "Ažuriranje za: {claim}",
     "yourClaim": "vaš predmet",
     "updateBody": "Dostupno je novo ažuriranje. Otvorite obaveštenje za detalje.",
+    "staff": {
+      "claimWithoutNumber": "Zahtev bez broja",
+      "content": "{event} · {category}",
+      "categories": {
+        "consumer": "Potrošač",
+        "consumer_rights": "Prava potrošača",
+        "housing": "Stanovanje",
+        "insurance": "Osiguranje",
+        "employment": "Zaposlenje",
+        "contracts": "Ugovori",
+        "utilities": "Komunalije",
+        "auto": "Vozilo",
+        "vehicle": "Vozilo",
+        "travel": "Putovanje",
+        "retail": "Maloprodaja",
+        "real_estate": "Nekretnine",
+        "property": "Imovina",
+        "flight_delay": "Kašnjenje leta",
+        "damaged_goods": "Oštećena roba",
+        "service_issue": "Problem sa uslugom",
+        "liability": "Odgovornost",
+        "medical": "Medicinski",
+        "test": "Testiranje",
+        "other": "Ostalo",
+        "injury": "Lične povrede"
+      }
+    },
     "events": {
+      "staff_claim_submitted": {
+        "title": "Novi zahtev je podnet"
+      },
+      "staff_member_message": {
+        "title": "Nova poruka člana"
+      },
       "claimSubmitted": {
         "title": "Zahtev je podnet"
       },
