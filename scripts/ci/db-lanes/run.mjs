@@ -11,7 +11,7 @@ const database = join(repoRoot, 'packages/database');
 const inventory = repositoryInventory();
 const filesIn = lane => inventory.filter(row => row.lanes.includes(lane)).map(row => row.file);
 const integrationFlags = {
-  'packages/domain-communications': { MESSAGE_RLS_INTEGRATION: '1' },
+  'packages/domain-claims': { MESSAGE_RLS_INTEGRATION: '1' },
   'packages/domain-membership-billing': { BILLING_RLS_INTEGRATION: '1', RUN_DUNNING_POSTGRES: '1' },
 };
 

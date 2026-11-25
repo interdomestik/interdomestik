@@ -84,6 +84,21 @@ for (const [spec, prerequisites] of [
   });
 }
 
+test('records the dedicated runners required by new browser database proofs', () => {
+  const exclusions = readExclusions(join(repoRoot, 'scripts/ci/db-lanes/exclusions.json'));
+  for (const [file, prerequisites] of [
+    ['apps/web/e2e-mac/closed-services.spec.ts', /Mac.*seeded.*mail catcher/u],
+    ['apps/web/e2e/gate/claim-correspondence.spec.ts', /Playwright.*seeded.*PDF uploads/u],
+    [
+      'apps/web/e2e/gate/one-door-anonymous-leads.spec.ts',
+      /Playwright.*seeded.*lead.*reservation/u,
+    ],
+    ['apps/web/e2e/gate/pilot-deployment-env.spec.ts', /standalone.*gate-ks-sq.*disposable/u],
+  ]) {
+    assert.match(exclusions.find(entry => entry.file === file)?.reason, prerequisites, file);
+  }
+});
+
 test('discovers a newly tracked orphan independently of advisory selectors', t => {
   const root = scratch(t);
   const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
@@ -200,6 +215,12 @@ test('inventories the checked-out selectors', () => {
   for (const [file, lane] of [
     ['packages/database/test/pg16/journal-schema-parity.test.ts', 'e2e-gate/journal-parity'],
     ['packages/database/test/s8-claim-restricted-rls.test.ts', 'e2e-gate/RLS'],
+    [
+      'packages/domain-claims/src/claims/message-integration/public-reply-notification.integration.test.ts',
+      'e2e-gate/RLS',
+    ],
+    ['packages/database/test/claim-correspondence.test.ts', 'e2e-gate/RLS'],
+    ['packages/database/test/pilot-switch.test.ts', 'advisory/node-unit'],
     ['packages/domain-membership-billing/test/exchange-rates-port.test.ts', 'e2e-gate/RLS'],
     ['apps/web/src/lib/refusal-audit-rls.integration.test.ts', 'e2e-gate/RLS'],
     [
@@ -222,6 +243,7 @@ test('inventories the checked-out selectors', () => {
     'apps/web/src/lib/auth/different-email-recovery-reset.contract.test.ts',
     'apps/web/src/lib/auth/different-email-recovery-session.contract.test.ts',
     'apps/web/src/lib/auth/different-email-recovery-store.contract.test.ts',
+    'apps/web/e2e/gate/claim-correspondence.spec.ts',
     'scripts/pilot/admin-users-unread.test.ts',
   ]) {
     assert.equal(rows.get(file)?.exclusion?.file, file);

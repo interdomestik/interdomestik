@@ -7,12 +7,12 @@ function unconditional(condition) {
   );
 }
 
-function jobRuns(jobs, name, ancestors = new Set()) {
+function jobRuns(jobs, name, expectedCondition, ancestors = new Set()) {
   if (!Object.hasOwn(jobs, name) || ancestors.has(name)) return false;
   const job = jobs[name];
   if (
     !job ||
-    !unconditional(job.if) ||
+    !(expectedCondition === undefined ? unconditional(job.if) : job.if === expectedCondition) ||
     job.strategy !== undefined ||
     !Array.isArray(job.steps) ||
     !job.steps.length
@@ -23,13 +23,16 @@ function jobRuns(jobs, name, ancestors = new Set()) {
   const path = new Set([...ancestors, name]);
   return (
     Array.isArray(prerequisites) &&
-    prerequisites.every(needed => typeof needed === 'string' && jobRuns(jobs, needed, path))
+    prerequisites.every(
+      needed => typeof needed === 'string' && jobRuns(jobs, needed, undefined, path)
+    )
   );
 }
 
-export function provenWorkflowStep(workflow, jobName, stepName) {
+export function provenWorkflowStep(workflow, jobName, stepName, jobCondition) {
   const { jobs } = workflow;
-  if (workflow.defaults !== undefined || !jobRuns(jobs, jobName)) return undefined;
+  if (!jobs || workflow.defaults !== undefined || !jobRuns(jobs, jobName, jobCondition))
+    return undefined;
   const job = jobs[jobName];
   if (job.defaults !== undefined || job['continue-on-error']) return undefined;
   const steps = job.steps.filter(step => step?.name === stepName);

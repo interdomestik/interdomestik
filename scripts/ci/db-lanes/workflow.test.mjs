@@ -10,8 +10,14 @@ import {
   RETIRED_LEGACY_FILES,
   RETIRED_LEGACY_TESTS,
 } from '../contract-test-shards.mjs';
-import { inventoryFixture, updateWorkflow } from './inventory-fixture.mjs';
-import { repoRoot, repositoryInventory } from './inventory.mjs';
+import {
+  copyProtectedSelectors,
+  inventoryFixture,
+  scratch,
+  updateWorkflow,
+} from './inventory-fixture.mjs';
+import { buildInventory, repoRoot, repositoryInventory } from './inventory.mjs';
+import { protectedLanes } from './protected-lanes.mjs';
 
 const workflow = name =>
   yaml.load(readFileSync(join(repoRoot, `.github/workflows/${name}.yml`), 'utf8'));
@@ -182,6 +188,69 @@ test('advisory unit fails for each selected contract with zero executed cases', 
 });
 
 const lanesFor = (root, file) => repositoryInventory(root).find(row => row.file === file)?.lanes;
+
+const restricted = 'packages/database/test/s8-claim-restricted-rls.test.ts';
+
+for (const [label, command, problem] of [
+  [
+    'an unknown runner',
+    'node custom-runner.mjs',
+    /Unsupported runner in domain-communications test:rls/u,
+  ],
+  [
+    'a delegation cycle',
+    'pnpm --filter @interdomestik/domain-communications test:rls',
+    /Recursive package selector.*domain-communications test:rls/u,
+  ],
+  [
+    'a conditional file selector',
+    'tsx --test src/a.test.ts || true',
+    /Unsupported file selector in domain-communications test:rls/u,
+  ],
+]) {
+  test(`falls back to advisory when the RLS command has ${label}`, t => {
+    const root = scratch(t);
+    copyProtectedSelectors(root);
+    const filename = join(root, 'packages/domain-communications/package.json');
+    const manifest = JSON.parse(readFileSync(filename, 'utf8'));
+    manifest.scripts['test:rls'] = command;
+    writeFileSync(filename, JSON.stringify(manifest));
+    const warnings = [];
+    const existing = protectedLanes(root, [], [], (lane, error) => warnings.push([lane, error]));
+    assert.deepEqual(
+      existing.map(lane => lane.name),
+      ['e2e-gate/journal-parity']
+    );
+    assert.equal(warnings[0]?.[0], 'e2e-gate/RLS');
+    assert.match(warnings[0]?.[1].message, problem);
+    const exchangeRates = 'packages/domain-membership-billing/test/exchange-rates-port.test.ts';
+    const files = [restricted, exchangeRates, ...existing.flatMap(lane => lane.files)];
+    assert.deepEqual(buildInventory(files, existing, []).slice(0, 2), [
+      { file: restricted, lanes: ['advisory/node-pg16'] },
+      { file: exchangeRates, lanes: ['advisory/node-pg16'] },
+    ]);
+  });
+}
+
+test('a disabled prerequisite removes protected PG16 credit', t => {
+  const root = scratch(t);
+  copyProtectedSelectors(root);
+  updateWorkflow(root, ({ jobs }) => {
+    jobs['validation-surface'].if = false;
+  });
+  const warnings = [];
+  assert.deepEqual(
+    protectedLanes(root, [], [], (lane, error) => warnings.push([lane, error])),
+    []
+  );
+  assert.deepEqual(
+    warnings.map(([lane]) => lane),
+    ['e2e-gate/RLS', 'e2e-gate/journal-parity']
+  );
+  for (const [, error] of warnings) {
+    assert.match(error.message, /Cannot prove the Prepare E2E Database step/u);
+  }
+});
 
 test('contract credit requires selection in both product and full audit modes', t => {
   const root = contractFixture(t);

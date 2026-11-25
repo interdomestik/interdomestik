@@ -24,8 +24,10 @@ export function scratch(t) {
 export function copyProtectedSelectors(root) {
   for (const file of [
     '.github/workflows/ci.yml',
+    'apps/web/package.json',
     'package.json',
     'packages/database/package.json',
+    'packages/domain-claims/package.json',
     'packages/domain-communications/package.json',
     'packages/domain-membership-billing/package.json',
     'packages/domain-users/package.json',
@@ -82,6 +84,14 @@ export function inventoryFixture(t, extra = []) {
   for (const [file, source] of fixtures) {
     mkdirSync(dirname(join(root, file)), { recursive: true });
     writeFileSync(join(root, file), source);
+  }
+  for (const directory of [
+    'apps/web',
+    'packages/domain-claims',
+    'packages/domain-membership-billing',
+  ]) {
+    const modules = `${directory}/node_modules`;
+    symlinkSync(join(repoRoot, modules), join(root, modules));
   }
   const git = (...args) => execFileSync('git', args, { cwd: root, stdio: 'pipe' });
   git('init', '-q');

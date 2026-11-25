@@ -191,3 +191,19 @@ test('fails closed when a protected test runner adds an unrecognized case filter
   writeFileSync(filename, JSON.stringify(manifest));
   assert.throws(() => protectedLanes(root), /unsupported file selector.*database test:rls/iu);
 });
+
+test('a message RLS command without its opt-in cannot claim protected credit', t => {
+  const root = scratch(t);
+  copyProtectedSelectors(root);
+  const filename = join(root, 'packages/domain-claims/package.json');
+  const manifest = JSON.parse(readFileSync(filename, 'utf8'));
+  manifest.scripts['test:rls'] = manifest.scripts['test:rls'].replace(
+    'MESSAGE_RLS_INTEGRATION=1 ',
+    ''
+  );
+  writeFileSync(filename, JSON.stringify(manifest));
+  assert.throws(
+    () => protectedLanes(root),
+    /Missing MESSAGE_RLS_INTEGRATION=1.*domain-claims test:rls/u
+  );
+});

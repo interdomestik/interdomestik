@@ -34,7 +34,7 @@ function isDatabaseTest(root, file) {
   );
 }
 
-export function trackedTests(root) {
+export function trackedTests(root, excludedFiles = new Set()) {
   const output = execFileSync('git', ['ls-files', '--cached', '--deduplicate', '-z'], {
     cwd: root,
     encoding: 'utf8',
@@ -42,7 +42,7 @@ export function trackedTests(root) {
   return output
     .split('\0')
     .filter(file => testFile.test(file))
-    .filter(file => isDatabaseTest(root, file))
+    .filter(file => excludedFiles.has(file) || isDatabaseTest(root, file))
     .sort(compareCodeUnits);
 }
 
@@ -89,6 +89,9 @@ export function readExclusions(filename) {
 function advisoryNodeLane(file) {
   if (isContractTest(file) && !RETIRED_LEGACY_FILES.includes(file)) return 'advisory/contracts';
   if (isReleaseGateTest(file)) return 'advisory/release-gate';
+  if (file === 'packages/domain-membership-billing/test/exchange-rates-port.test.ts') {
+    return 'advisory/node-pg16';
+  }
   if (/^packages\/database\/test\/(?:pg16\/)?[^/]+\.test\.ts$/u.test(file)) {
     const name = basename(file);
     if (file.startsWith('packages/database/test/pg16/') || liveTestSuffix.test(name)) {
@@ -143,11 +146,13 @@ export function buildInventory(files, existing, exclusions, advisoryVitest = new
 }
 
 export function repositoryInventory(root = repoRoot) {
-  const files = trackedTests(root);
   const exclusions = readExclusions(join(root, 'scripts/ci/db-lanes/exclusions.json'));
   const excludedFiles = new Set(exclusions.map(entry => entry.file));
+  const files = trackedTests(root, excludedFiles);
   const candidates = files.filter(file => isVitestCandidate(file) && !excludedFiles.has(file));
-  const existing = protectedLanes(root, candidates, files);
+  const existing = protectedLanes(root, candidates, files, (name, error) => {
+    console.warn(`Database lane ${name}: ${error.message}; using advisory selectors.`);
+  });
   const protectedFiles = new Set(existing.flatMap(lane => lane.files));
   const advisoryVitest = new Set();
   for (const [project, pending] of vitestProjects(

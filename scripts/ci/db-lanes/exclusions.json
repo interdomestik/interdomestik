@@ -1,5 +1,11 @@
 [
   {
+    "file": "apps/web/e2e-mac/closed-services.spec.ts",
+    "reason": "The Mac closed-services Playwright project provides a seeded database, a closed-services web server, and a loopback mail catcher for activation.",
+    "owner": "Web E2E",
+    "removeWhen": "An advisory lane can supply the closed-services server, seeded actors, and activation mailbox."
+  },
+  {
     "file": "apps/web/e2e/agent-member-detail.spec.ts",
     "reason": "The agent-member-detail browser spec requires a running web application and Playwright project fixtures.",
     "owner": "Web E2E",
@@ -126,6 +132,12 @@
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },
   {
+    "file": "apps/web/e2e/gate/claim-correspondence.spec.ts",
+    "reason": "The Playwright gate creates a case with seeded Kosovo staff and member actors and exercises PDF uploads and correspondence in the browser.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone PG16 suite provides equivalent case, document, and correspondence fixtures."
+  },
+  {
     "file": "apps/web/e2e/gate/claim-state-truth.spec.ts",
     "reason": "The gate/claim-state-truth browser spec requires a running web application and Playwright project fixtures.",
     "owner": "Web E2E",
@@ -246,6 +258,12 @@
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },
   {
+    "file": "apps/web/e2e/gate/one-door-anonymous-leads.spec.ts",
+    "reason": "The Playwright project provides seeded public admission and country hosts while the fixture verifies lead and reservation writes.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone PG16 suite can verify lead and reservation writes across the same admission modes."
+  },
+  {
     "file": "apps/web/e2e/gate/ordinary-member-staff-evidence.spec.ts",
     "reason": "The gate/ordinary-member-staff-evidence browser spec requires a running web application and Playwright project fixtures.",
     "owner": "Web E2E",
@@ -256,6 +274,12 @@
     "reason": "This direct database mutation requires PILOT_DB_MUTATION_TESTS=1 and seeded KS member, agent, and staff users plus an existing claim for the member.",
     "owner": "Web E2E",
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/pilot-deployment-env.spec.ts",
+    "reason": "The startup proof launches a built standalone server from the gate-ks-sq Playwright project with disposable database credentials.",
+    "owner": "Web E2E",
+    "removeWhen": "An advisory lane provides the built standalone server and its disposable runtime role."
   },
   {
     "file": "apps/web/e2e/gate/premium-free-start-recovery-arrival.spec.ts",
