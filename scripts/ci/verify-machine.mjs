@@ -136,7 +136,7 @@ function usageErrors(command, lane, argv) {
   return [
     `pnpm ${LANE_SCRIPTS[lane]} takes no arguments; they would reach this step, not a test.`,
     'Run a step with its own arguments directly, for example',
-    'pnpm --filter @interdomestik/web run e2e:smoke --retries=0',
+    'node scripts/run-with-default-db-url.mjs pnpm e2e:smoke --list',
   ];
 }
 

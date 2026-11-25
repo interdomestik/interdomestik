@@ -258,7 +258,7 @@ test('arguments appended to the lane fail with a pointer to the step that takes 
   const h = harness({ env: { GITHUB_ACTIONS: 'true' } });
   assert.equal(runVerifyMachine(['stamp', 'pr-verify', '--retries=0'], h.deps), 1);
   assert.match(h.output.error[0], /pnpm pr:verify takes no arguments/u);
-  assert.match(h.output.error.join('\n'), /e2e:smoke --retries=0/u);
+  assert.match(h.output.error.join('\n'), /run-with-default-db-url\.mjs pnpm e2e:smoke --list/u);
   h.cleanup();
 });
 
