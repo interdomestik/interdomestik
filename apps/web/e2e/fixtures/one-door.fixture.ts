@@ -80,7 +80,10 @@ export async function loginAtDoor(
     });
     if (expected.role === 'branch_manager') {
       // The overview streams a redirect to the assigned branch after the initial navigation.
-      await expect(page.getByTestId('branch-dashboard-title')).toBeVisible();
+      // React's streaming container can hold a hidden copy outside the shell; assert the shell's own title.
+      await expect(
+        page.getByTestId('role-shell').getByTestId('branch-dashboard-title')
+      ).toBeVisible();
     }
     const response = await page.request.get(`${origin}/api/auth/get-session`, {
       timeout: remaining(),
