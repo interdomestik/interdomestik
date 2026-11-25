@@ -15,7 +15,7 @@ export function canViewAdminClaims({ role, branchId }: Viewer): boolean {
   return isTenantAdmin(role) || isSuperAdmin(role) || (role === ROLES.branch_manager && !!branchId);
 }
 
-export function adminClaimsBranchCondition({ role, branchId }: Viewer): SQL | undefined {
+function opsClaimDetailBranchCondition({ role, branchId }: Viewer): SQL | undefined {
   if (role !== ROLES.branch_manager) return undefined;
   return branchId ? eq(claims.branchId, branchId) : sql`false`;
 }
@@ -51,7 +51,7 @@ export function selectVisibleOpsClaim(
           withTenant(accessTenantId, claims.tenantId, isNull(claims.accessTenantId))
         ),
         eq(claims.id, claimId),
-        adminClaimsBranchCondition(principal)
+        opsClaimDetailBranchCondition(principal)
       )
     )
     .as('visible_ops_claim');
