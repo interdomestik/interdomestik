@@ -28,6 +28,7 @@ const foreign = {
   userId: 'title-foreign-member',
   title: 'Foreign claim title',
 };
+const delegated = { id: 'title-delegated', title: 'Delegated claim title' };
 
 async function proveTitleReader(t: TestContext, client: ScratchClient) {
   const { getMemberClaimTitle } =
@@ -50,7 +51,6 @@ async function proveTitleReader(t: TestContext, client: ScratchClient) {
       `);
       assert.deepEqual(posture, { role: runtime, bypass: false, active: true });
 
-      // The claim policy scopes by tenant. The reader must enforce member ownership itself.
       const rows = await tx.execute<{ id: string }>(sql`
         select id from public.claim where id in (${own.id}, ${peer.id}, ${foreign.id})
         order by id
@@ -66,10 +66,12 @@ async function proveTitleReader(t: TestContext, client: ScratchClient) {
   });
 
   await t.test('hides a claim owned by another member in the same tenant', async () => {
+    // The policy check above sees the peer's row, so this proves the reader's owner predicate.
     assert.equal(await getMemberClaimTitle({ authority, claimId: peer.id }), null);
   });
 
   await t.test('hides a claim from another tenant', async () => {
+    // This fixture proves RLS isolation for a claim without delegated access to the home tenant.
     assert.equal(await getMemberClaimTitle({ authority, claimId: foreign.id }), null);
     assert.equal(
       await getMemberClaimTitle({
@@ -78,6 +80,18 @@ async function proveTitleReader(t: TestContext, client: ScratchClient) {
       }),
       foreign.title
     );
+  });
+
+  await t.test('hides a delegated foreign claim owned by the home member', async () => {
+    // The row is visible under RLS via access_tenant_id and the owner matches the session.
+    // Only the reader's tenant_id predicate can exclude it.
+    await withTenantAuthority(authority, async tx => {
+      const rows = await tx.execute<{ id: string }>(sql`
+        select id from public.claim where id = ${delegated.id}
+      `);
+      assert.deepEqual([...rows], [{ id: delegated.id }]);
+    });
+    assert.equal(await getMemberClaimTitle({ authority, claimId: delegated.id }), null);
   });
 
   await t.test('refuses a non-session member authority before querying', async subtest => {
@@ -126,6 +140,10 @@ test('WP-13a member claim titles run under the restricted database role', async 
         await admin`insert into public.claim (id, tenant_id, "userId", title, category, "companyName")
           values (${claim.id}, ${tenantId}, ${claim.userId}, ${claim.title}, 'vehicle', 'Fixture')`;
       }
+      await admin`insert into public.claim (
+          id, tenant_id, access_tenant_id, "userId", title, category, "companyName"
+        )
+        values (${delegated.id}, ${foreignTenant}, ${homeTenant}, ${own.userId}, ${delegated.title}, 'vehicle', 'Fixture')`;
 
       await withAcceptanceRuntime(admin, scratchUrl, async (client, url) => {
         // Inject the guarded scratch pools before loading the actual domain and database modules.
