@@ -1,8 +1,8 @@
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 import { DocumentList } from '@/components/documents/document-list';
-import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { ClaimEvidenceUploadDialog } from '@/features/member/claims/components/ClaimEvidenceUploadDialog';
 import { Link } from '@/i18n/routing';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { claimDocuments, claims, desc, eq } from '@interdomestik/database';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { Badge } from '@interdomestik/ui/components/badge';
@@ -22,9 +22,9 @@ type DocumentRow = {
 
 export default async function DocumentsPage({ params }: { params: Promise<{ locale: string }> }) {
   const { locale } = await params;
-  const session = await getSessionSafe('MemberDocumentsPage');
-  const sessionNonNull = requireSessionOrRedirect(session, locale);
-  const { authority } = requireSessionOrRedirect(await authorizeSessionTenant(), locale);
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
+  const { authority, session: sessionNonNull } = admission.authorized;
   const { tenantId } = readTenantAuthority(authority);
 
   const tDocs = await getTranslations('documents');

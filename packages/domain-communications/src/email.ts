@@ -6,6 +6,7 @@ import {
 } from './non-sending-email';
 import * as nodemailer from 'nodemailer';
 import { Resend } from 'resend';
+import { configuredSmtpTarget, getSenderAddress } from './email-transport';
 import {
   renderCheckinEmail,
   renderClaimAssignedEmail,
@@ -27,7 +28,6 @@ import {
 } from './email-templates';
 import {
   createEmailTelemetry,
-  automatedSmtpTarget,
   fallbackResend,
   smtpTransport,
   renderSignInOtpEmail,
@@ -38,6 +38,12 @@ import {
   type SignInOtpLocale,
 } from './sign-in-otp-email';
 export { isEmailSuppressed } from './non-sending-email';
+export {
+  configuredEmailTransports,
+  getSenderAddress,
+  sendEmailOutcome,
+  type EmailTransport,
+} from './email-transport';
 export { normalizeSignInOtpLocale } from './sign-in-otp-email';
 export type { EmailResult };
 let resendClient: Resend | null = null;
@@ -58,20 +64,17 @@ export function getResendClient(telemetry = createEmailTelemetry()) {
   }
 }
 function getEmailClient(telemetry: EmailTelemetry, options: EmailSendOptions) {
-  // Priority 0: Automated Testing (mock, or the loopback catcher for messages that opt in)
-  if (isAutomated()) {
-    const target = options.automatedCatcher ? automatedSmtpTarget() : null;
-    if (target === null || target === 'rejected') return target;
-    return { type: 'smtp' as const, client: smtpTransport(target), testOnly: true };
+  const target = configuredSmtpTarget(options.automatedCatcher ?? false);
+  if (target === 'rejected') return target;
+  if (target) {
+    return {
+      type: 'smtp' as const,
+      client: smtpTransport(target),
+      ...(isAutomated() && { testOnly: true }),
+    };
   }
+  if (isAutomated()) return null;
 
-  // Priority 1: SMTP (Docker / Local Dev)
-  if (process.env.SMTP_HOST) {
-    const port = Number.parseInt(process.env.SMTP_PORT || '1025');
-    return { type: 'smtp' as const, client: smtpTransport({ host: process.env.SMTP_HOST, port }) };
-  }
-
-  // Priority 2: Resend (Production / Preview)
   if (!process.env.RESEND_API_KEY) {
     telemetry.unavailable('none', () =>
       console.warn('Resend API key not configured. Emails will be skipped.')
@@ -80,17 +83,9 @@ function getEmailClient(telemetry: EmailTelemetry, options: EmailSendOptions) {
   }
 
   const resend = getResendClient(telemetry);
-  if (resend) return { type: 'resend', client: resend };
+  if (resend) return { type: 'resend' as const, client: resend };
 
   return null;
-}
-export function getSenderAddress() {
-  return (
-    process.env.RESEND_FROM_EMAIL ||
-    process.env.RESEND_FROM ||
-    process.env.NEXT_PUBLIC_SUPPORT_EMAIL ||
-    'Interdomestik <no-reply@interdomestik.com>'
-  );
 }
 export async function sendEmail(
   recipients: EmailRecipients,

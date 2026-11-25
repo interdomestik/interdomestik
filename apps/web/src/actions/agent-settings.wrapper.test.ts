@@ -3,7 +3,25 @@ import { describe, expect, it, vi } from 'vitest';
 
 import { getAgentSettings, updateAgentCommissionRates, updateAgentTier } from './agent-settings';
 
-const authority = mintTestTenantAuthority('tenant-1');
+const authority = mintTestTenantAuthority('tenant-1', { userId: 'u1', role: 'admin' });
+
+vi.mock('@/lib/tenant-authority.server', () => ({
+  authorizeSessionTenant: () =>
+    Promise.resolve({
+      session: { user: { id: 'u1', role: 'admin' } },
+      authority,
+    }),
+}));
+vi.mock('@interdomestik/database/tenant-authority', async importOriginal => {
+  const actual = await importOriginal<typeof import('@interdomestik/database/tenant-authority')>();
+  return {
+    ...actual,
+    readTenantAuthority: (value: Parameters<typeof actual.readTenantAuthority>[0]) => ({
+      ...actual.readTenantAuthority(value),
+      purpose: 'session',
+    }),
+  };
+});
 
 vi.mock('./agent-settings/context', () => ({
   getActionContext: vi.fn(async () => ({
@@ -31,7 +49,8 @@ describe('agent-settings action wrapper', () => {
 
     const result = await getAgentSettings('agent-1');
 
-    expect(getActionContext).toHaveBeenCalledTimes(1);
+    expect(getActionContext).not.toHaveBeenCalled();
+    expect(vi.mocked(getAgentSettingsCore).mock.calls[0]?.[0].authority).toBe(authority);
     expect(getAgentSettingsCore).toHaveBeenCalledWith({
       session: { user: { id: 'u1', role: 'admin' } },
       authority,

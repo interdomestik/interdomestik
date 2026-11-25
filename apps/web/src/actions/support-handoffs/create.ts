@@ -20,10 +20,13 @@ function getSupportedLocale(value: unknown): AppLocale {
 }
 
 async function executeCreateMemberSupportHandoff(formData: FormData) {
-  const { session, authority, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders, failure } = await getActionContext();
   const input = formDataToInput(formData);
   const locale = getSupportedLocale(input.locale);
   delete input.locale;
+  if (failure?.code === 'acceptance_required') {
+    return { locale, result: { success: false as const, error: failure.code } };
+  }
 
   const result = await createMemberSupportHandoffCore({
     authority,

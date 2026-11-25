@@ -38,7 +38,12 @@ vi.mock('@/lib/auth-client', () => ({ authClient: { useSession: h.useSession } }
 
 // The mocked client Link carries `data-client-link`, so a test can tell a client-side transition
 // apart from the native, full-document anchor the auth action must stay.
+vi.mock('@/actions/preferred-locale', () => ({
+  updatePreferredLocale: vi.fn(),
+}));
+
 vi.mock('@/i18n/routing', () => ({
+  useRouter: () => ({ push: vi.fn() }),
   Link: ({
     children,
     href,

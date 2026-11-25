@@ -54,6 +54,9 @@ vi.mock('@interdomestik/database', () => {
     select: vi.fn(() => ({
       from: vi.fn(() => ({
         where: vi.fn((where: WhereClause) => ({
+          for: vi.fn(() =>
+            Promise.resolve(hoisted.store.claims.filter(claim => matches(where, claim)))
+          ),
           limit: vi.fn(async (count: number) =>
             hoisted.store.tokens
               .filter(token => matches(where, token))
@@ -104,7 +107,10 @@ vi.mock('@interdomestik/database', () => {
 
 vi.mock('@interdomestik/database/schema', () => trackingSchemaMock);
 
-vi.mock('drizzle-orm', () => createTrackingDrizzleMock());
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
+  ...createTrackingDrizzleMock(),
+}));
 
 vi.mock('../utils', () => ({
   buildClaimVisibilityWhere: vi.fn(({ tenantId }: { tenantId: string }) => ({
@@ -192,7 +198,7 @@ describe('tracking link lifecycle', () => {
       branchId: null,
     });
 
-    expect(result.url).toBe('http://localhost:3000/track/fresh-live-token');
+    expect('url' in result && result.url).toBe('http://localhost:3000/track/fresh-live-token');
     await expect(getPublicClaimStatus('old-live-token')).resolves.toBeNull();
     await expect(getPublicClaimStatus('fresh-live-token')).resolves.toEqual(
       expect.objectContaining({

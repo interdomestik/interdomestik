@@ -1,20 +1,7 @@
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
-
-async function switchLocale(
-  page: Parameters<typeof gotoApp>[0],
-  languageLabel: string,
-  optionLabel: string,
-  expectedPath: string
-) {
-  const userMenuButton = page.locator('[data-testid="sidebar-user-menu-button"]:visible');
-  await expect(userMenuButton).toHaveCount(1);
-  await userMenuButton.click();
-  await page.getByText(languageLabel, { exact: true }).hover();
-  await page.getByRole('menuitem').filter({ hasText: optionLabel }).click();
-  await expect.poll(() => new URL(page.url()).pathname).toBe(expectedPath);
-}
+import { startThrowawayMember, switchLocale } from './member-locale.fixture';
 
 async function expectNoHorizontalOverflow(page: Parameters<typeof gotoApp>[0]) {
   await expect
@@ -27,14 +14,23 @@ async function expectNoHorizontalOverflow(page: Parameters<typeof gotoApp>[0]) {
 }
 
 test.describe('Diaspora Feature', () => {
+  // The language switch saves the preferred locale (WP-11): it runs on a member of its own.
+  let throwaway: ReturnType<typeof startThrowawayMember> | null = null;
+  test.afterEach(async () => {
+    await throwaway?.remove();
+    throwaway = null;
+  });
+
   test('retained member handoffs settle', async ({ authenticatedPage: page }, testInfo) => {
     // prettier-ignore
     for (const [path, marker] of [['claim-report', 'report-page-ready'], ['green-card', 'green-card-page-ready'], ['benefits', 'benefits-page-ready']] as const) await gotoApp(page, `${routes.member(testInfo)}/${path}`, testInfo, { marker });
   });
 
   test('captures an exact corridor and preserves it through guidance and locale changes', async ({
-    authenticatedPage: page,
+    page,
   }, testInfo) => {
+    throwaway = startThrowawayMember(page, testInfo);
+    await throwaway.ready;
     const originalViewport = page.viewportSize();
     if (!originalViewport) throw new Error('Diaspora gate requires a configured viewport.');
 

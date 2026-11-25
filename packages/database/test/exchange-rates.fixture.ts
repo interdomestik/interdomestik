@@ -1,20 +1,22 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { copyFile, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
-import { tmpdir } from 'node:os';
-import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
 
-import { withDisposableClient, type DisposableClient } from '../src/disposable-client';
+import { withDisposableClient } from '../src/disposable-client';
 import type { TenantTransaction } from '../src/index';
 import { mintIngressCapability, type IngressCapability } from '../src/ingress-capability';
 import * as schema from '../src/schema';
 import { mintTenantAuthority, type TenantAuthority } from '../src/tenant-authority';
 import { restricted, runtimeRole } from './exchange-rates-restricted.fixture';
+import { runSequentially } from './in-order';
+import {
+  migrateJournalBeforeNotificationDeliveries,
+  migrateJournalThrough,
+} from './journal-prefix.support';
 import { migrateJournal, withScratchDatabase } from './pg16/scratch-database';
 import {
   applyRlsTestConnectionEnv,
@@ -24,6 +26,7 @@ import {
 } from './rls-test-connection';
 import { grantRlsTestRole } from './rls-test-grants';
 import { provisionRestrictedRole } from './s8-claim-restricted-rls.fixture';
+import { grantNotificationDeliveryRowLocks } from './wp11-notification-deliveries-rls.fixture';
 
 export { signal, waitForLockWaiters, withLockedBook } from './exchange-rates-lock.fixture';
 export { restricted, runtimeRole } from './exchange-rates-restricted.fixture';
@@ -38,9 +41,7 @@ export const rateInput = (effectiveOn: string) => ({
   effectiveOn,
 });
 
-export function runSequentially<T>(items: readonly T[], run: (item: T) => Promise<void>) {
-  return items.reduce((previous, item) => previous.then(() => run(item)), Promise.resolve());
-}
+export { runSequentially } from './in-order';
 
 export type RateRow = {
   id: string;
@@ -119,27 +120,16 @@ async function withRuntimeLogin(
 export type PaymentPortDatabase = { admin: postgres.Sql; peer: postgres.Sql };
 type RateMigrationPhase = '0104' | 'expand' | 'contract';
 
-export async function migratePaymentPortPhase(client: DisposableClient, phase: RateMigrationPhase) {
-  if (phase === 'contract') return migrateJournal(client, migrations);
-  const boundary =
-    phase === '0104' ? '0104_wp07_rate_verification_age' : '0105_wp07_rate_check_expand';
-  const folder = await mkdtemp(join(tmpdir(), 'wp07-journal-'));
-  try {
-    const journal = JSON.parse(await readFile(join(migrations, 'meta', '_journal.json'), 'utf8'));
-    const index = journal.entries.findIndex((entry: { tag: string }) => entry.tag === boundary);
-    assert.ok(index >= 0, 'the journal contains the requested WP-07 phase');
-    const entries = journal.entries.slice(0, index + 1);
-    await mkdir(join(folder, 'meta'));
-    await writeFile(join(folder, 'meta', '_journal.json'), JSON.stringify({ ...journal, entries }));
-    await Promise.all(
-      entries.map(({ tag }: { tag: string }) =>
-        copyFile(join(migrations, `${tag}.sql`), join(folder, `${tag}.sql`))
-      )
-    );
-    await migrateJournal(client, folder);
-  } finally {
-    await rm(folder, { recursive: true, force: true });
+export async function migratePaymentPortPhase(admin: postgres.Sql, phase: RateMigrationPhase) {
+  if (phase === '0104') {
+    return migrateJournalThrough(admin, migrations, '0104_wp07_rate_verification_age');
   }
+  await migrateJournalBeforeNotificationDeliveries(admin, migrations);
+  await grantNotificationDeliveryRowLocks(admin);
+  if (phase === 'expand') {
+    return migrateJournalThrough(admin, migrations, { name: 'wp07_rate_check_expand' });
+  }
+  return migrateJournal(admin, migrations);
 }
 
 export async function provisionRateWindow(
@@ -215,7 +205,7 @@ export async function withPaymentPortDatabase(
   // The scratch database owns all append-only rows and disappears after the proof.
   await withScratchDatabase('wp07_payment', admin =>
     withRuntimeLogin(admin, async (username, password) => {
-      // Migration 0101 grants privileges to the runtime role when it exists.
+      // The billing migrations grant privileges to the runtime role when it exists.
       await migratePaymentPortPhase(admin, phase);
       const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
       const url = new URL(process.env.DATABASE_URL!);

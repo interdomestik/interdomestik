@@ -1,18 +1,14 @@
 import { vi } from 'vitest';
 
+import { opsActionBoundaryMocks } from './ops-assignment.test-fixture';
+
 // Shared module mocks for the assignOwner action suites. Actions load through explicit awaited
 // imports below after mock registration. Suites import actions and assignment constants from
 // here, so a static re-export cannot capture an uninitialized action binding.
-const mocks = vi.hoisted(() => ({
-  directDbAccess: [] as string[],
-  getSession: vi.fn(),
-  revalidatePath: vi.fn(),
-  withTenantContext: vi.fn(),
+const mocks = { ...opsActionBoundaryMocks, directDbAccess: [] as string[] };
+vi.mock('@/lib/audit.core', () => ({
+  writeAuditEvent: vi.fn().mockResolvedValue({ success: true }),
 }));
-
-vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
-vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
-vi.mock('next/cache', () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock('@interdomestik/domain-claims/claims/transition-guard', () => ({
   isClaimStatusTransitionInGraph: () => true,
 }));
@@ -24,7 +20,7 @@ vi.mock('@interdomestik/database', async () => {
 
 const { assignOwner, unassignOwner } = await import('./ops-actions');
 const { ASSIGNMENT_CONFLICT_ERROR, ASSIGNMENT_DRAFT_ERROR, ASSIGNMENT_TARGET_DENIED_ERROR } =
-  await import('./ops-assignment');
+  await import('./ops-assignment-errors');
 
 export {
   ASSIGNMENT_CONFLICT_ERROR,

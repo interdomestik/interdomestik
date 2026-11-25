@@ -10,9 +10,16 @@
     "./messages/types": "./src/messages/types.ts",
     "./messages/normalize": "./src/messages/normalize.ts",
     "./messages/get": "./src/messages/get.ts",
+    "./messages/select": "./src/messages/select.ts",
     "./messages/mark-read": "./src/messages/mark-read.ts",
+    "./messages/store": "./src/messages/store.ts",
     "./messages/send": "./src/messages/send.ts",
     "./messages/schemas": "./src/messages/schemas.ts",
+    "./notification-deliveries": "./src/notification-deliveries/index.ts",
+    "./notification-deliveries/worker": "./src/notification-deliveries/worker.ts",
+    "./server-error": "./src/server-error.ts",
+    "./recipient-locale": "./src/recipient-locale.ts",
+    "./tenant-locale": "./src/tenant-locale.ts",
     "./notifications/get": "./src/notifications/get.ts",
     "./notifications/mark-read": "./src/notifications/mark-read.ts",
     "./notifications/schemas": "./src/notifications/schemas.ts",
@@ -28,7 +35,7 @@
   "scripts": {
     "type-check": "tsc --noEmit",
     "test:unit": "vitest run",
-    "test:rls": "MESSAGE_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/messages/tenant-context.integration.test.ts src/messages/send-negative-matrix.integration.test.ts src/messages/send-idempotency.integration.test.ts src/messages/public-reply-notification.integration.test.ts",
+    "test:rls": "pnpm --filter @interdomestik/domain-claims test:rls",
     "test": "vitest run"
   },
   "dependencies": {

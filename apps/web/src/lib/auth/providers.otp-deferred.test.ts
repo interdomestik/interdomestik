@@ -62,14 +62,14 @@ describe('IDA-UI03a0b2 deferred OTP provider', () => {
         expiresIn: 300,
         allowedAttempts: 3,
         resendStrategy: 'rotate',
-        disableSignUp: false,
+        disableSignUp: true,
       })
     );
     expect(mocks.after).toHaveBeenCalledOnce();
     expect(mocks.send).not.toHaveBeenCalled();
   });
 
-  it('C18 gives registered and unregistered addresses the same one-callback delivery trace', async () => {
+  it('C18 schedules one delivery for each sign-in callback passed by Better Auth', async () => {
     const config = plugin();
     await config.sendVerificationOTP({
       email: 'registered@example.com',

@@ -1,7 +1,5 @@
 'use server';
 
-import { getSessionSafe } from '@/components/shell/session';
-import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import {
@@ -14,9 +12,14 @@ import {
 } from '@interdomestik/domain-membership-billing/sponsors/opt-out';
 import { ROLES } from '@interdomestik/shared-auth';
 import { revalidatePath } from 'next/cache';
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 
 export type LeaveSponsorshipResult =
-  { ok: true } | { ok: false; error: 'not_found' | 'forbidden' | 'invalid_input' | 'error' };
+  | { ok: true }
+  | {
+      ok: false;
+      error: 'not_found' | 'forbidden' | 'invalid_input' | 'error' | 'acceptance_required';
+    };
 
 export async function leaveCompanyProgramme(input: unknown): Promise<LeaveSponsorshipResult> {
   if (
@@ -31,11 +34,17 @@ export async function leaveCompanyProgramme(input: unknown): Promise<LeaveSponso
   )
     return { ok: false, error: 'invalid_input' };
   try {
-    const session = await getSessionSafe('LeaveCompanyProgramme');
-    if (!session || session.user.role !== ROLES.member) return { ok: false, error: 'forbidden' };
+    const admission = await requireAdmittedMember();
+    if (!admission.ok) {
+      return {
+        ok: false,
+        error:
+          admission.failure.code === 'acceptance_required' ? 'acceptance_required' : 'forbidden',
+      };
+    }
+    const { session, authority } = admission.authorized;
+    if (session.user.role !== ROLES.member) return { ok: false, error: 'forbidden' };
     const userId = session.user.id;
-    const authority = await authorizeSessionUserTenant(userId);
-    if (!authority) return { ok: false, error: 'forbidden' };
     const { tenantId, principal } = readTenantAuthority(authority);
     if (principal?.userId !== userId || principal.role !== ROLES.member)
       return { ok: false, error: 'forbidden' };
@@ -51,27 +60,29 @@ export async function leaveCompanyProgramme(input: unknown): Promise<LeaveSponso
       return { ok: false, error: result.error === 'not_found' ? 'not_found' : 'error' };
     revalidatePath('/[locale]/member/membership', 'page');
     return { ok: true };
-  } catch {
+  } catch (error) {
+    console.error('Company membership request failed', error);
     return { ok: false, error: 'error' };
   }
 }
 
-export type CompanyMembershipOutlookResult = { ok: true; outlook: SponsorOutlook } | { ok: false };
+export type CompanyMembershipOutlookResult =
+  { ok: true; outlook: SponsorOutlook } | { ok: false; code?: string };
 
 /** Read-only pricing check; identity and tenant always come from this request. */
 export async function getCompanyMembershipOutlook(): Promise<CompanyMembershipOutlookResult> {
   try {
-    const session = await getSessionSafe('CompanyMembershipOutlook');
-    if (!session) return { ok: false };
-    const authority = await authorizeSessionUserTenant(session.user.id);
-    if (!authority) return { ok: false };
+    const admission = await requireAdmittedMember();
+    if (!admission.ok) return { ok: false, code: admission.failure.code };
+    const { session, authority } = admission.authorized;
     const { tenantId } = readTenantAuthority(authority);
     const outlooks = await withTenantAuthority(authority, tx =>
       readSponsorOutlook(tx, tenantId, [session.user.id], new Date())
     );
     const outlook = outlooks.get(session.user.id);
     return outlook ? { ok: true, outlook } : { ok: false };
-  } catch {
+  } catch (error) {
+    console.error('Company membership request failed', error);
     return { ok: false };
   }
 }

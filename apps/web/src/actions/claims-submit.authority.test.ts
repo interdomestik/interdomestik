@@ -1,21 +1,23 @@
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { fixtureSessionAuthority, refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
+  authorize: vi.fn(),
   context: {} as Record<string, unknown>,
   rateLimit: vi.fn(),
   submitClaimCore: vi.fn(),
 }));
 
-vi.mock('@/lib/safe-action', () => ({
+vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.authorize }));
+vi.mock('@/lib/safe-action', async importOriginal => ({
+  ...(await importOriginal<typeof import('@/lib/safe-action')>()),
   runAuthenticatedAction: (handler: (ctx: Record<string, unknown>) => Promise<unknown>) =>
     handler(mocks.context),
 }));
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimitForAction: mocks.rateLimit }));
 vi.mock('./claims/submit', () => ({ submitClaimCore: mocks.submitClaimCore }));
 vi.mock('./claims/create', () => ({ createClaimCore: vi.fn() }));
-vi.mock('./claims/draft', () => ({ cancelClaimCore: vi.fn(), updateDraftClaimCore: vi.fn() }));
-vi.mock('./claims/status', () => ({ updateClaimStatusCore: vi.fn() }));
+vi.mock('./claims/draft', () => ({ updateDraftClaimCore: vi.fn() }));
 
 import type { CreateClaimValues } from '@/lib/validators/claims';
 import { submitClaim } from './claims.core';
@@ -28,11 +30,19 @@ describe('submitClaim authority hand-off', () => {
     vi.clearAllMocks();
     mocks.rateLimit.mockResolvedValue({ limited: false });
     mocks.submitClaimCore.mockResolvedValue({ success: true });
+    mocks.authorize.mockResolvedValue({
+      session,
+      authority: fixtureSessionAuthority('tenant-1', session.user),
+    });
+    mocks.context = {
+      authority: fixtureSessionAuthority('tenant-other', session.user),
+      requestHeaders: new Headers(),
+    };
   });
 
-  it('passes the action context authority itself to the submit core', async () => {
-    const authority = mintTestTenantAuthority('tenant-1');
-    mocks.context = { session, authority, requestHeaders: new Headers() };
+  it('passes the admitted authority itself to the submit core', async () => {
+    const authority = fixtureSessionAuthority('tenant-1', session.user);
+    mocks.authorize.mockResolvedValue({ session, authority });
 
     await submitClaim(data, 'key-1');
 
@@ -45,21 +55,27 @@ describe('submitClaim authority hand-off', () => {
     });
   });
 
-  it('passes a null authority through so the core refuses to submit', async () => {
-    mocks.context = { session, authority: null, requestHeaders: new Headers() };
+  it('refuses a missing session before the core', async () => {
+    mocks.authorize.mockResolvedValue(null);
+    await expect(submitClaim(data)).resolves.toMatchObject({
+      success: false,
+      code: 'UNAUTHORIZED',
+    });
+    expect(mocks.submitClaimCore).not.toHaveBeenCalled();
+  });
 
-    await submitClaim(data);
-
-    expect(mocks.submitClaimCore.mock.calls[0]?.[0].authority).toBeNull();
+  it('refuses missing acceptance before the core', async () => {
+    refuseAcceptance();
+    await expect(submitClaim(data)).resolves.toMatchObject({
+      success: false,
+      code: 'acceptance_required',
+    });
+    expect(mocks.rateLimit).not.toHaveBeenCalled();
+    expect(mocks.submitClaimCore).not.toHaveBeenCalled();
   });
 
   it('does not reach the submit core when rate limited', async () => {
     mocks.rateLimit.mockResolvedValue({ limited: true });
-    mocks.context = {
-      session,
-      authority: mintTestTenantAuthority('tenant-1'),
-      requestHeaders: new Headers(),
-    };
 
     const result = await submitClaim(data);
 

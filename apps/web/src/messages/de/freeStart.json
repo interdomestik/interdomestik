@@ -1,5 +1,13 @@
 {
   "freeStart": {
+    "differentEmailRecovery": {
+      "CLOSED": "Die Änderung Ihrer Anmelde-E-Mail-Adresse ist derzeit nicht verfügbar."
+    },
+    "CLOSED": "Free Start ist derzeit geschlossen.",
+    "claimPack": { "CLOSED": "Die Erstellung von Schadenunterlagen ist derzeit geschlossen." },
+    "draft": {
+      "CLOSED": "Das Speichern von Änderungen an Free-Start-Entwürfen ist derzeit geschlossen."
+    },
     "eyebrow": "IHREN FALL ORDNEN",
     "title": "Sammeln Sie die wichtigsten Fakten an einem Ort.",
     "subtitle": "Sie müssen nicht die ganze Situation im Kopf behalten. Fügen Sie nur hinzu, was Sie jetzt wissen.",

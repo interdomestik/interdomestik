@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { render } from '@testing-library/react';
@@ -6,7 +7,9 @@ import { getTranslations } from 'next-intl/server';
 
 const h = vi.hoisted(() => ({
   shell: vi.fn(),
-  session: vi.fn(() => Promise.resolve({ user: { id: 'agent-1', role: 'agent' } })),
+  session: vi.fn(() =>
+    Promise.resolve({ user: { id: 'agent-1', role: 'agent', tenantId: 'tenant-1' } })
+  ),
   required: vi.fn(value => value),
   redirect: vi.fn((url: string) => {
     throw new Error(`redirect:${url}`);
@@ -52,6 +55,18 @@ import DashboardLayout from './_core.entry';
 import ClaimsPage from './claims/_core.entry';
 
 describe('MemberDashboard layout role handling', () => {
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    h.session.mockResolvedValueOnce({
+      user: { id: 'fixture-member', role: 'member', tenantId: 'tenant_mk' },
+    });
+    const tree = await ClaimsPage({ params: Promise.resolve({ locale: 'en' }) });
+    expect(tree?.props).toMatchObject({
+      refusal: { ok: false, failure: { code: 'acceptance_required' } },
+    });
+    expect(getTranslations).not.toHaveBeenCalled();
+  });
+
   it('gives claims titles the mobile side gutter without doubling desktop padding', async () => {
     const { container } = render(await ClaimsPage({ params: Promise.resolve({ locale: 'sq' }) }));
     expect(container.querySelector('h2')?.parentElement?.parentElement).toHaveClass(
@@ -116,7 +131,7 @@ describe('MemberDashboard layout role handling', () => {
 
   it('redirects staff away before mounting the member shell', async () => {
     h.session.mockResolvedValueOnce({
-      user: { id: 'staff-1', role: 'staff' },
+      user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-1' },
     });
     await expect(
       DashboardLayout({ children: null, params: Promise.resolve({ locale: 'mk' }) })

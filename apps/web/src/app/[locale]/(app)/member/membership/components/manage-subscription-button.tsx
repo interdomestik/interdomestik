@@ -1,6 +1,7 @@
 'use client';
 
 import { cancelSubscription, getPaymentUpdateUrl } from '@/actions/subscription.core';
+import { PADDLE_CLOSED } from '@interdomestik/domain-membership-billing/paddle-closed';
 import { Button } from '@interdomestik/ui/components/button';
 import {
   DropdownMenu,
@@ -11,6 +12,7 @@ import {
   DropdownMenuTrigger,
 } from '@interdomestik/ui/components/dropdown-menu';
 import { Ban, CreditCard, Loader2, Settings } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useRef, useState } from 'react';
 import { toast } from 'sonner';
 
@@ -30,6 +32,9 @@ export function ManageSubscriptionButton({
 }: ManageSubscriptionButtonProps) {
   const [loading, setLoading] = useState<string | null>(null);
   const cancellationKeyRef = useRef<string | null>(null);
+  const t = useTranslations('membership');
+
+  if (PADDLE_CLOSED) return <p className="text-sm text-muted-foreground">{t('CLOSED')}</p>;
 
   const handleUpdatePayment = async () => {
     setLoading('payment');

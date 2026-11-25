@@ -1,10 +1,8 @@
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
+import { UnauthorizedError } from '@interdomestik/shared-auth';
 import { type TenantTransaction } from '@interdomestik/database';
 import { buildVaultConsentDisplay, type VaultConsentDisplay } from '@interdomestik/domain-claims';
-import type { db } from '@interdomestik/database/db';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directory';
 import { claimDocumentAiExtractionConsents, claimDocuments } from '@interdomestik/database/schema';
 import { and, desc, eq, inArray } from 'drizzle-orm';
@@ -20,9 +18,11 @@ export interface GetMemberVaultConsentDisplayParams {
 
 export async function getMemberVaultConsentDisplay(
   params: GetMemberVaultConsentDisplayParams,
-  authority: TenantAuthority,
-  database?: TenantTransaction | typeof db
+  database?: TenantTransaction
 ): Promise<VaultConsentDisplay> {
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) throw new UnauthorizedError();
+  const { authority } = admission.authorized;
   const { tenantId } = readTenantAuthority(authority);
   const tenant = await readTenantLocaleMetadata(tenantId);
   const gated = buildVaultConsentDisplay({
@@ -49,7 +49,7 @@ type TenantLocaleMetadata = Awaited<ReturnType<typeof readTenantLocaleMetadata>>
 async function readVaultConsentDisplay(
   params: GetMemberVaultConsentDisplayParams,
   tenantId: string,
-  database: TenantTransaction | typeof db,
+  database: TenantTransaction,
   tenant: TenantLocaleMetadata,
   gated: VaultConsentDisplay
 ): Promise<VaultConsentDisplay> {

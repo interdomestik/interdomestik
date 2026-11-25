@@ -1,14 +1,13 @@
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
+import { requireMemberAcceptancePage } from '@/lib/privacy/require-member-acceptance';
 import { FunnelActivationTracker } from '@/components/analytics/funnel-trackers';
 import { MockActivationTrigger } from '@/components/billing/mock-activation-trigger';
-import { getSessionSafe } from '@/components/shell/session';
 import { isUiV2Enabled } from '@/lib/flags';
 import { isBillingTestActivationEnabled } from '@/lib/runtime-environment';
-import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import { getSupportContacts } from '@/lib/support-contacts';
 import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
 import { CheckCircle2 } from 'lucide-react';
 import { getTranslations } from 'next-intl/server';
-import { redirect } from 'next/navigation';
 
 import { SuccessAccountPanel } from './success-account-panel';
 import { SuccessEntityDisclosure } from './success-entity-disclosure';
@@ -26,8 +25,9 @@ function firstQueryValue(value: string | string[] | undefined): string | undefin
 
 export default async function MembershipSuccessPage({ params, searchParams }: SuccessPageProps) {
   const { locale } = await params;
-  const session = await getSessionSafe('MemberMembershipSuccessPage');
-  if (!session) redirect(`/${locale}/login`);
+  const admission = await requireMemberAcceptancePage();
+  if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
+  const { session } = admission.authorized;
 
   const query = searchParams ? await searchParams : {};
   const testParam = firstQueryValue(query.test);
@@ -38,7 +38,7 @@ export default async function MembershipSuccessPage({ params, searchParams }: Su
   const classificationPending =
     (session.user as { tenantClassificationPending?: boolean | null })
       .tenantClassificationPending === true;
-  const authority = tenantId ? await authorizeSessionUserTenant(session.user.id) : null;
+  const authority = tenantId ? admission.authorized.authority : null;
   const activeSubscription = authority
     ? await getActiveSubscription(session.user.id, authority)
     : null;

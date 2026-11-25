@@ -4,63 +4,105 @@ import { formatClaimAmount } from '@/lib/utils/currency';
 import { formatPilotDate } from '@/lib/utils/date';
 import { TableCell, TableRow } from '@interdomestik/ui';
 import { useTranslations } from 'next-intl';
+import type { ReactNode } from 'react';
 import { ClaimStatusBadge } from './claim-status-badge';
 
-const DETAIL_CELL =
-  'flex min-w-0 justify-between gap-3 p-0 text-right before:shrink-0 before:text-left before:text-muted-foreground before:content-[attr(data-label)] md:table-cell md:p-2 md:text-left md:before:hidden';
+export const MEMBER_CLAIM_DETAIL_COLUMNS = [
+  'status',
+  'company',
+  'category',
+  'amount',
+  'created',
+] as const;
+
+type DetailColumn = (typeof MEMBER_CLAIM_DETAIL_COLUMNS)[number];
+
+function ClaimDetailCell({
+  children,
+  column,
+  headerIdPrefix,
+  label,
+}: Readonly<{
+  children: ReactNode;
+  column: DetailColumn;
+  headerIdPrefix?: string;
+  label: string;
+}>) {
+  return (
+    <TableCell
+      className={`flex min-w-0 justify-between gap-3 p-0 text-right md:table-cell md:p-2 ${
+        column === 'created' ? 'md:text-right' : 'md:text-left'
+      }`}
+      headers={headerIdPrefix && `${headerIdPrefix}-${column}`}
+      role="cell"
+    >
+      <span
+        aria-hidden="true"
+        className="max-w-[45%] shrink-0 text-left text-foreground/70 md:hidden"
+      >
+        {label}
+      </span>
+      <div className="min-w-0 [&>*]:max-w-full">{children}</div>
+    </TableCell>
+  );
+}
 
 /** One set of links and cells: member-home card styling on phones, table rows on desktop. */
 export function MemberClaimRow({
   claim,
   locale,
   formatCategory,
+  headerIdPrefix,
 }: Readonly<{
   claim: ClaimsListItem;
   locale: string;
   formatCategory: (category: string | null | undefined) => string;
+  headerIdPrefix?: string;
 }>): React.JSX.Element {
   const t = useTranslations('claims');
   const amount = formatClaimAmount(claim.claimAmount, claim.currency, locale);
+  const created = formatPilotDate(claim.createdAt, locale, '');
+  const unavailable = (
+    <>
+      <span aria-hidden="true">-</span>
+      <span className="sr-only">{t('table.unavailable')}</span>
+    </>
+  );
+  const details: Record<DetailColumn, ReactNode> = {
+    status: <ClaimStatusBadge status={claim.status} />,
+    company: claim.companyName?.trim() || t('table.unavailable'),
+    category: formatCategory(claim.category) || t('table.unavailable'),
+    amount: amount ? <span className="font-medium">{amount}</span> : unavailable,
+    created: <span suppressHydrationWarning>{created || unavailable}</span>,
+  };
 
   return (
-    <TableRow className="grid min-w-0 gap-3 rounded-[1.25rem] border border-emerald-950/10 bg-[#f8f5ee] p-4 hover:bg-muted/50 md:table-row md:rounded-none md:border-0 md:border-b md:bg-transparent md:p-0">
-      <TableCell className="block min-w-0 p-0 font-semibold md:table-cell md:p-2 md:font-medium">
+    <TableRow
+      className="grid min-w-0 gap-3 rounded-2xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] p-4 [overflow-wrap:anywhere] hover:bg-[hsl(var(--surface))] md:table-row md:rounded-none md:border-0 md:border-b md:bg-transparent md:p-0 md:hover:bg-muted/50 forced-colors:border-[CanvasText]"
+      role="row"
+    >
+      <TableCell
+        className="block min-w-0 p-0 md:table-cell md:p-2"
+        headers={headerIdPrefix && `${headerIdPrefix}-title`}
+        role="cell"
+      >
         <Link
           href={`/member/claims/${claim.id}`}
-          className="flex min-h-11 items-center break-words hover:underline underline-offset-4 md:block md:min-h-0 md:max-w-[240px] md:truncate"
-          title={claim.title}
+          className="inline-flex min-h-11 min-w-11 max-w-full items-center rounded-sm font-semibold underline-offset-4 [overflow-wrap:anywhere] hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 md:min-h-6 md:min-w-6 md:underline forced-colors:underline forced-colors:focus-visible:outline"
         >
-          {claim.title}
+          <span className="min-w-0">{claim.title}</span>
         </Link>
       </TableCell>
-      <TableCell
-        className={DETAIL_CELL}
-        data-label={t('table.company')}
-        title={claim.companyName || ''}
-      >
-        <span className="min-w-0 break-words md:block md:max-w-[200px] md:truncate">
-          {claim.companyName}
-        </span>
-      </TableCell>
-      <TableCell
-        className={`${DETAIL_CELL} capitalize text-sm text-muted-foreground`}
-        data-label={t('table.category')}
-      >
-        <span className="min-w-0 break-words">{formatCategory(claim.category)}</span>
-      </TableCell>
-      <TableCell className={DETAIL_CELL} data-label={t('table.status')}>
-        <ClaimStatusBadge status={claim.status} />
-      </TableCell>
-      <TableCell className={DETAIL_CELL} data-label={t('table.amount')}>
-        <span className={amount ? 'font-medium' : 'text-muted-foreground'}>{amount || '-'}</span>
-      </TableCell>
-      <TableCell
-        className={`${DETAIL_CELL} text-sm md:text-right`}
-        data-label={t('table.created')}
-        suppressHydrationWarning
-      >
-        {formatPilotDate(claim.createdAt, locale, '-')}
-      </TableCell>
+      {MEMBER_CLAIM_DETAIL_COLUMNS.map(column => (
+        <ClaimDetailCell
+          key={column}
+          column={column}
+          headerIdPrefix={headerIdPrefix}
+          label={t(`table.${column}`)}
+        >
+          {details[column]}
+        </ClaimDetailCell>
+      ))}
     </TableRow>
   );
 }

@@ -2,6 +2,7 @@ import {
   createFreeStartDraft,
   deleteFreeStartDraft,
   listFreeStartDrafts,
+  readFreeStartDraftIntakeOpen,
   resumeFreeStartDraft,
   updateFreeStartDraft,
   type FreeStartDraftContext,
@@ -11,7 +12,8 @@ import { z } from 'zod';
 
 import { freeStartDraftPayloadSchema } from '@/lib/validators/free-start-draft';
 
-import { resolveFreeStartDraftSession } from './session.core';
+import { resolveFreeStartDraftSession, type FreeStartDraftSessionResult } from './session.core';
+import { draftWriteAdmissionDefaults, withDraftWriteAdmission } from './write-admission.core';
 
 /**
  * The account/tenant the client believes it captured. It is compared against fresh server
@@ -46,6 +48,8 @@ export type FreeStartDraftLifecycleDependencies = {
   createDraft: typeof createFreeStartDraft;
   deleteDraft: typeof deleteFreeStartDraft;
   listDrafts: typeof listFreeStartDrafts;
+  readIntakeOpen: typeof readFreeStartDraftIntakeOpen;
+  readPublicIntakeOpen: (requestHeaders: Headers) => Promise<boolean>;
   resolveSession: typeof resolveFreeStartDraftSession;
   resumeDraft: typeof resumeFreeStartDraft;
   updateDraft: typeof updateFreeStartDraft;
@@ -54,16 +58,19 @@ export type FreeStartDraftLifecycleDependencies = {
 const defaultDependencies: FreeStartDraftLifecycleDependencies = {
   createDraft: createFreeStartDraft,
   deleteDraft: deleteFreeStartDraft,
+  ...draftWriteAdmissionDefaults,
   listDrafts: listFreeStartDrafts,
   resolveSession: resolveFreeStartDraftSession,
   resumeDraft: resumeFreeStartDraft,
   updateDraft: updateFreeStartDraft,
 };
 
-type BoundaryFailure = {
-  ok: false;
-  code: 'authRequired' | 'invalid' | 'unavailable' | 'unavailableAccountContext';
-};
+type BoundaryFailure =
+  | Extract<FreeStartDraftSessionResult, { ok: false }>
+  | {
+      ok: false;
+      code: 'invalid';
+    };
 
 function facts(input: z.infer<typeof freeStartDraftPayloadSchema>): FreeStartDraftFacts {
   return {
@@ -100,6 +107,15 @@ async function withFreshContext<T>(
 ): Promise<T | BoundaryFailure> {
   const session = await dependencies.resolveSession(requestHeaders);
   if (!session.ok) return session;
+  return runWithContext(session, operation, expectedContext, admission);
+}
+
+async function runWithContext<T>(
+  session: Extract<FreeStartDraftSessionResult, { ok: true }>,
+  operation: (context: FreeStartDraftContext) => Promise<T>,
+  expectedContext?: FreeStartDraftExpectedContext,
+  admission: 'write' | 'read' = 'write'
+): Promise<T | BoundaryFailure> {
   if (expectedContext) {
     if (admission === 'write' && session.emailVerified !== true) {
       return { ok: false, code: 'authRequired' };
@@ -114,13 +130,18 @@ async function withFreshContext<T>(
   }
 }
 
+// Account reads need only the session; they never reach draft write admission.
+const accountReadDependencies: Pick<FreeStartDraftLifecycleDependencies, 'resolveSession'> = {
+  resolveSession: resolveFreeStartDraftSession,
+};
+
 /**
  * Presentation-only verdict for the account draft queue. It grants nothing: every mutation
  * resolves fresh authority again and re-checks verification before touching the repository.
  */
 export async function getFreeStartDraftAccountCore(
   requestHeaders: Headers,
-  dependencies = defaultDependencies
+  dependencies = accountReadDependencies
 ) {
   const session = await dependencies.resolveSession(requestHeaders);
   if (!session.ok) return session;
@@ -139,15 +160,18 @@ export async function createFreeStartDraftCore(
   input: unknown,
   dependencies = defaultDependencies
 ) {
-  const parsed = createSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, code: 'invalid' } as const;
-  const { clientRequestId } = parsed.data;
-  return withFreshContext(
-    requestHeaders,
-    dependencies,
-    context => dependencies.createDraft(context, { ...facts(parsed.data), clientRequestId }),
-    parsed.data.expectedContext
-  );
+  return withDraftWriteAdmission(requestHeaders, dependencies, async session => {
+    const parsed = createSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, code: 'invalid' } as const;
+    }
+    const { clientRequestId } = parsed.data;
+    return runWithContext(
+      session,
+      context => dependencies.createDraft(context, { ...facts(parsed.data), clientRequestId }),
+      parsed.data.expectedContext
+    );
+  });
 }
 
 export async function listFreeStartDraftsCore(
@@ -200,15 +224,18 @@ export async function updateFreeStartDraftCore(
   input: unknown,
   dependencies = defaultDependencies
 ) {
-  const parsed = updateSchema.safeParse(input);
-  if (!parsed.success) return { ok: false, code: 'invalid' } as const;
-  const { expectedVersion, id } = parsed.data;
-  return withFreshContext(
-    requestHeaders,
-    dependencies,
-    context => dependencies.updateDraft(context, { ...facts(parsed.data), expectedVersion, id }),
-    parsed.data.expectedContext
-  );
+  return withDraftWriteAdmission(requestHeaders, dependencies, async session => {
+    const parsed = updateSchema.safeParse(input);
+    if (!parsed.success) {
+      return { ok: false, code: 'invalid' } as const;
+    }
+    const { expectedVersion, id } = parsed.data;
+    return runWithContext(
+      session,
+      context => dependencies.updateDraft(context, { ...facts(parsed.data), expectedVersion, id }),
+      parsed.data.expectedContext
+    );
+  });
 }
 
 export async function deleteFreeStartDraftCore(

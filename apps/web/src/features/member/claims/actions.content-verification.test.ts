@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { describe, expect, it } from 'vitest';
 import { getUploadActionMocks } from './actions-mocks.spec';
 import { confirmUpload } from './actions';
@@ -6,6 +7,17 @@ import { createConfirmUploadParams } from './actions.test-fixtures';
 const m = getUploadActionMocks();
 
 describe('member document persistence after signature verification', () => {
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    await expect(confirmUpload(createConfirmUploadParams())).resolves.toEqual({
+      success: false,
+      error: 'acceptance_required',
+      status: 403,
+    });
+    expect(m.findOwnedMemberUploadClaim).not.toHaveBeenCalled();
+    expect(m.insert).not.toHaveBeenCalled();
+  });
+
   it('refuses a renamed text file without deleting it and writes no metadata, consent or workflow', async () => {
     m.readPrefix.mockResolvedValueOnce(new TextEncoder().encode('text renamed to PDF'));
     expect(

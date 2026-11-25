@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import type postgres from 'postgres';
-import { grantE2eRuntimePrivileges } from '../../../scripts/e2e-runtime-role-grants.mjs';
 
+import { withE2eRuntimeGrants } from './e2e-runtime-role.fixture';
 import {
   firstRate,
   insertRate,
@@ -234,19 +234,22 @@ export async function proveOfficialCheckConstraints(f: ExchangeRateFixture) {
     message: 'permission denied for table exchange_rate_check_windows',
   };
   await assert.rejects(asTenant(insertWindow), noWindowInsert);
-  await admin.begin(tx => grantE2eRuntimePrivileges(tx, quoteIdentifier(runtimeRole)));
-  await assert.rejects(asTenant(insertWindow), noWindowInsert);
-  await assert.rejects(
-    asTenant(tx => tx`delete from exchange_rate_verification_limits`),
-    { code: '42501' }
-  );
-  const [counts] = await asTenant(
-    tx => tx`
-    select (select count(*)::int from exchange_rate_check_windows) as windows,
-      (select count(*)::int from exchange_rate_check_events) as events,
-      (select count(*)::int from exchange_rate_verifications) as verifications`
-  );
-  assert.deepEqual(counts, { windows: 1, events: 1, verifications: 1 });
+  await withE2eRuntimeGrants(admin, async e2eRole => {
+    const asE2eTenant = <T>(run: (tx: postgres.TransactionSql) => Promise<T>) =>
+      restricted(admin, tenantId, run, e2eRole);
+    await assert.rejects(asE2eTenant(insertWindow), noWindowInsert);
+    await assert.rejects(
+      asE2eTenant(tx => tx`delete from exchange_rate_verification_limits`),
+      { code: '42501' }
+    );
+    const [counts] = await asE2eTenant(
+      tx => tx`
+      select (select count(*)::int from exchange_rate_check_windows) as windows,
+        (select count(*)::int from exchange_rate_check_events) as events,
+        (select count(*)::int from exchange_rate_verifications) as verifications`
+    );
+    assert.deepEqual(counts, { windows: 1, events: 1, verifications: 1 });
+  });
 }
 
 export async function proveHeadQueryPlan(f: ExchangeRateFixture) {

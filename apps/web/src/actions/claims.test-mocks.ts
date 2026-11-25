@@ -1,3 +1,5 @@
+import '@/test/tenant-transaction.test-support';
+import '@/test/member-acceptance.test-support';
 import { beforeEach, vi } from 'vitest';
 import { resetClaimActionMocks } from './claims.test-support';
 
@@ -29,9 +31,6 @@ vi.mock('nanoid', async () => (await import('./claims.test-support')).nanoidModu
 vi.mock('next/cache', async () => (await import('./claims.test-support')).nextCacheModuleMock());
 vi.mock('next/headers', async () =>
   (await import('./claims.test-support')).nextHeadersModuleMock()
-);
-vi.mock('@/lib/notifications', async () =>
-  (await import('./claims.test-support')).notificationsModuleMock()
 );
 vi.mock('@/lib/ai/claim-workflows', async () =>
   (await import('./claims.test-support')).aiClaimWorkflowsModuleMock()

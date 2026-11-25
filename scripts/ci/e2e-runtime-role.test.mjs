@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
 import test from 'node:test';
 import { registerHooks } from 'node:module';
 import { fileURLToPath } from 'node:url';
@@ -43,6 +44,7 @@ const {
   assertE2eRuntimeTarget,
   describeRuntimeRoleFailure,
   E2E_RUNTIME_ROLE,
+  NARROWED_TABLE_GRANTS,
   provisionE2eRuntimeRole,
   resolveE2eRuntimeUrl,
 } = await import('../e2e-runtime-role.mjs');
@@ -237,4 +239,28 @@ test('non-loopback admin and runtime targets refuse before any driver constructi
     )
   );
   assert.equal(driver.connections, 0);
+});
+
+test('the narrowed E2E grants equal the WP-12 migration grants of the restricted runtime role', () => {
+  const drizzle = new URL('../../packages/database/drizzle/', import.meta.url);
+  const [file] = readdirSync(drizzle).filter(name =>
+    name.endsWith('_wp12_claim_correspondence.sql')
+  );
+  assert.ok(file, 'the WP-12 migration exists');
+  const sql = readFileSync(new URL(file, drizzle), 'utf8').replaceAll(/\s+/gu, ' ');
+  const granted = {};
+  for (const [, columns, table] of sql.matchAll(
+    /GRANT UPDATE \(([^)]*)\) ON public\.(\w+) TO interdomestik_runtime_rls/gu
+  )) {
+    granted[table] = columns.split(',').map(column => column.trim());
+  }
+  const revoked = sql.match(
+    /REVOKE UPDATE, DELETE, TRUNCATE ON (public\.\w+(?:, public\.\w+)*) FROM interdomestik_runtime_rls/u
+  );
+  assert.ok(revoked, 'the migration revokes table-wide writes from the runtime role');
+  const tables = revoked[1].split(', ').map(name => name.replace('public.', ''));
+  assert.deepEqual(new Set(Object.keys(NARROWED_TABLE_GRANTS)), new Set(tables));
+  for (const table of tables) {
+    assert.deepEqual(NARROWED_TABLE_GRANTS[table], granted[table] ?? [], table);
+  }
 });

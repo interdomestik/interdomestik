@@ -740,15 +740,43 @@
     {
       "idx": 105,
       "version": "7",
-      "when": 1795533843496,
-      "tag": "0105_wp07_rate_check_expand",
+      "when": 1795510496602,
+      "tag": "0105_wp11_notification_deliveries",
       "breakpoints": true
     },
     {
       "idx": 106,
       "version": "7",
-      "when": 1795533975837,
-      "tag": "0106_wp07_rate_check_contract",
+      "when": 1795532340342,
+      "tag": "0106_wp12_claim_correspondence",
+      "breakpoints": true
+    },
+    {
+      "idx": 107,
+      "version": "7",
+      "when": 1795567549589,
+      "tag": "0107_perf_read_path_indexes",
+      "breakpoints": true
+    },
+    {
+      "idx": 108,
+      "version": "7",
+      "when": 1795567549590,
+      "tag": "0108_wp13a_legal_acceptance",
+      "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1795630500550,
+      "tag": "0109_wp07_rate_check_expand",
+      "breakpoints": true
+    },
+    {
+      "idx": 110,
+      "version": "7",
+      "when": 1795630546153,
+      "tag": "0110_wp07_rate_check_contract",
       "breakpoints": true
     }
   ]

@@ -1,9 +1,11 @@
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   select: vi.fn(),
   withTenantContext: vi.fn(),
   locale: vi.fn(),
+  admit: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   desc: vi.fn((column: unknown) => ({ op: 'desc', column })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
@@ -15,6 +17,10 @@ import {
   baseParams,
   baseTenantId,
 } from './getMemberVaultConsentDisplay.test-support';
+
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: hoisted.admit,
+}));
 
 vi.mock('@interdomestik/database', () => ({
   db: { select: hoisted.select },
@@ -28,7 +34,8 @@ vi.mock('@interdomestik/database/schema', () => ({
   claimDocuments: {},
   claimDocumentAiExtractionConsents: {},
 }));
-vi.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
   and: hoisted.and,
   desc: hoisted.desc,
   eq: hoisted.eq,
@@ -40,10 +47,18 @@ import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 describe('getMemberVaultConsentDisplay gates', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.admit.mockResolvedValue({ ok: true, authorized: { authority: baseAuthority } });
     hoisted.withTenantContext.mockImplementation(
       async (_context: unknown, callback: (tx: unknown) => unknown) =>
         callback({ select: hoisted.select })
     );
+  });
+
+  it('refuses before reading any metadata or document data', async () => {
+    hoisted.admit.mockResolvedValueOnce({ ok: false });
+    await expect(getMemberVaultConsentDisplay(baseParams)).rejects.toThrow(UnauthorizedError);
+    expect(hoisted.locale).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it.each([
@@ -53,9 +68,7 @@ describe('getMemberVaultConsentDisplay gates', () => {
   ])('fails closed before document reads for tenant row %j', async (tenantRows, expected) => {
     hoisted.locale.mockResolvedValueOnce(tenantRows[0] ?? null);
 
-    await expect(getMemberVaultConsentDisplay(baseParams, baseAuthority)).resolves.toEqual(
-      expected
-    );
+    await expect(getMemberVaultConsentDisplay(baseParams)).resolves.toEqual(expected);
     expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);
     expect(hoisted.select).not.toHaveBeenCalled();
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
@@ -65,7 +78,7 @@ describe('getMemberVaultConsentDisplay gates', () => {
     hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
 
     await expect(
-      getMemberVaultConsentDisplay({ ...baseParams, claimCategory: 'injury' }, baseAuthority)
+      getMemberVaultConsentDisplay({ ...baseParams, claimCategory: 'injury' })
     ).resolves.toEqual({ kind: 'hidden' });
     expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);
     expect(hoisted.select).not.toHaveBeenCalled();
@@ -74,10 +87,10 @@ describe('getMemberVaultConsentDisplay gates', () => {
   it('returns an item-free erased state before document reads', async () => {
     hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
 
-    const result = await getMemberVaultConsentDisplay(
-      { ...baseParams, piiStatus: 'erased_or_unavailable' },
-      baseAuthority
-    );
+    const result = await getMemberVaultConsentDisplay({
+      ...baseParams,
+      piiStatus: 'erased_or_unavailable',
+    });
     expect(result).toEqual({ kind: 'subject_erased' });
     expect('items' in result).toBe(false);
     expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);

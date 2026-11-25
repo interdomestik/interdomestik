@@ -9,6 +9,7 @@ import {
   processClaimDocumentWorkflowRunService,
 } from '@/lib/ai/claim-workflows';
 import { processPolicyAnalysisRunService } from '@/app/api/policies/analyze/_services';
+import { runNotificationDeliverySchedule } from '@/lib/notification-delivery-schedule';
 import { NonRetriableError } from 'inngest';
 import { inngest } from './client';
 
@@ -61,6 +62,15 @@ export const dailyEmailSequences = inngest.createFunction(
 
     return { emailSequences: emailResult };
   }
+);
+
+export const notificationDeliveries = inngest.createFunction(
+  { id: 'notification-deliveries' },
+  { cron: '*/5 * * * *' },
+  ({ step }) =>
+    step.run('drain-notification-deliveries', async () =>
+      runNotificationDeliverySchedule(mintIngressCapability('inngest'))
+    )
 );
 
 /**
@@ -119,12 +129,9 @@ export const legalDocumentExtractionRequested = inngest.createFunction(
   }
 );
 
-/**
- * All Inngest functions to register with the handler
- */
+// The signed receiver serves notification delivery and extraction. Both campaign timers stay dormant.
 export const inngestFunctions = [
-  dailyEmailSequences,
-  seasonalCampaigns,
+  notificationDeliveries,
   policyExtractionRequested,
   claimIntakeExtractionRequested,
   legalDocumentExtractionRequested,

@@ -3,10 +3,9 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import * as domainDraft from '@interdomestik/domain-claims/claims/draft';
 import { revalidatePath } from 'next/cache';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cancelClaimCore, updateDraftClaimCore } from './draft.core';
+import { updateDraftClaimCore } from './draft.core';
 
 vi.mock('@interdomestik/domain-claims/claims/draft', () => ({
-  cancelClaimCore: vi.fn(),
   updateDraftClaimCore: vi.fn(),
 }));
 
@@ -43,22 +42,6 @@ describe('claims draft.core', () => {
       logAuditEvent,
       revalidatePath,
       validateSubmittedClaimFile: expect.any(Function),
-    });
-  });
-
-  it('should call domain cancelClaimCore', async () => {
-    const params = {
-      session: mockSession as never,
-      authority,
-      requestHeaders: mockHeaders,
-      claimId: 'c1',
-    };
-
-    await cancelClaimCore(params);
-
-    expect(domainDraft.cancelClaimCore).toHaveBeenCalledWith(params, {
-      logAuditEvent,
-      revalidatePath,
     });
   });
 });

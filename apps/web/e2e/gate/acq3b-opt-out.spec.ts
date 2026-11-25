@@ -1,5 +1,5 @@
 import { optOutToken } from '@interdomestik/domain-membership-billing/sponsors/roster-crypto';
-import { expect, test } from '../fixtures/auth.fixture';
+import { CLOSED_SERVICES_PROJECT, expect, test } from '../../e2e-mac/closed-services.fixture';
 import { path as routePath } from '../fixtures/routes';
 import { gotoApp } from '../utils/navigation';
 import { withFreshPage } from './test/login-handoff-page';
@@ -15,9 +15,9 @@ test.describe('ACQ-3b public opt-out', () => {
     test(`${locale}: GET is inert; confirmation announces and focuses completion`, async ({
       browser,
     }, info) => {
-      // This fixture is provisioned in one project only; other projects skip it.
+      // Only the KS runs provision this fixture.
       test.skip(
-        info.project.name !== 'gate-ks-sq',
+        !['gate-ks-sq', CLOSED_SERVICES_PROJECT].includes(info.project.name),
         'One tenant host; four catalog-backed languages.'
       );
       test.setTimeout(90_000);
@@ -58,6 +58,10 @@ test.describe('ACQ-3b public opt-out', () => {
           await expect
             .poll(async () => (await readEntry(f, entryId)).revokedReason)
             .toBe('opted_out');
+          const optedOut = await readEntry(f, entryId);
+          expect(optedOut.revokedAt).toBeTruthy();
+          expect(optedOut.optedOutAt).toBeTruthy();
+          expect(optedOut.optoutTokenHash).toBeNull();
           await gotoApp(page, url, info, { marker: 'public-sponsor-opt-out-page-ready' });
           // GET never resolves the token (§3.8); a used or malformed link is refused on submission.
           for (const link of [url, routePath(info, `/${locale}/sponsor/opt-out/malformed`)]) {

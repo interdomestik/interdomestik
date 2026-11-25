@@ -12,3 +12,22 @@ test('S6 member payment recovery owns the canonical membership locale catalogs',
   }
   assert.equal(structuredArtifactOwner('apps/web/src/messages/hr/membership.json'), null);
 });
+
+test('T117B/member upload catalog ownership', () => {
+  for (const locale of ['en', 'mk', 'sq', 'sr']) {
+    const prefix = `apps/web/src/messages/${locale}/`;
+    assert.deepEqual(
+      ['dashboard.json', 'claims.json'].map(file => structuredArtifactOwner(prefix + file)),
+      ['t117b-member-portal-i18n-contract', 'member-evidence-upload-locale-contract']
+    );
+  }
+
+  for (const denied of [
+    'apps/web/src/messages/hr/dashboard.json',
+    'apps/web/src/messages/en/settings.json',
+    'apps/web/src/messages/en/portal.json',
+    'apps/web/src/messages/hr/claims.json',
+  ]) {
+    assert.equal(structuredArtifactOwner(denied), null, denied);
+  }
+});

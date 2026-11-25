@@ -12,6 +12,7 @@ import {
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
 import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 
 type FixtureUser = {
   id: string;
@@ -80,7 +81,7 @@ export async function withBranchOverviewScopeFixture<T>(
     { id: `${prefix}-member-a`, tenantId: targetTenantId, branchId: ownBranch.id },
     { id: `${prefix}-member-b`, tenantId: targetTenantId, branchId: siblingBranch.id },
     { id: `${prefix}-member-foreign`, tenantId: foreignTenantId, branchId: foreignBranch.id },
-  ];
+  ].map(member => ({ ...member, email: `${member.id}@example.test` }));
   const claimIds = [
     `${prefix}-claim-a`,
     `${prefix}-claim-b-1`,
@@ -179,13 +180,13 @@ export async function withBranchOverviewScopeFixture<T>(
       ...members.map(member => ({
         ...member,
         name: member.id,
-        email: `${member.id}@example.com`,
         role: 'member' as const,
         emailVerified: true,
         createdAt: at,
         updatedAt: at,
       })),
     ]);
+    await fixtureLegalAcceptance('seed', members);
 
     await db.insert(account).values(
       [tenantAdmin, branchManager, missingBranchManager].map(owner => ({
@@ -256,6 +257,7 @@ export async function withBranchOverviewScopeFixture<T>(
     await db.delete(claims).where(inArray(claims.id, claimIds));
     await db.delete(session).where(inArray(session.userId, authenticatedUserIds));
     await db.delete(account).where(inArray(account.userId, authenticatedUserIds));
+    await fixtureLegalAcceptance('clean', members);
     await db.delete(user).where(inArray(user.id, allUserIds));
     await db.delete(branches).where(inArray(branches.id, allBranchIds));
     await db.delete(tenants).where(eq(tenants.id, foreignTenantId));

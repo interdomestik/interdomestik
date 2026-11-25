@@ -4,6 +4,8 @@ import { sql } from 'drizzle-orm';
 
 import { auditLog } from '../schema/notes';
 import { withTenantContext, type TenantTransaction } from '../tenant';
+import { readTenantAuthority, type TenantAuthority } from '../tenant-authority';
+import { withTenantAuthority } from '../tenant-authority-context';
 import type { FreeStartDraftContext } from './contracts';
 
 type DraftAuditAction =
@@ -44,5 +46,24 @@ export async function insertFreeStartDraftAudit(
     entityType: 'free_start_draft',
     entityId: draftId,
     metadata: { version },
+  });
+}
+
+/** Binds the transaction-local actor settings to an authenticated session principal. */
+export async function withPrincipalTenantContext<T>(
+  authority: TenantAuthority,
+  action: (tx: TenantTransaction) => Promise<T>
+): Promise<T> {
+  const { principal, purpose } = readTenantAuthority(authority);
+  if (purpose !== 'session' || !principal?.role) {
+    throw new Error('Session principal required');
+  }
+  const { userId, role } = principal;
+  return withTenantAuthority(authority, async tx => {
+    await tx.execute(sql`
+      select set_config('app.current_actor_id', ${userId}, true),
+             set_config('app.current_actor_role', ${role}, true)
+    `);
+    return action(tx);
   });
 }

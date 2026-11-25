@@ -9,6 +9,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { headers } from 'next/headers';
+import { getTranslations } from 'next-intl/server';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { getAgentAuthority, getAgentSession } from './agent/context';
 import { createLeadCore } from './agent/create-lead';
@@ -203,8 +204,17 @@ export async function importMembers(prevState: unknown, formData: FormData) {
     rows: validated.data.rows,
   });
 
-  const locale = resolveLocaleFromReferer((await headers()).get('referer'));
-  revalidatePath(`/${locale}/agent/clients`);
+  const closed = 'code' in result && result.code === 'CLOSED';
+  if (!closed || result.summary.imported > 0) {
+    const requestHeaders = await headers();
+    const locale = resolveLocaleFromReferer(requestHeaders.get('referer'));
+    revalidatePath(`/${locale}/agent/clients`);
+  }
+
+  if (closed) {
+    const t = await getTranslations('pricing');
+    return { ...result, error: t('CLOSED') };
+  }
 
   return {
     error: result.error ?? '',

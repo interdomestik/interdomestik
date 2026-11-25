@@ -4,6 +4,7 @@ import { runAuthenticatedAction } from '@/lib/safe-action';
 import { ROLE_AGENT } from '@/lib/roles.core';
 import { startPayment, startPaymentSchema } from '@interdomestik/domain-leads';
 import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
+import { leadSalesClosedFailure } from './sales-closed';
 
 export async function startPaymentAction(input: unknown) {
   return runAuthenticatedAction(async ctx => {
@@ -13,13 +14,17 @@ export async function startPaymentAction(input: unknown) {
       throw new UnauthorizedError('Unauthorized');
     }
 
-    return await startPayment(
-      {
-        agentId: actorAgentId,
-        branchId,
-        authority: ctx.authority,
-      },
-      data
-    );
+    try {
+      return await startPayment(
+        {
+          agentId: actorAgentId,
+          branchId,
+          authority: ctx.authority,
+        },
+        data
+      );
+    } catch (error) {
+      return leadSalesClosedFailure(error);
+    }
   });
 }

@@ -1,15 +1,25 @@
 import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
 import { getBranchManagerNotificationCopy } from '@/lib/notifications/branch-manager-copy';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { getMemberClaimDetail } from '@/features/claims/tracking/server/getMemberClaimDetail';
 import {
   notificationClaimId,
   notificationDisplayCopy,
   storedClaimLabel,
 } from '@/lib/notifications/display-copy';
 import { getNotificationsCore as getNotificationsCoreDomain } from '@interdomestik/domain-communications/notifications/get';
+import { getMemberClaimTitle } from '@interdomestik/domain-claims';
+import { reportServerError } from '@interdomestik/domain-communications/server-error';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { Session } from './context';
+
+class NotificationClaimLookupError extends Error {
+  readonly code = 'CLAIM_LOOKUP_FAILED';
+
+  constructor() {
+    super('Notification claim lookup failed');
+    this.name = 'NotificationClaimLookupError';
+  }
+}
 
 export async function getNotificationsCore(params: {
   session: Session | null;
@@ -21,36 +31,46 @@ export async function getNotificationsCore(params: {
   }
   const rows = await getNotificationsCoreDomain(params);
   const locale = await getLocale();
-  if (!deniesClaimMessageContent(params.session?.user?.role)) {
-    const t = await getTranslations({ locale, namespace: 'notifications' });
-    const labels = new Map<string, Promise<string | null>>();
-    return Promise.all(
-      rows.map(async row => {
-        const claimId = notificationClaimId(row);
-        // Legacy raw-ID entries reuse the member's existing claim reader and admission.
-        // Unavailable references get neutral copy; stored human titles need no lookup.
-        if (
-          claimId &&
-          !storedClaimLabel(row) &&
-          params.session?.user.role === 'member' &&
-          !labels.has(claimId)
-        ) {
-          labels.set(
-            claimId,
-            getMemberClaimDetail(params.session, params.authority, claimId)
-              .then(claim => claim?.title ?? null)
-              .catch(() => null)
-          );
-        }
-        const label = claimId ? await labels.get(claimId) : null;
-        return { ...row, ...notificationDisplayCopy(row, t, label) };
-      })
+  const t = deniesClaimMessageContent(params.session?.user?.role)
+    ? null
+    : await getTranslations({ locale, namespace: 'notifications' });
+  const labels = new Map<string, Promise<string | null>>();
+  const displayRows = [];
+  for (const row of rows) {
+    if (
+      !t ||
+      row.previewRestricted ||
+      (row.type === 'new_message' && row.previewRestricted !== false)
+    ) {
+      displayRows.push(
+        getBranchManagerNotificationCopy(row.type, locale).then(copy => ({ ...row, ...copy }))
+      );
+      continue;
+    }
+    const claimId = notificationClaimId(row);
+    // Legacy raw-ID entries need only a title under the already admitted member authority.
+    if (
+      claimId &&
+      !storedClaimLabel(row) &&
+      params.session?.user.role === 'member' &&
+      params.authority &&
+      !labels.has(claimId)
+    ) {
+      labels.set(
+        claimId,
+        getMemberClaimTitle({ authority: params.authority, claimId }).catch(error => {
+          reportServerError('Notification claim lookup failed', error);
+          throw new NotificationClaimLookupError();
+        })
+      );
+    }
+    const label = claimId ? labels.get(claimId) : undefined;
+    displayRows.push(
+      Promise.resolve(label ?? null).then(title => ({
+        ...row,
+        ...notificationDisplayCopy(row, t, title),
+      }))
     );
   }
-  return Promise.all(
-    rows.map(async row => ({
-      ...row,
-      ...(await getBranchManagerNotificationCopy(row.type, locale)),
-    }))
-  );
+  return Promise.all(displayRows);
 }

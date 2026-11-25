@@ -1,7 +1,10 @@
 'use server';
 
-import { runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
+import { memberGuarded, runAdmittedAction } from '@/lib/privacy/require-member-acceptance';
+import type { AuthorizedSession } from '@/lib/tenant-authority.server';
+import { actionFailure, runAuthenticatedAction, type ActionResult } from '@/lib/safe-action';
 import { requireEffectivePortalAccessOrUnauthorized } from '@/server/auth/effective-portal-access';
+import { getTranslations } from 'next-intl/server';
 import { z } from 'zod';
 
 import { getUsersCore } from './admin-users/get-users';
@@ -42,7 +45,7 @@ export async function resolveTenantClassification(params: {
   currentTenantId: string;
   nextTenantId?: string | null;
 }): ActionResult<void> {
-  return runAuthenticatedAction<void>(async ({ session, authority }) => {
+  const outcome = await runAuthenticatedAction(async ({ session, authority }) => {
     await requireEffectivePortalAccessOrUnauthorized(
       session,
       ['admin', 'tenant_admin', 'super_admin'],
@@ -60,52 +63,67 @@ export async function resolveTenantClassification(params: {
     if ('error' in result) {
       // A refusal carries its code end to end; the wrapper classifies by code, never by text.
       if (result.code === 'UNAUTHORIZED') throw new UnauthorizedError(String(result.error));
+      if (result.code === 'EMAIL_NOT_PROVEN') {
+        const t = await getTranslations('admin.member_profile.tenant_resolution');
+        return actionFailure(result.code, t('EMAIL_NOT_PROVEN'));
+      }
       throw new Error(String(result.error));
     }
   });
+  if (outcome.success) {
+    return { success: true };
+  }
+  return outcome;
 }
 
-export async function getUsers(
-  filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
-): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return getFilteredUsers(filters, true);
-}
+const guardedGetUsers = memberGuarded(
+  async (
+    authorized,
+    filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
+  ): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> => {
+    return getFilteredUsers(authorized, filters, true);
+  }
+);
 
-export async function getUserChoices(
-  filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
-): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return getFilteredUsers(filters, false);
-}
+const guardedGetUserChoices = memberGuarded(
+  async (
+    authorized,
+    filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>
+  ): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> => {
+    return getFilteredUsers(authorized, filters, false);
+  }
+);
 
 async function getFilteredUsers(
+  authorized: AuthorizedSession,
   filters: Partial<Parameters<typeof getUsersCore>[0]['filters']>,
   includeUnreadCounts: boolean
 ): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(
-    async ({ session, authority }) => {
-      await requireEffectivePortalAccessOrUnauthorized(session, [
-        'admin',
-        'tenant_admin',
-        'super_admin',
-      ]);
-      const validation = getUsersFiltersSchema.safeParse(filters);
-      if (!validation.success) {
-        throw new Error('Invalid filters');
-      }
-      const data = await getUsersCore({
-        session,
-        authority,
-        filters: validation.data,
-        includeUnreadCounts,
-      });
-      return data;
+  return runAdmittedAction(authorized, async () => {
+    const { session, authority } = authorized;
+    await requireEffectivePortalAccessOrUnauthorized(session, [
+      'admin',
+      'tenant_admin',
+      'super_admin',
+    ]);
+    const validation = getUsersFiltersSchema.safeParse(filters);
+    if (!validation.success) {
+      throw new Error('Invalid filters');
     }
-  );
+    const data = await getUsersCore({
+      session,
+      authority,
+      filters: validation.data,
+      includeUnreadCounts,
+    });
+    return data;
+  });
 }
 
-export async function getAgents(): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(
-    async ({ session, authority }) => {
+const guardedGetAgents = memberGuarded(
+  async (authorized): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> => {
+    return runAdmittedAction(authorized, async () => {
+      const { session, authority } = authorized;
       await requireEffectivePortalAccessOrUnauthorized(session, [
         'admin',
         'tenant_admin',
@@ -118,13 +136,14 @@ export async function getAgents(): ActionResult<Awaited<ReturnType<typeof getUse
         includeUnreadCounts: false,
       });
       return data;
-    }
-  );
-}
+    });
+  }
+);
 
-export async function getStaff(): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> {
-  return runAuthenticatedAction<Awaited<ReturnType<typeof getUsersCore>>>(
-    async ({ session, authority }) => {
+const guardedGetStaff = memberGuarded(
+  async (authorized): ActionResult<Awaited<ReturnType<typeof getUsersCore>>> => {
+    return runAdmittedAction(authorized, async () => {
+      const { session, authority } = authorized;
       await requireEffectivePortalAccessOrUnauthorized(session, [
         'admin',
         'tenant_admin',
@@ -136,6 +155,22 @@ export async function getStaff(): ActionResult<Awaited<ReturnType<typeof getUser
         filters: { role: 'staff,tenant_admin,branch_manager' },
       });
       return data;
-    }
-  );
+    });
+  }
+);
+
+export async function getUsers(...args: Parameters<typeof guardedGetUsers>) {
+  return guardedGetUsers(...args);
+}
+
+export async function getUserChoices(...args: Parameters<typeof guardedGetUserChoices>) {
+  return guardedGetUserChoices(...args);
+}
+
+export async function getAgents(...args: Parameters<typeof guardedGetAgents>) {
+  return guardedGetAgents(...args);
+}
+
+export async function getStaff(...args: Parameters<typeof guardedGetStaff>) {
+  return guardedGetStaff(...args);
 }

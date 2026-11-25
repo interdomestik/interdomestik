@@ -1,5 +1,6 @@
 {
   "membership": {
+    "CLOSED": "Plaćanja i upravljanje pretplatama trenutno nisu dostupni.",
     "page": {
       "title": "Članstvo",
       "description": "Upravljajte pretplatom i detaljima plana."

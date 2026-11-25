@@ -1,4 +1,5 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
+import { UnauthorizedError } from '@interdomestik/shared-auth';
 import { screen } from '@testing-library/react';
 import enMessages from '@/messages/en/dashboard.json';
 import mkMessages from '@/messages/mk/dashboard.json';
@@ -31,6 +32,7 @@ describe('MemberDashboardView assistance dashboard', () => {
     h.findSubscriptions.mockReset();
     h.findSubscriptions.mockResolvedValue([]);
     h.withTenant.mockClear();
+    h.requireAdmittedMember.mockReset();
   });
 
   it.each([
@@ -112,21 +114,27 @@ describe('MemberDashboardView assistance dashboard', () => {
     expect(screen.queryByText(/CLM-201/)).not.toBeInTheDocument();
   });
 
+  it('refuses supplemental data before any read when admission fails', async () => {
+    h.requireAdmittedMember.mockResolvedValueOnce({ ok: false });
+    await expect(getDashboardSupplementalData()).rejects.toBeInstanceOf(UnauthorizedError);
+    expect(h.requireAdmittedMember).toHaveBeenCalledOnce();
+    expect(h.active).not.toHaveBeenCalled();
+    expect(h.withTenant).not.toHaveBeenCalled();
+  });
+
   it('fails draft continuation closed when subscription resolution is unavailable', async () => {
     const MEMBER_AUTHORITY = mintTestTenantAuthority('tenant-ks', { userId: 'member-fulfilled' });
-    await expect(
-      getDashboardSupplementalData({ memberId: 'member-missing', authority: null })
-    ).resolves.toEqual([null, 0, false]);
+    h.requireAdmittedMember.mockResolvedValue({
+      ok: true,
+      authorized: { authority: MEMBER_AUTHORITY, session: { user: { id: 'member-fulfilled' } } },
+    });
     h.active.mockResolvedValueOnce(null);
-    await expect(
-      getDashboardSupplementalData({ memberId: 'member-fulfilled', authority: MEMBER_AUTHORITY })
-    ).resolves.toEqual([null, 0, true]);
+    await expect(getDashboardSupplementalData()).resolves.toEqual([null, 0, true]);
+    expect(h.active).toHaveBeenCalledWith('member-fulfilled', MEMBER_AUTHORITY);
     expect(h.active.mock.calls.at(-1)?.[1]).toBe(MEMBER_AUTHORITY);
     expect(h.withTenant.mock.calls.at(-1)?.[0]).toBe(MEMBER_AUTHORITY);
     h.active.mockRejectedValueOnce(new Error('subscription unavailable'));
-    await expect(
-      getDashboardSupplementalData({ memberId: 'member-rejected', authority: MEMBER_AUTHORITY })
-    ).resolves.toEqual([null, 0, false]);
+    await expect(getDashboardSupplementalData()).resolves.toEqual([null, 0, false]);
   });
 
   it.each([

@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname, useRouter } from '@/i18n/routing';
+import { useSavePreferredLocale } from '@/hooks/use-save-preferred-locale';
+import { getPathname, usePathname, useRouter } from '@/i18n/routing';
 import {
   Card,
   CardContent,
@@ -28,7 +29,10 @@ const SUPPORTED_LOCALES = [
   { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
 ] as const;
 
-export function LanguageSettings() {
+export function LanguageSettings({
+  reloadOnLocaleChange = false,
+}: Readonly<{ reloadOnLocaleChange?: boolean }>) {
+  const saveLocale = useSavePreferredLocale();
   const t = useTranslations('settings');
   const locale = useLocale();
   const router = useRouter();
@@ -36,7 +40,12 @@ export function LanguageSettings() {
   const [isPending, startTransition] = useTransition();
 
   const handleLocaleChange = (newLocale: string) => {
-    startTransition(() => {
+    startTransition(async () => {
+      if ((await saveLocale(newLocale)) === 'failed') return;
+      if (reloadOnLocaleChange) {
+        globalThis.location.replace(getPathname({ href: pathname, locale: newLocale }));
+        return;
+      }
       // usePathname from @/i18n/routing returns the path WITHOUT the locale prefix
       // useRouter from @/i18n/routing handles adding the new locale prefix automatically
       router.replace(pathname, { locale: newLocale });

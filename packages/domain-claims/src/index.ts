@@ -1,6 +1,27 @@
 export * from './claim-pack';
 export * from './claims/create';
-export * from './claims/information-requests';
+export * from './claims/case-authorities';
+export type { CaseRegisterError, CaseRegisterResult } from './claims/case-register-access';
+export {
+  getClaimCorrespondenceSummary,
+  getClaimCorrespondenceSummaryInputSchema,
+  listClaimCorrespondence,
+  listClaimCorrespondenceInputSchema,
+  type ClaimCorrespondenceEntry,
+} from './claims/correspondence-read';
+export * from './claims/correspondence';
+export * from './claims/green-card-case-fields';
+export * from './claims/intake-category';
+export { outwardActionRequirements } from './claims/outward-action-requirements';
+export {
+  createInformationRequest,
+  getInformationRequests,
+  informationRequestInput,
+  type InformationRequestEvidence,
+  type InformationRequestInput,
+  type InformationRequestResult,
+  type PublicInformationRequest,
+} from './claims/information-requests';
 export * from './claims/information-request-evidence';
 export * from './claims/fulfil-information-request';
 export * from './claims/documents';
@@ -18,17 +39,14 @@ export * from './claims/jurisdiction-handoff';
 export type { ClaimStatus } from './staff-claims/types';
 export * from './validators/claims';
 
-export { updateClaimStatusCore as updateAdminClaimStatusCore } from './admin-claims/update-status';
-export { updateClaimStatusCore as updateAgentClaimStatusCore } from './agent-claims/update-status';
 export * from './claims/list';
 export * from './claims/lifecycle-state';
 export * from './claims/lifecycle-read-model';
 export * from './claims/lifecycle-read-sql';
 export * from './claims/case-companion-next-step';
 export * from './claims/vault-consent-display';
+export { getMemberClaimTitle } from './member-claims/get-member-claim-detail';
 export * from './claims/transition-guard';
-export { updateClaimStatusCore } from './claims/status';
-export { assignClaimCore as assignStaffClaimCore } from './staff-claims/assign';
 export { buildScopedStaffClaimWhere, buildStaffClaimReadScope } from './staff-claims/scope';
 export { getStaffClaimsList } from './staff-claims/get-staff-claims-list';
 export { getAssignedStaffClaimAttention } from './staff-claims/assigned-claim-attention';
@@ -51,8 +69,11 @@ export {
   getMatterAllowanceVisibilityForUser,
   type MatterAllowanceVisibility,
 } from './staff-claims/matter-allowance';
-export { saveRecoveryDecisionCore as saveStaffRecoveryDecisionCore } from './staff-claims/save-recovery-decision';
+export { saveRecoveryDecisionSchema } from './staff-claims/recovery-decision-schema';
+export {
+  resolveRecoveryDecisionActor,
+  saveRecoveryDecisionCore as saveStaffRecoveryDecisionCore,
+} from './staff-claims/save-recovery-decision';
 export { saveClaimEscalationAgreementCore as saveStaffClaimEscalationAgreementCore } from './staff-claims/save-escalation-agreement';
 export { saveNoFeeEvidenceCore as saveStaffNoFeeEvidenceCore } from './staff-claims/save-no-fee-evidence';
-export { updateClaimStatusCore as updateStaffClaimStatusCore } from './staff-claims/update-status';
 export * from './support-handoffs';

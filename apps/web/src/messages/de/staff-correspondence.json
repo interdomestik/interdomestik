@@ -1,0 +1,141 @@
+{
+  "staff-correspondence": {
+    "choose": "Option auswählen",
+    "citedDocument": "Zitiertes Dokument",
+    "notRecorded": "Nicht erfasst",
+    "feedback": {
+      "loading": "Falldaten werden geladen …",
+      "saving": "Wird gespeichert …",
+      "saved": "Gespeichert.",
+      "retry": "Erneut versuchen",
+      "readFailed": "Die Falldaten konnten nicht geladen werden.",
+      "failed": "Das Speichern konnte nicht bestätigt werden. Versuchen Sie es erneut.",
+      "signIn": "Melden Sie sich erneut an, um fortzufahren.",
+      "forbidden": "Sie haben keinen Zugriff auf diese Falldaten.",
+      "invalid": "Prüfen Sie Ihre Eingaben und versuchen Sie es erneut.",
+      "invalidState": "Diese Änderung ist beim aktuellen Fallstatus nicht möglich.",
+      "authorityInvalid": "Prüfen Sie, ob die erforderlichen Berechtigungen gültig sind und diesen Kontakt abdecken.",
+      "documentInvalid": "Verwenden Sie ein Dokument, das direkt zu diesem Fall hochgeladen wurde.",
+      "conflict": "Der Eintrag steht im Konflikt mit gespeicherten Angaben. Prüfen Sie die aktuellen Einträge vor einem neuen Versuch."
+    },
+    "caseFields": {
+      "title": "Falldaten zur Grünen Karte",
+      "country": "Ländercode des anderen Fahrzeugs",
+      "insurance": "Referenz des Versicherungsnachweises",
+      "outsideParty": "Externe Stelle für die Fallbearbeitung",
+      "coverage": "Stand der Deckungsprüfung",
+      "caseFollowUp": "Wiedervorlage des Falls",
+      "caseFollowUpUtc": "Wiedervorlage des Falls (UTC)",
+      "save": "Falldaten speichern",
+      "status": {
+        "not_checked": "Ungeprüft",
+        "requested": "Prüfung angefragt",
+        "confirmed_by_party": "Von externer Stelle bestätigt",
+        "refused_by_party": "Von externer Stelle abgelehnt"
+      }
+    },
+    "authorities": {
+      "title": "Berechtigungen für den Fall",
+      "empty": "Es sind keine Berechtigungen erfasst.",
+      "kind": "Art der Berechtigung",
+      "kinds": {
+        "recovery_agreement": "Vereinbarung zur Geltendmachung",
+        "power_of_attorney": "Vollmacht",
+        "signed_assignment": "Unterzeichnete Abtretung",
+        "consent_or_lawful_basis": "Einwilligung oder Rechtsgrundlage"
+      },
+      "instrument": "Unterzeichnetes Dokument",
+      "version": "Version auf dem Dokument",
+      "grantedUtc": "Erteilt am (UTC)",
+      "expiresUtc": "Gültig bis (UTC)",
+      "jurisdiction": "Ländercode des Rechtsraums",
+      "attestJurisdiction": "Ich bestätige, dass dieser Rechtsraum für die Vollmacht geeignet ist.",
+      "purpose": "Zweck der Dokumentenweitergabe",
+      "record": "Berechtigung erfassen",
+      "versionValue": "Fassung {version}",
+      "instrumentValue": "Unterzeichnetes Dokument • {name}",
+      "granted": "Erteilt am {date}",
+      "expires": "Gültig bis {date}",
+      "jurisdictionValue": "Rechtsraum • {country}",
+      "purposeValue": "Zweck • {purpose}",
+      "revoked": "Widerrufen am {date}",
+      "revoke": "Berechtigung widerrufen",
+      "confirmRevoke": "Widerruf bestätigen",
+      "revokeLimit": "Im Pilotbetrieb kann eine widerrufene Berechtigungsgrundlage für denselben Fall nicht erneut erteilt werden."
+    },
+    "documents": {
+      "empty": "Laden Sie ein unterzeichnetes Dokument hoch, um eine Berechtigung zu erfassen.",
+      "upload": "Falldokument hochladen",
+      "description": "Fügen Sie ein unterzeichnetes Dokument oder ein für diesen Fall versandtes Dokument hinzu.",
+      "type": "Dokumentart",
+      "chooseType": "Dokumentart auswählen",
+      "file": "Datei",
+      "uploading": "Wird hochgeladen …",
+      "uploaded": "Falldokument hochgeladen.",
+      "failed": "Das Falldokument konnte nicht hochgeladen werden. Versuchen Sie es erneut.",
+      "evidence": "Nachweis",
+      "legal": "Rechtsdokument"
+    },
+    "direction": {
+      "inbound": "Eingehend",
+      "outbound": "Ausgehend"
+    },
+    "party": {
+      "insurer": "Versicherer",
+      "bureau": "Büro",
+      "other": "Andere Stelle"
+    },
+    "channel": {
+      "email": "E-Mail",
+      "post": "Briefpost",
+      "phone": "Telefon",
+      "portal": "Onlineportal",
+      "other": "Anderer Kanal"
+    },
+    "entry": {
+      "title": "Korrespondenz erfassen",
+      "directionLabel": "Richtung",
+      "occurredUtc": "Datum und Uhrzeit des Kontakts (UTC)",
+      "partyKind": "Art der Gegenstelle",
+      "organisation": "Name der Organisation",
+      "reference": "Schaden- oder Aktenzeichen der Gegenstelle",
+      "contact": "Name der Kontaktperson",
+      "channel": "Kanal",
+      "body": "Zusammenfassung des Kontakts",
+      "replyTo": "Antwort auf ausgehenden Kontakt",
+      "noReply": "Kein ausgehender Kontakt verknüpft",
+      "replyOption": "{organisation} am {date}: {summary}",
+      "documents": "Mit diesem Kontakt versandte Dokumente",
+      "documentLimit": "Wählen Sie bis zu {limit} Dokumente aus.",
+      "unlistedDocument": "{name} wird nicht mehr aufgelistet.",
+      "keepUnlistedDocument": "Auswahl dieses Dokuments bestätigen",
+      "removeUnlistedDocument": "Aus der Auswahl entfernen",
+      "basesRequired": "Für einen ausgehenden Kontakt sind eine Vereinbarung zur Geltendmachung und eine Vollmacht erforderlich.",
+      "consentRequired": "Für den Versand von Dokumenten ist eine Einwilligung oder Rechtsgrundlage zur Weitergabe erforderlich.",
+      "attestSharing": "Ich bestätige, dass der erfasste Zweck diese Offenlegung abdeckt.",
+      "record": "Korrespondenz speichern"
+    },
+    "list": {
+      "title": "Korrespondenzregister",
+      "empty": "Es ist keine Korrespondenz erfasst.",
+      "reference": "Ihr Aktenzeichen • {reference}",
+      "contact": "Kontaktperson • {contact}",
+      "inReplyTo": "Antwort auf den Kontakt mit {organisation} vom {date}",
+      "documentsSent": "Versandte Dokumente • {total}",
+      "followUp": "Wiedervorlage fällig am {date}",
+      "followUpUtc": "Wiedervorlage zur Korrespondenz (UTC)",
+      "saveFollowUp": "Wiedervorlage speichern",
+      "answered": "Antwort erfasst",
+      "overdue": "Wiedervorlage überfällig",
+      "pages": "Seiten des Korrespondenzregisters",
+      "previous": "Vorherige Seite",
+      "next": "Nächste Seite",
+      "position": "Seite {page} von {pages}"
+    },
+    "summary": {
+      "title": "Übersicht der Korrespondenz",
+      "total": "Korrespondenzeinträge • {total}",
+      "latest": "Angezeigt werden die neuesten Daten: {shown} von {total}"
+    }
+  }
+}

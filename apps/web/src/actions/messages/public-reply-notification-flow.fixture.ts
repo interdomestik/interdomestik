@@ -15,6 +15,7 @@ import {
   type Predicate,
   type Find,
 } from './public-reply-notification-flow.data';
+import { insertUnique } from './public-reply-notification-flow.keys';
 export { tables, operators, ids, session } from './public-reply-notification-flow.data';
 export const state = {
   session: session() as Session | null,
@@ -25,12 +26,8 @@ export const state = {
   contexts: [] as { tenantId: string; role?: string }[],
   commits: 0,
   rollbacks: 0,
-  reportExpired: null as string[] | null,
-  auditLoggerPassed: null as unknown,
   projectionFault: false,
   notificationFault: false,
-  pushFault: false,
-  jobs: [] as Array<() => Promise<void>>,
   scheduled: [] as { commits: number; notifications: number }[],
 };
 export function reset(mode: typeof state.mode): void {
@@ -42,12 +39,8 @@ export function reset(mode: typeof state.mode): void {
     contexts: [],
     commits: 0,
     rollbacks: 0,
-    reportExpired: null,
-    auditLoggerPassed: null,
     projectionFault: false,
     notificationFault: false,
-    pushFault: false,
-    jobs: [],
     scheduled: [],
   });
   state.rows = seedRows();
@@ -80,6 +73,53 @@ function promised<T>(run: () => T): Promise<T> {
 function withSender(row: Row, users: Row[]): Row {
   return { ...row, sender: users.find(user => user.id === row.senderId) };
 }
+// One atomic INSERT of one or more rows, checked against the table's unique keys.
+function buildFixtureInsert(
+  name: string,
+  input: Row | readonly Row[],
+  {
+    state: fixtureState,
+    check,
+    getContext,
+    getStaged,
+  }: {
+    state: Pick<typeof state, 'mode' | 'notificationFault' | 'rows'>;
+    check: () => void;
+    getContext: () => { tenantId: string } | undefined;
+    getStaged: () => Record<string, Row[]> | undefined;
+  }
+) {
+  const inputs: readonly Row[] = Array.isArray(input) ? input : [input as Row];
+  let onConflict: { target: string[] | null } | null = null;
+  let targetError: Error | null = null;
+  const promise = Promise.resolve().then(() => {
+    // The statement fails, as in PostgreSQL; the builder call itself never throws.
+    if (targetError) throw targetError;
+    check();
+    if (name === 'notifications' && fixtureState.notificationFault)
+      throw new Error('Synthetic notification failure');
+    const denied = (row: Row) => {
+      const context = getContext();
+      return (
+        (!context && fixtureState.mode === 'restricted') ||
+        (context && row.tenantId !== context.tenantId)
+      );
+    };
+    if (inputs.some(denied)) throw new Error('Fixture write denied');
+    return insertUnique(name, (getStaged() ?? fixtureState.rows)[name], inputs, onConflict);
+  });
+  // The insert is awaitable like a Drizzle builder because it is the write promise itself.
+  const returning = () => promise.then(inserted => inserted.map(row => ({ id: row.id })));
+  const onConflictDoNothing = (config?: { target?: Column | Column[] }) => {
+    const target = config && 'target' in config ? [config.target].flat() : null;
+    // A target column the catalogue lacks is a fixture gap, never "no target".
+    if (target?.some(column => typeof column?.field !== 'string'))
+      targetError = new Error('Unknown fixture column in the ON CONFLICT target');
+    else onConflict = { target: target ? target.map(column => (column as Column).field) : null };
+    return Object.assign(promise, { returning });
+  };
+  return Object.assign(promise, { returning, onConflictDoNothing });
+}
 function client(
   context?: { tenantId: string },
   staged?: Record<string, Row[]>,
@@ -94,8 +134,6 @@ function client(
       state.ambientReads.push(name);
       if (state.mode === 'restricted') return [];
     }
-    if (state.pushFault && ['pushSubscriptions', 'userNotificationPreferences'].includes(name))
-      throw new Error('Synthetic optional push failure');
     return (staged ?? state.rows)[name].filter(
       row => !context || row.tenantId === context.tenantId
     );
@@ -115,37 +153,13 @@ function client(
       ])
     ),
     insert: (table: unknown) => ({
-      values: (input: Row) => {
-        const name = nameOf(table);
-        let ignoreConflict = false;
-        const promise = Promise.resolve().then(() => {
-          check();
-          if (name === 'notifications' && state.notificationFault)
-            throw new Error('Synthetic notification failure');
-          if (
-            (!context && state.mode === 'restricted') ||
-            (context && input.tenantId !== context.tenantId)
-          )
-            throw new Error('Fixture write denied');
-          if ((staged ?? state.rows)[name].some(row => row.id === input.id)) {
-            if (ignoreConflict) return false;
-            throw new Error('Duplicate fixture id');
-          }
-          (staged ?? state.rows)[name].push({
-            createdAt: new Date('2026-10-15T00:00:00Z'),
-            readAt: null,
-            ...input,
-          });
-          return true;
-        });
-        // The insert is awaitable like a Drizzle builder because it is the write promise itself.
-        const returning = () => promise.then(inserted => (inserted ? [{ id: input.id }] : []));
-        const onConflictDoNothing = () => {
-          ignoreConflict = true;
-          return Object.assign(promise, { returning });
-        };
-        return Object.assign(promise, { returning, onConflictDoNothing });
-      },
+      values: (input: Row | readonly Row[]) =>
+        buildFixtureInsert(nameOf(table), input, {
+          state,
+          check,
+          getContext: () => context,
+          getStaged: () => staged,
+        }),
     }),
     delete: (table: unknown) => ({
       where: (where: Predicate) =>
@@ -201,8 +215,12 @@ function client(
                 .filter(where)
                 .map(row => row[Object.values(fields)[0].field]);
             },
-            orderBy: () => readOnce(),
-            limit: readOnce,
+            orderBy: () => Object.assign(readOnce(), { for: () => readOnce() }),
+            for: () => readOnce(),
+            limit: (count: number) => {
+              const limited = readOnce(count);
+              return Object.assign(limited, { for: () => limited });
+            },
           });
         },
         limit: read,
@@ -237,35 +255,4 @@ export async function withTenantContext<T>(
   } finally {
     lifetime.open = false;
   }
-}
-export const delivery =
-  (kind: string) =>
-  (...args: unknown[]) => {
-    state.external.push({ kind, args });
-    return Promise.resolve({ success: true });
-  };
-export const email = Object.fromEntries(
-  [
-    'sendEmail',
-    'sendClaimAssignedEmail',
-    'sendClaimSubmittedEmail',
-    'sendNewMessageEmail',
-    'sendPaymentVerificationEmail',
-    'sendStatusChangedEmail',
-  ].map(name => [name, delivery(name)])
-);
-async function drainJobs(): Promise<void> {
-  const job = state.jobs.shift();
-  if (!job) return;
-  await job();
-  return drainJobs();
-}
-async function yieldTurns(turns: number): Promise<void> {
-  if (turns <= 0) return;
-  await Promise.resolve();
-  return yieldTurns(turns - 1);
-}
-export async function settle(): Promise<void> {
-  await drainJobs();
-  await yieldTurns(30);
 }

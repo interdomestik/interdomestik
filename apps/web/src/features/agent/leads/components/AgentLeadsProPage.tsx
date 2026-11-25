@@ -85,14 +85,16 @@ export function AgentLeadsProPage({ leads }: Readonly<{ leads: AgentLeadPro[] }>
     startTransition(async () => {
       try {
         if (id === 'convert') {
-          await convertLeadToClient(selectedLead.id);
-          toast.success(t('toasts.converted'));
+          const result = await convertLeadToClient(selectedLead.id);
+          if (result.success) toast.success(t('toasts.converted'));
+          else toast.error(result.error);
         } else if (id === 'mark_contacted') {
           await updateLeadStatus(selectedLead.id, 'contacted');
           toast.success(t('toasts.marked_contacted'));
         } else if (id === 'mark_payment_pending' || id === 'pay_cash') {
-          await updateLeadStatus(selectedLead.id, 'payment_pending');
-          toast.success(t('toasts.payment_requested'));
+          const result = await updateLeadStatus(selectedLead.id, 'payment_pending');
+          if (result.success) toast.success(t('toasts.payment_requested'));
+          else toast.error(result.error);
         } else if (id === 'mark_lost') {
           await updateLeadStatus(selectedLead.id, 'lost');
           toast.success(t('toasts.marked_lost'));

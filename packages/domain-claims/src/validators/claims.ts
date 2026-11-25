@@ -1,5 +1,7 @@
 import { z } from 'zod';
 import { CLAIM_STATUSES } from '@interdomestik/database/constants';
+import { isClaimCategoryOpenForIntake } from '../claims/intake-category';
+import { normalizedClaimCategory } from '../claims/transition-evidence';
 
 export const MAX_CLAIM_EVIDENCE_FILES = 10;
 
@@ -16,7 +18,11 @@ export const evidenceFileSchema = z.object({
 });
 
 export const claimCategorySchema = z.object({
-  category: z.string().min(1, 'Category is required'),
+  category: z
+    .string()
+    .min(1, 'Category is required')
+    .refine(isClaimCategoryOpenForIntake, 'Please select a category')
+    .transform(normalizedClaimCategory),
 });
 
 export const claimDetailsSchema = z.object({

@@ -26,6 +26,26 @@
           "verbose_logging_desc": "Enable detailed logs for debugging purposes."
         }
       },
+      "pilot": {
+        "title": "Pilot switches",
+        "description": "Control public intake and new sales for your tenant.",
+        "switch": "Switch",
+        "public_intake": "Public intake",
+        "new_sales": "New sales",
+        "open": "Open",
+        "closed": "Closed",
+        "reason": "Reason for the change (at least 10 characters)",
+        "approval": "Signed restart approval reference",
+        "approval_required": "Enter the reference for the signed restart approval.",
+        "open_switch": "Open switch",
+        "close_switch": "Close switch",
+        "unavailable": "The pilot switches could not be loaded.",
+        "pending": "Saving the change…",
+        "saved": "Pilot switch updated.",
+        "failed": "The change could not be saved. Try again.",
+        "conflict": "The switch changed. Reload to review the current state before submitting again.",
+        "reload": "Reload switches"
+      },
       "save_changes": "Save Changes",
       "success_message": "Settings updated successfully"
     }

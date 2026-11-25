@@ -1,17 +1,17 @@
 import { BetterAuthOptions } from 'better-auth';
+import { releaseClass } from '../runtime-environment';
 import { getAuthBaseURL, getTrustedOrigins } from './utils';
+
+const automationRequested =
+  process.env.INTERDOMESTIK_AUTOMATED === '1' ||
+  process.env.PLAYWRIGHT === '1' ||
+  Boolean(process.env.CI);
 
 export const authConfig = {
   baseURL: getAuthBaseURL(),
   trustedOrigins: getTrustedOrigins(),
   rateLimit: {
-    // Contract: Rate limiting must be disabled for deterministic automated runs (Playwright/CI),
-    // but remain enabled by default everywhere else.
-    enabled: !(
-      process.env.INTERDOMESTIK_AUTOMATED === '1' ||
-      process.env.PLAYWRIGHT === '1' ||
-      !!process.env.CI
-    ),
+    enabled: !automationRequested || releaseClass() === 'production',
     window: 60, // 1 minute
     max: 100, // 100 requests per minute per IP
     // Sign-in email POSTs are already protected by the app route limiter, which carries

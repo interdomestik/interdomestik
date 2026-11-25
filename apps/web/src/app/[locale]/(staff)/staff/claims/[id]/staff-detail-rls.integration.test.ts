@@ -124,7 +124,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
           userId: memberId,
           staffId,
           title: 'Assigned fixture',
-          category: 'retail',
+          category: 'property',
           companyName: 'Fixture',
           // Submitted work: staff scopes exclude member drafts (the column default).
           caseLifecycleState: 'submitted',
@@ -135,7 +135,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
           userId: memberId,
           staffId: otherStaffId,
           title: 'Other assignment fixture',
-          category: 'retail',
+          category: 'property',
           companyName: 'Fixture',
           // Submitted work: staff scopes exclude member drafts (the column default).
           caseLifecycleState: 'submitted',
@@ -146,7 +146,7 @@ describe.skipIf(!enabled)('mounted staff detail with a restricted database role'
           userId: foreignMemberId,
           staffId,
           title: 'Foreign fixture',
-          category: 'retail',
+          category: 'property',
           companyName: 'Fixture',
           // Submitted work: staff scopes exclude member drafts (the column default).
           caseLifecycleState: 'submitted',

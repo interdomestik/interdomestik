@@ -1,5 +1,5 @@
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 import { getMemberLatestPublicResponse } from '@interdomestik/domain-claims/support-handoffs/response';
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { MessageSquareText } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 
@@ -11,20 +11,20 @@ type SelectedClaim = {
 } | null;
 
 type PublicResponseBannerProps = {
-  authority: TenantAuthority;
   handoffId?: string | null;
   locale: string;
-  memberId: string;
   selectedClaim: SelectedClaim;
 };
 
 export async function PublicResponseBanner({
-  authority,
   handoffId,
   locale,
-  memberId,
   selectedClaim,
 }: Readonly<PublicResponseBannerProps>): Promise<React.JSX.Element | null> {
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) return null;
+  const { authority, session } = admission.authorized;
+  const memberId = session.user.id;
   let response: Awaited<ReturnType<typeof getMemberLatestPublicResponse>>;
   try {
     response = await getMemberLatestPublicResponse({

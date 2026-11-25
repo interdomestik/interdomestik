@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { Session } from './context';
 const mocks = vi.hoisted(() => ({ read: vi.fn(), claim: vi.fn() }));
-vi.mock('@/features/claims/tracking/server/getMemberClaimDetail', () => ({
-  getMemberClaimDetail: mocks.claim,
+vi.mock('@interdomestik/domain-claims', () => ({
+  getMemberClaimTitle: mocks.claim,
 }));
 vi.mock('@interdomestik/domain-communications/notifications/get', () => ({
   getNotificationsCore: mocks.read,
@@ -21,6 +21,7 @@ const row = {
   title: 'TITLE-SENTINEL',
   content: 'BODY-SENTINEL',
   actionUrl: '/member/claims/id',
+  previewRestricted: false,
   isRead: false,
   createdAt: new Date(),
   tenantId: 'tenant',
@@ -29,7 +30,7 @@ const row = {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.read.mockResolvedValue([row]);
-  mocks.claim.mockResolvedValue({ title: 'Visible claim' });
+  mocks.claim.mockResolvedValue('Visible claim');
 });
 describe('in-app BM notification reader boundary', () => {
   it.each([
@@ -75,29 +76,61 @@ describe('in-app BM notification reader boundary', () => {
     });
     expect(mocks.claim).toHaveBeenCalledTimes(role === 'member' ? 1 : 0);
   });
-  it.each(['missing', 'denied', 'failed'])(
-    'uses neutral copy for %s raw-ID claim lookups',
-    async outcome => {
-      if (outcome === 'failed') mocks.claim.mockRejectedValue(new Error('lookup failed'));
-      else mocks.claim.mockResolvedValue(null);
-      const result = await getNotificationsCore({ authority, session: session('member') });
-      expect(result[0]).toMatchObject({
-        ...row,
-        title: 'trusted:events.newMessage.title',
-        content: 'trusted:updateOn',
-      });
-    }
-  );
-  it('resolves each legacy thread once and avoids lookups for stored human titles or BM', async () => {
-    mocks.read.mockResolvedValue([row, { ...row, id: 'second' }]);
-    await getNotificationsCore({ authority, session: session('member') });
-    expect(mocks.claim).toHaveBeenCalledOnce();
-    mocks.claim.mockClear();
-    mocks.read.mockResolvedValue([{ ...row, content: 'Update on: Car damage' }]);
-    await getNotificationsCore({ authority, session: session('member') });
-    await getNotificationsCore({ authority, session: session('branch_manager') });
+  it.each(['missing', 'denied'])('uses neutral copy for %s raw-ID claim lookups', async () => {
+    mocks.claim.mockResolvedValue(null);
+    const result = await getNotificationsCore({ authority, session: session('member') });
+    expect(result[0]).toMatchObject({
+      ...row,
+      title: 'trusted:events.newMessage.title',
+      content: 'trusted:updateOn',
+    });
+  });
+  it('surfaces a failed claim lookup as a typed inbox failure', async () => {
+    mocks.claim.mockRejectedValueOnce(new Error('claim lookup failed'));
+    await expect(
+      getNotificationsCore({ authority, session: session('member') })
+    ).rejects.toMatchObject({
+      code: 'CLAIM_LOOKUP_FAILED',
+    });
+  });
+  it('uses restricted copy after a branch-manager claim owner becomes a member', async () => {
+    mocks.read.mockResolvedValue([{ ...row, previewRestricted: true }]);
+    const before = await getNotificationsCore({ authority, session: session('branch_manager') });
+    const result = await getNotificationsCore({ authority, session: session('member') });
+    expect(result).toEqual(before);
+    expect(result[0]).toMatchObject({
+      title: 'trusted:newMessage.title',
+      content: 'trusted:newMessage.content',
+    });
     expect(mocks.claim).not.toHaveBeenCalled();
   });
+  it.each(['Update on: PRIVATE-CLAIM-TITLE', 'Update on: id'])(
+    'uses generic copy for an unknown legacy claim message with content %s',
+    async content => {
+      const legacy = { ...row, previewRestricted: null, content };
+      mocks.read.mockResolvedValue([legacy]);
+      const result = await getNotificationsCore({ authority, session: session('member') });
+      expect(result[0]).toEqual({
+        ...legacy,
+        title: 'trusted:newMessage.title',
+        content: 'trusted:newMessage.content',
+      });
+      expect(mocks.claim).not.toHaveBeenCalled();
+    }
+  );
+  it.each([row, { ...row, type: 'claim_status_changed', previewRestricted: null }])(
+    'resolves each admitted $type thread once and avoids lookups for stored titles or BM',
+    async update => {
+      mocks.read.mockResolvedValue([update, { ...update, id: 'second' }]);
+      await getNotificationsCore({ authority, session: session('member') });
+      expect(mocks.claim).toHaveBeenCalledExactlyOnceWith({ authority, claimId: 'id' });
+      mocks.claim.mockClear();
+      mocks.read.mockResolvedValue([{ ...update, content: 'Update on: Car damage' }]);
+      await getNotificationsCore({ authority, session: session('member') });
+      await getNotificationsCore({ authority, session: session('branch_manager') });
+      expect(mocks.claim).not.toHaveBeenCalled();
+    }
+  );
   it('preserves empty and failed reads and validates limits before the domain reader', async () => {
     mocks.read.mockResolvedValue([]);
     expect(await getNotificationsCore({ authority, session: session('branch_manager') })).toEqual(

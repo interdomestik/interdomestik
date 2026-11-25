@@ -6,6 +6,8 @@ import {
   ROLE_SUPER_ADMIN,
   ROLE_TENANT_ADMIN,
 } from '@/lib/roles.core';
+import { actionFailure } from '@/lib/safe-action.failure';
+import { SalesClosedError } from '@interdomestik/database/pilot-switch';
 import {
   expectNoDocumentContent,
   verificationRequest,
@@ -21,6 +23,9 @@ const hoisted = vi.hoisted(() => ({
 }));
 
 vi.mock('next/headers', () => ({ headers: vi.fn(() => Promise.resolve(new Headers())) }));
+vi.mock('next-intl/server', () => ({
+  getTranslations: async (namespace: string) => (key: string) => `${namespace}.${key}`,
+}));
 vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: hoisted.getSession } } }));
 vi.mock('@sentry/nextjs', () => ({
   setUser: vi.fn(),
@@ -37,12 +42,14 @@ vi.mock('../server/verification.core', async () => {
   const requests = await vi.importActual<typeof import('../server/queries/get-requests')>(
     '../server/queries/get-requests'
   );
+  const { resubmitCashSchema } =
+    await vi.importActual<typeof import('../server/schemas')>('../server/schemas');
   return {
     getVerificationRequests: requests.getVerificationRequests,
     verifyCashAttemptCore: hoisted.verifyCashAttemptCore,
     resubmitCashAttemptCore: hoisted.resubmitCashAttemptCore,
     verifyCashSchema: { parse: vi.fn() },
-    resubmitCashSchema: { parse: vi.fn() },
+    resubmitCashSchema,
   };
 });
 
@@ -51,7 +58,11 @@ import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
-import { getVerificationRequestsAction } from './verification';
+import {
+  getVerificationRequestsAction,
+  resubmitCashAttemptAction,
+  verifyCashAttemptAction,
+} from './verification';
 
 function createRecordingTx(results: unknown[][]) {
   const { tx, executed } = createRecordingTenantTransaction(results);
@@ -105,6 +116,44 @@ function sessionFor(role: string | undefined, branchId: string | null = null) {
     },
   };
 }
+
+describe('cash verification action failures', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it.each([
+    [
+      'approval',
+      ROLE_STAFF,
+      verifyCashAttemptAction,
+      hoisted.verifyCashAttemptCore,
+      { decision: 'approve' },
+    ],
+    ['resubmission', 'agent', resubmitCashAttemptAction, hoisted.resubmitCashAttemptCore, {}],
+  ] as const)(
+    'returns localized CLOSED for %s without a refusal audit',
+    async (_name, role, action, core, fields) => {
+      hoisted.getSession.mockResolvedValue(sessionFor(role, 'branch-1'));
+      core.mockRejectedValueOnce(new SalesClosedError());
+
+      await expect(action({ attemptId: 'attempt-1', ...fields })).resolves.toEqual({
+        success: false,
+        code: 'CLOSED',
+        error: 'pricing.CLOSED',
+      });
+      expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    }
+  );
+
+  it('returns CONFLICT when the approval transaction rolls back', async () => {
+    hoisted.getSession.mockResolvedValue(sessionFor(ROLE_STAFF, 'branch-1'));
+    hoisted.verifyCashAttemptCore.mockRejectedValueOnce(actionFailure('CONFLICT'));
+
+    await expect(
+      verifyCashAttemptAction({ attemptId: 'attempt-1', decision: 'approve' })
+    ).resolves.toMatchObject({ success: false, code: 'CONFLICT' });
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+  });
+});
 
 describe('getVerificationRequestsAction read admission', () => {
   beforeEach(() => {

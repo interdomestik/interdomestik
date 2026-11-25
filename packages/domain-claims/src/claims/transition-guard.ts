@@ -33,15 +33,18 @@ export type AuthorizedTransition = {
   readonly to: ClaimStatus;
 };
 
+export type ClaimTransitionRejectionReason =
+  | 'invalid_status'
+  | 'illegal_transition'
+  | 'category_closed_for_intake'
+  | RecoveryInvariantRejectionReason
+  | TransitionEvidenceRejectionReason;
+
 export type ClaimTransitionDecision =
   | { allowed: true; authorization: AuthorizedTransition }
   | {
       allowed: false;
-      reason:
-        | 'invalid_status'
-        | 'illegal_transition'
-        | RecoveryInvariantRejectionReason
-        | TransitionEvidenceRejectionReason;
+      reason: ClaimTransitionRejectionReason;
     };
 
 const STATUS_SET = new Set<string>(CLAIM_STATUSES);
@@ -94,6 +97,9 @@ export function canTransition(params: {
 
   if (!isClaimStatus(from) || !isClaimStatus(to)) {
     return { allowed: false, reason: 'invalid_status' };
+  }
+  if (from === to) {
+    return { allowed: true, authorization: mintAuthorizedTransition(actor.id, from, to) };
   }
 
   if (!isClaimStatusTransitionInGraph(from, to)) {

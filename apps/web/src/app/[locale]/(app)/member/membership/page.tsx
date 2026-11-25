@@ -1,10 +1,10 @@
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
+import { requireMemberAcceptancePage } from '@/lib/privacy/require-member-acceptance';
 import { CoverageMatrix } from '@/components/commercial/coverage-matrix';
 import { buildCoverageMatrixProps } from '@/components/commercial/coverage-matrix-content';
-import { getSessionSafe } from '@/components/shell/session';
 import { MembershipOpsPage } from '@/features/member/membership/components/MembershipOpsPage';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
-import { redirect } from 'next/navigation';
 import {
   getMemberDocumentsCore,
   getMemberLeavableSponsorEntryCore,
@@ -15,11 +15,9 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
   const { locale } = await params;
   setRequestLocale(locale);
   const coverageMatrix = await getTranslations({ locale, namespace: 'coverageMatrix' });
-  const session = await getSessionSafe('MemberMembershipPage');
-
-  if (!session) {
-    redirect(`/${locale}/login`);
-  }
+  const admission = await requireMemberAcceptancePage();
+  if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
+  const { session } = admission.authorized;
 
   const tenantId = ensureTenantId(session);
   const subscriptions = await getMemberSubscriptionsCore({

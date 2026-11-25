@@ -1,10 +1,33 @@
-// The verification tables keep their migration ACLs when the local E2E role is provisioned later.
+// Migrations that narrow the runtime role's grants keep them when the local E2E role is
+// provisioned later: the bulk DML grant below skips or re-narrows these tables.
+
+// WP-07 PR-1c: the verification tables carry table-level privileges only.
 const verificationGrants = new Map([
   ['public.exchange_rate_verifications', 'SELECT, INSERT'],
   ['public.exchange_rate_verification_limits', 'SELECT'],
   ['public.exchange_rate_check_windows', 'SELECT'],
   ['public.exchange_rate_check_events', 'SELECT, INSERT'],
 ]);
+
+/**
+ * Tables whose migration narrows the runtime role's writes: no DELETE and UPDATE only on these
+ * columns (WP-12 migration 0106). The bulk DML grant must not widen them, so provisioning
+ * re-applies the migration's grants. A test pins this list to the migration's own GRANT lines.
+ */
+export const NARROWED_TABLE_GRANTS = Object.freeze({
+  claim_authorities: ['revoked_at', 'revoked_by_user_id'],
+  claim_correspondence: ['follow_up_at'],
+  claim_correspondence_documents: [],
+  claim_case_fields: [
+    'other_vehicle_country_code',
+    'insurance_proof_reference',
+    'outside_handling_party',
+    'coverage_verification_status',
+    'case_follow_up_at',
+    'updated_by_staff_id',
+    'updated_at',
+  ],
+});
 
 export async function grantE2eRuntimePrivileges(tx, role) {
   // Base tables get DML under RLS. Views are readable only with invoker rights.
@@ -37,4 +60,15 @@ export async function grantE2eRuntimePrivileges(tx, role) {
       await tx.unsafe(`GRANT ${privileges} ON TABLE ${table} TO ${role}`);
     })
   );
+
+  // In order on the one transaction connection: each REVOKE runs before its table's GRANT.
+  const narrowed = Object.entries(NARROWED_TABLE_GRANTS)
+    .filter(([table]) => tables.includes(`public.${table}`))
+    .flatMap(([table, columns]) => [
+      `REVOKE UPDATE, DELETE, TRUNCATE ON TABLE public.${table} FROM ${role}`,
+      ...(columns.length > 0
+        ? [`GRANT UPDATE (${columns.join(', ')}) ON TABLE public.${table} TO ${role}`]
+        : []),
+    ]);
+  await Promise.all(narrowed.map(statement => tx.unsafe(statement)));
 }

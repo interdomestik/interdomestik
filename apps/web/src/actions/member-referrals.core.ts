@@ -46,7 +46,9 @@ const listRewardsFiltersSchema = z
   .strict();
 
 export async function getMemberReferralCardData(): Promise<ActionResult<MemberReferralCardData>> {
-  const { session, authority } = await getActionContext();
+  const { session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   const [linkResult, statsResult, settingsResult] = await Promise.all([
     getMemberReferralLinkCore({ session, authority }),
     getMemberReferralStatsCore({ session, authority }),
@@ -80,7 +82,9 @@ export async function getMemberReferralCardData(): Promise<ActionResult<MemberRe
  * Get or create a referral link for the current member.
  */
 export async function getMemberReferralLink(): Promise<ActionResult<MemberReferralLink>> {
-  const { session, authority } = await getActionContext();
+  const { session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   return getMemberReferralLinkCore({ session, authority });
 }
 
@@ -88,33 +92,43 @@ export async function getMemberReferralLink(): Promise<ActionResult<MemberReferr
  * Get referral statistics for the current member.
  */
 export async function getMemberReferralStats(): Promise<ActionResult<MemberReferralStats>> {
-  const { session, authority } = await getActionContext();
+  const { session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   return getMemberReferralStatsCore({ session, authority });
 }
 
 export async function getMemberReferralProgramSettings(): Promise<
   ActionResult<MemberReferralProgramSettings>
 > {
-  const { session, authority } = await getActionContext();
+  const { session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   return getMemberReferralProgramSettingsCore({ session, authority });
 }
 
 export async function getMemberReferralProgramPreview(): Promise<
   ActionResult<MemberReferralProgramSettings>
 > {
-  const { session, authority } = await getActionContext();
+  const { session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   return getMemberReferralProgramPreviewCore({ session, authority });
 }
 
 export async function updateMemberReferralProgramSettings(
   data: unknown
 ): Promise<ActionResult<MemberReferralProgramSettings>> {
-  const { requestHeaders, session, authority } = await getActionContext();
+  const { requestHeaders, session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   return updateMemberReferralProgramSettingsCore({ session, authority, requestHeaders, data });
 }
 
 export async function listMemberReferralRewards(filters?: { limit?: number; offset?: number }) {
-  const { session, authority } = await getActionContext();
+  const { session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   const parsed = listRewardsFiltersSchema.safeParse(filters ?? {});
   if (!parsed.success) {
     return { success: false as const, error: 'Validation failed' };
@@ -126,7 +140,9 @@ export async function updateMemberReferralRewardStatus(
   rewardId: string,
   newStatus: MemberReferralRewardStatus
 ) {
-  const { requestHeaders, session, authority } = await getActionContext();
+  const { requestHeaders, session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   return updateMemberReferralRewardStatusAdminCore({
     session,
     authority,

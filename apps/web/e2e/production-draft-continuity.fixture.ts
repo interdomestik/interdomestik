@@ -56,7 +56,7 @@ export async function startFreshSmokeDraft(
     await expect(startAnother).toHaveCount(0);
   }
   await expect(intake.getByTestId('claim-draft-category-vehicle')).toBeEnabled();
-  await expect(intake.getByTestId('claim-draft-category-injury')).toBeDisabled();
+  await expect(intake.getByTestId('claim-draft-category-injury')).toHaveCount(0);
   await expect(intake.getByTestId('claim-created-success')).toHaveCount(0);
 }
 

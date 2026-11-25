@@ -141,7 +141,7 @@ function person(id: string, tenantId: string, role: string, name: string, branch
     id,
     tenantId,
     name,
-    email: `${id}@example.com`,
+    email: `${id}@example.test`,
     role,
     emailVerified: true,
     branchId: branchId ?? null,

@@ -17,13 +17,12 @@ const mocks = vi.hoisted(() => {
     createMemberSupportHandoff: vi.fn(),
     desc: vi.fn(column => ({ column, op: 'desc' })),
     eq: vi.fn((left, right) => ({ left, op: 'eq', right })),
-    getSessionSafe: vi.fn(),
+    admit: vi.fn(),
     advisoryBanner: vi.fn(),
     publicResponseBanner: vi.fn(),
     redirect: vi.fn((href: string) => {
       throw new Error(`redirect:${href}`);
     }),
-    requireSessionOrRedirect: vi.fn(session => session),
     select: vi.fn(() => selectChain),
     selectChain,
     searchParams: new URLSearchParams(),
@@ -35,18 +34,14 @@ const mocks = vi.hoisted(() => {
 vi.mock('@/actions/support-handoffs/create', () => ({
   createMemberSupportHandoff: mocks.createMemberSupportHandoff,
 }));
-vi.mock('@/components/shell/session', () => ({
-  getSessionSafe: mocks.getSessionSafe,
-  requireSessionOrRedirect: mocks.requireSessionOrRedirect,
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: mocks.admit,
+  requireMemberAcceptancePage: mocks.admit,
 }));
-vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionTenant: vi.fn(() =>
-    Promise.resolve({
-      session: { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
-      authority: mintTestTenantAuthority('tenant-1'),
-    })
-  ),
+vi.mock('@/components/privacy/member-acceptance-step', () => ({
+  MemberAcceptanceStep: () => <div data-testid="acceptance-step-ready" />,
 }));
+export const helpAuthority = mintTestTenantAuthority('tenant-1');
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href, ...props }: React.AnchorHTMLAttributes<HTMLAnchorElement>) => (
     <a href={href?.toString()} {...props}>
@@ -107,11 +102,7 @@ vi.mock('@interdomestik/ui/components/card', () => ({
   ),
 }));
 vi.mock('./_advisory-banner', () => ({
-  AdvisoryBanner: (props: {
-    memberId: string;
-    selectedClaim: { id: string } | null;
-    authority: unknown;
-  }) => {
+  AdvisoryBanner: (props: { selectedClaim: { id: string } | null }) => {
     mocks.advisoryBanner(props);
     return (
       <div
@@ -125,9 +116,7 @@ vi.mock('./_public-response-banner', () => ({
   PublicResponseBanner: (props: {
     handoffId?: string | null;
     locale: string;
-    memberId: string;
     selectedClaim: { id: string } | null;
-    authority: unknown;
   }) => {
     mocks.publicResponseBanner(props);
     return (

@@ -42,6 +42,13 @@ export const REGISTRY_KINDS: ReadonlySet<string> = new Set([
   'view-definition',
 ]);
 
+// S2 places the registry's composite primary key in SQL. Declared keys still cannot be overridden.
+const LEGAL_VERSION_KEY = 'pk ["public","legal_document_versions"]';
+
+export function isSqlManagedFact(key: string): boolean {
+  return key === LEGAL_VERSION_KEY || REGISTRY_KINDS.has(key.split(' ')[0]);
+}
+
 export type ParityProblem =
   | 'missing'
   | 'unexplained'
@@ -147,7 +154,7 @@ function expectedModel(
       differences.push({ key: entry.key, problem: 'registry-absent', expected: entry.value });
       continue;
     }
-    if (!REGISTRY_KINDS.has(entry.key.split(' ')[0])) {
+    if (!isSqlManagedFact(entry.key)) {
       differences.push({ key: entry.key, problem: 'registry-forbidden', actual: entry.value });
       continue;
     }
