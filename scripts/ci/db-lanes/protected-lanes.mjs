@@ -6,6 +6,7 @@ import { contractTestPlan } from '../contract-test-shards.mjs';
 import { inLane, readE2eLane } from '../screen-contract/registry-lanes.mjs';
 import { ScanError } from '../server-mutation/ast.mjs';
 import { coverageTargets } from './coverage-lane.mjs';
+import { provesHostedGateArguments } from './playwright-gate-runner.mjs';
 import { provenWorkflowStep } from './workflow-selectors.mjs';
 
 export const isContractTest = file => /^scripts\/ci\/(?!\.)[^/]+\.test\.mjs$/u.test(file);
@@ -121,7 +122,7 @@ function pg16WorkflowSelectors(workflow, roots, packageTargets, webTargets, onUn
   });
 }
 
-function browserGateTargets(root, workflow, roots, read, databaseFiles) {
+function browserGateTargets(root, workflow, roots, databaseFiles) {
   const candidates = databaseFiles.filter(isBrowserGateSpec);
   const branches = workflow.on?.push?.branches;
   const needs = [workflow.jobs?.['e2e-gate']?.needs].flat();
@@ -143,21 +144,7 @@ function browserGateTargets(root, workflow, roots, read, databaseFiles) {
     return [];
   }
   try {
-    const runner = read('scripts/run-e2e-lane.mjs');
-    const selectors = [
-      /const gatePaths = \['e2e\/gate', 'e2e\/security'\];/u,
-      /const pwArgs = \['--filter', '@interdomestik\/web', 'exec', 'playwright', 'test'\];/u,
-      /const mkMk = '--project=gate-mk-mk';/u,
-      /playwrightArgs: \[\.\.\.gatePaths, \.\.\.runnerArgs, \.\.\.projects\]/u,
-      /\bgate: gateLane\(\[ksSq, mkMk\], true, fullGateWorkers\)/u,
-      // The hosted worker arguments may limit failures and configure reports, but cannot filter tests.
-      /^const fullGateWorkers = localMac \? localMacGateArgs\(10\) : strictWorkers;$/mu,
-      /^const strictWorkers = \['--workers=1', \.\.\.strictArgs\];$/mu,
-      /^const strictArgs = \['--max-failures=1', \.\.\.reportArgs\];$/mu,
-      /^const reportArgs = playwrightReportArgs\(process\.env\.PW_EVIDENCE_LANE\);$/mu,
-      /\[\.\.\.pwArgs, \.\.\.lane\.playwrightArgs, \.\.\.extraPlaywrightArgs\]/u,
-    ];
-    if (!selectors.every(selector => selector.test(runner))) return [];
+    if (!provesHostedGateArguments(root)) return [];
     const config = readE2eLane(root, ['gate-mk-mk']);
     return candidates.filter(file => inLane(config, file));
   } catch (error) {
@@ -251,7 +238,7 @@ export function protectedLanes(
   }
 
   const lanes = pg16WorkflowSelectors(workflow, roots, packageTargets, webTargets, onUnproven);
-  const browser = browserGateTargets(root, workflow, roots, read, databaseFiles);
+  const browser = browserGateTargets(root, workflow, roots, databaseFiles);
   if (browser.length) lanes.push({ name: 'e2e-gate/playwright', files: browser });
   const coverage = coverageTargets(root, workflow, roots, read, coverageCandidates);
   if (coverage.length) lanes.push({ name: 'unit/coverage', files: coverage });

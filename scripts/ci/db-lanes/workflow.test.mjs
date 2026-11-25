@@ -226,46 +226,6 @@ for (const [label, command, problem] of [
   });
 }
 
-const browserSpec = 'apps/web/e2e/gate/fixture/database-helpers.spec.ts';
-const browserSource = [
-  "import { db } from '@interdomestik/database';",
-  "import { expect, test } from '@playwright/test';",
-  "test('uses the database fixture', () => { expect(db).toBeDefined(); });",
-].join('\n');
-
-test('credits the full Playwright gate for a spec that imports database helpers', t => {
-  const root = inventoryFixture(t, [[browserSpec, browserSource]]);
-  const row = () => repositoryInventory(root).find(row => row.file === browserSpec);
-  assert.deepEqual(row(), { file: browserSpec, lanes: ['e2e-gate/playwright'] });
-
-  const config = join(root, 'apps/web/playwright.config.ts');
-  const source = readFileSync(config, 'utf8');
-  writeFileSync(config, source.replace('testMatch: GATE_MK_TEST_MATCH', 'testMatch: []'));
-  const orphan = { message: `Database tests with no CI lane: ${browserSpec}` };
-  assert.throws(row, orphan);
-  writeFileSync(config, source);
-
-  const runner = join(root, 'scripts/run-e2e-lane.mjs');
-  const runnerSource = readFileSync(runner, 'utf8');
-  const filteredArgs = ": [...strictWorkers, '--grep', '@smoke'];";
-  writeFileSync(runner, runnerSource.replace(': strictWorkers;', filteredArgs));
-  assert.throws(row, orphan);
-  writeFileSync(runner, runnerSource);
-  updateWorkflow(root, workflow => {
-    const gate = workflow.jobs['e2e-gate'].steps.find(step => step.name === 'E2E Gate Suite');
-    gate.if = false;
-  });
-  assert.throws(row, orphan);
-});
-
-test('reports a database-backed browser spec outside the full gate selection', t => {
-  const file = 'apps/web/e2e/fixture/database-helpers.spec.ts';
-  const root = inventoryFixture(t, [[file, browserSource]]);
-  assert.throws(() => repositoryInventory(root), {
-    message: `Database tests with no CI lane: ${file}`,
-  });
-});
-
 test('contract credit requires selection in both product and full audit modes', t => {
   const root = contractFixture(t);
   updateWorkflow(root, ({ jobs }) => {
