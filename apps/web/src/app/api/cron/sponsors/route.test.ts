@@ -3,8 +3,8 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { GET } from './route';
 
 const mocks = vi.hoisted(() => ({
-  enforceRateLimit: vi.fn(async () => null),
-  runSponsorCronCore: vi.fn(async () => []),
+  enforceRateLimit: vi.fn(() => Promise.resolve(null)),
+  runSponsorCronCore: vi.fn(() => Promise.resolve([])),
 }));
 
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: mocks.enforceRateLimit }));

@@ -10,7 +10,7 @@ const mocks = vi.hoisted(() => ({
   run: vi.fn<typeof runCrmForecastSnapshotSchedulerCore>(),
 }));
 
-vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: async () => null }));
+vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: () => Promise.resolve(null) }));
 vi.mock('../../_auth', () => ({ authorizeCronRequest: () => ingress }));
 vi.mock('./_core', async importOriginal => ({
   ...(await importOriginal<typeof import('./_core')>()),

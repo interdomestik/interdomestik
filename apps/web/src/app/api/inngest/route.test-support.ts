@@ -56,7 +56,8 @@ export function request(
     steps: {},
     version: 1,
   });
-  const body = method === 'PUT' ? registrationBody : method === 'POST' ? executionBody : undefined;
+  const postBody = method === 'POST' ? executionBody : undefined;
+  const body = method === 'PUT' ? registrationBody : postBody;
   const headers = new Headers({ 'Content-Type': 'application/json' });
   if (options.key) {
     headers.set(headerKeys.Signature, signature(body ?? '', options.key, options.timestamp));

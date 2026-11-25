@@ -10,13 +10,21 @@ import { scheduledJobs as jobs } from './scheduled-jobs';
 const cronRoot = fileURLToPath(new URL('../../app/api/cron/', import.meta.url));
 const routeModule = (url: string) => `apps/web/src/app${url}/route.ts`;
 
+function comparePaths(left: string, right: string) {
+  if (left === right) return 0;
+  return left < right ? -1 : 1;
+}
+
 it('declares every cron route exactly once and matches the public-entry methods', () => {
   const routes = readdirSync(cronRoot, { recursive: true, withFileTypes: true })
     .filter(entry => entry.isFile() && entry.name === 'route.ts')
     .map(
       entry => `/api/cron/${path.relative(cronRoot, entry.parentPath).split(path.sep).join('/')}`
     );
-  expect(jobs.routes.map(job => job.path).sort()).toEqual(routes.sort());
+  const declaredRoutes = jobs.routes.map(job => job.path);
+  declaredRoutes.sort(comparePaths);
+  routes.sort(comparePaths);
+  expect(declaredRoutes).toEqual(routes);
 
   for (const job of jobs.routes) {
     const entries = publicEntries.entries.filter(entry => entry.module === routeModule(job.path));

@@ -1,4 +1,5 @@
 import { expect, it, vi } from 'vitest';
+import { expectClosedCronRoute } from '../closed-route.test-support';
 import { GET } from './route';
 
 const mocks = vi.hoisted(() => ({
@@ -12,15 +13,7 @@ vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: mocks.enforceRateLimit })
 vi.mock('./_core', () => ({ runNpsCronCore: mocks.runNpsCronCore }));
 
 it('returns 410 without running the nps job', async () => {
-  const request = new Request('http://localhost/api/cron/nps');
-  const response = GET(request);
-  expect(response.status).toBe(410);
-
-  const withBearer = GET(
-    new Request(request, { headers: { authorization: 'Bearer synthetic-cron' } })
-  );
-  expect(withBearer.status).toBe(410);
-  expect(await response.text()).toBe('');
+  await expectClosedCronRoute(GET, 'http://localhost/api/cron/nps');
   expect(mocks.authorizeCronRequest).not.toHaveBeenCalled();
   expect(mocks.enforceRateLimit).not.toHaveBeenCalled();
   expect(mocks.runNpsCronCore).not.toHaveBeenCalled();
