@@ -45,7 +45,7 @@ vi.mock('@/lib/notification-delivery-schedule', () => ({
 }));
 
 import { NonRetriableError } from 'inngest';
-import scheduledJobs from '../cron/scheduled-jobs.json';
+import { scheduledJobs } from '../cron/scheduled-jobs';
 
 import {
   claimIntakeExtractionRequested,

@@ -17,6 +17,7 @@ describe('delivery state and leases', () => {
     const h = setup(row);
     expect((await h.schedule()).sent).toBe(0);
     expect(h.queries).toHaveLength(1);
+    expect(h.queries[0]).toContain('"notification_deliveries"."next_attempt_at" <= now()');
     h.setClock(start + 1);
     await h.schedule(89_999);
     expect(h.queries).toHaveLength(1);

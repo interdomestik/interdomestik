@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { expect, it } from 'vitest';
 import vercel from '../../../vercel.json';
 import publicEntries from '../public-entry-points.json';
-import jobs from './scheduled-jobs.json';
+import { scheduledJobs as jobs } from './scheduled-jobs';
 
 const cronRoot = fileURLToPath(new URL('../../app/api/cron/', import.meta.url));
 const routeModule = (url: string) => `apps/web/src/app${url}/route.ts`;

@@ -248,22 +248,31 @@ it.each(signingFlows)(
     const summary = { tenants: 1, tenantFailures: 1, sent: 1 };
     effects.runNotificationDeliverySchedule.mockResolvedValue(summary);
 
-    for (const execution of [1, 2]) {
+    const executions = [
+      { runId: 'notification-run-1', attempt: 0 },
+      { runId: 'notification-run-1', attempt: 1 },
+      { runId: 'notification-run-2', attempt: 0 },
+    ];
+    for (const [index, execution] of executions.entries()) {
       const post = await fresh.POST(
-        request('POST', { key, execution: 'notifications', runId: `notification-run-${execution}` })
+        request('POST', { key, execution: 'notifications', ...execution })
       );
       expect(post.status).toBe(206);
-      expect(await signedResponseBody(post, key)).toMatchObject([{ data: summary }]);
-      expect(effects.runNotificationDeliverySchedule).toHaveBeenCalledTimes(execution);
-      const drainArgs = effects.runNotificationDeliverySchedule.mock.calls[execution - 1];
+      expect(await signedResponseBody(post, key)).toMatchObject([
+        { displayName: 'drain-notification-deliveries', data: summary },
+      ]);
+      expect(effects.mintIngressCapability).toHaveBeenCalledTimes(index + 1);
+      expect(effects.runNotificationDeliverySchedule).toHaveBeenCalledTimes(index + 1);
+      const drainArgs = effects.runNotificationDeliverySchedule.mock.calls[index];
       expect(drainArgs).toHaveLength(1);
-      expect(drainArgs[0]).toBe(effects.mintIngressCapability.mock.results[execution - 1].value);
+      expect(drainArgs[0]).toBe(effects.mintIngressCapability.mock.results[index].value);
     }
 
-    expect(effects.mintIngressCapability.mock.calls).toEqual([['inngest'], ['inngest']]);
-    expect(effects.runNotificationDeliverySchedule.mock.calls[0][0]).not.toBe(
-      effects.runNotificationDeliverySchedule.mock.calls[1][0]
+    expect(effects.mintIngressCapability.mock.calls).toEqual(executions.map(() => ['inngest']));
+    const drainedWith = effects.runNotificationDeliverySchedule.mock.calls.map(
+      ([ingress]) => ingress
     );
+    expect(new Set(drainedWith).size).toBe(executions.length);
     expect(effects.processPolicyAnalysisRunService).not.toHaveBeenCalled();
     expect(effects.processClaimDocumentWorkflowRunService).not.toHaveBeenCalled();
     expect(effects.processEmailSequences).not.toHaveBeenCalled();
@@ -273,13 +282,14 @@ it.each(signingFlows)(
 );
 
 it('registers exactly three SDK-authenticated Inngest methods with writes limited to POST', () => {
-  const module = 'apps/web/src/app/api/inngest/route.ts';
+  const routeModule = 'apps/web/src/app/api/inngest/route.ts';
+  const registration = { module: routeModule, authentication: 'library' };
   const entries = publicEntries.entries.filter(
-    entry => entry.module === module || entry.id.startsWith('inngest-')
+    entry => entry.module === routeModule || entry.id.startsWith('inngest-')
   );
   expect(entries).toMatchObject([
-    { id: 'inngest-get', module, method: 'GET', authentication: 'library', writes: false },
-    { id: 'inngest-post', module, method: 'POST', authentication: 'library', writes: true },
-    { id: 'inngest-put', module, method: 'PUT', authentication: 'library', writes: false },
+    { ...registration, id: 'inngest-get', method: 'GET', writes: false },
+    { ...registration, id: 'inngest-post', method: 'POST', writes: true },
+    { ...registration, id: 'inngest-put', method: 'PUT', writes: false },
   ]);
 });

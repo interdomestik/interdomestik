@@ -34,6 +34,7 @@ export function request(
     syncKind?: string;
     execution?: 'extraction' | 'notifications';
     runId?: string;
+    attempt?: number;
   } = {}
 ) {
   const [policyFunctionId, policyEventName] = extractionFunctions[0];
@@ -45,7 +46,7 @@ export function request(
   // The provider signs canonical JSON. Fixture keys are in canonical order.
   const executionBody = JSON.stringify({
     ctx: {
-      attempt: 0,
+      attempt: options.attempt ?? 0,
       run_id: options.runId ?? 'run-test',
       stack: { current: 0, stack: [] },
       use_api: false,
