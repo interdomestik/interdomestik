@@ -1,16 +1,21 @@
-// Authenticate the versioned kernel projection through two additive schema comparisons.
+// Authenticate the versioned kernel projection through the protected base and candidate.
 
 import ts from 'typescript';
 import { LEGACY } from './manifest.mjs';
 import { hasParallelTarget } from './modules.mjs';
-import { retainedConsumerProblem } from './rules-schema-consumers.mjs';
 import { schemaDestructuringExports } from './rules-schema-destructuring.mjs';
 import { resolverComparison, resolverRecordProblem } from './rules-resolver-state.mjs';
-import { comparePublicExports, forwardInventory } from './rules-schema-public.mjs';
+import { forwardInventory } from './rules-schema-public.mjs';
+import { tableAdmissionProblem } from './rules-schema-tables.mjs';
 import { kernelWalk } from './rules-trust.mjs';
-import { proveBuilderModule } from './schema-builder-forms.mjs';
-import { legacyTableIdentities, SCHEMA_DIR } from './schema-builder-imports.mjs';
+import { SCHEMA_DIR } from './schema-builder-imports.mjs';
 import { provenanceProblem } from './schema-builder-provenance.mjs';
+import {
+  isRateBookImport,
+  parseRateBookTransition,
+  RATE_BOOK_TRANSITION,
+  rateBookTransition,
+} from './schema-rate-book-transition.mjs';
 
 const BARREL = `${SCHEMA_DIR}index.ts`;
 const APPEND = /^export \* from '\.\/([A-Za-z0-9_-]+)';\n$/u;
@@ -141,22 +146,27 @@ function initialization(walk, tree, key, prior) {
   return { ordered: [...ordered].filter(file => prior.has(file)), newCycle };
 }
 
-function closureEdgesProblem(left, right) {
+function closureEdgesProblem(left, right, transition) {
   if (left.problems.length || right.problems.length)
     return `kernel closure incomplete ${left.problems[0] ?? right.problems[0]}`;
   for (const [file, edges] of left.resolutions) {
     const next = right.resolutions.get(file);
-    if (!next || !same(edges, file === BARREL ? next.slice(0, edges.length) : next))
+    if (!next) return `kernel edge changed ${file}`;
+    const retained =
+      file === transition?.import[0]
+        ? next.filter(edge => !isRateBookImport(edge, transition.import))
+        : next;
+    if (!same(edges, file === BARREL ? retained.slice(0, edges.length) : retained))
       return `kernel edge changed ${file}`;
   }
   return null;
 }
 
-function closureProblem(before, after, added) {
+function closureProblem(before, after, added, transition) {
   const targets = new Set(added);
   for (const [key, left] of before.walks) {
     const right = after.walks.get(key);
-    const problem = closureEdgesProblem(left, right);
+    const problem = closureEdgesProblem(left, right, transition);
     if (problem) return problem;
     const extra = [...right.seen].filter(file => !left.seen.has(file));
     if (extra.length !== targets.size || extra.some(file => !targets.has(file)))
@@ -169,46 +179,13 @@ function closureProblem(before, after, added) {
   return null;
 }
 
-function tableAdmissionProblem(
-  before,
-  after,
-  anchor,
-  added,
-  accumulated,
-  beforeInventory,
-  afterInventory
-) {
-  const legacy = legacyTableIdentities(before, before.reachable);
-  if (legacy.reason) return legacy.reason;
-  const tableNames = new Set();
-  const types = new Map();
-  const tableBindings = new Set(legacy.tables.keys());
-  const identities = new Set([...legacy.tables.values()].map(table => table.name));
-  for (const file of added) {
-    const proof = proveBuilderModule(after, anchor, file, legacy.tables);
-    if (proof.reason) return `${proof.reason} ${file}`;
-    types.set(file, proof.types);
-    for (const [key, table] of proof.tables) {
-      if (identities.has(table.name)) return `duplicate database identity public.${table.name}`;
-      identities.add(table.name);
-      tableBindings.add(key);
-      tableNames.add(key.split('#')[1]);
-      if (accumulated) legacy.tables.set(key, table);
-    }
-  }
-  const exports = comparePublicExports(before, after, beforeInventory, afterInventory, {
-    types,
-    tableBindings,
-    anchorModules: anchor.reachable,
-  });
-  if (exports.reason) return exports.reason;
-  if (added.length === 0) return null;
-  return retainedConsumerProblem(before, after, anchor, exports.affected, tableNames);
-}
-
-function retainedKernelProblem(before, after) {
+function retainedKernelProblem(before, after, transition) {
   for (const file of before.reachable) {
-    if (file !== BARREL && before.sources.get(file) !== after.sources.get(file))
+    if (
+      file !== BARREL &&
+      !transition?.retainedChanges.has(file) &&
+      before.sources.get(file) !== after.sources.get(file)
+    )
       return `changed kernel module ${file}`;
     if (!after.sources.has(file) || after.graph.sourceFileOf(file).parseDiagnostics.length)
       return `unparseable kernel module ${file}`;
@@ -216,14 +193,15 @@ function retainedKernelProblem(before, after) {
   return null;
 }
 
-function compare(before, after, anchor, role, inventoryOf, record) {
+function compare(before, after, anchor, role, inventoryOf, record, rateBook) {
   const reject = reason => `${role}: ${reason}`;
-  const retained = retainedKernelProblem(before, after);
-  if (retained) return reject(retained);
   const accumulated = role === 'base';
+  const transition = rateBookTransition(before, after, accumulated, rateBook);
+  const retained = retainedKernelProblem(before, after, transition);
+  if (retained) return reject(retained);
   const { reason, added } = appendedTargets(before, after, accumulated);
   if (reason) return reject(reason);
-  const closure = closureProblem(before, after, added);
+  const closure = closureProblem(before, after, added, transition);
   if (closure) return reject(closure);
   if (after.resolution.violations.length)
     return reject(`unmodeled resolver input ${after.resolution.violations[0].file}`);
@@ -247,7 +225,8 @@ function compare(before, after, anchor, role, inventoryOf, record) {
     added,
     accumulated,
     oldInventory,
-    newInventory
+    newInventory,
+    transition
   );
   return additions ? reject(additions) : null;
 }
@@ -263,11 +242,20 @@ function checkoutProblem(candidate, scanGraph, sources) {
 }
 
 /** One proof result governs all three entries. Any failure leaves their exact digest in force. */
-export function proveSchemaAdmission(input, pins, scanGraph, sources, record) {
+export function proveSchemaAdmission(
+  input,
+  pins,
+  scanGraph,
+  sources,
+  record,
+  transitionRecord = RATE_BOOK_TRANSITION
+) {
   const fail = reason => ({ version: 2, ok: false, reason });
   if (input?.reason) return fail(input.reason);
   const recordProblem = resolverRecordProblem(record);
   if (recordProblem) return fail(recordProblem);
+  const rateBook = parseRateBookTransition(transitionRecord);
+  if (rateBook.reason) return fail(rateBook.reason);
   const anchor = image(input?.anchor, 'anchor');
   if (anchor.reason) return fail(anchor.reason);
   const base = image(input?.base, 'base');
@@ -289,8 +277,8 @@ export function proveSchemaAdmission(input, pins, scanGraph, sources, record) {
       : inventory;
   };
   const reason =
-    compare(anchor, base, anchor, 'base', inventoryOf, record) ??
-    compare(base, candidate, anchor, 'candidate', inventoryOf, record) ??
+    compare(anchor, base, anchor, 'base', inventoryOf, record, rateBook) ??
+    compare(base, candidate, anchor, 'candidate', inventoryOf, record, rateBook) ??
     checkoutProblem(candidate, scanGraph, sources);
   if (reason) return fail(reason);
   return { version: 2, ok: true, reason: 'anchor and protected base verified' };
