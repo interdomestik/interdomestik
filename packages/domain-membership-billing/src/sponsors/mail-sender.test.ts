@@ -367,11 +367,11 @@ describe('dispatch-time roster mail cutoff', () => {
     const before = new Date(now.getTime() - 1);
     vi.setSystemTime(before);
     const d = deps();
-    d.sendMail = vi.fn(async (_recipient, _input, dispatchBlock) => {
+    d.sendMail = vi.fn((_recipient, _input, dispatchBlock) => {
       expect(dispatchBlock?.()).toBeNull();
       vi.setSystemTime(now);
       const code = dispatchBlock?.();
-      return code ? { ok: false, code } : { ok: true };
+      return Promise.resolve(code ? { ok: false, code } : { ok: true });
     });
     fake.answerSelect = answerOriginReads;
     fake.rows.push([{ id: delivery.id }], [delivery], [delivery]);
@@ -391,11 +391,11 @@ describe('dispatch-time roster mail cutoff', () => {
     const before = new Date(now.getTime() - 10 * 60_000 - 1);
     vi.setSystemTime(before);
     const d = deps();
-    d.sendMail = vi.fn(async (_recipient, _input, dispatchBlock) => {
+    d.sendMail = vi.fn((_recipient, _input, dispatchBlock) => {
       expect(dispatchBlock?.()).toBeNull();
       vi.setSystemTime(new Date(mailLeaseUntil(before)));
       const code = dispatchBlock?.();
-      return code ? { ok: false, code } : { ok: true };
+      return Promise.resolve(code ? { ok: false, code } : { ok: true });
     });
     fake.answerSelect = answerOriginReads;
     fake.rows.push([{ id: delivery.id }], [delivery], [delivery]);

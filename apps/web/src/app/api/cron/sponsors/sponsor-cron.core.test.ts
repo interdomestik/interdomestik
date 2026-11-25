@@ -43,7 +43,7 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   }),
 }));
 vi.mock('@sentry/nextjs', () => ({ captureException: h.captureException }));
-vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: async () => null }));
+vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: () => Promise.resolve(null) }));
 vi.mock('@interdomestik/domain-membership-billing/sponsors/mail-sender', () => ({
   runSponsorMailOutbox: h.outbox,
 }));

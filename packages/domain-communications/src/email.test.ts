@@ -66,9 +66,9 @@ describe('email delivery fallback', () => {
     const deadline = Date.parse('2027-01-01T00:00:00.000Z');
     vi.spyOn(Date, 'now').mockReturnValue(deadline - 1);
     const canDispatch = vi.fn(() => Date.now() < deadline);
-    m.sendMail.mockImplementationOnce(async () => {
+    m.sendMail.mockImplementationOnce(() => {
       vi.mocked(Date.now).mockReturnValue(deadline);
-      throw new Error('SMTP delivery failed');
+      return Promise.reject(new Error('SMTP delivery failed'));
     });
     m.resendSend.mockResolvedValue({ data: { id: 'resend-message-id' }, error: null });
     const { sendEmail } = await import('./email');

@@ -51,6 +51,15 @@ function optOutConfirmationKey(entryId: string): string {
   return `sponsor-entry:${entryId}:opt_out_confirmation`;
 }
 
+function lockRevocationIdentity(
+  tx: TenantTransaction,
+  target: Pick<typeof sponsorRosterEntries.$inferSelect, 'userId' | 'emailHmac'>
+): Promise<void> | 'refused' {
+  if (target.userId) return lockSponsorPerson(tx, target.userId);
+  if (target.emailHmac) return lockSponsorEntryIdentity(tx, target.emailHmac);
+  return 'refused';
+}
+
 async function revokeSponsorPerson(
   tx: TenantTransaction,
   input: Revocation
@@ -77,9 +86,9 @@ async function revokeSponsorPerson(
   }
 
   // §3.5: lock 1 for an unbound person, otherwise lock 2; then terms FOR SHARE, entries FOR UPDATE.
-  if (target.userId) await lockSponsorPerson(tx, target.userId);
-  else if (target.emailHmac) await lockSponsorEntryIdentity(tx, target.emailHmac);
-  else return 'refused';
+  const identityLock = lockRevocationIdentity(tx, target);
+  if (identityLock === 'refused') return identityLock;
+  await identityLock;
   const sponsorTermIds = tx
     .select({ id: sponsorTerms.id })
     .from(sponsorTerms)

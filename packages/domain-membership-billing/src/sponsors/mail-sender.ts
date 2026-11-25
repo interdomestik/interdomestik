@@ -218,8 +218,10 @@ export async function deliverSponsorMail(
   const leaseExpiresAt = leaseUntil === undefined ? Infinity : Date.parse(leaseUntil);
   const dispatchBlock = (): DispatchBlock | null => {
     const now = Date.now();
-    if (!(now < leaseExpiresAt)) return 'lease_lost';
-    return mail.retentionDeadline && now >= mail.retentionDeadline.getTime() ? 'aged_mail' : null;
+    if (now < leaseExpiresAt) {
+      return mail.retentionDeadline && now >= mail.retentionDeadline.getTime() ? 'aged_mail' : null;
+    }
+    return 'lease_lost';
   };
   try {
     const input = mail.kind === 'activation' ? null : sponsorMailInput(mail, deps);
