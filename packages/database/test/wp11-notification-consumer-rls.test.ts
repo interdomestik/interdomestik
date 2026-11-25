@@ -117,6 +117,16 @@ async function proveConsumer(client: postgres.Sql, a: Rows, b: Rows) {
       await import('../../domain-communications/src/notification-deliveries/store');
     const authority = mintTenantAuthority({ tenantId: a.tenant, purpose: 'scheduled-work' });
 
+    await client`update notification_deliveries set next_attempt_at=now()+interval '1 hour'
+      where id=${a.delivery}`;
+    assert.equal(
+      await withTenantAuthority(authority, tx => claimNotificationDelivery(tx, a.tenant)),
+      null,
+      'A queued delivery must remain unclaimed before next_attempt_at'
+    );
+    await client`update notification_deliveries set next_attempt_at=created_at
+      where id=${a.delivery}`;
+
     const anotherId = randomUUID();
     const enqueue = {
       id: anotherId,
