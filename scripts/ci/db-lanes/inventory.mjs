@@ -12,6 +12,7 @@ const testFile = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
 const databaseMarker = /(?:^|[.-])(?:db|pg16|postgres|integration|rls|restricted-role)/u;
 const marked = new RegExp(`${databaseMarker.source}[.-]`, 'u');
 const liveTestSuffix = new RegExp(String.raw`${databaseMarker.source}\.test\.ts$`, 'u');
+const correspondenceProof = /^claim-correspondence(?:-.+)?\.test\.ts$/u;
 const rlsMarked = /(?:^|[.-])(?:rls|restricted-role)[.-]/u;
 const sourceTree = /^(?:apps\/web|packages\/[^/]+)\/src\//u;
 const authContracts = /^apps\/web\/src\/lib\/auth\/[^/]+\.contract\./u;
@@ -94,7 +95,11 @@ function advisoryNodeLane(file) {
   }
   if (/^packages\/database\/test\/(?:pg16\/)?[^/]+\.test\.ts$/u.test(file)) {
     const name = basename(file);
-    if (file.startsWith('packages/database/test/pg16/') || liveTestSuffix.test(name)) {
+    if (
+      file.startsWith('packages/database/test/pg16/') ||
+      liveTestSuffix.test(name) ||
+      correspondenceProof.test(name)
+    ) {
       return 'advisory/node-pg16';
     }
     return name.startsWith('sponsor-') && name !== 'sponsor-refactor.test.ts'

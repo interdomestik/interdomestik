@@ -50,8 +50,13 @@ function testArguments(part, name, script) {
   const messageProof =
     name === 'domain-claims' &&
     files.some(file => /^src\/claims\/message-integration\/.+\.integration\.test\.ts$/u.test(file));
-  if (messageProof && !args.slice(0, runnerIndex).includes('MESSAGE_RLS_INTEGRATION=1')) {
+  const billingProof = name === 'domain-membership-billing' && prefix.startsWith('vitest ');
+  const flags = args.slice(0, runnerIndex);
+  if (messageProof && !flags.includes('MESSAGE_RLS_INTEGRATION=1')) {
     throw new UnprovenSelector(`Missing MESSAGE_RLS_INTEGRATION=1 in ${name} ${script}`);
+  }
+  if (billingProof && !flags.includes('BILLING_RLS_INTEGRATION=1')) {
+    throw new UnprovenSelector(`Missing BILLING_RLS_INTEGRATION=1 in ${name} ${script}`);
   }
   return files;
 }
@@ -156,12 +161,18 @@ export function protectedLanes(root, coverageCandidates = [], databaseFiles = []
   }
 
   function webTargets(command) {
-    if (command !== 'node scripts/run-staff-detail-rls.mjs') {
+    const runner = 'scripts/run-staff-detail-rls.mjs';
+    if (command !== `node ${runner}`) {
       throw new UnprovenSelector('Unsupported staff detail selector');
     }
-    const lines = read('scripts/run-staff-detail-rls.mjs')
-      .split('\n')
-      .map(line => line.trim());
+    let source;
+    try {
+      source = read(runner);
+    } catch (error) {
+      if (error.code !== 'ENOENT') throw error;
+      throw new UnprovenSelector(`Missing staff detail runner: ${runner}`);
+    }
+    const lines = source.split('\n').map(line => line.trim());
     const start = lines.indexOf('const child = spawn(');
     const prefix = [
       'const child = spawn(',

@@ -224,10 +224,16 @@ for (const [label, command, problem] of [
     assert.equal(warnings[0]?.[0], 'e2e-gate/RLS');
     assert.match(warnings[0]?.[1].message, problem);
     const exchangeRates = 'packages/domain-membership-billing/test/exchange-rates-port.test.ts';
-    const files = [restricted, exchangeRates, ...existing.flatMap(lane => lane.files)];
-    assert.deepEqual(buildInventory(files, existing, []).slice(0, 2), [
+    const correspondence = 'packages/database/test/claim-correspondence.test.ts';
+    const writer = 'packages/database/test/claim-correspondence-writers.test.ts';
+    const files = [restricted, exchangeRates, correspondence, writer].concat(
+      existing.flatMap(lane => lane.files)
+    );
+    assert.deepEqual(buildInventory(files, existing, []).slice(0, 4), [
       { file: restricted, lanes: ['advisory/node-pg16'] },
       { file: exchangeRates, lanes: ['advisory/node-pg16'] },
+      { file: correspondence, lanes: ['advisory/node-pg16'] },
+      { file: writer, lanes: ['advisory/node-pg16'] },
     ]);
   });
 }

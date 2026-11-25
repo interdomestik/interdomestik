@@ -1,10 +1,10 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, mkdirSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import test from 'node:test';
 import { structuredArtifactOwner } from '../../modularity-guard-policy.mjs';
+import { copyProtectedSelectors, scratch } from './inventory-fixture.mjs';
 import {
   buildInventory,
   readExclusions,
@@ -12,12 +12,7 @@ import {
   repositoryInventory,
   trackedTests,
 } from './inventory.mjs';
-
-function scratch(t) {
-  const root = realpathSync(mkdtempSync(join(tmpdir(), 'db-lanes-')));
-  t.after(() => rmSync(root, { force: true, recursive: true }));
-  return root;
-}
+import { protectedLanes } from './protected-lanes.mjs';
 
 const docked = 'packages/database/test/pg16/local-container.test.ts';
 const exception = {
@@ -209,6 +204,53 @@ test('uses the existing explicit lane before selecting advisory execution', () =
     /excluded.*already selected/u
   );
 });
+
+for (const [label, change, message] of [
+  [
+    'the staff RLS runner is missing',
+    root => rmSync(join(root, 'scripts/run-staff-detail-rls.mjs')),
+    /Missing staff detail runner/u,
+  ],
+  [
+    'the billing RLS opt-in is missing',
+    root => {
+      const file = join(root, 'packages/domain-membership-billing/package.json');
+      const manifest = JSON.parse(readFileSync(file, 'utf8'));
+      assert.match(manifest.scripts['test:rls'], /^BILLING_RLS_INTEGRATION=1 /u);
+      manifest.scripts['test:rls'] = manifest.scripts['test:rls'].replace(
+        'BILLING_RLS_INTEGRATION=1 ',
+        ''
+      );
+      writeFileSync(file, JSON.stringify(manifest));
+    },
+    /Missing BILLING_RLS_INTEGRATION=1/u,
+  ],
+]) {
+  test(`withdraws protected RLS credit when ${label}`, t => {
+    const root = scratch(t);
+    copyProtectedSelectors(root);
+    const warnings = [];
+    const select = () =>
+      protectedLanes(root, [], [], (lane, error) => warnings.push([lane, error]));
+    assert.deepEqual(
+      select().map(lane => lane.name),
+      ['e2e-gate/RLS', 'e2e-gate/journal-parity']
+    );
+    assert.deepEqual(warnings, []);
+
+    change(root);
+
+    assert.deepEqual(
+      select().map(lane => lane.name),
+      ['e2e-gate/journal-parity']
+    );
+    assert.deepEqual(
+      warnings.map(([lane]) => lane),
+      ['e2e-gate/RLS']
+    );
+    assert.match(warnings[0][1].message, message);
+  });
+}
 
 test('inventories the checked-out selectors', () => {
   const rows = new Map(repositoryInventory().map(row => [row.file, row]));
