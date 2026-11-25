@@ -78,9 +78,9 @@ Drafting is not adoption. Leaving something out of this file retires nothing.
     - All three hosted PR E2E lanes ran and passed on that head: `gate-ks-sq`, `gate-mk-contract` and smoke.
     - The case's first result on that head, across every workflow run and attempt, read from the matched lane's uploaded `report.json` (not a workflow summary), was a pass at retry 0.
     - No hosted lane or its setup shows a retry or a flaky result.
-  - **Triage.** From the Mac trace, the lead identifies the failure as a flake, names the failing operation, and rules out any contribution from the PR, including through shared dependencies. A known product defect is not a flake. When the evidence cannot tell a test race from a product defect, the merge waits.
+  - **Triage.** The failing code path lies outside the PR's change. From the Mac trace, the lead identifies the failure as a flake, names the failing operation, and rules out any contribution from the PR, including through shared dependencies. A known product defect is not a flake. When the evidence cannot tell a test race from a product defect, the merge waits.
   - **Budget.**
-    - A logical test may be waived at most twice, counting every earlier exception merge since 2026-11-24 as recorded in the ledger.
+    - A logical test may be waived at most twice, counting every earlier exception merge since 2026-11-24. The ledger, kept in the lead's audit folder, supports a waiver only when it holds all nine exception merges of 2026-11-24 and 2026-11-25 (#2124, #2140, #2114, #2144, #2146, #2133, #2147, #2142, #2141) and every later one.
     - After its first waiver, a fix PR is open before the next gate starts.
     - A second waiver needs fresh evidence that the failure has the same cause as the first; a different cause needs a new diagnosis and doesn't qualify.
     - A third failure is not waived until the fix has merged.
