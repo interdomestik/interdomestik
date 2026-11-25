@@ -36,6 +36,7 @@ export type AuthorizedTransition = {
 export type ClaimTransitionRejectionReason =
   | 'invalid_status'
   | 'illegal_transition'
+  | 'category_closed_for_intake'
   | RecoveryInvariantRejectionReason
   | TransitionEvidenceRejectionReason;
 

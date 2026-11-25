@@ -1,5 +1,18 @@
 export * from './claim-pack';
 export * from './claims/create';
+export * from './claims/case-authorities';
+export type { CaseRegisterError, CaseRegisterResult } from './claims/case-register-access';
+export {
+  getClaimCorrespondenceSummary,
+  getClaimCorrespondenceSummaryInputSchema,
+  listClaimCorrespondence,
+  listClaimCorrespondenceInputSchema,
+  type ClaimCorrespondenceEntry,
+} from './claims/correspondence-read';
+export * from './claims/correspondence';
+export * from './claims/green-card-case-fields';
+export * from './claims/intake-category';
+export { outwardActionRequirements } from './claims/outward-action-requirements';
 export {
   createInformationRequest,
   getInformationRequests,

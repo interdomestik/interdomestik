@@ -762,6 +762,36 @@
     "evidence": "apps/web/src/actions/staff-claims/update-status.core.ts:17",
     "proof": "ef7d3184be61"
   },
+  "actions/staff-claims/case-authorities.ts#recordCaseAuthority": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/staff-claims/case-authorities.ts:17",
+    "proof": "323ffb8b5a4f"
+  },
+  "actions/staff-claims/case-authorities.ts#revokeCaseAuthority": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/staff-claims/case-authorities.ts:35",
+    "proof": "51bffafa6066"
+  },
+  "actions/staff-claims/case-authorities.ts#updateGreenCardCaseFields": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/staff-claims/case-authorities.ts:53",
+    "proof": "337c14aeed8a"
+  },
+  "actions/staff-claims/correspondence.ts#recordInboundCorrespondence": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/staff-claims/correspondence.ts:33",
+    "proof": "4cd619536a1e"
+  },
+  "actions/staff-claims/correspondence.ts#recordOutboundCorrespondence": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/staff-claims/correspondence.ts:15",
+    "proof": "eb1e15705eee"
+  },
+  "actions/staff-claims/correspondence.ts#setCorrespondenceFollowUp": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/staff-claims/correspondence.ts:51",
+    "proof": "43b28b5766e4"
+  },
   "actions/staff-claims/information-request.ts#acknowledgeClaimInformationRequestEvidence": {
     "disposition": "not_member_reachable",
     "evidence": "packages/domain-claims/src/claims/information-request-evidence.ts:37",

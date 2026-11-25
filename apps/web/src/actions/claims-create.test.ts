@@ -5,7 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createClaim } from './claims';
 import {
   mockDbInsert,
-  retailClaimFormData,
+  openCategoryClaimFormData,
   mockGetActiveSubscription,
   mockGetSession,
   type MockResolvedOnce,
@@ -18,7 +18,7 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({
         user: { id: 'fixture-member', role: 'member', tenantId: 'tenant_mk' },
       });
-      await expect(createClaim({}, retailClaimFormData())).resolves.toMatchObject({
+      await expect(createClaim({}, openCategoryClaimFormData())).resolves.toMatchObject({
         success: false,
         code: 'acceptance_required',
       });
@@ -36,7 +36,7 @@ describe('Claim Actions', () => {
       const formData = new FormData();
       formData.append('title', 'Valid Title');
       formData.append('companyName', 'Company');
-      formData.append('category', 'retail');
+      formData.append('category', 'property');
 
       const result = await createClaim({}, formData);
       expect(result).toEqual({ success: false, error: 'Membership required to create a claim.' });
@@ -65,7 +65,7 @@ describe('Claim Actions', () => {
       mockGetSession.mockResolvedValue({
         user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
       });
-      const formData = retailClaimFormData();
+      const formData = openCategoryClaimFormData();
 
       await createClaim({}, formData);
 
@@ -100,7 +100,7 @@ describe('Claim Actions', () => {
         value: { branchId: 'branch-mk-skopje-center' },
       });
 
-      const formData = retailClaimFormData();
+      const formData = openCategoryClaimFormData();
 
       await createClaim({}, formData);
 
@@ -121,7 +121,7 @@ describe('Claim Actions', () => {
 
       const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
-      const formData = retailClaimFormData();
+      const formData = openCategoryClaimFormData();
 
       const result = await createClaim({}, formData);
 
@@ -138,7 +138,7 @@ describe('Claim Actions', () => {
         user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
       });
 
-      const formData = retailClaimFormData('');
+      const formData = openCategoryClaimFormData('');
 
       await createClaim({}, formData);
 
@@ -157,7 +157,7 @@ describe('Claim Actions', () => {
         user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
       });
 
-      const formData = retailClaimFormData('999.99');
+      const formData = openCategoryClaimFormData('999.99');
 
       await createClaim({}, formData);
 

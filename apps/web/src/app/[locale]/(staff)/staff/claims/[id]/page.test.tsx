@@ -178,17 +178,21 @@ describe('StaffClaimDetailsPage', () => {
   });
 
   it('shows ordinary case evidence with canonical links to the assigned staff', async () => {
-    hoisted.getAssignedStaffClaimDocumentsMock.mockResolvedValueOnce([
-      {
-        id: 'doc-1',
-        name: 'evidence.pdf',
-        fileType: 'application/pdf',
-        fileSize: 1024,
-        url: '/api/documents/doc-1/download',
-      },
-    ]);
+    hoisted.getAssignedStaffClaimDocumentsMock.mockResolvedValueOnce({
+      page: 2,
+      hasNextPage: true,
+      documents: [
+        {
+          id: 'doc-1',
+          name: 'evidence.pdf',
+          fileType: 'application/pdf',
+          fileSize: 1024,
+          url: '/api/documents/doc-1/download',
+        },
+      ],
+    });
 
-    await renderPage('en');
+    await renderPage('en', { evidencePage: '2', correspondencePage: '3' });
 
     const panel = within(screen.getByTestId('staff-claim-documents'));
     expect(panel.getByText('detail.evidence')).toBeInTheDocument();
@@ -197,12 +201,21 @@ describe('StaffClaimDetailsPage', () => {
       'href',
       '/api/documents/doc-1/download'
     );
+    expect(panel.getByRole('link', { name: 'previous' })).toHaveAttribute(
+      'href',
+      '/en/staff/claims/claim-1?correspondencePage=3#staff-claim-documents'
+    );
+    expect(panel.getByRole('link', { name: 'next' })).toHaveAttribute(
+      'href',
+      '/en/staff/claims/claim-1?correspondencePage=3&evidencePage=3#staff-claim-documents'
+    );
     expect(hoisted.getAssignedStaffClaimDocumentsMock).toHaveBeenLastCalledWith({
       claimId: 'claim-1',
       session: expect.objectContaining({
         user: expect.objectContaining({ id: 'staff-1', role: 'staff', tenantId: 'tenant-ks' }),
       }),
       authority: hoisted.current.authority!,
+      page: 2,
     });
   });
 

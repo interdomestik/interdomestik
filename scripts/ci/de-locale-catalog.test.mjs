@@ -69,7 +69,12 @@ test('every de catalog has an explicit modularity owner', () => {
       name
     );
   }
-  for (const name of ['agent.json', 'freeStart.json', 'pricing.json']) {
+  for (const name of [
+    'agent.json',
+    'freeStart.json',
+    'pricing.json',
+    'staff-correspondence.json',
+  ]) {
     assert.notEqual(structuredArtifactOwner(`apps/web/src/messages/en/${name}`), null, name);
   }
 });
@@ -84,8 +89,9 @@ test('every de catalog file has an explicit owner-registry entry', () => {
     assert.ok(!keys.has(key.slice(3)), `${key} duplicates a locale-wide entry`);
   }
   // Toolkit and entity disclosure now have shared five-locale feature ownership; admin-settings
-  // moved to the five-locale WP-10 pilot-switch owner.
-  assert.equal(LOCALE_CATALOG_OWNER_KEYS.filter(entry => entry.startsWith('de/')).length, 45);
+  // moved to the five-locale WP-10 pilot-switch owner; staff correspondence has an exact entry
+  // for each locale.
+  assert.equal(LOCALE_CATALOG_OWNER_KEYS.filter(entry => entry.startsWith('de/')).length, 46);
 });
 
 test('unknown de catalogs and unknown locales stay unowned', () => {

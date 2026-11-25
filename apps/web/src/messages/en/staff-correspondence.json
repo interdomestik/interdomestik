@@ -1,0 +1,141 @@
+{
+  "staff-correspondence": {
+    "choose": "Select an option",
+    "citedDocument": "Cited document",
+    "notRecorded": "Not recorded",
+    "feedback": {
+      "loading": "Loading case records…",
+      "saving": "Saving…",
+      "saved": "Saved.",
+      "retry": "Try again",
+      "readFailed": "Case records could not be loaded.",
+      "failed": "Could not confirm the save. Try again.",
+      "signIn": "Sign in again to continue.",
+      "forbidden": "You do not have access to these case records.",
+      "invalid": "Review the information you entered and try again.",
+      "invalidState": "This change is unavailable in the current case state.",
+      "authorityInvalid": "Check that the required authorizations are valid and cover this contact.",
+      "documentInvalid": "Use a document uploaded directly to this case.",
+      "conflict": "The record conflicts with saved information. Review the current records before retrying."
+    },
+    "caseFields": {
+      "title": "Green Card case details",
+      "country": "Other vehicle country code",
+      "insurance": "Proof of insurance reference",
+      "outsideParty": "External party handling the case",
+      "coverage": "Coverage verification status",
+      "caseFollowUp": "Case follow-up",
+      "caseFollowUpUtc": "Case follow-up (UTC)",
+      "save": "Save case details",
+      "status": {
+        "not_checked": "Not checked",
+        "requested": "Verification requested",
+        "confirmed_by_party": "Confirmed by external party",
+        "refused_by_party": "Refused by external party"
+      }
+    },
+    "authorities": {
+      "title": "Case authorizations",
+      "empty": "No authorizations recorded.",
+      "kind": "Authorization type",
+      "kinds": {
+        "recovery_agreement": "Recovery agreement",
+        "power_of_attorney": "Power of attorney",
+        "signed_assignment": "Signed assignment",
+        "consent_or_lawful_basis": "Consent or legal basis"
+      },
+      "instrument": "Signed instrument",
+      "version": "Version on the document",
+      "grantedUtc": "Granted on (UTC)",
+      "expiresUtc": "Expires on (UTC)",
+      "jurisdiction": "Jurisdiction country code",
+      "attestJurisdiction": "I confirm that this jurisdiction is appropriate for the power of attorney.",
+      "purpose": "Purpose of document sharing",
+      "record": "Record authorization",
+      "versionValue": "Version {version}",
+      "instrumentValue": "Signed document • {name}",
+      "granted": "Granted on {date}",
+      "expires": "Expires on {date}",
+      "jurisdictionValue": "Jurisdiction • {country}",
+      "purposeValue": "Purpose • {purpose}",
+      "revoked": "Revoked on {date}",
+      "revoke": "Revoke authorization",
+      "confirmRevoke": "Confirm revocation",
+      "revokeLimit": "In the pilot, a revoked authorization basis cannot be re-granted on the same case."
+    },
+    "documents": {
+      "empty": "Upload a signed instrument to record an authorization.",
+      "upload": "Upload case document",
+      "description": "Add a signed instrument or a document sent in correspondence for this case.",
+      "type": "Document type",
+      "chooseType": "Select a document type",
+      "file": "File",
+      "uploading": "Uploading…",
+      "uploaded": "Case document uploaded.",
+      "failed": "Could not upload the case document. Try again.",
+      "evidence": "Evidence",
+      "legal": "Legal document"
+    },
+    "direction": {
+      "inbound": "Inbound",
+      "outbound": "Outbound"
+    },
+    "party": {
+      "insurer": "Insurer",
+      "bureau": "Bureau",
+      "other": "Other party"
+    },
+    "channel": {
+      "email": "Email",
+      "post": "Post",
+      "phone": "Phone",
+      "portal": "Portal",
+      "other": "Other channel"
+    },
+    "entry": {
+      "title": "Record correspondence",
+      "directionLabel": "Direction",
+      "occurredUtc": "Contact date and time (UTC)",
+      "partyKind": "Party type",
+      "organisation": "Organisation",
+      "reference": "Their claim or file reference",
+      "contact": "Contact name",
+      "channel": "Channel",
+      "body": "Summary of the contact",
+      "replyTo": "Reply to outbound contact",
+      "noReply": "No linked outbound contact",
+      "replyOption": "{organisation} on {date}: {summary}",
+      "documents": "Documents sent with this contact",
+      "documentLimit": "Select up to {limit} documents.",
+      "unlistedDocument": "{name} is no longer listed.",
+      "keepUnlistedDocument": "Confirm keeping this document",
+      "removeUnlistedDocument": "Remove from selection",
+      "basesRequired": "An outbound contact requires a recovery agreement and a power of attorney.",
+      "consentRequired": "Sending documents requires consent or a legal basis for sharing.",
+      "attestSharing": "I confirm that the recorded purpose covers this disclosure.",
+      "record": "Save correspondence"
+    },
+    "list": {
+      "title": "Correspondence register",
+      "empty": "No correspondence recorded.",
+      "reference": "Their reference • {reference}",
+      "contact": "Contact • {contact}",
+      "inReplyTo": "Reply to {organisation} on {date}",
+      "documentsSent": "Documents sent • {total}",
+      "followUp": "Follow-up due {date}",
+      "followUpUtc": "Correspondence follow-up (UTC)",
+      "saveFollowUp": "Save follow-up",
+      "answered": "Reply recorded",
+      "overdue": "Follow-up overdue",
+      "pages": "Correspondence register pages",
+      "previous": "Previous page",
+      "next": "Next page",
+      "position": "Page {page} of {pages}"
+    },
+    "summary": {
+      "title": "Correspondence summary",
+      "total": "Correspondence entries • {total}",
+      "latest": "Showing the latest dates: {shown} of {total}"
+    }
+  }
+}

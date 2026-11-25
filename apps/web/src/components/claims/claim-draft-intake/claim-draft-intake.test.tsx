@@ -122,11 +122,12 @@ describe('ClaimDraftIntake', () => {
     vi.clearAllMocks();
   });
 
-  it('is explicit-save only, blocks injury, and keeps submit inert', async () => {
+  it('is explicit-save only, hides closed categories, and keeps submit inert', async () => {
     render(<ClaimDraftIntake freeStartMessages={{}} locale="en" tenantId="tenant_ks" />);
     expect(screen.getByRole('heading', { name: claimCopy.heading })).toBeVisible();
     expect(screen.getByText(claimCopy.truth)).toBeVisible();
-    expect(screen.getByTestId('claim-draft-category-injury')).toBeDisabled();
+    expect(screen.queryByTestId('claim-draft-category-injury')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('claim-draft-category-invalidity')).not.toBeInTheDocument();
     fireEvent.click(screen.getByTestId('claim-draft-category-vehicle'));
     fireEvent.click(screen.getByRole('button', { name: 'Continue to details' }));
     enter('details.issueType', 'collision');

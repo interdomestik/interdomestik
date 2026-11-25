@@ -28,7 +28,7 @@ export type TransitionEvidenceRejectionReason =
   | 'human_review_required';
 
 const VEHICLE_DAMAGE_CATEGORIES = new Set(['vehicle', 'vehicle_damage', 'car_damage']);
-const MEDICAL_CATEGORIES = new Set(['injury', 'invalidity']);
+export const MEDICAL_CATEGORIES: ReadonlySet<string> = new Set(['injury', 'invalidity']);
 const MEDICAL_PROOF_TARGET_STATUSES = new Set<ClaimStatus>([
   'submitted_to_airline',
   'negotiation',
@@ -62,7 +62,7 @@ function hasAssignmentOrPoa(proofs: readonly TransitionEvidenceProof[]): boolean
   );
 }
 
-function normalizedClaimCategory(claimCategory: string | null | undefined): string {
+export function normalizedClaimCategory(claimCategory: string | null | undefined): string {
   return claimCategory?.trim().toLowerCase() ?? '';
 }
 

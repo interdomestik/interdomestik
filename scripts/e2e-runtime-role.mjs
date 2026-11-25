@@ -3,8 +3,9 @@
 // the app's DATABASE_URL_RLS uses it, so tenant-scoped gate queries run under real RLS. Its password
 // is derived from the admin credential and cluster, so every admin-capable process agrees on it.
 import { createHmac } from 'node:crypto';
-
 import { grantE2eRuntimePrivileges } from './e2e-runtime-role-grants.mjs';
+
+export { NARROWED_TABLE_GRANTS } from './e2e-runtime-role-grants.mjs';
 
 export const E2E_RUNTIME_ROLE = 'interdomestik_e2e_runtime';
 // Probe suites pass a suffixed role so their adversarial catalog edits never touch the lane role.

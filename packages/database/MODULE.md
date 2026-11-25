@@ -22,6 +22,8 @@ The lead-approved `@interdomestik/database/seed-target-classification` export ex
 
 ## Owned tables
 
+Migration `0106` adds the WP-12 tables declared at the schema barrel tail. `claim-correspondence` declares `claim_authorities`, `claim_correspondence` and `claim_correspondence_documents`, and `claim-case-fields` declares `claim_case_fields`. Their composite foreign keys to `claim` use the unique `(tenant_id, id)` index created by WP-11's migration `0105`. The correspondence integration suites cover these tables under the restricted role.
+
 This package _declares_ every table — the schema module is the only declaration site for the 97 tables, and R1 names 91 as tenant tables (`A/modules/tenancy.md:213-218`, TEN-01) — and it carries the migrations, the seeds and the row policies. Declaring is stewardship of the schema; the owner of a table is the domain package named in that package's `MODULE.md`, and the owner map of CHK-16 is the list (R-16). The R2b text said "all of them", which made every table owned twice (review comment R2b-C03). Two tables that no contract named are assigned by this review: `share_packs` to the documents area, and `case_scoped_access_grants` to `domain-claims` (TEN-03: the only code that inserts a grant, `packages/domain-claims/src/claims/jurisdiction-handoff-store-insert.ts:31`, has no production caller today; the claims contract lists the table since the closing pass). Every domain package and `apps/web` write through the exported transaction handle (902 of 996 Drizzle call sites take a transaction handle; 52 take `db`/`dbRls`, 42 take `dbAdmin` — MEASURED in `A/modules/tenancy.md:84-100`). The schema is not the whole truth: 33 indexes, 11 triggers, 12 functions and 1 exclusion constraint exist only in SQL (DATA-05; recounted in R3, `A/raw/R3/corrections/c13-recounts.json`), which is why the build check compares with the schema **and** a registry of those objects (R-12, CHK-12).
 
 This package owns commands for the `pilot` category of `tenant_settings` (WP-10).
@@ -73,7 +75,7 @@ GRANT SELECT, INSERT ON public.exchange_rate_verifications TO interdomestik_runt
 GRANT SELECT ON public.exchange_rate_verification_limits TO interdomestik_runtime_rls;
 ```
 
-WP-11 adds five tables, each declared in its own module appended at the tail of `src/schema/index.ts`:
+WP-11 adds five tables, each declared in its own module exported before the WP-12 modules in `src/schema/index.ts`:
 
 - `notification_deliveries` and `claim_response_requests`;
 - `user_locale_preferences`: the recipient locale, one row per user;
