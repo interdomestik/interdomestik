@@ -5,7 +5,12 @@ import { fileURLToPath } from 'node:url';
 import { RETIRED_LEGACY_FILES } from '../contract-test-shards.mjs';
 import { compareCodeUnits } from '../db-access-order.mjs';
 import { listVitestFiles, vitestProjects } from './coverage-lane.mjs';
-import { isContractTest, isReleaseGateTest, protectedLanes } from './protected-lanes.mjs';
+import {
+  isBrowserGateSpec,
+  isContractTest,
+  isReleaseGateTest,
+  protectedLanes,
+} from './protected-lanes.mjs';
 
 export const repoRoot = resolve(import.meta.dirname, '../../..');
 const testFile = /\.(?:test|spec)\.[cm]?[jt]sx?$/u;
@@ -17,6 +22,8 @@ const rlsMarked = /(?:^|[.-])(?:rls|restricted-role)[.-]/u;
 const sourceTree = /^(?:apps\/web|packages\/[^/]+)\/src\//u;
 const authContracts = /^apps\/web\/src\/lib\/auth\/[^/]+\.contract\./u;
 const packageTests = /^packages\/[^/]+\/test\//u;
+const databaseNodeTest =
+  /^packages\/database\/test\/(pg16\/|rls\/(?:[^/]+\/)*)?([^/]+\.test\.ts)$/u;
 const databaseSignals = [
   /DATABASE_URL|DB_PROOF|DB_INTEGRATION|POSTGRES_URL|POSTGRES_INTEGRATION|RLS_INTEGRATION|RUN_DUNNING_POSTGRES/u,
   /node:process|restricted-role|db-client|@interdomestik\/database\b/u,
@@ -121,10 +128,11 @@ function advisoryNodeLane(file) {
   if (file === 'packages/domain-membership-billing/test/exchange-rates-port.test.ts') {
     return 'advisory/node-pg16';
   }
-  if (/^packages\/database\/test\/(?:pg16\/)?[^/]+\.test\.ts$/u.test(file)) {
-    const name = basename(file);
+  const match = databaseNodeTest.exec(file);
+  if (match) {
+    const [, liveDirectory, name] = match;
     if (
-      file.startsWith('packages/database/test/pg16/') ||
+      liveDirectory ||
       liveTestSuffix.test(name) ||
       correspondenceProof.test(name) ||
       legacyLiveNodeTests.has(name)
@@ -191,7 +199,10 @@ export function repositoryInventory(root = repoRoot) {
   const excludedFiles = new Set(exclusions.map(entry => entry.file));
   const files = trackedTests(root, excludedFiles);
   const candidates = files.filter(file => isVitestCandidate(file) && !excludedFiles.has(file));
-  const existing = protectedLanes(root, candidates, files, (name, error) => {
+  const existingCandidates = files.filter(
+    file => !isBrowserGateSpec(file) || !excludedFiles.has(file)
+  );
+  const existing = protectedLanes(root, candidates, existingCandidates, (name, error) => {
     console.warn(`Database lane ${name}: ${error.message}; using advisory selectors.`);
   });
   const protectedFiles = new Set(existing.flatMap(lane => lane.files));

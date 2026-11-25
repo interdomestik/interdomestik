@@ -181,6 +181,44 @@ for (const option of [
   });
 }
 
+test('keeps a nested RLS test in PG16 when the existing test:rls step is unavailable', t => {
+  const relativeFile = 'test/rls/fixture/new-proof.test.ts';
+  const file = `packages/database/${relativeFile}`;
+  const root = inventoryFixture(t, [[file, '']]);
+  const manifestPath = join(root, 'packages/database/package.json');
+  const manifest = JSON.parse(readFileSync(manifestPath, 'utf8'));
+  manifest.scripts['test:rls'] += ` ${relativeFile}`;
+  writeFileSync(manifestPath, JSON.stringify(manifest));
+  const row = () => repositoryInventory(root).find(row => row.file === file);
+  assert.deepEqual(row(), { file, lanes: ['e2e-gate/RLS'] });
+
+  updateWorkflow(root, workflow => {
+    const rls = workflow.jobs['e2e-gate'].steps.find(step => step.name === 'RLS Integration Test');
+    rls.if = false;
+  });
+  assert.deepEqual(row(), { file, lanes: ['advisory/node-pg16'] });
+});
+
+test('a disabled prerequisite removes protected PG16 credit', t => {
+  const root = scratch(t);
+  copyProtectedSelectors(root);
+  updateWorkflow(root, ({ jobs }) => {
+    jobs['validation-surface'].if = false;
+  });
+  const warnings = [];
+  assert.deepEqual(
+    protectedLanes(root, [], [], (lane, error) => warnings.push([lane, error])),
+    []
+  );
+  assert.deepEqual(
+    warnings.map(([lane]) => lane),
+    ['e2e-gate/RLS', 'e2e-gate/journal-parity']
+  );
+  for (const [, error] of warnings) {
+    assert.match(error.message, /Cannot prove the Prepare E2E Database step/u);
+  }
+});
+
 test('fails closed when a protected test runner adds an unrecognized case filter', t => {
   const root = scratch(t);
   copyProtectedSelectors(root);

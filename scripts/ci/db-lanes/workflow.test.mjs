@@ -226,24 +226,38 @@ for (const [label, command, problem] of [
   });
 }
 
-test('a disabled prerequisite removes protected PG16 credit', t => {
-  const root = scratch(t);
-  copyProtectedSelectors(root);
-  updateWorkflow(root, ({ jobs }) => {
-    jobs['validation-surface'].if = false;
+const browserSpec = 'apps/web/e2e/gate/fixture/database-helpers.spec.ts';
+const browserSource = [
+  "import { db } from '@interdomestik/database';",
+  "import { expect, test } from '@playwright/test';",
+  "test('uses the database fixture', () => { expect(db).toBeDefined(); });",
+].join('\n');
+
+test('credits the full Playwright gate for a spec that imports database helpers', t => {
+  const root = inventoryFixture(t, [[browserSpec, browserSource]]);
+  const row = () => repositoryInventory(root).find(row => row.file === browserSpec);
+  assert.deepEqual(row(), { file: browserSpec, lanes: ['e2e-gate/playwright'] });
+
+  const config = join(root, 'apps/web/playwright.config.ts');
+  const source = readFileSync(config, 'utf8');
+  writeFileSync(config, source.replace('testMatch: GATE_MK_TEST_MATCH', 'testMatch: []'));
+  const orphan = { message: `Database tests with no CI lane: ${browserSpec}` };
+  assert.throws(row, orphan);
+  writeFileSync(config, source);
+
+  updateWorkflow(root, workflow => {
+    const gate = workflow.jobs['e2e-gate'].steps.find(step => step.name === 'E2E Gate Suite');
+    gate.if = false;
   });
-  const warnings = [];
-  assert.deepEqual(
-    protectedLanes(root, [], [], (lane, error) => warnings.push([lane, error])),
-    []
-  );
-  assert.deepEqual(
-    warnings.map(([lane]) => lane),
-    ['e2e-gate/RLS', 'e2e-gate/journal-parity']
-  );
-  for (const [, error] of warnings) {
-    assert.match(error.message, /Cannot prove the Prepare E2E Database step/u);
-  }
+  assert.throws(row, orphan);
+});
+
+test('reports a database-backed browser spec outside the full gate selection', t => {
+  const file = 'apps/web/e2e/fixture/database-helpers.spec.ts';
+  const root = inventoryFixture(t, [[file, browserSource]]);
+  assert.throws(() => repositoryInventory(root), {
+    message: `Database tests with no CI lane: ${file}`,
+  });
 });
 
 test('contract credit requires selection in both product and full audit modes', t => {

@@ -257,6 +257,8 @@ test('inventories the checked-out selectors', () => {
   for (const [file, lane] of [
     ['packages/database/test/pg16/journal-schema-parity.test.ts', 'e2e-gate/journal-parity'],
     ['packages/database/test/s8-claim-restricted-rls.test.ts', 'e2e-gate/RLS'],
+    ['packages/database/test/rls/member-claim-title-rls.test.ts', 'e2e-gate/RLS'],
+    ['apps/web/e2e/gate/member-legal-acceptance.spec.ts', 'e2e-gate/playwright'],
     [
       'packages/domain-claims/src/claims/message-integration/public-reply-notification.integration.test.ts',
       'e2e-gate/RLS',

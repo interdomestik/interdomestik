@@ -25,12 +25,14 @@ export function copyProtectedSelectors(root) {
   for (const file of [
     '.github/workflows/ci.yml',
     'apps/web/package.json',
+    'apps/web/playwright.config.ts',
     'package.json',
     'packages/database/package.json',
     'packages/domain-claims/package.json',
     'packages/domain-communications/package.json',
     'packages/domain-membership-billing/package.json',
     'packages/domain-users/package.json',
+    'scripts/run-e2e-lane.mjs',
     'scripts/run-staff-detail-rls.mjs',
   ]) {
     mkdirSync(dirname(join(root, file)), { recursive: true });
@@ -54,6 +56,10 @@ export function copyLaneRunner(root) {
     recursive: true,
     filter: file => !file.endsWith('.json'),
   });
+  for (const dependency of ['screen-contract', 'server-mutation']) {
+    const path = `scripts/ci/${dependency}`;
+    symlinkSync(join(repoRoot, path), join(root, path));
+  }
   symlinkSync(
     join(repoRoot, 'packages/database/node_modules'),
     join(root, 'packages/database/node_modules')

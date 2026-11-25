@@ -90,20 +90,23 @@ function topLevelConst(source, name) {
   return null;
 }
 
-// Whether a project's testMatch is the gate list or a literal list that spreads it.
+// Whether a project's testMatch always includes the gate list.
 function selectsGate(source, expression) {
   if (!expression || !ts.isIdentifier(expression)) return false;
   if (expression.text === E2E_GATE_CONST) return true;
   const list = topLevelConst(source, expression.text);
-  return Boolean(
-    list &&
-    ts.isArrayLiteralExpression(list) &&
-    list.elements.some(
-      e =>
-        ts.isSpreadElement(e) &&
-        ts.isIdentifier(e.expression) &&
-        e.expression.text === E2E_GATE_CONST
-    )
+  const branches =
+    list && ts.isConditionalExpression(list) ? [list.whenTrue, list.whenFalse] : [list];
+  return branches.every(
+    branch =>
+      branch &&
+      ts.isArrayLiteralExpression(branch) &&
+      branch.elements.some(
+        e =>
+          ts.isSpreadElement(e) &&
+          ts.isIdentifier(e.expression) &&
+          e.expression.text === E2E_GATE_CONST
+      )
   );
 }
 
@@ -125,7 +128,7 @@ function readVitestLane(root) {
   return { include, exclude };
 }
 
-function readE2eLane(root) {
+export function readE2eLane(root, projectNames = PR_GATE_PROJECTS) {
   const source = parseConfig(root, PLAYWRIGHT_CONFIG);
   const config = requireStatic(
     defaultConfig(source, PLAYWRIGHT_CONFIG),
@@ -140,7 +143,7 @@ function readE2eLane(root) {
     throw new ScanError(`${PLAYWRIGHT_CONFIG} names no literal ${E2E_GATE_CONST} list`);
   const projects = ownProperty(config, 'projects');
   const elements = projects && ts.isArrayLiteralExpression(projects) ? projects.elements : [];
-  for (const name of PR_GATE_PROJECTS) {
+  for (const name of projectNames) {
     const project = elements.find(
       e => ts.isObjectLiteralExpression(e) && ownProperty(e, 'name')?.text === name
     );
@@ -168,7 +171,7 @@ function inLane(lanes, rel) {
     const inner = rel.slice(lanes.e2eDir.length + 1);
     return lanes.e2eMatch.some(glob => path.matchesGlob(inner, glob));
   }
-  if (!rel.startsWith('apps/web/')) return false;
+  if (!lanes.vitest || !rel.startsWith('apps/web/')) return false;
   const inner = rel.slice('apps/web/'.length);
   if (!lanes.vitest.include.some(glob => path.matchesGlob(inner, glob))) return false;
   return !lanes.vitest.exclude.flatMap(excludeGlobs).some(glob => path.matchesGlob(inner, glob));
