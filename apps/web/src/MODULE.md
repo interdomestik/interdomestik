@@ -96,6 +96,8 @@ proxy-seen pathname is not exactly `/<locale>` writes the cookie: `.json`, segme
 
 ## Tests to run
 
+The staff claim page's `staff-claim-register` companion wires the existing register and evidence reads to their page links. `ClaimCorrespondenceOutboundFields` renders the outbound form fields. Verify these through the staff claim route and staff claim component unit suites.
+
 The web app's unit suite (vitest) and the Playwright e2e suite under `apps/web/e2e/`. The unit suite runs in CI inside the coverage step: `.github/workflows/ci.yml:138` (`pnpm coverage:gate`, whose `test:coverage` runs the web suite, `shared-auth` and every `domain-*` package, `package.json:86-87`; the step is skipped when coverage is reused, `ci.yml:137`). The browser suites run at `ci.yml:184` (`e2e:guards`) and `ci.yml:202` (`e2e:gate`) and in `e2e-pr.yml` and `e2e-nightly.yml` (the unit's reading). Since WP-02 part 1, CHK-04 (the wrapper), CHK-05 (write provenance), CHK-05b (cast response bodies), CHK-26 (the public-entry registry, both directions) and UNAUTH-TEXT run as one script, `node scripts/ci/server-mutation-check.mjs --base <sha>`, in the advisory workflow `server-mutation-report.yml` against `scripts/ci/server-mutation-baseline.json`; every check is in `report` mode until its own flip PR. Their fixture tests are `scripts/ci/server-mutation-check.*.test.mjs`; the refusal row's row policy is tested by `packages/database/test/audit-log-refusal-rls.test.ts` (`test:rls`). CHK-08 (catch clauses) and CHK-20 (the result type) remain proposals.
 
 ## Do not reach into

@@ -56,7 +56,7 @@ test.describe('Claims Flow', () => {
 
       await expect(intake.getByTestId('claim-draft-category-vehicle')).toBeEnabled();
       await expect(intake.getByTestId('claim-draft-category-property')).toBeEnabled();
-      await expect(intake.getByTestId('claim-draft-category-injury')).toBeDisabled();
+      await expect(intake.getByTestId('claim-draft-category-injury')).toHaveCount(0);
     });
 
     test('requires a supported category before details', async ({

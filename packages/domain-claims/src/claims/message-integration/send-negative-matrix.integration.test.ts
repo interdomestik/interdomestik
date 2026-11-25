@@ -161,7 +161,7 @@ suite('message send negative matrix on a real NOBYPASSRLS connection', () => {
         userId: ids.member,
         tenantId: homeTenantId,
         branchId: ids.otherBranch,
-        category: 'retail',
+        category: 'property',
         companyName: 'Synthetic Co',
         // Submitted work: staff scopes exclude member drafts (the column default).
         caseLifecycleState: 'submitted',

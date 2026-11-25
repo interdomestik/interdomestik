@@ -1,0 +1,141 @@
+{
+  "staff-correspondence": {
+    "choose": "Zgjidhni një mundësi",
+    "citedDocument": "Dokument i cituar",
+    "notRecorded": "Pa të dhëna",
+    "feedback": {
+      "loading": "Po ngarkohen të dhënat e rastit…",
+      "saving": "Po ruhet…",
+      "saved": "U ruajt.",
+      "retry": "Provoni përsëri",
+      "readFailed": "Të dhënat e rastit nuk u ngarkuan.",
+      "failed": "Ruajtja nuk u konfirmua. Provoni përsëri.",
+      "signIn": "Hyni përsëri për të vazhduar.",
+      "forbidden": "Nuk keni qasje në të dhënat e këtij rasti.",
+      "invalid": "Kontrolloni të dhënat e futura dhe provoni përsëri.",
+      "invalidState": "Ky ndryshim nuk lejohet në gjendjen aktuale të rastit.",
+      "authorityInvalid": "Kontrolloni nëse autorizimet e kërkuara janë të vlefshme dhe e mbulojnë këtë kontakt.",
+      "documentInvalid": "Përdorni një dokument të ngarkuar drejtpërdrejt në këtë rast.",
+      "conflict": "Të dhënat bien ndesh me ato që janë ruajtur. Kontrollojini para se të provoni përsëri."
+    },
+    "caseFields": {
+      "title": "Të dhënat e rastit për Kartonin e Gjelbër",
+      "country": "Kodi i vendit të automjetit tjetër",
+      "insurance": "Numri i referencës së dëshmisë së sigurimit",
+      "outsideParty": "Pala e jashtme që trajton rastin",
+      "coverage": "Gjendja e verifikimit të mbulimit",
+      "caseFollowUp": "Ndjekja e rastit",
+      "caseFollowUpUtc": "Ndjekja e rastit (UTC)",
+      "save": "Ruaj të dhënat e rastit",
+      "status": {
+        "not_checked": "Pa verifikim",
+        "requested": "Verifikimi është kërkuar",
+        "confirmed_by_party": "Pala e jashtme e konfirmoi",
+        "refused_by_party": "Pala e jashtme e refuzoi"
+      }
+    },
+    "authorities": {
+      "title": "Autorizimet e rastit",
+      "empty": "Nuk ka autorizime të regjistruara.",
+      "kind": "Lloji i autorizimit",
+      "kinds": {
+        "recovery_agreement": "Marrëveshje për rikuperimin e dëmit",
+        "power_of_attorney": "Prokurë",
+        "signed_assignment": "Marrëveshje e nënshkruar për bartjen e kërkesës",
+        "consent_or_lawful_basis": "Pëlqim ose bazë ligjore"
+      },
+      "instrument": "Dokumenti i nënshkruar",
+      "version": "Versioni në dokument",
+      "grantedUtc": "Dhënë më (UTC)",
+      "expiresUtc": "Skadon më (UTC)",
+      "jurisdiction": "Kodi i vendit të juridiksionit",
+      "attestJurisdiction": "Konfirmoj se ky juridiksion është i përshtatshëm për këtë prokurë.",
+      "purpose": "Qëllimi i ndarjes së dokumenteve",
+      "record": "Regjistro autorizimin",
+      "versionValue": "Versioni {version}",
+      "instrumentValue": "Dokumenti i nënshkruar • {name}",
+      "granted": "Dhënë më {date}",
+      "expires": "Skadon më {date}",
+      "jurisdictionValue": "Juridiksioni • {country}",
+      "purposeValue": "Qëllimi • {purpose}",
+      "revoked": "Revokuar më {date}",
+      "revoke": "Revoko autorizimin",
+      "confirmRevoke": "Konfirmo revokimin",
+      "revokeLimit": "Gjatë pilotit, një bazë autorizimi e revokuar nuk mund të jepet sërish për të njëjtin rast."
+    },
+    "documents": {
+      "empty": "Ngarkoni një dokument të nënshkruar për të regjistruar një autorizim.",
+      "upload": "Ngarko dokumentin e rastit",
+      "description": "Shtoni një dokument të nënshkruar ose një dokument të dërguar në korrespondencën e këtij rasti.",
+      "type": "Lloji i dokumentit",
+      "chooseType": "Zgjidhni llojin e dokumentit",
+      "file": "Skedari",
+      "uploading": "Po ngarkohet…",
+      "uploaded": "Dokumenti i rastit u ngarkua.",
+      "failed": "Dokumenti i rastit nuk u ngarkua. Provoni përsëri.",
+      "evidence": "Dëshmi",
+      "legal": "Dokument ligjor"
+    },
+    "direction": {
+      "inbound": "Hyrëse",
+      "outbound": "Dalëse"
+    },
+    "party": {
+      "insurer": "Sigurues",
+      "bureau": "Byro",
+      "other": "Palë tjetër"
+    },
+    "channel": {
+      "email": "Postë elektronike",
+      "post": "Postë",
+      "phone": "Telefon",
+      "portal": "Portali",
+      "other": "Kanal tjetër"
+    },
+    "entry": {
+      "title": "Regjistro korrespondencën",
+      "directionLabel": "Drejtimi",
+      "occurredUtc": "Data dhe ora e kontaktit (UTC)",
+      "partyKind": "Lloji i palës",
+      "organisation": "Organizata",
+      "reference": "Numri i referencës së rastit ose dosjes së palës",
+      "contact": "Emri i kontaktit",
+      "channel": "Kanali",
+      "body": "Përmbledhja e kontaktit",
+      "replyTo": "Përgjigje ndaj kontaktit dalës",
+      "noReply": "Pa kontakt dalës të lidhur",
+      "replyOption": "{organisation}, më {date}: {summary}",
+      "documents": "Dokumentet e dërguara me këtë kontakt",
+      "documentLimit": "Zgjidhni deri në {limit} dokumente.",
+      "unlistedDocument": "{name} nuk shfaqet më në listë.",
+      "keepUnlistedDocument": "Konfirmo mbajtjen e këtij dokumenti",
+      "removeUnlistedDocument": "Hiqe nga përzgjedhja",
+      "basesRequired": "Për një kontakt dalës kërkohen marrëveshja për rikuperimin e dëmit dhe prokura.",
+      "consentRequired": "Dërgimi i dokumenteve kërkon pëlqim ose bazë ligjore për ndarjen e tyre.",
+      "attestSharing": "Konfirmoj se qëllimi i regjistruar e mbulon këtë zbulim të të dhënave.",
+      "record": "Ruaj korrespondencën"
+    },
+    "list": {
+      "title": "Regjistri i korrespondencës",
+      "empty": "Nuk ka korrespondencë të regjistruar.",
+      "reference": "Referenca e palës • {reference}",
+      "contact": "Kontakti • {contact}",
+      "inReplyTo": "Përgjigje ndaj kontaktit me {organisation} më {date}",
+      "documentsSent": "Dokumente të dërguara • {total}",
+      "followUp": "Afati i ndjekjes {date}",
+      "followUpUtc": "Ndjekja e korrespondencës (UTC)",
+      "saveFollowUp": "Ruaj afatin e ndjekjes",
+      "answered": "Përgjigjja u regjistrua",
+      "overdue": "Afati i ndjekjes ka kaluar",
+      "pages": "Faqet e regjistrit të korrespondencës",
+      "previous": "Faqja e mëparshme",
+      "next": "Faqja tjetër",
+      "position": "Faqja {page} nga {pages}"
+    },
+    "summary": {
+      "title": "Përmbledhja e korrespondencës",
+      "total": "Zëra të korrespondencës • {total}",
+      "latest": "Shfaqen datat më të fundit: {shown} nga {total}"
+    }
+  }
+}

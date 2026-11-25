@@ -4,7 +4,11 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { and, desc, eq, isNull, ne } from 'drizzle-orm';
+import { and, eq, isNull, ne, sql } from 'drizzle-orm';
+import { clampPage, clampPerPage } from '../../../../lib/pagination';
+
+const EVIDENCE_PAGE_SIZE = 20;
+const REGISTER_PICKER_LIMIT = 100;
 
 export type AssignedStaffClaimDocument = {
   fileSize: number;
@@ -26,17 +30,39 @@ export function buildAssignedStaffDocumentUrl(documentId: string): string {
   return `/api/documents/${encodeURIComponent(documentId)}/download`;
 }
 
+type DocumentRead = {
+  claimId: string;
+  session: AssignedStaffDocumentSession;
+  authority: TenantAuthority | null;
+};
+
+export async function getAssignedStaffClaimDocuments(
+  args: DocumentRead & { page?: number; perPage?: number }
+) {
+  const perPage = clampPerPage(args.perPage ?? EVIDENCE_PAGE_SIZE, EVIDENCE_PAGE_SIZE);
+  const requestedPage = clampPage(args.page ?? 1);
+  const page = Number.isSafeInteger((requestedPage - 1) * perPage) ? requestedPage : 1;
+  const rows = await readAssignedStaffClaimDocuments(args, {
+    offset: (page - 1) * perPage,
+    limit: perPage + 1,
+  });
+  return { page, documents: rows.slice(0, perPage), hasNextPage: rows.length > perPage };
+}
+
+export function getRegisterPickerDocuments(args: DocumentRead) {
+  return readAssignedStaffClaimDocuments(args, { limit: REGISTER_PICKER_LIMIT });
+}
+
 /**
- * Ordinary claim evidence for the currently assigned staff member only. The staff role and the
+ * Claim documents for the currently assigned staff member only. The staff role and the
  * exact claim + tenant + staffId assignment of a submitted (non-draft) claim are checked inside the tenant transaction before any
  * document metadata is read. The document statement rechecks that assignment at its own snapshot;
  * every other viewer receives no documents and no links.
  */
-export async function getAssignedStaffClaimDocuments(args: {
-  claimId: string;
-  session: AssignedStaffDocumentSession;
-  authority: TenantAuthority | null;
-}): Promise<AssignedStaffClaimDocument[]> {
+async function readAssignedStaffClaimDocuments(
+  args: DocumentRead,
+  bounds: { offset: number; limit: number } | { limit: number }
+): Promise<AssignedStaffClaimDocument[]> {
   const { claimId, session, authority } = args;
   const staffId = session.user.id;
   if (session.user.role !== 'staff' || !staffId || !claimId || !authority) return [];
@@ -59,7 +85,8 @@ export async function getAssignedStaffClaimDocuments(args: {
     if (!assignment) return [];
 
     // db-access-guard: tenant-scoped -- reason: the document statement itself rechecks exact claim, tenant, and current staff assignment.
-    const rows = await tx
+    const paginateEvidence = 'offset' in bounds;
+    const assignedDocuments = tx
       .select({
         id: claimDocuments.id,
         name: claimDocuments.name,
@@ -75,23 +102,30 @@ export async function getAssignedStaffClaimDocuments(args: {
           eq(claims.staffId, staffId),
           ne(claims.caseLifecycleState, 'draft')
         )
-      )
-      .leftJoin(
-        claimInformationRequestEvidence,
-        and(
-          eq(claimInformationRequestEvidence.tenantId, tenantId),
-          eq(claimInformationRequestEvidence.claimId, assignment.id),
-          eq(claimInformationRequestEvidence.documentId, claimDocuments.id)
+      );
+    const query = paginateEvidence
+      ? assignedDocuments.leftJoin(
+          claimInformationRequestEvidence,
+          and(
+            eq(claimInformationRequestEvidence.tenantId, tenantId),
+            eq(claimInformationRequestEvidence.claimId, assignment.id),
+            eq(claimInformationRequestEvidence.documentId, claimDocuments.id)
+          )
         )
-      )
+      : assignedDocuments;
+    const bounded = query
       .where(
         and(
           eq(claimDocuments.claimId, assignment.id),
           eq(claimDocuments.tenantId, tenantId),
-          isNull(claimInformationRequestEvidence.documentId)
+          paginateEvidence
+            ? isNull(claimInformationRequestEvidence.documentId)
+            : sql`public.claim_document_provenance_ok(${claimDocuments.tenantId}, ${claimDocuments.claimId}, ${claimDocuments.id})`
         )
       )
-      .orderBy(desc(claimDocuments.createdAt));
+      .orderBy(sql`${claimDocuments.createdAt} desc nulls last`, claimDocuments.id)
+      .limit(bounds.limit);
+    const rows = await (paginateEvidence ? bounded.offset(bounds.offset) : bounded);
 
     return rows.map(row => ({
       id: row.id,

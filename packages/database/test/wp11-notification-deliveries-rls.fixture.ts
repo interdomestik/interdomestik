@@ -1,11 +1,9 @@
 import assert from 'node:assert/strict';
 import type { TestContext } from 'node:test';
 import { fileURLToPath } from 'node:url';
-import { readMigrationFiles } from 'drizzle-orm/migrator';
-import { PgDialect } from 'drizzle-orm/pg-core';
-import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
 import { runSequentially } from './in-order';
+import { migrateJournalBeforeNotificationDeliveries } from './journal-prefix.support';
 import { quoteIdentifier } from './rls-test-connection';
 import { scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
 
@@ -23,7 +21,13 @@ const lockTables = [
   'claim_transition_evidence',
   'claim_messages',
 ];
-const schema = () => ({ migrationsFolder: fileURLToPath(new URL('../drizzle', import.meta.url)) });
+const migrationsFolder = fileURLToPath(new URL('../drizzle', import.meta.url));
+
+export function grantNotificationDeliveryRowLocks(client: postgres.Sql, tables = lockTables) {
+  return runSequentially(tables, async table => {
+    await client.unsafe(`grant update (id) on public.${quoteIdentifier(table)} to ${role}`);
+  });
+}
 
 async function writeLegacyPreview(
   client: postgres.Sql,
@@ -62,18 +66,13 @@ async function writeLegacyHandoffs(client: postgres.Sql, owner: { tenant: string
 }
 
 async function install(client: postgres.Sql) {
-  const drizzleDb = drizzle(client, { schema: {} });
-  const config = schema();
-  const migrations = readMigrationFiles(config);
-  const target = migrations.pop();
+  const target = await migrateJournalBeforeNotificationDeliveries(client, migrationsFolder);
   assert.ok(target);
   assert.ok(
     target.sql.some(statement =>
       statement.includes('notification_deliveries FORCE ROW LEVEL SECURITY')
     )
   );
-  await new PgDialect().migrate(migrations, drizzleDb._.session, config);
-
   await client.unsafe(`grant usage on schema public to ${role}`);
   await client.unsafe(`grant select (id, tenant_id) on public."user" to ${role}`);
   await client.unsafe(`grant insert (id, tenant_id, user_id, type, title, content, action_url)
@@ -84,9 +83,7 @@ async function install(client: postgres.Sql) {
   await writeLegacyPreview(client, legacyOwner, existing);
   const handoffs = await writeLegacyHandoffs(client, legacyOwner);
 
-  await runSequentially(lockTables.slice(0, -1), async table => {
-    await client.unsafe(`grant update (id) on public.${quoteIdentifier(table)} to ${role}`);
-  });
+  await grantNotificationDeliveryRowLocks(client, lockTables.slice(0, -1));
   const migration = () =>
     client.begin(tx =>
       runSequentially(target.sql, async statement => {
@@ -100,7 +97,7 @@ async function install(client: postgres.Sql) {
   const [rolledBack] =
     await client`select to_regclass('public.notification_deliveries') as delivery_table`;
   assert.equal(rolledBack.delivery_table, null);
-  await client.unsafe(`grant update (id) on public.claim_messages to ${role}`);
+  await grantNotificationDeliveryRowLocks(client, ['claim_messages']);
   await migration();
 
   await writeLegacyPreview(client, legacyOwner, rollout);

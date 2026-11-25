@@ -1,19 +1,23 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mockClaimWriterEffects } from './submit-test-support';
+import { buildEvidenceFile, mockClaimWriterEffects } from './submit-test-support';
+import type { ClaimsDeps } from './types';
 const h = vi.hoisted(() => {
   const draftClaim = {
     caseLifecycleState: 'draft',
+    category: 'vehicle',
     id: 'claim-1',
     recoveryLifecycleState: 'not_started',
     tenantId: 'tenant-1',
     userId: 'member-1',
   };
   const values = vi.fn();
-  const where = vi.fn();
+  const returning = vi.fn().mockResolvedValue([{ id: 'claim-1' }]);
+  const where = vi.fn(() => ({ returning }));
   const set = vi.fn(() => ({ where }));
   const insert = vi.fn(() => ({ values }));
   return {
+    draftClaim,
     db: {
       query: {
         agentClients: { findFirst: vi.fn().mockResolvedValue(null) },
@@ -28,16 +32,26 @@ const h = vi.hoisted(() => {
       update: vi.fn(() => ({ set })),
     },
     getActiveSubscription: vi.fn().mockResolvedValue({ agentId: 'agent-1', branchId: 'branch-1' }),
+    returning,
+    where,
     values,
     set,
   };
 });
 vi.mock('@interdomestik/database', () => ({
+  and: vi.fn((...args: unknown[]) => ({ args })),
   appendEvent: vi.fn().mockResolvedValue({ id: 'event-1' }),
   agentClients: { agentId: 'agent_id', memberId: 'member_id', status: 'status', tenantId: 't' },
   claimDocuments: { __name: 'claim_documents' },
   claimStageHistory: { __name: 'claim_stage_history' },
-  claims: { __name: 'claim', id: 'claims.id', tenantId: 'claims.tenant_id' },
+  claims: {
+    __name: 'claim',
+    caseLifecycleState: 'claims.case_lifecycle_state',
+    id: 'claims.id',
+    recoveryLifecycleState: 'claims.recovery_lifecycle_state',
+    tenantId: 'claims.tenant_id',
+    userId: 'claims.user_id',
+  },
   db: h.db,
   withTenantContext: vi.fn(async (_context, callback) => callback(h.db)),
   eq: vi.fn((left: unknown, right: unknown) => ({ left, right })),
@@ -92,9 +106,9 @@ function claimData(overrides: Partial<CreateClaimValues> = {}): CreateClaimValue
 
 function claimForm(countryCode?: string) {
   const data = new FormData();
-  data.set('title', 'Retail refund claim');
-  data.set('category', 'retail');
-  data.set('companyName', 'Retail Co');
+  data.set('title', 'Vehicle repair claim');
+  data.set('category', 'vehicle');
+  data.set('companyName', 'Auto Insurer');
   if (countryCode) data.set('incidentCountryCode', countryCode);
   return data;
 }
@@ -172,3 +186,79 @@ const expectedIncidentCountry = (countryCode: string) =>
     incidentCountryCode: countryCode,
     incidentJurisdiction: `country:${countryCode}`,
   });
+
+describe('updateDraftClaimCore category changes', () => {
+  function runUpdate(overrides: Partial<CreateClaimValues>, deps?: ClaimsDeps) {
+    return updateDraftClaimCore(
+      {
+        authority,
+        claimId: 'claim-1',
+        data: claimData(overrides),
+        requestHeaders: new Headers(),
+        session,
+      },
+      deps
+    );
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    h.db.query.claims.findFirst.mockResolvedValueOnce({
+      ...h.draftClaim,
+      category: 'Personal Injury',
+    });
+  });
+
+  it.each(['injury', 'invalidity', 'Personal Injury'])(
+    'refuses to edit a draft to category %s',
+    async category => {
+      await expect(runUpdate({ category })).resolves.toEqual({
+        success: false,
+        error: 'Validation failed',
+      });
+      expect(h.db.update).not.toHaveBeenCalled();
+      expect(h.db.insert).not.toHaveBeenCalled();
+    }
+  );
+
+  it('corrects a legacy category while the claim belongs to the member and is still a draft', async () => {
+    await expect(runUpdate({ category: ' VEHICLE ' })).resolves.toEqual({ success: true });
+
+    expect(h.set).toHaveBeenCalledWith(expect.objectContaining({ category: 'vehicle' }));
+    expect(h.where).toHaveBeenCalledWith({
+      tenantId: 'tenant-1',
+      tenantColumn: 'claims.tenant_id',
+      condition: {
+        args: [
+          { left: 'claims.id', right: 'claim-1' },
+          { left: 'claims.user_id', right: 'member-1' },
+          { left: 'claims.case_lifecycle_state', right: 'draft' },
+          { left: 'claims.recovery_lifecycle_state', right: 'not_started' },
+        ],
+      },
+    });
+  });
+
+  it('refuses a stale draft edit before attaching documents or recording success', async () => {
+    h.returning.mockResolvedValueOnce([]);
+    const deps = {
+      validateSubmittedClaimFile: vi.fn().mockResolvedValue(undefined),
+      logAuditEvent: vi.fn(),
+      revalidatePath: vi.fn(),
+    };
+    const file = buildEvidenceFile({
+      bucket: process.env.NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET?.trim() || 'claim-evidence',
+    });
+
+    await expect(runUpdate({ category: 'vehicle', files: [file] }, deps)).resolves.toEqual({
+      success: false,
+      error: 'Claim changed. Refresh and retry.',
+      code: 'CONFLICT',
+    });
+
+    expect(deps.validateSubmittedClaimFile).toHaveBeenCalledOnce();
+    expect(h.db.insert).not.toHaveBeenCalled();
+    expect(deps.logAuditEvent).not.toHaveBeenCalled();
+    expect(deps.revalidatePath).not.toHaveBeenCalled();
+  });
+});
