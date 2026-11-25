@@ -1393,14 +1393,14 @@
     "proof": "82c1c54068b4"
   },
   "app/api/cron/dunning/route.ts#GET": {
-    "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
-    "proof": "844c0be7d73f"
+    "disposition": "exempt",
+    "reason": "Closed endpoint returns a fixed 410 response without data access",
+    "evidence": "apps/web/src/app/api/cron/dunning/route.ts:2"
   },
   "app/api/cron/engagement/route.ts#GET": {
-    "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
-    "proof": "8a5f45ea2724"
+    "disposition": "exempt",
+    "reason": "Closed endpoint returns a fixed 410 response without data access",
+    "evidence": "apps/web/src/app/api/cron/engagement/route.ts:2"
   },
   "app/api/cron/notifications/route.ts#GET": {
     "disposition": "not_member_reachable",
@@ -1408,9 +1408,9 @@
     "proof": "98a83ca98ef5"
   },
   "app/api/cron/nps/route.ts#GET": {
-    "disposition": "not_member_reachable",
-    "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
-    "proof": "bae7665376b8"
+    "disposition": "exempt",
+    "reason": "Closed endpoint returns a fixed 410 response without data access",
+    "evidence": "apps/web/src/app/api/cron/nps/route.ts:2"
   },
   "app/api/cron/sponsors/route.ts#GET": {
     "disposition": "not_member_reachable",
@@ -1469,18 +1469,18 @@
   },
   "app/api/inngest/route.ts#GET": {
     "disposition": "exempt",
-    "reason": "Signed Inngest transport; member session provides no workflow authority",
-    "evidence": "apps/web/src/app/api/inngest/route.ts:1"
+    "reason": "Introspection requires successful Inngest cloud authentication",
+    "evidence": "apps/web/src/app/api/inngest/route.ts:47"
   },
   "app/api/inngest/route.ts#POST": {
     "disposition": "exempt",
-    "reason": "Signed Inngest transport; member session provides no workflow authority",
-    "evidence": "apps/web/src/app/api/inngest/route.ts:1"
+    "reason": "Workflow invocation requires a signature validated by the Inngest SDK",
+    "evidence": "apps/web/src/app/api/inngest/route.ts:67"
   },
   "app/api/inngest/route.ts#PUT": {
     "disposition": "exempt",
-    "reason": "Signed Inngest transport; member session provides no workflow authority",
-    "evidence": "apps/web/src/app/api/inngest/route.ts:1"
+    "reason": "Enabled in-band sync requires a signature validated by the Inngest SDK",
+    "evidence": "apps/web/src/app/api/inngest/route.ts:79"
   },
   "app/api/policies/analyze/route.ts#POST": {
     "disposition": "checked",

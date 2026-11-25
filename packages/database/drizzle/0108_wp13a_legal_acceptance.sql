@@ -36,19 +36,20 @@ DO $$
 DECLARE
   actor_id_setting CONSTANT text := 'app.current_actor_id';
   actor_role_setting CONSTANT text := 'app.current_actor_role';
+  access_tenant_id_setting CONSTANT text := 'app.current_access_tenant_id';
 BEGIN
   EXECUTE format($policy$
-    CREATE POLICY "legal_acceptances_select" ON "legal_acceptances" AS PERMISSIVE FOR SELECT TO public USING ("legal_acceptances"."tenant_id" = nullif(current_setting('app.current_access_tenant_id', true), '')
+    CREATE POLICY "legal_acceptances_select" ON "legal_acceptances" AS PERMISSIVE FOR SELECT TO public USING ("legal_acceptances"."tenant_id" = nullif(current_setting(%3$L, true), '')
         and nullif(current_setting(%1$L, true), '') is not null
         and nullif(current_setting(%2$L, true), '') is not null
         and ("legal_acceptances"."subject_user_id" = current_setting(%1$L, true)
           or current_setting(%2$L, true) = 'tenant_admin'))
-  $policy$, actor_id_setting, actor_role_setting);
+  $policy$, actor_id_setting, actor_role_setting, access_tenant_id_setting);
   EXECUTE format($policy$
-    CREATE POLICY "legal_acceptances_insert" ON "legal_acceptances" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("legal_acceptances"."tenant_id" = nullif(current_setting('app.current_access_tenant_id', true), '')
+    CREATE POLICY "legal_acceptances_insert" ON "legal_acceptances" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("legal_acceptances"."tenant_id" = nullif(current_setting(%3$L, true), '')
         and "legal_acceptances"."subject_user_id" = nullif(current_setting(%1$L, true), '')
         and current_setting(%2$L, true) in ('member', 'user'))
-  $policy$, actor_id_setting, actor_role_setting);
+  $policy$, actor_id_setting, actor_role_setting, access_tenant_id_setting);
 END;
 $$;
 --> statement-breakpoint
