@@ -1,6 +1,7 @@
 import { db, eq, user } from '@interdomestik/database';
 import type { TestInfo } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
+import { fixtureLegalAcceptance, type FixtureMember } from './legal-acceptance.fixture';
 
 export async function preparePendingTenantClassificationMember(params: {
   memberPrefix: string;
@@ -12,14 +13,16 @@ export async function preparePendingTenantClassificationMember(params: {
 }) {
   const { memberPrefix, namePrefix, emailPrefix, role, tenantId, testInfo } = params;
   const suffix = `${testInfo.project.name}-${Date.now()}-${randomUUID().slice(0, 8)}`;
-  const memberId = `${memberPrefix}-${suffix}`;
+  const member = {
+    id: `${memberPrefix}-${suffix}`,
+    tenantId,
+    email: `${emailPrefix}.${suffix}@example.test`,
+  };
 
   await db.insert(user).values({
-    id: memberId,
-    tenantId,
+    ...member,
     tenantClassificationPending: true,
     name: `${namePrefix} ${testInfo.project.name}`,
-    email: `${emailPrefix}.${suffix}@interdomestik.test`,
     emailVerified: true,
     role,
     createdAt: new Date(),
@@ -32,9 +35,16 @@ export async function preparePendingTenantClassificationMember(params: {
     memberNumberIssuedAt: null,
   });
 
-  return memberId;
+  try {
+    await fixtureLegalAcceptance('seed', [member]);
+    return member;
+  } catch (error) {
+    await resetPendingTenantClassificationMember(member);
+    throw error;
+  }
 }
 
-export async function resetPendingTenantClassificationMember(memberId: string) {
-  await db.delete(user).where(eq(user.id, memberId));
+export async function resetPendingTenantClassificationMember(member: FixtureMember) {
+  await fixtureLegalAcceptance('clean', [member]);
+  await db.delete(user).where(eq(user.id, member.id));
 }

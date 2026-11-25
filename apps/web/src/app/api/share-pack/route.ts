@@ -1,5 +1,4 @@
-import { headers } from 'next/headers';
-import { type NextRequest, NextResponse } from 'next/server';
+import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { getClientMetadata, safeJson } from '@/app/api/request-guard';
@@ -9,9 +8,8 @@ import {
   getSharePack,
   logAuditEvent,
 } from '@/features/share-pack/share-pack.service';
-import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { withMemberAcceptance } from '@/lib/privacy/require-member-acceptance';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 
 import { createSharePackCore, getSharePackCore } from './_core';
@@ -34,7 +32,7 @@ const createSharePackRequestSchema = z.object(createSharePackRequestShape).passt
 /**
  * POST /api/share-pack - Create a share pack link
  */
-export async function POST(request: NextRequest) {
+export const POST = withMemberAcceptance(async (authorized, request) => {
   try {
     const limited = await enforceRateLimit({
       name: 'api/share-pack:create',
@@ -45,26 +43,13 @@ export async function POST(request: NextRequest) {
     });
     if (limited) return limited;
 
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    });
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
+    const { session } = authorized;
     const tenant = resolveTenantBoundary(session);
     if (!tenant.success) {
       return tenant.response;
     }
 
-    const authorized = await authorizeSessionTenant(request.headers);
-    // The authority must describe the same user and tenant the boundary just validated.
-    if (
-      !authorized ||
-      authorized.session.user.id !== session.user.id ||
-      readTenantAuthority(authorized.authority).tenantId !== tenant.tenantId
-    ) {
+    if (readTenantAuthority(authorized.authority).tenantId !== tenant.tenantId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -100,7 +85,7 @@ export async function POST(request: NextRequest) {
     console.error('Share pack creation failed:', error);
     return NextResponse.json({ error: 'Internal error' }, { status: 500 });
   }
-}
+});
 
 /**
 
@@ -110,7 +95,7 @@ export async function POST(request: NextRequest) {
 
  */
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const limited = await enforceRateLimit({
       name: 'api/share-pack:read',

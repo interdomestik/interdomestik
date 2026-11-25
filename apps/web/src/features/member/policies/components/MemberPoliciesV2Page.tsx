@@ -1,7 +1,7 @@
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 import { FileText, Plus, Shield } from 'lucide-react';
-import { headers } from 'next/headers';
 import { getTranslations } from 'next-intl/server';
-import { redirect } from 'next/navigation';
 
 import {
   Button,
@@ -13,7 +13,6 @@ import {
 } from '@interdomestik/ui';
 
 import { Link } from '@/i18n/routing';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 
 import { getPoliciesWithDocumentLinksCore } from '@/app/[locale]/(app)/member/policies/_core';
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
@@ -25,18 +24,11 @@ interface MemberPoliciesV2PageProps {
 export async function MemberPoliciesV2Page({
   locale,
 }: Readonly<MemberPoliciesV2PageProps>): Promise<React.JSX.Element> {
-  const authorized = await authorizeSessionTenant(await headers());
-
-  if (!authorized) {
-    redirect(`/${locale}/login`);
-  }
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
 
   const t = await getTranslations({ locale, namespace: 'membership.policies' });
-  const { session, authority } = authorized;
-  const policiesWithDocumentLinks = await getPoliciesWithDocumentLinksCore({
-    authority,
-    userId: session.user.id,
-  });
+  const policiesWithDocumentLinks = await getPoliciesWithDocumentLinksCore();
 
   return (
     <div className="flex min-w-0 flex-col gap-8 p-8 [overflow-wrap:anywhere]">

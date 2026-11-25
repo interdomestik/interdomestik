@@ -1,3 +1,5 @@
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
+import { UnauthorizedError } from '@interdomestik/shared-auth';
 import {
   and,
   claimStageHistory,
@@ -7,11 +9,7 @@ import {
   sql,
   type TenantTransaction,
 } from '@interdomestik/database';
-import type { db } from '@interdomestik/database/db';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { ClaimStatus } from '@interdomestik/database/constants';
 import type { ClaimTimelineEvent } from '../types';
 import {
@@ -90,21 +88,24 @@ export function buildMemberTimelineFromDomainEvents(
 
 export async function getMemberTimelineFromDomainEvents(
   context: AuthorizedClaimTimelineContext,
-  authority: TenantAuthority,
-  database?: TenantTransaction | typeof db
+  database?: TenantTransaction
 ): Promise<ClaimTimelineEvent[]> {
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) throw new UnauthorizedError();
+  const { authority } = admission.authorized;
   // Fail closed unless the claim context belongs to the tenant the authority grants.
   if (readTenantAuthority(authority).tenantId !== context.tenantId) {
     throw new Error('Claim timeline tenant does not match the tenant authority');
   }
 
-  if (!database) {
-    // The ambient client carries no tenant context, so run the read inside one.
-    return withTenantAuthority(authority, tx =>
-      getMemberTimelineFromDomainEvents(context, authority, tx)
-    );
-  }
+  if (database) return await readTimeline(context, database);
+  return withTenantAuthority(authority, async tx => await readTimeline(context, tx));
+}
 
+async function readTimeline(
+  context: AuthorizedClaimTimelineContext,
+  database: TenantTransaction
+): Promise<ClaimTimelineEvent[]> {
   const rows = await database
     .select({
       aggregateVersion: domainEvents.aggregateVersion,

@@ -1,15 +1,17 @@
 import {
   context,
   createInput,
+  entitlement,
   expectedContext,
   facts,
+  resolveWithVerdict,
   headers,
   updateInput,
 } from './free-start-drafts.admission.test-support';
 import { randomUUID } from 'node:crypto';
 import type { FreeStartDraft } from '@interdomestik/database/free-start-drafts';
 import { captureException } from '@sentry/nextjs';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
   createFreeStartDraftCore,
@@ -19,10 +21,12 @@ import {
   updateFreeStartDraftCore,
   type FreeStartDraftLifecycleDependencies,
 } from './free-start-drafts/lifecycle.core';
-import {
-  resolveFreeStartDraftSession,
-  type FreeStartDraftSessionContext,
-} from './free-start-drafts/session.core';
+import type { FreeStartDraftSessionContext } from './free-start-drafts/session.core';
+
+beforeEach(() => {
+  entitlement.mockReset();
+  entitlement.mockResolvedValue(false);
+});
 
 const absentFacts = {
   counterparty: null,
@@ -38,7 +42,6 @@ function dependencies(
   return {
     createDraft: vi.fn().mockResolvedValue({ ok: false, code: 'limitReached' }),
     deleteDraft: vi.fn(),
-    hasClaimEntitlement: vi.fn().mockResolvedValue(false),
     listDrafts: vi.fn(),
     readIntakeOpen: vi.fn().mockResolvedValue(true),
     readPublicIntakeOpen: vi.fn().mockResolvedValue(false),
@@ -65,16 +68,6 @@ function expectNoRepositoryCalls(deps: FreeStartDraftLifecycleDependencies) {
   ]) {
     expect(operation).not.toHaveBeenCalled();
   }
-}
-
-function resolveWithVerdict(emailVerified: unknown) {
-  const session = { user: { id: 'owner-a', role: 'member', emailVerified } };
-  return resolveFreeStartDraftSession(headers, {
-    getSession: vi.fn().mockResolvedValue(session),
-    isAllowedHost: () => true,
-    resolveDefaultTenantId: () => 'tenant_ks',
-    resolveSessionAccessTenantId: () => 'tenant_ks',
-  });
 }
 
 const unverifiedVerdicts = [false, undefined, 'true', 1];
@@ -141,14 +134,14 @@ describe('account draft admission before repository mutation', () => {
       : { ok: false, code: 'CLOSED', error: 'draft.CLOSED' };
     expect(await attemptBoth(deps, expectedContext)).toEqual([refusal, refusal]);
     expect(vi.mocked(deps.readPublicIntakeOpen).mock.calls).toEqual([[headers], [headers]]);
-    expect(deps.hasClaimEntitlement).not.toHaveBeenCalled();
+    expect(entitlement).not.toHaveBeenCalled();
     expect(deps.readIntakeOpen).not.toHaveBeenCalled();
     expectNoRepositoryCalls(deps);
   });
 
   it('admits an entitled owner to create and update with closed public intake', async () => {
     const deps = dependencies(true);
-    vi.mocked(deps.hasClaimEntitlement).mockResolvedValue(true);
+    entitlement.mockResolvedValue(true);
     vi.mocked(deps.readIntakeOpen).mockResolvedValue(false);
     const input = createInput(expectedContext);
     const timestamp = new Date().toISOString();
@@ -177,8 +170,8 @@ describe('account draft admission before repository mutation', () => {
       ok: true,
       draft: edited,
     });
-    expect(deps.hasClaimEntitlement).toHaveBeenCalledTimes(2);
-    expect(deps.hasClaimEntitlement).toHaveBeenCalledWith(context);
+    expect(entitlement).toHaveBeenCalledTimes(2);
+    expect(entitlement).toHaveBeenCalledWith(context);
     expect(deps.readIntakeOpen).not.toHaveBeenCalled();
     expect(deps.createDraft).toHaveBeenCalledOnce();
     expect(deps.updateDraft).toHaveBeenCalledOnce();
@@ -196,7 +189,7 @@ describe('account draft admission before repository mutation', () => {
     async open => {
       const deps = dependencies(true);
       const error = new Error('entitlement lookup failed');
-      vi.mocked(deps.hasClaimEntitlement).mockRejectedValue(error);
+      entitlement.mockRejectedValue(error);
       vi.mocked(deps.readIntakeOpen).mockResolvedValue(open);
 
       const results = await attemptBoth(deps, expectedContext);
@@ -223,11 +216,11 @@ describe('account draft admission before repository mutation', () => {
 
   it('keeps the closed-intake refusal for an unverified owner', async () => {
     const deps = dependencies(false);
-    vi.mocked(deps.hasClaimEntitlement).mockResolvedValue(true);
+    entitlement.mockResolvedValue(true);
     vi.mocked(deps.readIntakeOpen).mockResolvedValue(false);
     const closed = { ok: false, code: 'CLOSED', error: 'draft.CLOSED' };
     expect(await attemptBoth(deps, expectedContext)).toEqual([closed, closed]);
-    expect(deps.hasClaimEntitlement).not.toHaveBeenCalled();
+    expect(entitlement).not.toHaveBeenCalled();
     expectNoRepositoryCalls(deps);
   });
 
@@ -295,6 +288,10 @@ describe('account draft admission before repository mutation', () => {
       ok: true,
       context,
       emailVerified: verdict === true,
+      authorized: {
+        session: { user: { id: 'owner-a', role: 'member', tenantId: 'tenant_ks' } },
+        authority: expect.anything(),
+      },
     });
   });
 });

@@ -11,12 +11,14 @@ const hoisted = vi.hoisted(() => ({
     return session.user.tenantId;
   }),
   getDocumentsMock: vi.fn(async () => []),
-  getSessionSafeMock: vi.fn(async () => ({
-    user: {
-      id: 'member-1',
-      tenantId: 'tenant-ks',
-    },
-  })),
+  admitMock: vi.fn(() =>
+    Promise.resolve({
+      user: {
+        id: 'member-1',
+        tenantId: 'tenant-ks',
+      },
+    })
+  ),
   getSubscriptionsMock: vi.fn(async () => []),
   getLeaveMock: vi.fn(async () => 'entry-future'),
   membershipOpsPageMock: vi.fn((_: unknown) => <div>membership-ops-page</div>),
@@ -34,8 +36,14 @@ vi.mock('next/navigation', () => ({
   redirect: hoisted.redirectMock,
 }));
 
-vi.mock('@/components/shell/session', () => ({
-  getSessionSafe: hoisted.getSessionSafeMock,
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireMemberAcceptancePage: async () => ({
+    ok: true,
+    authorized: { session: await hoisted.admitMock() },
+  }),
+}));
+vi.mock('@/components/privacy/member-acceptance-form', () => ({
+  MemberAcceptanceForm: () => null,
 }));
 
 vi.mock('@interdomestik/shared-auth', () => ({
@@ -69,7 +77,7 @@ describe('MembershipPage commercial coverage matrix', () => {
     });
     expect(setRequestLocale).toHaveBeenCalledWith('en');
     expect(getTranslations).toHaveBeenCalledWith({ locale: 'en', namespace: 'coverageMatrix' });
-    expect(hoisted.getSessionSafeMock).toHaveBeenCalledWith('MemberMembershipPage');
+    expect(hoisted.admitMock).toHaveBeenCalledOnce();
     expect(hoisted.ensureTenantIdMock).toHaveBeenCalledWith({
       user: {
         id: 'member-1',

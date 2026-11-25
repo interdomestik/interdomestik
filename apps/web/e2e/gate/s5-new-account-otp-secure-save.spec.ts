@@ -4,6 +4,7 @@ import {
   auditLog,
   crmLeads,
   db,
+  e2eEmail,
   eq,
   freeStartDrafts,
   session as authSession,
@@ -11,6 +12,7 @@ import {
 } from '@interdomestik/database';
 import { expect, test, type Locator } from '@playwright/test';
 import { randomUUID } from 'node:crypto';
+import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 import { routes } from '../routes';
 import { openDeviceDetails, openSaveArea } from './public-save-options.fixture';
 import { gotoApp } from '../utils/navigation';
@@ -53,8 +55,10 @@ test.describe('S5 door OTP secure save', () => {
     const client = (offset = 0) => ({
       'x-forwarded-for': `203.0.113.${1 + ((clientAddress + offset) % 250)}`,
     });
-    const email = `s5-otp-${runId}@interdomestik-e2e.test`;
+    const email = e2eEmail(`s5-otp-${runId}`);
     const absentEmail = `s5-otp-absent-${runId}@interdomestik-e2e.test`;
+    const ownerId = randomUUID();
+    const fixtureMember = { id: ownerId, tenantId: tenant, email };
     const summary = `S5 secure save ${runId}.`;
     const counterparty = `S5 Insurer ${runId}`;
     const seen = new Set<string>();
@@ -119,11 +123,8 @@ test.describe('S5 door OTP secure save', () => {
       });
 
       const now = new Date();
-      const ownerId = randomUUID();
       await db.insert(user).values({
-        id: ownerId,
-        email,
-        tenantId: tenant,
+        ...fixtureMember,
         name: 'S5 verified fixture',
         role: 'member',
         emailVerified: true,
@@ -131,6 +132,7 @@ test.describe('S5 door OTP secure save', () => {
         createdAt: now,
         updatedAt: now,
       });
+      await fixtureLegalAcceptance('seed', [fixtureMember]);
       await absentPanel.getByRole('button', { name: 'Use a different email', exact: true }).click();
       const { mail, panel } = await requestCode(flow);
       await test.step('a wrong code for an eligible account is refused and the browser copy is kept', async () => {
@@ -284,7 +286,7 @@ test.describe('S5 door OTP secure save', () => {
       failure = await redactOtpFailure(error, mails, pages);
       throw failure;
     } finally {
-      await cleanupOtpJourney({ emails: [absentEmail, email], failure, pages, seen });
+      await cleanupOtpJourney({ absentEmail, fixtureMember, failure, pages, seen });
     }
   });
 });

@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
@@ -24,7 +25,7 @@ const updatedPreferences = {
 
 function signInTenantMember(): void {
   hoistedMocks.getSession.mockResolvedValue({
-    user: { id: 'user-123', tenantId: 'tenant_mk' },
+    user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
   });
 }
 
@@ -63,6 +64,16 @@ describe('POST /api/settings/notifications', () => {
     mockUpdateChain.where.mockResolvedValue(undefined);
   });
 
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    signInTenantMember();
+    const response = await POST(notificationPostRequest());
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: 'acceptance_required' });
+    expect(mockWithTenantContext).not.toHaveBeenCalled();
+    expectNoPreferenceWrite();
+  });
+
   it('should return 401 if user is not authenticated', async () => {
     hoistedMocks.getSession.mockResolvedValue(null);
 
@@ -70,12 +81,12 @@ describe('POST /api/settings/notifications', () => {
     const data = await response.json();
 
     expect(response.status).toBe(401);
-    expect(data).toEqual({ error: 'Unauthorized' });
+    expect(data).toEqual({ error: 'UNAUTHORIZED' });
   });
 
   it('should return 401 if the session is missing tenant identity', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123', tenantId: undefined },
+      user: { id: 'user-123', role: 'member', tenantId: undefined },
     });
 
     await expectMissingTenantIdentity(await POST(notificationPostRequest()));

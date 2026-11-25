@@ -1,6 +1,6 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
-import './messages.test.base';
-import { mocks, mockSelectChain, resetMocks, SUBMITTED } from './messages.test.base';
+import { mocks, mockSelectChain, resetMocks, SUBMITTED } from './messages.test-support';
 
 let sendMessage: typeof import('./messages').sendMessage;
 
@@ -11,6 +11,19 @@ describe('sendMessage', () => {
 
   beforeEach(() => {
     resetMocks();
+  });
+
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    mocks.getSession.mockResolvedValue({
+      user: { id: 'fixture-member', role: 'member', tenantId: 'tenant_mk' },
+    });
+    await expect(sendMessage('claim-1', 'Hello', false)).resolves.toEqual({
+      success: false,
+      error: 'acceptance_required',
+    });
+    expect(mocks.dbQuery).not.toHaveBeenCalled();
+    expect(mocks.dbInsert).not.toHaveBeenCalled();
   });
 
   it('should fail if user is not authenticated', async () => {
@@ -245,25 +258,13 @@ describe('sendMessage', () => {
     expect(result.message?.sender.role).toBe('user');
   });
 
-  it('should fallback to user role when sending without role defined', async () => {
+  it('refuses an undefined session role before accessing the claim', async () => {
     mocks.getSession.mockResolvedValue({ user: { id: 'user-123', tenantId: 'tenant_mk' } });
-    mocks.dbQuery.mockResolvedValue({ id: 'claim-123', userId: 'user-123' });
-    mocks.dbInsert.mockResolvedValue(undefined);
-    mockSelectChain.limit.mockReturnValue([
-      {
-        id: 'test-message-id',
-        claimId: 'claim-123',
-        senderId: 'user-123',
-        content: 'Hello',
-        isInternal: false,
-        readAt: null,
-        createdAt: new Date(),
-        sender: { id: 'user-123', name: 'User', image: null, role: 'user' },
-      },
-    ]);
-
-    const result = await sendMessage('claim-123', 'Hello');
-
-    expect(result.success).toBe(true);
+    await expect(sendMessage('claim-1', 'Hello', false)).resolves.toEqual({
+      success: false,
+      error: 'Unauthorized',
+    });
+    expect(mocks.dbQuery).not.toHaveBeenCalled();
+    expect(mocks.dbInsert).not.toHaveBeenCalled();
   });
 });

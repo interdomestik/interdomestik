@@ -1,5 +1,8 @@
 import { evaluateNeutralOtpHost } from '@/app/api/auth/[...all]/neutral-otp-boundary';
 import { auth } from '@/lib/auth';
+import type { AuthorizedSession } from '@/lib/tenant-authority.server';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { resolveRequestAdmission } from '@/lib/privacy/require-member-acceptance';
 import { resolveDefaultPublicTenantId, type TenantId } from '@/lib/tenant/tenant-hosts';
 import {
   resolveSessionTenantConcepts,
@@ -21,10 +24,15 @@ export type FreeStartDraftSessionContext = {
  * unchanged for unverified owners; only account draft create/update consults this verdict.
  */
 export type FreeStartDraftSessionResult =
-  | { ok: true; context: FreeStartDraftSessionContext; emailVerified: boolean }
+  | {
+      ok: true;
+      context: FreeStartDraftSessionContext;
+      emailVerified: boolean;
+      authorized: AuthorizedSession;
+    }
   | {
       ok: false;
-      code: 'authRequired' | 'unavailable' | 'unavailableAccountContext';
+      code: 'authRequired' | 'unavailable' | 'unavailableAccountContext' | 'acceptanceRequired';
     };
 
 type FreshSessionArgs = {
@@ -37,10 +45,14 @@ export type FreeStartDraftSessionDependencies = {
   isAllowedHost: (headers: Headers) => boolean;
   resolveDefaultTenantId: () => string | null;
   resolveSessionAccessTenantId: (session: unknown) => string | null;
+  admitMember: typeof resolveRequestAdmission;
 };
 
 const defaultDependencies: FreeStartDraftSessionDependencies = {
   getSession: args => auth.api.getSession(args),
+  // Inside the draft actions' withRequestAdmission scope this is the request's one admission;
+  // elsewhere (saved-draft lookups) it resolves these explicit headers as before.
+  admitMember: resolveRequestAdmission,
   isAllowedHost: evaluateNeutralOtpHost,
   resolveDefaultTenantId: resolveDefaultPublicTenantId,
   resolveSessionAccessTenantId: session =>
@@ -72,7 +84,7 @@ export async function resolveFreeStartDraftSession(
       query: { disableCookieCache: true, disableRefresh: true },
     });
   } catch {
-    return { ok: false, code: 'authRequired' };
+    return { ok: false, code: 'unavailable' };
   }
 
   const user = sessionUser(session);
@@ -87,9 +99,29 @@ export async function resolveFreeStartDraftSession(
     return { ok: false, code: 'unavailableAccountContext' };
   }
 
+  const admission = await dependencies.admitMember(requestHeaders);
+  if (!admission.ok) {
+    return {
+      ok: false,
+      code:
+        admission.failure.code === 'acceptance_required' ? 'acceptanceRequired' : 'authRequired',
+    };
+  }
+  const { principal, accessTenantId: admittedTenant } = readTenantAuthority(
+    admission.authorized.authority
+  );
+  if (
+    principal?.userId !== ownerUserId ||
+    principal.role !== nonBlank(user?.role) ||
+    admittedTenant !== accessTenantId
+  ) {
+    return { ok: false, code: 'authRequired' };
+  }
+
   return {
     ok: true,
     emailVerified: user?.emailVerified === true,
+    authorized: admission.authorized,
     context: {
       accessTenantId: accessTenantId as TenantId,
       actorRole: nonBlank(user?.role),

@@ -4,6 +4,7 @@ import {
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { UnauthorizedError } from '@interdomestik/shared-auth';
 import { claimLifecycleStatusSql } from '../claims/lifecycle-read-sql';
 import { resolveClaimLifecycleReadProjection } from '../claims/lifecycle-read-model';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
@@ -21,6 +22,32 @@ function normalizeDate(value: Date | string | null | undefined): string | null {
   const date = value instanceof Date ? value : new Date(value);
   if (Number.isNaN(date.getTime())) return null;
   return date.toISOString();
+}
+
+function ownedClaimWhere(tenantId: string, memberId: string, claimId: string) {
+  return withTenant(
+    tenantId,
+    claims.tenantId,
+    and(eq(claims.id, claimId), eq(claims.userId, memberId))
+  );
+}
+
+export async function getMemberClaimTitle(params: {
+  authority: TenantAuthority;
+  claimId: string;
+}): Promise<string | null> {
+  const { authority, claimId } = params;
+  const { tenantId, principal, purpose } = readTenantAuthority(authority);
+  if (purpose !== 'session' || principal?.role !== 'member') throw new UnauthorizedError();
+
+  const [row] = await withTenantAuthority(authority, tx =>
+    tx
+      .select({ title: claims.title })
+      .from(claims)
+      .where(ownedClaimWhere(tenantId, principal.userId, claimId))
+      .limit(1)
+  );
+  return row?.title ?? null;
 }
 
 export async function getMemberClaimDetail(params: {
@@ -43,13 +70,7 @@ export async function getMemberClaimDetail(params: {
         updatedAt: claims.updatedAt,
       })
       .from(claims)
-      .where(
-        withTenant(
-          tenantId,
-          claims.tenantId,
-          and(eq(claims.id, claimId), eq(claims.userId, memberId))
-        )
-      )
+      .where(ownedClaimWhere(tenantId, memberId, claimId))
       .limit(1)
   );
 

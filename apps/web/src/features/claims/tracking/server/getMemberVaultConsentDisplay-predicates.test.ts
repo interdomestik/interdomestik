@@ -5,6 +5,7 @@ const hoisted = vi.hoisted(() => ({
   select: vi.fn(),
   withTenantContext: vi.fn(),
   locale: vi.fn(),
+  admit: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   desc: vi.fn((column: unknown) => ({ op: 'desc', column })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
@@ -41,6 +42,10 @@ const schema = vi.hoisted(() => ({
   },
 }));
 
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: hoisted.admit,
+}));
+
 vi.mock('@interdomestik/database', () => ({
   db: { select: hoisted.select },
   withTenantContext: hoisted.withTenantContext,
@@ -62,6 +67,7 @@ import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 describe('getMemberVaultConsentDisplay predicates', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.admit.mockResolvedValue({ ok: true, authorized: { authority: baseAuthority } });
     hoisted.withTenantContext.mockImplementation(
       async (_context: unknown, callback: (tx: unknown) => unknown) =>
         callback({ select: hoisted.select })
@@ -77,7 +83,7 @@ describe('getMemberVaultConsentDisplay predicates', () => {
       )
       .mockReturnValueOnce(orderedRowsChain([]));
     const tx = { select } as unknown as TenantTransaction;
-    await getMemberVaultConsentDisplay(baseParams, baseAuthority, tx);
+    await getMemberVaultConsentDisplay(baseParams, tx);
     expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);
     expect(hoisted.select).not.toHaveBeenCalled();
     expect(select).toHaveBeenCalledTimes(2);
@@ -88,7 +94,7 @@ describe('getMemberVaultConsentDisplay predicates', () => {
     hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
     hoisted.select.mockReturnValueOnce(documents);
 
-    await expect(getMemberVaultConsentDisplay(baseParams, baseAuthority)).resolves.toEqual({
+    await expect(getMemberVaultConsentDisplay(baseParams)).resolves.toEqual({
       kind: 'ready',
       items: [],
     });
@@ -115,7 +121,7 @@ describe('getMemberVaultConsentDisplay predicates', () => {
     hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
     hoisted.select.mockReturnValueOnce(documents).mockReturnValueOnce(consents);
 
-    await getMemberVaultConsentDisplay(baseParams, baseAuthority);
+    await getMemberVaultConsentDisplay(baseParams);
 
     expect(documents.orderBy).toHaveBeenCalledWith(
       { op: 'desc', column: 'documents.createdAt' },

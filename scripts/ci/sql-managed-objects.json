@@ -82,6 +82,11 @@
       "migration": "0058_redundant_tinkerer"
     },
     {
+      "key": "fk [\"public\",\"legal_acceptances\",[\"document_kind\",\"document_version\",\"locale\",\"text_sha256\"],\"public\",\"legal_document_versions\",[\"kind\",\"version\",\"locale\",\"text_sha256\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0108_wp13a_legal_acceptance"
+    },
+    {
       "key": "fk [\"public\",\"membership_sales\",[\"tenant_id\",\"plan_version_id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"plan_tier\",\"plan_members_included\"],\"public\",\"membership_plan_versions\",[\"tenant_id\",\"id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"tier\",\"members_included\"]]",
       "value": "delete=no action update=no action match=s",
       "migration": "0102_wp07_membership_sales"
@@ -210,6 +215,21 @@
       "key": "function [\"public\",\"exchange_rate_verifications_insert_guard_fn()\"]",
       "value": "9095311059a73978ebb7a44278f9c9b0",
       "migration": "0104_wp07_rate_verification_age"
+    },
+    {
+      "key": "function [\"public\",\"legal_acceptance_reject_mutation()\"]",
+      "value": "ecadb9e8955a6e25d5846927b2f212c0",
+      "migration": "0108_wp13a_legal_acceptance"
+    },
+    {
+      "key": "function [\"public\",\"legal_acceptance_stamp()\"]",
+      "value": "42989994e9f58b2ec5c80b0c76d609a8",
+      "migration": "0108_wp13a_legal_acceptance"
+    },
+    {
+      "key": "function [\"public\",\"legal_document_version_insert_guard()\"]",
+      "value": "1e304e7b51270c706e32c845cdf59f5c",
+      "migration": "0108_wp13a_legal_acceptance"
     },
     {
       "key": "function [\"public\",\"member_leads_legacy_consent_guard_fn()\"]",
@@ -560,6 +580,11 @@
       "key": "not-valid [\"public\",\"support_handoffs\",\"support_handoffs_member_reply_length_check\"]",
       "value": "c",
       "migration": "0057_pale_peter_quill"
+    },
+    {
+      "key": "pk [\"public\",\"legal_document_versions\"]",
+      "value": "legal_document_versions_pkey [\"kind\",\"version\",\"locale\"]",
+      "migration": "0108_wp13a_legal_acceptance"
     },
     {
       "key": "policy [\"public\",\"account\",\"No public access\"]",
@@ -1562,6 +1587,11 @@
       "migration": "0101_wp07_exchange_rates"
     },
     {
+      "key": "rls-force [\"public\",\"legal_acceptances\"]",
+      "value": "forced",
+      "migration": "0108_wp13a_legal_acceptance"
+    },
+    {
       "key": "rls-force [\"public\",\"membership_ledger_entries\"]",
       "value": "forced",
       "migration": "0102_wp07_membership_sales"
@@ -1765,6 +1795,26 @@
       "key": "trigger [\"public\",\"exchange_rates\",\"exchange_rates_insert_guard\"]",
       "value": "CREATE TRIGGER exchange_rates_insert_guard BEFORE INSERT ON public.exchange_rates FOR EACH ROW EXECUTE FUNCTION exchange_rate_insert_guard_fn()",
       "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "trigger [\"public\",\"legal_acceptances\",\"legal_acceptances_append_only\"]",
+      "value": "CREATE TRIGGER legal_acceptances_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.legal_acceptances FOR EACH STATEMENT EXECUTE FUNCTION legal_acceptance_reject_mutation()",
+      "migration": "0108_wp13a_legal_acceptance"
+    },
+    {
+      "key": "trigger [\"public\",\"legal_acceptances\",\"legal_acceptances_stamp\"]",
+      "value": "CREATE TRIGGER legal_acceptances_stamp BEFORE INSERT ON public.legal_acceptances FOR EACH ROW EXECUTE FUNCTION legal_acceptance_stamp()",
+      "migration": "0108_wp13a_legal_acceptance"
+    },
+    {
+      "key": "trigger [\"public\",\"legal_document_versions\",\"legal_document_versions_append_only\"]",
+      "value": "CREATE TRIGGER legal_document_versions_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.legal_document_versions FOR EACH STATEMENT EXECUTE FUNCTION legal_acceptance_reject_mutation()",
+      "migration": "0108_wp13a_legal_acceptance"
+    },
+    {
+      "key": "trigger [\"public\",\"legal_document_versions\",\"legal_document_versions_insert_guard\"]",
+      "value": "CREATE TRIGGER legal_document_versions_insert_guard BEFORE INSERT ON public.legal_document_versions FOR EACH ROW EXECUTE FUNCTION legal_document_version_insert_guard()",
+      "migration": "0108_wp13a_legal_acceptance"
     },
     {
       "key": "trigger [\"public\",\"legal_entities\",\"legal_entities_provision_exchange_rate_book\"]",

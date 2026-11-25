@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import {
   hoistedMocks,
   mockSelectChain,
@@ -16,6 +17,17 @@ describe('GET /api/settings/notifications', () => {
     mockSelectChain.limit.mockReturnValue([]);
   });
 
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    hoistedMocks.getSession.mockResolvedValue({
+      user: { id: 'fixture-member', role: 'member', tenantId: 'tenant_mk' },
+    });
+    const response = await GET(new Request('http://localhost/api/settings/notifications'));
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: 'acceptance_required' });
+    expect(mockWithTenantContext).not.toHaveBeenCalled();
+  });
+
   it('should return 401 if user is not authenticated', async () => {
     hoistedMocks.getSession.mockResolvedValue(null);
 
@@ -24,12 +36,12 @@ describe('GET /api/settings/notifications', () => {
     const data = await response.json();
 
     expect(response.status).toBe(401);
-    expect(data).toEqual({ error: 'Unauthorized' });
+    expect(data).toEqual({ error: 'UNAUTHORIZED' });
   });
 
   it('should return 401 if the session is missing tenant identity', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123', tenantId: null },
+      user: { id: 'user-123', role: 'member', tenantId: null },
     });
 
     const request = new Request('http://localhost:3000/api/settings/notifications');
@@ -38,7 +50,7 @@ describe('GET /api/settings/notifications', () => {
 
   it('should return default preferences if none exist', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123', tenantId: 'tenant_mk' },
+      user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
     });
     mockSelectChain.limit.mockReturnValue([]);
 
@@ -60,7 +72,7 @@ describe('GET /api/settings/notifications', () => {
 
   it('should return existing preferences', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123', tenantId: 'tenant_mk' },
+      user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
     });
     mockSelectChain.limit.mockReturnValue([
       {
@@ -90,7 +102,7 @@ describe('GET /api/settings/notifications', () => {
 
   it('should handle database errors gracefully', async () => {
     hoistedMocks.getSession.mockResolvedValue({
-      user: { id: 'user-123', tenantId: 'tenant_mk' },
+      user: { id: 'user-123', role: 'member', tenantId: 'tenant_mk' },
     });
     mockSelectChain.limit.mockRejectedValue(new Error('DB Error'));
 

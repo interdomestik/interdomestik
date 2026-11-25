@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
@@ -46,13 +47,23 @@ describe('POST /api/share-pack request guard', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     routeDoubles.readHeaders.mockResolvedValue(new Headers());
-    routeDoubles.readSession.mockResolvedValue({ user: { id: 'user-1', tenantId: 'tenant-1' } });
+    routeDoubles.readSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'member', tenantId: 'tenant-1' },
+    });
     routeDoubles.createPack.mockResolvedValue({
       packId: 'pack-1',
       token: 'share-token',
       expiresAt: new Date('2026-04-25T12:00:00.000Z'),
     });
     routeDoubles.writeAudit.mockResolvedValue(undefined);
+  });
+
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    const response = await POST(request('{'));
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: 'acceptance_required' });
+    expect(routeDoubles.createPack).not.toHaveBeenCalled();
   });
 
   it('returns invalid_json after auth for malformed JSON', async () => {
@@ -73,7 +84,7 @@ describe('POST /api/share-pack request guard', () => {
     const response = await POST(request('{'));
 
     expect(response.status).toBe(401);
-    await expect(response.json()).resolves.toEqual({ error: 'Unauthorized' });
+    await expect(response.json()).resolves.toEqual({ error: 'UNAUTHORIZED' });
     expect(routeDoubles.createPack).not.toHaveBeenCalled();
   });
 

@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({ session: vi.fn(), query: vi.fn() }));
@@ -37,27 +38,46 @@ describe('claims API role projection', () => {
     });
   });
 
-  it.each(['member', 'user', 'agent', 'unknown', undefined])(
-    'minimizes operational data for %s',
+  it.each(['member', 'user', 'agent'])('minimizes operational data for %s', async role => {
+    h.session.mockResolvedValue({ user: { id: 'member-1', tenantId: 'tenant-ks', role } });
+    const response = await GET(new Request('http://localhost/api/claims?scope=admin'));
+    const body = await response.json();
+    expect(response.status).toBe(200);
+    expect(body.claims[0]).toMatchObject({
+      id: 'owned',
+      title: 'Owned case',
+      staffEmail: null,
+      staffName: null,
+      branchId: null,
+      branchCode: null,
+      branchName: null,
+    });
+    expect(JSON.stringify(body)).not.toContain('staff@example.test');
+    expect(JSON.stringify(body)).not.toContain('BR-PRIVATE');
+    expect(body.totalCount).toBe(1);
+  });
+
+  it.each(['unknown', undefined])(
+    'refuses raw role %s before projecting or reading claims',
     async role => {
       h.session.mockResolvedValue({ user: { id: 'member-1', tenantId: 'tenant-ks', role } });
       const response = await GET(new Request('http://localhost/api/claims?scope=admin'));
-      const body = await response.json();
-      expect(response.status).toBe(200);
-      expect(body.claims[0]).toMatchObject({
-        id: 'owned',
-        title: 'Owned case',
-        staffEmail: null,
-        staffName: null,
-        branchId: null,
-        branchCode: null,
-        branchName: null,
-      });
-      expect(JSON.stringify(body)).not.toContain('staff@example.test');
-      expect(JSON.stringify(body)).not.toContain('BR-PRIVATE');
-      expect(body.totalCount).toBe(1);
+      expect(response.status).toBe(403);
+      await expect(response.json()).resolves.toEqual({ error: 'FORBIDDEN' });
+      expect(h.query).not.toHaveBeenCalled();
     }
   );
+
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    h.session.mockResolvedValue({
+      user: { id: 'fixture-member', role: 'member', tenantId: 'tenant_mk' },
+    });
+    const response = await GET(new Request('http://localhost/api/claims'));
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: 'acceptance_required' });
+    expect(h.query).not.toHaveBeenCalled();
+  });
 
   it('reads under the authority minted from the same session it scopes to', async () => {
     h.session.mockResolvedValue({

@@ -1,0 +1,27 @@
+{
+  "legal-acceptance": {
+    "heading": "Para se të vazhdoni",
+    "intro": "Ju lutemi, lexoni dokumentet më poshtë për të hapur portalin tuaj të anëtarit.",
+    "readTerms": "Lexoni kushtet",
+    "readPrivacyNotice": "Lexoni njoftimin e privatësisë",
+    "acceptTerms": "I pranoj kushtet",
+    "acknowledgePrivacyNotice": "E kam lexuar njoftimin e privatësisë",
+    "version": "Versioni {version}",
+    "continue": "Vazhdoni",
+    "saving": "Po ruhet…",
+    "opening": "Portali juaj po hapet…",
+    "stale": "Teksti ka ndryshuar. Ju lutemi, lexoni versionin e ri.",
+    "unavailable": "Nuk mund t’i shfaqim dokumentet për momentin.",
+    "contactOffice": "Ju lutemi, kontaktoni zyrën tuaj.",
+    "pendingApproval": "Aktivizimi do të jetë i mundur së shpejti.",
+    "saveError": "Nuk arritëm ta ruanim konfirmimin tuaj.",
+    "retry": "Provoni sërish",
+    "signOut": "Dilni nga llogaria",
+    "openError": "Nuk arritëm ta hapnim portalin tuaj.",
+    "confirmBoth": "Duke vazhduar, pranoni kushtet dhe konfirmoni se e keni lexuar njoftimin e privatësisë.",
+    "confirmTerms": "Duke vazhduar, pranoni kushtet.",
+    "confirmPrivacyNotice": "Duke vazhduar, konfirmoni se e keni lexuar njoftimin e privatësisë.",
+    "reviewPending": "Në pritje të shqyrtimit ligjor",
+    "signOutError": "Nuk arritëm t’ju nxirrnim nga llogaria."
+  }
+}

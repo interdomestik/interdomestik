@@ -14,6 +14,7 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { ROLES } from '@interdomestik/shared-auth';
 import { SPONSORED_IMPORT_SETTING } from '@interdomestik/domain-membership-billing/sponsors/sponsor-jobs';
+import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 import { cleanupSponsorFixture } from './acq3b-cleanup.fixture';
 
 export const rosterSecret =
@@ -32,6 +33,7 @@ export type SponsorFixture = {
   other: Person;
   foreign: Person;
   newEmail: string;
+  privateEmail: string;
   leadId: string;
   leadIds: string[];
   planKey: string;
@@ -87,7 +89,7 @@ async function runLockedFixture(
   const prefix = `acq3b-${randomUUID()}`;
   const person = (name: string): Person => ({
     id: `${prefix}-${name}`,
-    email: `${prefix}-${name.toLowerCase()}@example.com`,
+    email: `${prefix}-${name.toLowerCase()}@example.test`,
     name,
   });
   const now = new Date();
@@ -105,6 +107,7 @@ async function runLockedFixture(
     other: person('Other'),
     foreign: person('Foreign'),
     newEmail: `${prefix}-new@example.com`,
+    privateEmail: `${prefix}-private@example.test`,
     leadId: `${prefix}-lead`,
     leadIds: [`${prefix}-lead`],
     planKey: seed.plan.id,
@@ -116,8 +119,15 @@ async function runLockedFixture(
     end: new Date(now.getTime() + 364 * day),
     paidEnd: new Date(now.getTime() + 30 * day),
   };
+  const fixtureMembers = [
+    { ...f.member, tenantId, legacyEmail: f.privateEmail },
+    { ...f.paying, tenantId },
+    { ...f.other, tenantId },
+    { ...f.foreign, tenantId: E2E_USERS.MK_MEMBER.tenantId },
+  ];
   try {
     await seedPeople(f, credential.password);
+    await fixtureLegalAcceptance('seed', fixtureMembers);
     await withTenantAuthority(authority, async tx => {
       await tx
         .insert(agentSettings)
@@ -156,6 +166,7 @@ async function runLockedFixture(
     await run(f);
   } finally {
     try {
+      await fixtureLegalAcceptance('clean', fixtureMembers);
       await cleanupSponsorFixture(f);
     } finally {
       await withTenantAuthority(authority, async tx => {

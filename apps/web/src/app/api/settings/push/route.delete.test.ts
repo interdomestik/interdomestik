@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import {
   hoistedMocks,
   mockDeleteChain,
@@ -11,7 +12,7 @@ import { DELETE } from './route';
 const validDeleteBody = { endpoint: validPushBody.endpoint };
 const sameEndpointOwner = { tenantId: 'tenant_mk', userId: 'user-123' };
 function authenticatedSession(tenantId: string | null = 'tenant_mk') {
-  return { user: { id: 'user-123', tenantId } };
+  return { user: { id: 'user-123', role: 'member', tenantId } };
 }
 
 function deleteRequest(body: unknown = validDeleteBody): Request {
@@ -36,11 +37,20 @@ describe('DELETE /api/settings/push', () => {
     mockDeleteChain.where.mockResolvedValue(undefined);
   });
 
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    hoistedMocks.getSession.mockResolvedValue(authenticatedSession());
+    const response = await DELETE(deleteRequest());
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: 'acceptance_required' });
+    expect(mockWithTenantContext).not.toHaveBeenCalled();
+  });
+
   it('returns 401 if user is not authenticated', async () => {
     hoistedMocks.getSession.mockResolvedValue(null);
 
     const response = await DELETE(deleteRequest());
-    await expectJsonResponse(response, 401, { error: 'Unauthorized' });
+    await expectJsonResponse(response, 401, { error: 'UNAUTHORIZED' });
   });
 
   it('returns 401 when tenant identity is missing', async () => {
@@ -48,7 +58,7 @@ describe('DELETE /api/settings/push', () => {
 
     const response = await DELETE(deleteRequest());
 
-    await expectJsonResponse(response, 401, { error: 'Missing tenant identity' });
+    await expectJsonResponse(response, 401, { error: 'UNAUTHORIZED' });
     expect(mockDeleteChain.where).not.toHaveBeenCalled();
     expect(hoistedMocks.logAuditEvent).not.toHaveBeenCalled();
   });

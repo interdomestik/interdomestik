@@ -13,7 +13,15 @@ export * from './claims/correspondence';
 export * from './claims/green-card-case-fields';
 export * from './claims/intake-category';
 export { outwardActionRequirements } from './claims/outward-action-requirements';
-export * from './claims/information-requests';
+export {
+  createInformationRequest,
+  getInformationRequests,
+  informationRequestInput,
+  type InformationRequestEvidence,
+  type InformationRequestInput,
+  type InformationRequestResult,
+  type PublicInformationRequest,
+} from './claims/information-requests';
 export * from './claims/information-request-evidence';
 export * from './claims/fulfil-information-request';
 export * from './claims/documents';
@@ -37,6 +45,7 @@ export * from './claims/lifecycle-read-model';
 export * from './claims/lifecycle-read-sql';
 export * from './claims/case-companion-next-step';
 export * from './claims/vault-consent-display';
+export { getMemberClaimTitle } from './member-claims/get-member-claim-detail';
 export * from './claims/transition-guard';
 export { buildScopedStaffClaimWhere, buildStaffClaimReadScope } from './staff-claims/scope';
 export { getStaffClaimsList } from './staff-claims/get-staff-claims-list';

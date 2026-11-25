@@ -1,5 +1,5 @@
+import { fixtureSessionAuthority, refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -27,12 +27,15 @@ vi.mock('@/components/claims/claim-draft-intake', () => ({
   ClaimDraftIntake: (props: Record<string, unknown>) => h.intake(props),
 }));
 vi.mock('@/components/shell/session', () => ({ getSessionSafe: h.session }));
-vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionUserTenant: h.authority }));
+vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: h.authority }));
 vi.mock('@/i18n/messages', () => ({ loadMessagesForNamespaces: h.msg }));
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   hasActiveMembership: h.member,
 }));
-vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: h.tenant }));
+vi.mock('@interdomestik/shared-auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
+  ensureTenantId: h.tenant,
+}));
 vi.mock('@interdomestik/ui', () => ({
   Button: ({ children }: { children: React.ReactNode }) => <button>{children}</button>,
 }));
@@ -60,9 +63,21 @@ describe('NewClaimPage dormant draft intake', () => {
     // prettier-ignore
     h.session.mockResolvedValue({ user: { id: 'member-1', role: 'member', tenantId: 'tenant_ks' } });
     h.member.mockResolvedValue(true);
-    h.authority.mockImplementation(async (userId: string) =>
-      mintTestTenantAuthority(h.tenant.getMockImplementation()?.() ?? 'tenant_ks', { userId })
-    );
+    h.authority.mockImplementation(async () => {
+      const session = await h.session();
+      if (!session) return null;
+      return { session, authority: fixtureSessionAuthority(session.user.tenantId, session.user) };
+    });
+  });
+
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    const tree = await loadPage();
+    expect(tree.props).toMatchObject({
+      refusal: { ok: false, failure: { code: 'acceptance_required' } },
+    });
+    expect(h.member).not.toHaveBeenCalled();
+    expect(h.intake).not.toHaveBeenCalled();
   });
 
   it('normalizes the accepted diaspora handoff only', () => {
@@ -92,9 +107,9 @@ describe('NewClaimPage dormant draft intake', () => {
     } as const;
     const tree = await loadPage({ category: 'travel', ...handoffContext });
     render(tree);
-    expect(h.session).toHaveBeenCalledWith('MemberNewClaimPage');
+    expect(h.session).toHaveBeenCalledOnce();
     expect(h.t).toHaveBeenCalledWith({ locale: 'en', namespace: 'claims' });
-    expect(h.authority).toHaveBeenCalledWith('member-1');
+    expect(h.authority).toHaveBeenCalledOnce();
     expect(h.member).toHaveBeenCalledWith('member-1', expect.anything());
     expect(readTenantAuthority(h.member.mock.calls[0]?.[1]).tenantId).toBe('tenant_ks');
     // prettier-ignore
@@ -104,10 +119,10 @@ describe('NewClaimPage dormant draft intake', () => {
     expect(screen.getByTestId('claim-draft-submit-disabled')).toBeDisabled();
   });
 
-  it('preserves the unauthenticated go', async () => {
+  it('refuses an unauthenticated request before reading membership', async () => {
     h.session.mockResolvedValueOnce(null);
-    await expect(loadPage()).rejects.toThrow('NEXT_REDIRECT');
-    expect(h.go).toHaveBeenCalledWith('/en/login');
+    const tree = await loadPage();
+    expect(tree.props).toMatchObject({ refusal: { ok: false, failure: { code: 'UNAUTHORIZED' } } });
     expect(h.head).not.toHaveBeenCalled();
     expect(h.member).not.toHaveBeenCalled();
   });

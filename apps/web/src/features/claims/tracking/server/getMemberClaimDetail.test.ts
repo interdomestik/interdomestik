@@ -1,3 +1,4 @@
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it } from 'vitest';
 
@@ -16,28 +17,35 @@ const memberSession = {
 } as const;
 
 describe('getMemberClaimDetail', () => {
-  beforeEach(configureMemberDetailTest);
+  beforeEach(() => {
+    configureMemberDetailTest();
+    hoisted.admit.mockResolvedValue({
+      ok: true,
+      authorized: { session: memberSession, authority: memberDetailAuthority },
+    });
+  });
 
   it('does not read descendant data when the scoped claim is absent', async () => {
     hoisted.claimFindFirst.mockResolvedValueOnce(undefined);
-    await expect(
-      getMemberClaimDetail(memberSession, memberDetailAuthority, 'not-owned')
-    ).resolves.toBeNull();
+    await expect(getMemberClaimDetail('not-owned')).resolves.toBeNull();
     expect(hoisted.getMemberTimelineFromDomainEvents).not.toHaveBeenCalled();
     expect(hoisted.getMemberVaultConsentDisplay).not.toHaveBeenCalled();
     expect(hoisted.getMatterAllowanceVisibility).not.toHaveBeenCalled();
   });
 
   it('fails closed before any read when the authority is for a different tenant than the session', async () => {
-    await expect(
-      getMemberClaimDetail(memberSession, mintTestTenantAuthority('tenant-2'), 'claim-1')
-    ).rejects.toThrow();
+    hoisted.admit.mockResolvedValueOnce({
+      ok: true,
+      authorized: { session: memberSession, authority: mintTestTenantAuthority('tenant-2') },
+    });
+    await expect(getMemberClaimDetail('claim-1')).rejects.toThrow();
     expect(hoisted.context).not.toHaveBeenCalled();
     expect(hoisted.claimFindFirst).not.toHaveBeenCalled();
   });
 
-  it('fails closed before any read when no tenant authority is supplied', async () => {
-    await expect(getMemberClaimDetail(memberSession, null, 'claim-1')).rejects.toThrow();
+  it('fails closed before any read when the request is refused', async () => {
+    hoisted.admit.mockResolvedValueOnce({ ok: false, failure: { code: 'acceptance_required' } });
+    await expect(getMemberClaimDetail('claim-1')).rejects.toThrow(UnauthorizedError);
     expect(hoisted.context).not.toHaveBeenCalled();
     expect(hoisted.claimFindFirst).not.toHaveBeenCalled();
   });
@@ -58,14 +66,12 @@ describe('getMemberClaimDetail', () => {
     });
     hoisted.timelineRows.mockResolvedValueOnce([]);
 
-    const result = await getMemberClaimDetail(memberSession, memberDetailAuthority, 'claim-1');
+    const result = await getMemberClaimDetail('claim-1');
 
     expect(hoisted.context).toHaveBeenCalledWith(memberDetailAuthority);
     const tx = hoisted.getMatterAllowanceVisibility.mock.calls[0]![0].tx;
-    expect(hoisted.getMemberTimelineFromDomainEvents.mock.calls[0]![1]).toBe(memberDetailAuthority);
-    expect(hoisted.getMemberTimelineFromDomainEvents.mock.calls[0]![2]).toBe(tx);
-    expect(hoisted.getMemberVaultConsentDisplay.mock.calls[0]![1]).toBe(memberDetailAuthority);
-    expect(hoisted.getMemberVaultConsentDisplay.mock.calls[0]![2]).toBe(tx);
+    expect(hoisted.getMemberTimelineFromDomainEvents.mock.calls[0]![1]).toBe(tx);
+    expect(hoisted.getMemberVaultConsentDisplay.mock.calls[0]![1]).toBe(tx);
     expect(result).not.toBeNull();
     expect(result?.timeline).toHaveLength(1);
     expect(result?.timeline[0]).toMatchObject({
@@ -110,11 +116,7 @@ describe('getMemberClaimDetail', () => {
       },
     ]);
 
-    const result = await getMemberClaimDetail(
-      { user: { id: 'member_1' } },
-      memberDetailAuthority,
-      'claim_1'
-    );
+    const result = await getMemberClaimDetail('claim_1');
 
     expect(result).toEqual(
       expect.objectContaining({
@@ -166,11 +168,7 @@ describe('getMemberClaimDetail', () => {
       },
     ]);
 
-    const result = await getMemberClaimDetail(
-      memberSession,
-      memberDetailAuthority,
-      'claim_progress'
-    );
+    const result = await getMemberClaimDetail('claim_progress');
 
     expect(result?.progressSummary).toEqual({
       currentStatusLabelKey: 'claims-tracking.status.evaluation',
@@ -210,7 +208,7 @@ describe('getMemberClaimDetail', () => {
       windowEnd: new Date('2026-12-31T23:59:59.000Z'),
     });
 
-    const result = await getMemberClaimDetail(memberSession, memberDetailAuthority, 'claim_2');
+    const result = await getMemberClaimDetail('claim_2');
 
     expect(hoisted.getMatterAllowanceVisibility).toHaveBeenCalledWith({
       tenantId: 'tenant-1',
@@ -248,11 +246,7 @@ describe('getMemberClaimDetail', () => {
       },
     ]);
 
-    const result = await getMemberClaimDetail(
-      memberSession,
-      memberDetailAuthority,
-      'claim_accepted'
-    );
+    const result = await getMemberClaimDetail('claim_accepted');
 
     expect((result as { recoveryDecision?: unknown } | null)?.recoveryDecision).toEqual({
       status: 'accepted',
@@ -277,7 +271,7 @@ describe('getMemberClaimDetail', () => {
     });
     hoisted.timelineRows.mockResolvedValueOnce([]);
     hoisted.getMemberVaultConsentDisplay.mockResolvedValueOnce({ kind: 'ready', items: [] });
-    const result = await getMemberClaimDetail(memberSession, memberDetailAuthority, 'claim-vault');
+    const result = await getMemberClaimDetail('claim-vault');
     expect(hoisted.getMemberVaultConsentDisplay).toHaveBeenCalledWith(
       {
         memberId: 'member-1',
@@ -285,7 +279,6 @@ describe('getMemberClaimDetail', () => {
         claimCategory: 'vehicle',
         piiStatus: 'available',
       },
-      memberDetailAuthority,
       expect.objectContaining({ query: { claims: { findFirst: hoisted.claimFindFirst } } })
     );
     expect(result?.vaultConsentDisplay).toEqual({ kind: 'ready', items: [] });

@@ -1,5 +1,6 @@
 'use server';
 
+import { memberGuarded } from '@/lib/privacy/require-member-acceptance';
 import { runAuthenticatedAction } from '@/lib/safe-action';
 import { CountryCodeSchema, countryGuidanceService } from '@interdomestik/domain-country-guidance';
 import { z } from 'zod';
@@ -9,25 +10,35 @@ const inputSchema = z.object({
   language: z.string().min(2),
 });
 
-export async function getCountryGuidanceAction(input: z.infer<typeof inputSchema>) {
-  return runAuthenticatedAction(async () => {
-    // Note: This action is public/safe-ish, but our wrapper adheres to RBAC invariants.
+const guardedGetCountryGuidanceAction = memberGuarded(
+  async (_authorized, input: z.infer<typeof inputSchema>) => {
+    return runAuthenticatedAction(
+      () =>
+        new Promise<ReturnType<typeof countryGuidanceService.getGuidance>>(resolve => {
+          // Note: This action is public/safe-ish, but our wrapper adheres to RBAC invariants.
 
-    const parsed = inputSchema.parse(input);
+          const parsed = inputSchema.parse(input);
 
-    // Validate country code strictly against domain schema
-    const safeCountryCode = CountryCodeSchema.safeParse(parsed.countryCode);
+          // Validate country code strictly against domain schema
+          const safeCountryCode = CountryCodeSchema.safeParse(parsed.countryCode);
 
-    if (!safeCountryCode.success) {
-      throw new Error('Unsupported Country Code');
-    }
+          if (!safeCountryCode.success) {
+            throw new Error('Unsupported Country Code');
+          }
 
-    try {
-      const guidance = countryGuidanceService.getGuidance(safeCountryCode.data, parsed.language);
-      return guidance;
-    } catch (error) {
-      console.error('Country Guidance Error', error);
-      throw new Error('Failed to retrieve guidance.');
-    }
-  });
+          try {
+            resolve(countryGuidanceService.getGuidance(safeCountryCode.data, parsed.language));
+          } catch (error) {
+            console.error('Country Guidance Error', error);
+            throw new Error('Failed to retrieve guidance.');
+          }
+        })
+    );
+  }
+);
+
+export async function getCountryGuidanceAction(
+  ...args: Parameters<typeof guardedGetCountryGuidanceAction>
+) {
+  return guardedGetCountryGuidanceAction(...args);
 }

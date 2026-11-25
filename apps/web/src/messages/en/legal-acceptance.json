@@ -1,0 +1,27 @@
+{
+  "legal-acceptance": {
+    "heading": "Before you continue",
+    "intro": "Please review the documents below to open your member portal.",
+    "readTerms": "Read the terms",
+    "readPrivacyNotice": "Read the privacy notice",
+    "acceptTerms": "I accept the terms",
+    "acknowledgePrivacyNotice": "I have read the privacy notice",
+    "version": "Version {version}",
+    "continue": "Continue",
+    "saving": "Saving…",
+    "opening": "Opening your portal…",
+    "stale": "The text has changed. Please read the new version.",
+    "unavailable": "We cannot show the documents right now.",
+    "contactOffice": "Please contact your office.",
+    "pendingApproval": "Activation will be available soon.",
+    "saveError": "We could not save your confirmation.",
+    "retry": "Retry",
+    "signOut": "Sign out",
+    "openError": "We could not open your portal.",
+    "confirmBoth": "By continuing you accept the terms and confirm that you have read the privacy notice.",
+    "confirmTerms": "By continuing you accept the terms.",
+    "confirmPrivacyNotice": "By continuing you confirm that you have read the privacy notice.",
+    "reviewPending": "Legal review pending",
+    "signOutError": "We could not sign you out."
+  }
+}

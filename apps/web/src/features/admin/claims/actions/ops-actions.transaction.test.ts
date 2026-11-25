@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { auditLog, claimMessages } from '@interdomestik/database';
+// Register the transaction mock before loading the database barrel.
 import {
   SAFE_FAILURE,
   TERMINAL_CLAIM,
@@ -10,6 +10,7 @@ import {
   tenant,
   useTenantTx,
 } from './ops-actions-test-setup.spec';
+import { auditLog, claimMessages } from '@interdomestik/database';
 import { markSlaAcknowledged, sendMemberReminder } from './ops-actions';
 
 describe('markSlaAcknowledged inside the tenant transaction', () => {

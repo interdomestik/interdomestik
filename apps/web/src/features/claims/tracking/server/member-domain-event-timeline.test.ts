@@ -1,13 +1,19 @@
+import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   select: vi.fn(),
+  admit: vi.fn(),
   withTenantContext: vi.fn(),
   and: vi.fn((...args: unknown[]) => ({ op: 'and', args })),
   desc: vi.fn((column: unknown) => ({ column, order: 'desc' })),
   eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
   sql: vi.fn((strings: TemplateStringsArray) => [...strings].join('$')),
+}));
+
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: hoisted.admit,
 }));
 
 vi.mock('@interdomestik/database', () => ({
@@ -60,7 +66,8 @@ describe('member domain-event timeline', () => {
     const chain = selectChain([eventRow()]);
     hoisted.select.mockReturnValueOnce(chain);
     const authority = mintTestTenantAuthority(context.tenantId);
-    const result = await getMemberTimelineFromDomainEvents(context, authority);
+    hoisted.admit.mockResolvedValueOnce({ ok: true, authorized: { authority } });
+    const result = await getMemberTimelineFromDomainEvents(context);
     expect(hoisted.withTenantContext).toHaveBeenCalledWith(authority, expect.any(Function));
     expect(hoisted.select).toHaveBeenCalledTimes(1);
     expect(result[0]?.id).toBe('event-1');
@@ -88,9 +95,19 @@ describe('member domain-event timeline', () => {
 
   it('fails closed without querying when the authority is for a different tenant than the claim', async () => {
     vi.clearAllMocks();
-    await expect(
-      getMemberTimelineFromDomainEvents(context, mintTestTenantAuthority('tenant-other'))
-    ).rejects.toThrow('tenant authority');
+    hoisted.admit.mockResolvedValueOnce({
+      ok: true,
+      authorized: { authority: mintTestTenantAuthority('tenant-other') },
+    });
+    await expect(getMemberTimelineFromDomainEvents(context)).rejects.toThrow('tenant authority');
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(hoisted.select).not.toHaveBeenCalled();
+  });
+
+  it('refuses before creating a query when admission fails', async () => {
+    vi.clearAllMocks();
+    hoisted.admit.mockResolvedValueOnce({ ok: false });
+    await expect(getMemberTimelineFromDomainEvents(context)).rejects.toThrow(UnauthorizedError);
     expect(hoisted.withTenantContext).not.toHaveBeenCalled();
     expect(hoisted.select).not.toHaveBeenCalled();
   });

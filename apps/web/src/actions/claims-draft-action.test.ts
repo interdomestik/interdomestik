@@ -1,6 +1,7 @@
+import { initialClaimEvidenceValidatorFor } from '@/features/claims/upload/server/initial-claim-evidence-validation';
+import { fixtureSessionAuthority } from '@/test/member-acceptance.test-support';
+import { MEMBER_A } from '@/test/safe-action-harness';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-
-import { authorizedSession, MEMBER_A } from '@/test/safe-action-harness';
 
 const mocks = vi.hoisted(() => ({
   authorize: vi.fn(),
@@ -13,6 +14,7 @@ vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.
 vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: mocks.write }));
 vi.mock('@/lib/audit', () => ({ logAuditEvent: vi.fn() }));
 vi.mock('@/lib/rate-limit', () => ({ enforceRateLimitForAction: mocks.rateLimit }));
+vi.mock('@/features/claims/upload/server/initial-claim-evidence-validation', { spy: true });
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn(), setUser: vi.fn(), setTag: vi.fn() }));
 vi.mock('next/cache', () => ({ revalidatePath: vi.fn() }));
 vi.mock('@interdomestik/domain-claims/claims/draft', () => ({
@@ -23,11 +25,15 @@ vi.mock('@interdomestik/domain-claims/claims/draft', () => ({
 import { updateDraftClaim } from './claims.core';
 
 const data = { title: 'Draft title', files: [] } as never;
+const session = { user: MEMBER_A, session: {} };
 
 describe('updateDraftClaim action boundary', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mocks.authorize.mockResolvedValue(authorizedSession(MEMBER_A));
+    mocks.authorize.mockResolvedValue({
+      session,
+      authority: fixtureSessionAuthority(MEMBER_A.tenantId, MEMBER_A),
+    });
     mocks.rateLimit.mockResolvedValue({ limited: false });
     mocks.write.mockResolvedValue({ ok: true });
   });
@@ -45,14 +51,21 @@ describe('updateDraftClaim action boundary', () => {
     await expect(updateDraftClaim('claim-1', data)).resolves.toEqual(refusal);
   });
 
-  it('hands the session authority and the intent validator to the domain command', async () => {
+  it('hands the admitted authority and its intent validator to the domain command', async () => {
     mocks.domainUpdate.mockResolvedValue({ success: true });
-    const authorized = authorizedSession(MEMBER_A);
-    mocks.authorize.mockResolvedValue(authorized);
+    const authority = fixtureSessionAuthority(MEMBER_A.tenantId, MEMBER_A);
+    mocks.authorize.mockResolvedValueOnce({ session, authority });
 
     await expect(updateDraftClaim('claim-1', data)).resolves.toEqual({ success: true });
     const [params, deps] = mocks.domainUpdate.mock.calls[0] ?? [];
-    expect(params).toMatchObject({ claimId: 'claim-1', authority: authorized.authority });
+    expect(params).toMatchObject({ claimId: 'claim-1', authority });
+    expect(params.authority).toBe(authority);
+    expect(initialClaimEvidenceValidatorFor).toHaveBeenCalledWith(authority, {
+      actorRole: 'member',
+    });
     expect(deps.validateSubmittedClaimFile).toEqual(expect.any(Function));
+    expect(deps.validateSubmittedClaimFile).toBe(
+      vi.mocked(initialClaimEvidenceValidatorFor).mock.results[0]?.value
+    );
   });
 });
