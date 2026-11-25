@@ -89,6 +89,8 @@ jobs:
           printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/ai_eval.exit"
           exit "${exit_code}"
 
+      # Retain the WP-07 proof until the contract migration has run, old
+      # writers are drained, and post-contract validation passes.
       - name: Prepare CI database
         shell: bash
         run: |
@@ -100,15 +102,7 @@ jobs:
           pnpm db:migrate
           pnpm seed:e2e
           pnpm seed:assert-e2e
-
-      # Require and retain this proof before contract. Retire it after the
-      # expand/contract migration's contract step, once old writers are drained
-      # and post-contract validation passes.
-      - name: RC check - WP-07 legacy upgrade
-        shell: bash
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
-        run: bash scripts/ci/rc-wp07-legacy-upgrade.sh
+          DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test bash scripts/ci/rc-wp07-legacy-upgrade.sh
 
       - name: Build web standalone artifact
         run: pnpm --filter @interdomestik/web run build:ci

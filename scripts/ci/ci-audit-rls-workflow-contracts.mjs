@@ -17,10 +17,9 @@ const releaseHostVerifier = {
   receipt: 'pr_verify_hosts',
 };
 const releaseUpgrade = {
-  name: 'RC check - WP-07 legacy upgrade',
+  name: 'Prepare CI database',
   command: 'db:wp07:legacy-upgrade',
   receipt: 'wp07_legacy_upgrade',
-  env: { DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' },
   script: 'scripts/ci/rc-wp07-legacy-upgrade.sh',
 };
 const legacyLockfileBlob = '30c68285cd04754daed56c49bc8fad334dee72b9';
@@ -29,7 +28,7 @@ function assertRlsRun(command) {
   assert.equal(command, 'pnpm db:rls:test');
 }
 
-function assertRequiredRcStep(step, { name, command, receipt, env, script }, scriptSource) {
+function assertRequiredRcStep(step, { name, command, receipt, script }, scriptSource) {
   const logDir = '${RC_LOGS_DIR}';
   const run = [
     'set -euo pipefail',
@@ -42,12 +41,19 @@ function assertRequiredRcStep(step, { name, command, receipt, env, script }, scr
     'exit "${exit_code}"',
     '',
   ].join('\n');
-  assert.deepEqual(step, {
-    name,
-    shell: 'bash',
-    ...(env && { env }),
-    run: script ? `bash ${script}` : run,
-  });
+  const workflowRun = script
+    ? `set -euo pipefail
+until pg_isready -h 127.0.0.1 -p 5432 -U postgres; do
+  echo "Waiting for postgres..."
+  sleep 2
+done
+pnpm db:migrate
+pnpm seed:e2e
+pnpm seed:assert-e2e
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test bash ${script}
+`
+    : run;
+  assert.deepEqual(step, { name, shell: 'bash', run: workflowRun });
   if (script) assert.equal(scriptSource, `#!/usr/bin/env bash\n${run}`);
 }
 
@@ -155,7 +161,7 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   assert.equal(billingScripts['test:rls:upgrade'], undefined);
 });
 
-test('release candidate requires the host verifier and a separate PG16 legacy upgrade', () => {
+test('release candidate requires the host verifier and runs the PG16 legacy upgrade after seeding', () => {
   const rc = releaseCandidate.jobs['rc-gate'];
   assert.equal(rc.if, undefined);
   assert.equal(rc['continue-on-error'], undefined);
@@ -163,11 +169,11 @@ test('release candidate requires the host verifier and a separate PG16 legacy up
   const checkout = rc.steps.find(step => step.uses === 'actions/checkout@v5');
   assert.equal(checkout?.with?.['fetch-depth'], 0);
   assertRequiredRcStep(findStep(rc.steps, releaseHostVerifier.name), releaseHostVerifier);
-  assertRequiredRcStep(
-    findStep(rc.steps, releaseUpgrade.name),
-    releaseUpgrade,
-    fs.readFileSync(path.join(root, releaseUpgrade.script), 'utf8')
-  );
+  const upgrade = findStep(rc.steps, releaseUpgrade.name);
+  const build = findStep(rc.steps, 'Build web standalone artifact');
+  const scriptSource = fs.readFileSync(path.join(root, releaseUpgrade.script), 'utf8');
+  assertRequiredRcStep(upgrade, releaseUpgrade, scriptSource);
+  assert.ok(rc.steps.indexOf(upgrade) < rc.steps.indexOf(build));
   assert.deepEqual(releaseCandidate.on, {
     push: { branches: ['rc/*'] },
     workflow_dispatch: null,
