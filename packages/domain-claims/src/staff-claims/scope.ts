@@ -1,4 +1,4 @@
-import { and, claims, eq, type TenantTransaction } from '@interdomestik/database';
+import { and, claims, eq, inArray, type TenantTransaction } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { isNull, or, sql, type SQLWrapper } from 'drizzle-orm';
@@ -14,10 +14,10 @@ type StaffClaimScopeArgs = {
   userId: string;
 };
 
-type StaffClaimReadScopeArgs = Pick<StaffClaimScopeArgs, 'role' | 'claimId'> & {
+type StaffClaimReadScopeArgs = Pick<StaffClaimScopeArgs, 'role'> & {
   branchId?: string | SQLWrapper | null;
   userId: string | SQLWrapper;
-};
+} & ({ claimId: string } | { claimIds: readonly string[] });
 
 export const STAFF_SCOPE_ACCESS_DENIED_ERROR = 'Claim not found or access denied';
 
@@ -33,14 +33,20 @@ export function buildStaffClaimReadScope(args: StaffClaimReadScopeArgs) {
   ) {
     return sql`false`;
   }
-  const submitted = and(eq(claims.id, args.claimId), claimLifecycleStatusNotIn(['draft']));
+  const selection =
+    'claimId' in args ? eq(claims.id, args.claimId) : inArray(claims.id, [...args.claimIds]);
+  const submitted = claimLifecycleStatusNotIn(['draft']);
   const assignedOrUnassigned = or(eq(claims.staffId, args.userId), isNull(claims.staffId));
   if (args.branchId == null) {
-    return and(submitted, assignedOrUnassigned);
+    return and(selection, submitted, assignedOrUnassigned);
   }
   const sameBranch = eq(claims.branchId, args.branchId);
-  if (typeof args.branchId === 'string') return and(submitted, sameBranch);
-  return and(submitted, or(sameBranch, and(isNull(args.branchId), assignedOrUnassigned)));
+  if (typeof args.branchId === 'string') return and(selection, submitted, sameBranch);
+  return and(
+    selection,
+    submitted,
+    or(sameBranch, and(isNull(args.branchId), assignedOrUnassigned))
+  );
 }
 
 export function buildScopedStaffClaimWhere(args: StaffClaimScopeArgs) {

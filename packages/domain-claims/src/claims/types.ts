@@ -1,4 +1,5 @@
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import type { CaseScopedAccessGrant } from '@interdomestik/shared-auth';
 
 import type { QueuedClaimAiRun } from './ai-workflows';
 import type { EvidenceFile } from '../validators/claims';
@@ -16,6 +17,7 @@ export type ClaimsSession = {
     role?: string | null;
     tenantId?: string | null;
     accessTenantId?: string | null;
+    caseScopedAccessGrants?: readonly CaseScopedAccessGrant[] | null;
     email?: string | null;
   };
 };

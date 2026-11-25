@@ -1,0 +1,67 @@
+'use server';
+
+import { actionFailure, defineAction } from '@/lib/safe-action';
+import {
+  recordInboundCorrespondence as recordInbound,
+  recordInboundCorrespondenceInputSchema,
+  recordOutboundCorrespondence as recordOutbound,
+  recordOutboundCorrespondenceInputSchema,
+  setCorrespondenceFollowUp as setFollowUp,
+  setCorrespondenceFollowUpInputSchema,
+} from '@interdomestik/domain-claims/claims/correspondence';
+import { ROLES } from '@interdomestik/shared-auth';
+import { withoutParameters } from './register-failure';
+
+export const recordOutboundCorrespondence = defineAction({
+  name: 'staffClaims.recordOutboundCorrespondence',
+  basis: { kind: 'role', roles: [ROLES.staff, ROLES.admin, ROLES.tenant_admin] },
+  subject: { type: 'claim', from: 'claimId' },
+  input: recordOutboundCorrespondenceInputSchema,
+  async handler(input, { authority, session }) {
+    const result = await withoutParameters(
+      recordOutbound(session, authority, input),
+      'correspondence insert'
+    );
+    if (result.ok) return { correspondenceId: result.correspondenceId };
+    if (result.code === 'forbidden') {
+      return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });
+    }
+    return actionFailure(result.code);
+  },
+});
+
+export const recordInboundCorrespondence = defineAction({
+  name: 'staffClaims.recordInboundCorrespondence',
+  basis: { kind: 'role', roles: [ROLES.staff, ROLES.admin, ROLES.tenant_admin] },
+  subject: { type: 'claim', from: 'claimId' },
+  input: recordInboundCorrespondenceInputSchema,
+  async handler(input, { authority, session }) {
+    const result = await withoutParameters(
+      recordInbound(session, authority, input),
+      'correspondence insert'
+    );
+    if (result.ok) return { correspondenceId: result.correspondenceId };
+    if (result.code === 'forbidden') {
+      return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });
+    }
+    return actionFailure(result.code);
+  },
+});
+
+export const setCorrespondenceFollowUp = defineAction({
+  name: 'staffClaims.setCorrespondenceFollowUp',
+  basis: { kind: 'role', roles: [ROLES.staff, ROLES.admin, ROLES.tenant_admin] },
+  subject: { type: 'claim', from: 'claimId' },
+  input: setCorrespondenceFollowUpInputSchema,
+  async handler(input, { authority, session }) {
+    const result = await withoutParameters(
+      setFollowUp(session, authority, input),
+      'correspondence follow-up'
+    );
+    if (result.ok) return { correspondenceId: result.correspondenceId };
+    if (result.code === 'forbidden') {
+      return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });
+    }
+    return actionFailure(result.code);
+  },
+});

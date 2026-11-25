@@ -5,8 +5,9 @@ import type {
   FreeStartCopy,
   IssueId,
 } from '@/app/[locale]/components/home/free-start-intake-shell/types';
-import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import type { useOrganizerFlow } from '@/app/[locale]/components/home/free-start-intake-shell/use-organizer-flow';
+import { isClaimCategoryOpenForIntake } from '@interdomestik/domain-claims/claims/intake-category';
+import type { ClaimStartHandoffContext } from '@interdomestik/domain-claims/claims/types';
 import { useEffect, useState } from 'react';
 
 import { DormantPreview, type ClaimDraftCopy, type SavedDraftSubmitCopy } from './dormant-preview';
@@ -15,6 +16,7 @@ import { DormantPreview, type ClaimDraftCopy, type SavedDraftSubmitCopy } from '
 type Props = Readonly<{ signedIn?: boolean; onContinuationRejected?: (receipt?: { id: string; version: number } | null) => void; prepareForContinuation?: () => Promise<import('@/app/[locale]/components/home/free-start-intake-shell/types').SavedDraft | null>; activeDraftId?: string | null; activeDraftVersion?: number | null; claimStart?: { confirmed: true; handoffContext: ClaimStartHandoffContext; incidentCountryCode: ClaimStartHandoffContext['country'] }; confirmationRequired?: boolean; confirmationRequiredCopy?: string; copy: ClaimDraftCopy; flow: ReturnType<typeof useOrganizerFlow>; hasUnsavedChanges?: boolean; issueIds: ReadonlyArray<IssueId>; labels: { category: string; issue: string; outcome: string }; managerOnly?: boolean; neutralOtpHost?: string | null; submitCopy: SavedDraftSubmitCopy; tFree: FreeStartCopy & { raw: (key: string) => unknown } }>;
 
 const NEUTRAL_HOSTS = new Set(['ida.interdomestik.com', 'ida.localhost', 'ida.127.0.0.1.nip.io']);
+const INTAKE_CATEGORIES = CATEGORY_CONFIG.filter(({ id }) => isClaimCategoryOpenForIntake(id));
 const ACTION_CLASS =
   'inline-flex min-h-12 items-center justify-center rounded-xl bg-[#006b7b] px-5 py-3 font-bold text-white focus-visible:ring-3 focus-visible:ring-[#008f91] disabled:opacity-60';
 
@@ -94,20 +96,18 @@ export function ClaimDraftMainPanel(props: Props) {
       </div>
       {categoryStep ? (
         <>
-          <div className="grid gap-3 sm:grid-cols-3">
-            {CATEGORY_CONFIG.map(category => {
-              const disabled = category.id === 'injury';
+          <div className="grid gap-3 sm:grid-cols-2">
+            {INTAKE_CATEGORIES.map(category => {
               const selected = flow.selectedCategory === category.id;
               const Icon = category.icon;
               return (
                 <button
                   key={category.id}
                   type="button"
-                  disabled={disabled}
                   aria-pressed={selected}
                   data-testid={`claim-draft-category-${category.id}`}
                   onClick={() => flow.selectCategory(category.id)}
-                  className={`min-h-32 rounded-2xl border p-4 text-left outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] ${selected ? 'border-[#008f91] bg-[#e2f2ef]' : 'border-[#001a33]/20 bg-white'} ${disabled ? 'cursor-not-allowed opacity-55' : ''}`}
+                  className={`min-h-32 rounded-2xl border p-4 text-left outline-none focus-visible:ring-3 focus-visible:ring-[#008f91] ${selected ? 'border-[#008f91] bg-[#e2f2ef]' : 'border-[#001a33]/20 bg-white'}`}
                 >
                   <Icon aria-hidden="true" className="mb-3 h-6 w-6 text-[#008f91]" />
                   <span className="block font-bold">
@@ -116,9 +116,6 @@ export function ClaimDraftMainPanel(props: Props) {
                   <span className="mt-1 block text-sm text-[#526274]">
                     {tFree(`categories.${category.id}.examples`)}
                   </span>
-                  {disabled ? (
-                    <span className="mt-2 block text-xs font-bold">{copy.unsupported}</span>
-                  ) : null}
                 </button>
               );
             })}

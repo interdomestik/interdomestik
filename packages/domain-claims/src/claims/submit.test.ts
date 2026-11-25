@@ -22,6 +22,22 @@ import {
 import { ClaimValidationError, submitClaimCore } from './submit';
 
 describe('submitClaimCore', () => {
+  it.each(['injury', 'invalidity', 'Personal Injury'])(
+    'refuses to submit a new claim with category %s',
+    async category => {
+      const args = buildSubmitArgs({ files: [] });
+
+      await expect(
+        submitClaimCore({ ...args, data: { ...args.data, category } })
+      ).rejects.toMatchObject({
+        code: 'INVALID_PAYLOAD',
+      });
+
+      expect(txInsert).not.toHaveBeenCalled();
+      expect(appendEventMock).not.toHaveBeenCalled();
+    }
+  );
+
   it('redacts bound claim data when persistence fails', async () => {
     const args = buildSubmitArgs({ files: [] });
     args.trustedClaimId = 'claim-with-persistence-error';

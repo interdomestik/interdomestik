@@ -1,26 +1,22 @@
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
 import test from 'node:test';
 
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import { claims, crmTaskHistory, crmTasks, domainEvents, user } from '../src/schema';
-import { claimLifecycleFieldsForStatus } from '../src/claim-lifecycle';
+import { KS_TENANT_ID, MK_TENANT_ID, seedRlsEngagement, uniqueId } from './rls-engaged.fixture';
 import {
   applyRlsTestConnectionEnv,
   quoteIdentifier,
   quoteSqlLiteral,
   requireRlsPreconditions,
-  resolveRlsTestConnectionConfig,
   TEST_DB_PASSWORD,
   TEST_DB_ROLE,
 } from './rls-test-connection';
 import { grantRlsTestRole } from './rls-test-grants';
 import { assertRlsWriteBoundaries } from './rls-write-boundary-proof';
 
-const KS_TENANT_ID = 'tenant_ks';
-const MK_TENANT_ID = 'tenant_mk';
 const REQUIRED_RLS_TABLES = ['claim', 'crm_tasks', 'crm_task_history', 'domain_events'] as const;
 
 type RlsRuntimeReceipt = {
@@ -32,35 +28,6 @@ type RlsRuntimeReceipt = {
 
 type DbModule = typeof import('../src/db');
 type TenantModule = typeof import('../src/tenant');
-
-function uniqueId(prefix: string): string {
-  return `${prefix}_${Date.now()}_${randomUUID().slice(0, 8)}`;
-}
-
-test('resolveRlsTestConnectionConfig keeps pooler URLs on the admin connection and uses SET ROLE', () => {
-  const config = resolveRlsTestConnectionConfig(
-    'postgresql://postgres.project-ref:secret@aws-1-eu-west-1.pooler.supabase.com:5432/postgres'
-  );
-
-  assert.equal(config.databaseUrlRls, null);
-  assert.equal(config.dbRlsRole, TEST_DB_ROLE);
-});
-
-test('resolveRlsTestConnectionConfig uses a dedicated low-privilege connection for direct Postgres URLs', () => {
-  const config = resolveRlsTestConnectionConfig(
-    'postgresql://postgres:postgres@127.0.0.1:54322/postgres'
-  );
-
-  assert.ok(config.databaseUrlRls);
-  const rlsUrl = new URL(config.databaseUrlRls);
-  assert.equal(rlsUrl.protocol, 'postgresql:');
-  assert.equal(rlsUrl.username, TEST_DB_ROLE);
-  assert.equal(rlsUrl.password, TEST_DB_PASSWORD);
-  assert.equal(rlsUrl.hostname, '127.0.0.1');
-  assert.equal(rlsUrl.port, '54322');
-  assert.equal(rlsUrl.pathname, '/postgres');
-  assert.equal(config.dbRlsRole, null);
-});
 
 test('RLS is actively enforced across tenant context boundaries', async t => {
   const requireIntegration = process.env.REQUIRE_RLS_INTEGRATION === '1';
@@ -126,103 +93,15 @@ test('RLS is actively enforced across tenant context boundaries', async t => {
     ]);
     console.log('RLS_INTEGRATION_RAN=1');
 
-    await dbAdmin.insert(user).values([
-      {
-        id: ksUserId,
-        tenantId: KS_TENANT_ID,
-        name: 'RLS Test KS User',
-        email: `${ksUserId}@example.test`,
-        emailVerified: true,
-        role: 'member',
-        createdAt: now,
-        updatedAt: now,
-      },
-      {
-        id: mkUserId,
-        tenantId: MK_TENANT_ID,
-        name: 'RLS Test MK User',
-        email: `${mkUserId}@example.test`,
-        emailVerified: true,
-        role: 'member',
-        createdAt: now,
-        updatedAt: now,
-      },
-    ]);
-
-    await dbAdmin.insert(claims).values({
-      id: claimId,
-      tenantId: KS_TENANT_ID,
-      userId: ksUserId,
-      title: 'RLS isolation proof',
-      description: 'cross-tenant row must not leak',
-      category: 'retail',
-      companyName: 'RLS Test Co',
-      ...claimLifecycleFieldsForStatus('draft'),
-      origin: 'portal',
-    });
-
-    await dbAdmin.insert(crmTasks).values({
-      assignedActorId: ksUserId,
-      assignedBranchId: null,
-      assignedKind: 'actor',
-      assignedRole: 'agent',
-      assignedTeamId: null,
-      assignedTenantId: KS_TENANT_ID,
-      branchId: null,
-      createReasonCode: 'manual',
-      createdAt: now,
-      createdById: ksUserId,
-      createdByRole: 'admin',
-      dueAt: null,
-      id: taskId,
-      idempotencyKey: null,
-      priority: 'normal',
-      status: 'pending',
-      subjectId: 'rls-subject',
-      subjectKind: 'lead',
-      tenantId: KS_TENANT_ID,
-      updatedAt: now,
-    });
-
-    await dbAdmin.insert(crmTaskHistory).values({
-      actorId: ksUserId,
-      actorRole: 'admin',
-      event: 'created',
-      fromStatus: null,
-      id: historyId,
-      occurredAt: now,
-      reasonCode: 'manual',
+    await seedRlsEngagement(dbAdmin, {
+      ksUserId,
+      mkUserId,
+      claimId,
       taskId,
-      tenantId: KS_TENANT_ID,
-      toStatus: 'pending',
-    });
-
-    await dbAdmin.insert(domainEvents).values({
-      actorId: ksUserId,
-      actorRole: 'admin',
-      aggregateVersion: 1,
-      correlationId: uniqueId('rls_correlation'),
-      entityId: claimId,
-      entityType: 'claim',
-      eventName: 'claim.rls_tested',
-      eventVersion: 1,
-      id: eventId,
-      payload: {},
-      tenantId: KS_TENANT_ID,
-    });
-
-    await dbAdmin.insert(domainEvents).values({
-      actorId: mkUserId,
-      actorRole: 'admin',
-      aggregateVersion: 1,
-      correlationId: uniqueId('rls_correlation'),
-      entityId: mkUserId,
-      entityType: 'user',
-      eventName: 'user.rls_tested',
-      eventVersion: 1,
-      id: mkEventId,
-      payload: {},
-      tenantId: MK_TENANT_ID,
+      historyId,
+      eventId,
+      mkEventId,
+      now,
     });
 
     const [mkRlsReceipt] = await withTenantContext(

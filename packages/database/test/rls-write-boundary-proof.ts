@@ -56,7 +56,7 @@ export async function assertRlsWriteBoundaries(params: WriteBoundaryProofParams)
     () =>
       withTenantContext({ tenantId: mkTenantId, accessTenantId: ksTenantId }, async tx => {
         await tx.insert(claims).values({
-          category: 'retail',
+          category: 'property',
           companyName: 'RLS Test Co',
           description: 'home-tenant write must fail under mismatched access tenant',
           id: rejectedClaimId,
