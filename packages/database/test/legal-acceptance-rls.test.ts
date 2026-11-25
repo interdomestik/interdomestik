@@ -27,7 +27,9 @@ function restricted<T>(
   return client.begin(async tx => {
     await tx.unsafe(`set local role ${quoteIdentifier(databaseRole)}`);
     const [tenantId, actor, role] = context;
-    if (tenantId) await tx`select set_config('app.current_access_tenant_id', ${tenantId}, true)`;
+    if (tenantId !== undefined) {
+      await tx`select set_config('app.current_access_tenant_id', ${tenantId}, true)`;
+    }
     if (actor) await tx`select set_config('app.current_actor_id', ${actor}, true)`;
     if (role) await tx`select set_config('app.current_actor_role', ${role}, true)`;
     return run(tx);
@@ -140,20 +142,54 @@ async function provePolicy(t: TestContext, admin: postgres.Sql) {
   }
 }
 
-async function proveRegistryRead(admin: postgres.Sql, role: string) {
-  await restricted(admin, role, [], async tx => {
-    const [posture] = await tx`
-      select relrowsecurity, row_security_active(oid::regclass) as active
-      from pg_class where oid = 'public.legal_document_versions'::regclass
-    `;
-    assert.deepEqual(posture, { relrowsecurity: true, active: true }, role);
+function readRegistry(tx: postgres.TransactionSql) {
+  return tx`
+    select kind, version, locale, text_sha256, review_status, created_at
+    from public.legal_document_versions order by kind, version, locale
+  `;
+}
 
-    const rows = await tx`
-      select text_sha256 from public.legal_document_versions
-      where kind = ${version.kind} and version = ${version.version} and locale = ${version.locale}
-    `;
-    assert.deepEqual([...rows], [{ text_sha256: version.textSha256 }], role);
-  });
+async function proveRegistryRead(admin: postgres.Sql, roles: readonly string[]) {
+  // Check both roles before setting this GUC on the reused scratch connection.
+  for (const role of roles) {
+    await restricted(admin, role, [], async tx => {
+      const [posture] = await tx`
+        select relrowsecurity, row_security_active(oid::regclass) as active
+        from pg_class where oid = 'public.legal_document_versions'::regclass
+      `;
+      assert.deepEqual(posture, { relrowsecurity: true, active: true }, role);
+
+      const [context] = await tx`
+        select current_setting('app.current_access_tenant_id', true) as access_tenant_id
+      `;
+      assert.equal(context.access_tenant_id, null, role);
+      assert.deepEqual([...(await readRegistry(tx))], [], role);
+    });
+  }
+
+  for (const role of roles) {
+    for (const blank of ['', '   ']) {
+      await restricted(admin, role, [blank], async tx => {
+        const [context] = await tx`
+          select current_setting('app.current_access_tenant_id', true) as access_tenant_id
+        `;
+        assert.equal(context.access_tenant_id, blank, role);
+        assert.deepEqual([...(await readRegistry(tx))], [], role);
+      });
+    }
+
+    const home = await restricted(admin, role, [tenant], async tx => {
+      const rows = await tx`
+        select text_sha256 from public.legal_document_versions
+        where kind = ${version.kind} and version = ${version.version} and locale = ${version.locale}
+      `;
+      assert.deepEqual([...rows], [{ text_sha256: version.textSha256 }], role);
+      return readRegistry(tx);
+    });
+    const away = await restricted(admin, role, [foreignTenant], readRegistry);
+    assert.equal(home.length, registry.length, role);
+    assert.deepEqual([...away], [...home], role);
+  }
 }
 
 async function proveMutationDenials(t: TestContext, admin: postgres.Sql, role: string) {
@@ -198,9 +234,10 @@ test('WP-13a journal policies and append-only controls under restricted roles', 
         `grant select, insert, update, delete on all tables in schema public to ${quoteIdentifier(e2e)}`
       );
       await seedSubjects(admin);
+      const roles = [runtime, e2e];
+      await proveRegistryRead(admin, roles);
       await provePolicy(t, admin);
-      for (const role of [runtime, e2e]) {
-        await proveRegistryRead(admin, role);
+      for (const role of roles) {
         await proveMutationDenials(t, admin, role);
       }
       const [cleanupRole] =

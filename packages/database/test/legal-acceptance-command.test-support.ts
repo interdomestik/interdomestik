@@ -57,7 +57,7 @@ export async function migrateLegalAcceptanceFixture(admin: ScratchClient) {
   await migrateJournal(admin, journal);
 }
 
-export async function approveLegalAcceptanceFixture(admin: ScratchClient) {
+export async function approveLegalAcceptanceFixture(admin: ScratchClient, tenantId: string) {
   // The scratch owner projects a synthetic approval with the append-only trigger restored
   // in the same transaction, before any restricted-role code runs.
   await admin.begin(async tx => {
@@ -67,6 +67,8 @@ export async function approveLegalAcceptanceFixture(admin: ScratchClient) {
     await tx`alter table public.legal_document_versions
       enable trigger legal_document_versions_append_only`;
 
+    await tx`set local role interdomestik_runtime_rls`;
+    await tx`select set_config('app.current_access_tenant_id', ${tenantId}, true)`;
     const rows = await tx`select locale, kind, review_status from public.legal_document_versions
       where locale in ('de', 'en') order by locale, kind`;
     assert.deepEqual(
@@ -85,10 +87,11 @@ export async function seedSubject(
   admin: ScratchClient,
   id: string,
   tenantId: string,
-  email: string
+  email: string,
+  role = 'member'
 ) {
   await admin`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
-    values (${id}, ${tenantId}, 'Acceptance fixture', ${email}, true, 'member', now(), now())`;
+    values (${id}, ${tenantId}, 'Acceptance fixture', ${email}, true, ${role}, now(), now())`;
 }
 
 export function fixtureWithText(

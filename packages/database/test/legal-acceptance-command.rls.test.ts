@@ -28,6 +28,7 @@ const pendingActor = 'wp13_pending';
 const approvedActor = 'wp13_approved';
 const rollbackActor = 'wp13_rollback';
 const otherActor = 'wp13_other';
+const tenantAdminActor = 'wp13_tenant_admin';
 
 async function verifyCommands(t: TestContext, admin: ScratchClient) {
   // Resolve the downstream package through the application's installed public export.
@@ -35,19 +36,21 @@ async function verifyCommands(t: TestContext, admin: ScratchClient) {
   const publicExport = webRequire.resolve('@interdomestik/domain-privacy/acceptance');
   const {
     acceptLegalDocuments,
+    checkRenderedLegalTexts,
     currentLegalDocuments,
     digestLegalDocument,
+    listMembersWithoutAcceptance,
     readOwnAcceptanceState,
   } = await import(pathToFileURL(publicExport).href);
   const { mintTenantAuthority } = await import('../src/tenant-authority-registrar');
   const { sql } = await import('../src/index');
   const { withPrincipalTenantContext } = await import('../src/free-start-drafts');
 
-  const authorityFor = (userId: string) =>
+  const authorityFor = (userId: string, role = 'member') =>
     mintTenantAuthority({
       tenantId: tenant,
       purpose: 'session',
-      principal: { userId, role: 'member', branchId: null, agentId: null },
+      principal: { userId, role, branchId: null, agentId: null },
     });
   const submission = {
     documents: currentLegalDocuments,
@@ -55,6 +58,17 @@ async function verifyCommands(t: TestContext, admin: ScratchClient) {
   };
   const pending = fixtureWithText(currentLegalDocuments, 'en', false);
   const approved = fixtureWithText(currentLegalDocuments, 'de', true);
+
+  await t.test(
+    'form verification reads the registry under its principal tenant context',
+    async () => {
+      const authority = authorityFor(approvedActor);
+      assert.deepEqual(await checkRenderedLegalTexts(authority, approved), {
+        ok: true,
+        pending: [],
+      });
+    }
+  );
 
   await t.test('pending evidence does not admit in production', async () => {
     const authority = authorityFor(pendingActor);
@@ -114,8 +128,23 @@ async function verifyCommands(t: TestContext, admin: ScratchClient) {
           }
         );
       }
+      assert.deepEqual(
+        await acceptLegalDocuments(authority, { documents: [], attestations: {} }, approved),
+        { ok: true }
+      );
     }
   );
+
+  await t.test('the tenant admin report reads approved registry metadata in context', async () => {
+    const authority = authorityFor(tenantAdminActor, 'tenant_admin');
+    assert.deepEqual(await listMembersWithoutAcceptance(authority, true), {
+      ok: true,
+      members: [pendingActor, rollbackActor].map(subjectUserId => ({
+        subjectUserId,
+        missing: currentLegalDocuments,
+      })),
+    });
+  });
 
   await t.test('the command rolls back both rows when its audit insert fails', async () => {
     await admin`
@@ -198,7 +227,6 @@ test('WP-13a command and admission run against the restricted database role', as
       if (createdRuntime)
         await admin`create role interdomestik_runtime_rls nologin nosuperuser nobypassrls`;
       await migrateLegalAcceptanceFixture(admin);
-      await approveLegalAcceptanceFixture(admin);
       await admin`grant usage on schema public to interdomestik_runtime_rls`;
       await admin`grant select, insert, update, delete on "user", audit_log, free_start_drafts
         to interdomestik_runtime_rls`;
@@ -206,12 +234,20 @@ test('WP-13a command and admission run against the restricted database role', as
         await admin`insert into tenants (id, name, legal_name, country_code)
           values (${id}, 'Fixture', 'Fixture', 'MK')`;
       }
-      for (const actor of [pendingActor, approvedActor, rollbackActor, otherActor]) {
+      await approveLegalAcceptanceFixture(admin, tenant);
+      for (const actor of [
+        pendingActor,
+        approvedActor,
+        rollbackActor,
+        otherActor,
+        tenantAdminActor,
+      ]) {
         await seedSubject(
           admin,
           actor,
           actor === otherActor ? otherTenant : tenant,
-          `${actor}@example.test`
+          `${actor}@example.test`,
+          actor === tenantAdminActor ? 'tenant_admin' : 'member'
         );
       }
       await withAcceptanceRuntime(admin, scratchUrl, async (client, url) => {

@@ -1,5 +1,5 @@
 {
-  "id": "0ce4d14e-eb4f-4dfe-9abf-bb0a8333534d",
+  "id": "526cdf01-57da-4b7f-a15c-c14abc9add8c",
   "prevId": "3df3ac71-0f80-466a-aa3d-dac9d13b744f",
   "version": "7",
   "dialect": "postgresql",
@@ -22122,7 +22122,7 @@
           "to": [
             "public"
           ],
-          "using": "true"
+          "using": "nullif(btrim(current_setting('app.current_access_tenant_id', true)), '') is not null"
         }
       },
       "checkConstraints": {
