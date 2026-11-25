@@ -1,11 +1,12 @@
 import { spawnSync } from 'node:child_process';
+import { randomBytes } from 'node:crypto';
 import { mkdtempSync, rmSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { runParallel } from '../contract-test-shards.mjs';
 import { checkExecution, nodeExecution, readExecution } from './execution.mjs';
-import { repoRoot, repositoryInventory } from './inventory.mjs';
+import { advisoryStaffRlsLane, repoRoot, repositoryInventory } from './inventory.mjs';
 
 const database = join(repoRoot, 'packages/database');
 const inventory = repositoryInventory();
@@ -46,8 +47,7 @@ async function runAdvisoryTooling() {
   }
 }
 
-function runVitest() {
-  const lane = 'advisory/vitest-pg16';
+function runVitest(lane, options = [], fixtureEnv = {}) {
   const files = filesIn(lane);
   const started = Date.now();
   const groups = Map.groupBy(files, file => file.split('/').slice(0, 2).join('/'));
@@ -67,6 +67,7 @@ function runVitest() {
           'run',
           '--no-file-parallelism',
           '--retry=0',
+          ...options,
           '--reporter',
           join(import.meta.dirname, 'vitest-reporter.mjs'),
           ...selected.map(file => relative(cwd, join(repoRoot, file))),
@@ -77,6 +78,7 @@ function runVitest() {
           env: {
             ...process.env,
             ...integrationFlags[project],
+            ...fixtureEnv,
             DB_LANES_ROOT: repoRoot,
             DB_LANES_REPORT: filename,
           },
@@ -95,6 +97,29 @@ function runVitest() {
     rmSync(temp, { force: true, recursive: true });
   }
   record(lane, files, report, started);
+}
+
+async function runStaffRls(adminUrl) {
+  const files = filesIn(advisoryStaffRlsLane);
+  if (!files.length) return;
+  const started = Date.now();
+  const { describeRuntimeRoleFailure, provisionE2eRuntimeRole } =
+    await import('../../e2e-runtime-role.mjs');
+  let runtimeUrl;
+  try {
+    runtimeUrl = await provisionE2eRuntimeRole({ adminUrl });
+  } catch (error) {
+    console.error(`Staff detail proof failed: ${describeRuntimeRoleFailure(error)}`);
+    record(advisoryStaffRlsLane, files, { complete: false, files: [] }, started);
+    return;
+  }
+  runVitest(advisoryStaffRlsLane, ['--environment=node', '--maxWorkers=1', '--testTimeout=30000'], {
+    E2E_DATABASE_URL: adminUrl,
+    DATABASE_URL_RLS: runtimeUrl,
+    DB_MAX_CONNECTIONS: '1',
+    S8_STAFF_DETAIL_DB_PROOF: '1',
+    S8_STAFF_DETAIL_RUN_TOKEN: randomBytes(8).toString('hex'),
+  });
 }
 
 if (process.argv[2] === 'unit') {
@@ -118,8 +143,11 @@ if (process.argv[2] === 'unit') {
     );
   }
   process.env.REQUIRE_RLS_INTEGRATION = '1';
+  process.env.REQUIRE_RLS_COVERAGE = '1';
+  process.env.REQUIRE_DOMAIN_EVENT_RELAY_SQL_PROOF = '1';
   await runNode('advisory/node-pg16');
-  runVitest();
+  runVitest('advisory/vitest-pg16');
+  await runStaffRls(process.env.DATABASE_URL);
 } else {
   throw new Error('Expected database lane mode: unit or pg16');
 }

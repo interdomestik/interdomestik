@@ -22,6 +22,34 @@ const databaseSignals = [
   /node:process|restricted-role|db-client|@interdomestik\/database\b/u,
   /['"](?:pg|postgres)['"]/u,
 ];
+const legacyLiveNodeTests = new Set([
+  'cash-resubmit-concurrency.test.ts',
+  'claim-information-requests.test.ts',
+  'critical-rls-tables.test.ts',
+  'domain-event-relay-selection.test.ts',
+  'e2e-runtime-role-grants.test.ts',
+  'e2e-runtime-role-posture.test.ts',
+  'exchange-rate-verifications.test.ts',
+  'exchange-rates.test.ts',
+  'free-start-drafts-repository.test.ts',
+  'member-notes-restricted-rls-changes.test.ts',
+  'member-notes-restricted-rls-races.test.ts',
+  'rls-coverage.test.ts',
+  'rls-engaged.test.ts',
+  'runtime-attestation-enrol.test.ts',
+  'runtime-authority-observation.test.ts',
+  's8-claim-restricted-rls-concurrency.test.ts',
+  'seed-assert-branch-membership-sql.test.ts',
+  'staff-assignment-audit.test.ts',
+  'tenant-transaction-lifetime.test.ts',
+]);
+export const advisoryStaffRlsLane = 'advisory/vitest-staff-rls';
+const staffRlsFiles = new Set([
+  'apps/web/src/actions/membership-billing/record-rate-verification.rls.test.ts',
+  'apps/web/src/app/[locale]/(staff)/staff/claims/[id]/staff-detail-rls.integration.test.ts',
+  'apps/web/src/features/admin/branches/branch-dashboard-rls.integration.test.ts',
+  'apps/web/src/lib/refusal-audit-rls.integration.test.ts',
+]);
 
 function isDatabaseTest(root, file) {
   const name = basename(file);
@@ -98,7 +126,8 @@ function advisoryNodeLane(file) {
     if (
       file.startsWith('packages/database/test/pg16/') ||
       liveTestSuffix.test(name) ||
-      correspondenceProof.test(name)
+      correspondenceProof.test(name) ||
+      legacyLiveNodeTests.has(name)
     ) {
       return 'advisory/node-pg16';
     }
@@ -114,6 +143,13 @@ function isVitestCandidate(file) {
     /^apps\/web\/src\/.+\.test\.tsx?$/u.test(file) ||
     /^packages\/domain-[^/]+\/src\/.+\.test\.ts$/u.test(file)
   );
+}
+
+function advisoryLane(file, advisoryVitest) {
+  if (advisoryVitest.has(file)) {
+    return staffRlsFiles.has(file) ? advisoryStaffRlsLane : 'advisory/vitest-pg16';
+  }
+  return advisoryNodeLane(file);
 }
 
 function recordExistingLanes(lanesByFile, existing) {
@@ -138,7 +174,7 @@ export function buildInventory(files, existing, exclusions, advisoryVitest = new
   const inventory = files.map(file => {
     const lanes = lanesByFile.get(file);
     if (excluded.has(file)) return { file, lanes, exclusion: excluded.get(file) };
-    const advisory = advisoryVitest.has(file) ? 'advisory/vitest-pg16' : advisoryNodeLane(file);
+    const advisory = advisoryLane(file, advisoryVitest);
     if (!lanes.length && advisory) lanes.push(advisory);
     return { file, lanes };
   });

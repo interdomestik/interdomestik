@@ -42,6 +42,24 @@ export function copyProtectedSelectors(root) {
   });
 }
 
+export function copyLaneRunner(root) {
+  for (const name of ['suite-run', 'suite-surface', 'test-shards', 'test-scratch']) {
+    const file = `scripts/ci/contract-${name}.mjs`;
+    cpSync(join(repoRoot, file), join(root, file));
+  }
+  const ordering = 'scripts/ci/db-access-order.mjs';
+  cpSync(join(repoRoot, ordering), join(root, ordering));
+  const directory = 'scripts/ci/db-lanes';
+  cpSync(join(repoRoot, directory), join(root, directory), {
+    recursive: true,
+    filter: file => !file.endsWith('.json'),
+  });
+  symlinkSync(
+    join(repoRoot, 'packages/database/node_modules'),
+    join(root, 'packages/database/node_modules')
+  );
+}
+
 const workflowPath = '.github/workflows/ci.yml';
 export const project = 'packages/domain-users';
 export const configPath = `${project}/vitest.config.ts`;

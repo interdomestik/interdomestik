@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdtempSync, readFileSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -11,6 +11,7 @@ import {
   RETIRED_LEGACY_TESTS,
 } from '../contract-test-shards.mjs';
 import {
+  copyLaneRunner,
   copyProtectedSelectors,
   inventoryFixture,
   scratch,
@@ -150,21 +151,8 @@ test('advisory unit fails for each selected contract with zero executed cases', 
         .join('\n')}`,
     ],
   ]);
-  for (const name of ['suite-run', 'suite-surface', 'test-shards', 'test-scratch']) {
-    const file = `scripts/ci/contract-${name}.mjs`;
-    cpSync(join(repoRoot, file), join(root, file));
-  }
-  const ordering = 'scripts/ci/db-access-order.mjs';
-  cpSync(join(repoRoot, ordering), join(root, ordering));
+  copyLaneRunner(root);
   const directory = 'scripts/ci/db-lanes';
-  cpSync(join(repoRoot, directory), join(root, directory), {
-    recursive: true,
-    filter: file => !file.endsWith('.json'),
-  });
-  symlinkSync(
-    join(repoRoot, 'packages/database/node_modules'),
-    join(root, 'packages/database/node_modules')
-  );
   const env = { ...process.env };
   delete env.NODE_TEST_CONTEXT;
   const run = () =>
