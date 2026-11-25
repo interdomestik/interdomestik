@@ -139,7 +139,8 @@ export function MemberAcceptanceForm({
           >
             {t('heading')}
           </h1>
-          <LanguageSettings />
+          {/* A soft locale switch retains the previous attestation form in Next.js's route cache. */}
+          <LanguageSettings reloadOnLocaleChange />
           {textFailure ? (
             <UnavailableLegalText failure={textFailure} />
           ) : (
