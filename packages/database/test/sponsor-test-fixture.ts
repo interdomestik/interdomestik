@@ -30,10 +30,11 @@ export const iso = (value: unknown): string => new Date(String(value)).toISOStri
 export function uid(): string {
   return `sp_test_${randomUUID()}`;
 }
-function scope(): Scope {
-  const keys =
-    'tenant branch user staff lead spareLead entity plan subscription pendingRevision'.split(' ');
-  return Object.fromEntries([...keys, ...TABLES].map(key => [key, uid()]));
+function scope(tenantId = uid()): Scope {
+  const keys = 'branch user staff lead spareLead entity plan subscription pendingRevision'.split(
+    ' '
+  );
+  return { tenant: tenantId, ...Object.fromEntries([...keys, ...TABLES].map(key => [key, uid()])) };
 }
 export async function insert(db: postgres.Sql | Tx, table: string, row: Row): Promise<void> {
   await db`insert into ${db(table)} ${db(row)}`;
@@ -192,8 +193,8 @@ async function seed(admin: postgres.Sql, s: Scope): Promise<void> {
 }
 
 /** Seeds one synthetic tenant in a caller-owned disposable database. */
-export async function seedSponsorScope(admin: postgres.Sql): Promise<Scope> {
-  const s = scope();
+export async function seedSponsorScope(admin: postgres.Sql, tenantId?: string): Promise<Scope> {
+  const s = scope(tenantId);
   await seed(admin, s);
   return s;
 }
