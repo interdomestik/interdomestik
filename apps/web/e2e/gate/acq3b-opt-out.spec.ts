@@ -58,6 +58,10 @@ test.describe('ACQ-3b public opt-out', () => {
           await expect
             .poll(async () => (await readEntry(f, entryId)).revokedReason)
             .toBe('opted_out');
+          const optedOut = await readEntry(f, entryId);
+          expect(optedOut.revokedAt).toBeTruthy();
+          expect(optedOut.optedOutAt).toBeTruthy();
+          expect(optedOut.optoutTokenHash).toBeNull();
           await gotoApp(page, url, info, { marker: 'public-sponsor-opt-out-page-ready' });
           // GET never resolves the token (§3.8); a used or malformed link is refused on submission.
           for (const link of [url, routePath(info, `/${locale}/sponsor/opt-out/malformed`)]) {

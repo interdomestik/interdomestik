@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { webmFixture } from '../../../../../packages/domain-claims/src/test/evidence-container-fixtures';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MAX_VOICE_NOTE_ACTION_BYTES } from './voice-note-policy';
@@ -43,7 +44,7 @@ describe('uploadVoiceNote', () => {
     vi.stubEnv('CLAIM_UPLOAD_INTENT_SECRET', 'test-upload-intent-secret-value-123456');
     vi.stubEnv('S3_ENDPOINT', '');
     hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', tenantId: 'tenant_mk' },
+      user: { id: 'user-1', role: 'member', tenantId: 'tenant_mk' },
     });
     hoisted.rateLimit.mockResolvedValue({ limited: false });
     hoisted.upload.mockResolvedValue({ error: null });
@@ -54,6 +55,16 @@ describe('uploadVoiceNote', () => {
 
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://supabase.test';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
+  });
+
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    await expect(uploadVoiceNote(new FormData())).resolves.toMatchObject({
+      success: false,
+      code: 'acceptance_required',
+    });
+    expect(hoisted.rateLimit).not.toHaveBeenCalled();
+    expect(hoisted.upload).not.toHaveBeenCalled();
   });
 
   it('prevents Stored XSS by overriding malicious content-type', async () => {
@@ -210,7 +221,9 @@ describe('uploadVoiceNote', () => {
   ])(
     'rejects invalid retained voice upload: $error',
     async ({ name, type, bytes, size, error }) => {
-      hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', tenantId: 'tenant_mk' } });
+      hoisted.getSession.mockResolvedValue({
+        user: { id: 'user-1', role: 'member', tenantId: 'tenant_mk' },
+      });
       hoisted.rateLimit.mockResolvedValue({ limited: false });
       const file = { name, type, size, arrayBuffer: () => Promise.resolve(bytes.buffer) } as File;
       expect(await uploadVoiceNote({ get: () => file } as unknown as FormData)).toEqual({

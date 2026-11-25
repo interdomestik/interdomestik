@@ -13,6 +13,7 @@ import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lif
 import { and, eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 
+import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 import { loadSyntheticMessagePasswords } from './agent-message-credentials.fixture';
 import { cleanupAgentMessageFixture } from './agent-message-cleanup.fixture';
 import {
@@ -70,7 +71,11 @@ export async function withAgentMessageFixture<T>(
   });
   if (!credential?.password) throw new Error('Missing seeded agent credential');
   const { memberPassword, staffPassword } = await loadSyntheticMessagePasswords(isMk);
-  const memberIds = ['active', 'inactive', 'unassigned'].map(name => `${prefix}-${name}`);
+  const members = ['active', 'inactive', 'unassigned'].map(name => {
+    const id = `${prefix}-${name}`;
+    return { id, tenantId, email: `${id}@example.test` };
+  });
+  const memberIds = members.map(member => member.id);
   const assignmentIds = ['active', 'inactive'].map(name => `${prefix}-assignment-${name}`);
   const claimIds = Array.from({ length: 105 }, (_, index) => `${prefix}-claim-${index}`);
   const deniedIds = ['foreign', 'inactive', 'unassigned'].map(name => `${prefix}-${name}-claim`);
@@ -79,6 +84,15 @@ export async function withAgentMessageFixture<T>(
     name => `${prefix}-note-${name}`
   );
   const children = planProfileChildren(prefix);
+  const fixtureMembers = [
+    ...members,
+    { id: children.emptyMemberId, tenantId, email: `${children.emptyMemberId}@example.test` },
+    {
+      id: children.foreignMemberId,
+      tenantId: foreignTenantId,
+      email: `${children.foreignMemberId}@example.test`,
+    },
+  ];
   const deniedOwners: Record<string, string> = {
     [deniedIds[1]]: memberIds[1],
     [deniedIds[2]]: memberIds[2],
@@ -140,11 +154,9 @@ export async function withAgentMessageFixture<T>(
       updatedAt: date(0),
     });
     await dbAdmin.insert(user).values(
-      memberIds.map((id, index) => ({
-        id,
-        tenantId,
-        name: id,
-        email: `${id}@example.com`,
+      members.map((member, index) => ({
+        ...member,
+        name: member.id,
         role: 'member',
         emailVerified: true,
         branchId: agent.branchId,
@@ -236,14 +248,15 @@ export async function withAgentMessageFixture<T>(
         updatedAt: date(0),
       },
     ]);
+    await fixtureLegalAcceptance('seed', fixtureMembers);
     return await action({
       agentId: agent.id,
       agentName: prefix,
       branchId: agent.branchId,
       email: agent.email,
-      memberEmail: `${memberIds[0]}@example.com`,
+      memberEmail: members[0].email,
       staffId: children.staffAuthorId,
-      staffEmail: `${children.staffAuthorId}@example.com`,
+      staffEmail: `${children.staffAuthorId}@example.test`,
       tenantId,
       foreignTenantId,
       memberId: memberIds[0],
@@ -262,6 +275,7 @@ export async function withAgentMessageFixture<T>(
       allClaimIds,
       assignmentIds,
       children,
+      fixtureMembers,
       memberIds,
       noteIds,
       tenantId,

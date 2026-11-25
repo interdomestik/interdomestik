@@ -40,7 +40,11 @@ export function ClaimTrackingHeader({
     setLoading(true);
     try {
       const result = await createPublicTrackingLink(claimId);
-      setLink(result.url);
+      if (!result.success || !result.data) {
+        toast.error(t('error_generating_link'));
+        return;
+      }
+      setLink(result.data.url);
       setOpen(true);
     } catch (error) {
       toast.error(t('error_generating_link'), {

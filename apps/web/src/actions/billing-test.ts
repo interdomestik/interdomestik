@@ -1,7 +1,7 @@
 'use server';
 
 import { isBillingTestActivationEnabled } from '@/lib/runtime-environment';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { resolveMemberAcceptanceForRequest } from '@/lib/privacy/require-member-acceptance';
 import { subscriptions } from '@interdomestik/database';
 import { assertNewSalesOpen, SalesClosedError } from '@interdomestik/database/pilot-switch';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
@@ -25,13 +25,13 @@ export async function mockActivateSubscription(planId: string, priceId: string) 
     throw new UnauthorizedError('Unauthorized: Billing test mode not enabled');
   }
 
-  const authorized = await authorizeSessionTenant(await headers());
+  const admission = await resolveMemberAcceptanceForRequest(await headers());
 
-  if (!authorized) {
-    throw new UnauthorizedError('Unauthorized');
+  if (!admission.ok) {
+    throw new UnauthorizedError(admission.failure.code);
   }
 
-  const { session, authority } = authorized;
+  const { session, authority } = admission.authorized;
   const { tenantId } = readTenantAuthority(authority);
   const now = new Date();
   const canonicalPlanState = await resolveCanonicalMembershipPlanState({

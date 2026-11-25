@@ -13,7 +13,7 @@ import {
   ABSENT,
   compareWithExpectedModel,
   type Registry,
-  REGISTRY_KINDS,
+  isSqlManagedFact,
 } from './journal-schema-parity.support';
 
 // CHK-12, fourth part: what the registry may never admit, and the view namespace. Pure; the
@@ -75,7 +75,7 @@ test('the registry can never expect a disabled constraint or an unusable index',
 test('the registry file holds no absence and only the reviewed kinds', () => {
   for (const entry of registry.objects) {
     assert.notEqual(entry.value, ABSENT, entry.key);
-    assert.ok(REGISTRY_KINDS.has(entry.key.split(' ')[0]), entry.key);
+    assert.ok(isSqlManagedFact(entry.key), entry.key);
   }
 });
 

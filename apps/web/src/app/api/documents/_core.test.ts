@@ -1,3 +1,4 @@
+import '@/test/tenant-transaction.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 type TenantRun = (context: unknown, action: (tx: never) => unknown) => unknown;

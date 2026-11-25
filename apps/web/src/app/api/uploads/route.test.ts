@@ -1,3 +1,5 @@
+import '@/test/tenant-transaction.test-support';
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
@@ -74,6 +76,17 @@ describe('POST /api/uploads', () => {
     vi.unstubAllEnvs();
   });
 
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'fixture-member', role: 'member', tenantId: 'tenant_mk' },
+    });
+    const response = await POST(new Request('http://localhost/api/uploads', { method: 'POST' }));
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: 'acceptance_required' });
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
+
   it('returns 401 when unauthenticated', async () => {
     hoisted.getSession.mockResolvedValue(null);
 
@@ -90,7 +103,7 @@ describe('POST /api/uploads', () => {
     const data = await res.json();
 
     expect(res.status).toBe(401);
-    expect(data).toEqual({ error: 'Unauthorized' });
+    expect(data).toEqual({ error: 'UNAUTHORIZED' });
   });
 
   it('returns 400 for invalid payload', async () => {

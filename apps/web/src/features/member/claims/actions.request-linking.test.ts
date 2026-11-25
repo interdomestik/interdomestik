@@ -1,3 +1,5 @@
+import '@/test/tenant-transaction.test-support';
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
@@ -20,7 +22,10 @@ vi.mock('@/lib/auth', () => ({
 }));
 
 vi.mock('next/headers', () => ({ headers: hoisted.headers }));
-vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: hoisted.ensureTenantId }));
+vi.mock('@interdomestik/shared-auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
+  ensureTenantId: hoisted.ensureTenantId,
+}));
 vi.mock('@/lib/storage/evidence-bucket', () => ({
   DEFAULT_EVIDENCE_BUCKET: 'claim-evidence',
   resolveEvidenceBucketName: hoisted.resolveEvidenceBucketName,
@@ -49,7 +54,8 @@ vi.mock('@/lib/ai/claim-workflows', () => ({
   emitClaimAiRunRequestedService: vi.fn(),
   markClaimAiRunDispatchFailedService: vi.fn(),
 }));
-vi.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
   and: vi.fn(),
   eq: vi.fn(),
 }));
@@ -83,6 +89,14 @@ describe('member request-linked claim upload actions', () => {
     vi.stubEnv('NEXT_PUBLIC_SUPABASE_URL', 'https://supabase.example.com');
     vi.stubEnv('SUPABASE_SERVICE_ROLE_KEY', 'service-role-key');
     vi.stubEnv('BETTER_AUTH_SECRET', 'upload-intent-test-secret-32-chars-minimum');
+  });
+
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    await expect(
+      generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
+    ).resolves.toEqual({ success: false, error: 'acceptance_required', status: 403 });
+    expect(hoisted.findOwnedMemberUploadClaim).not.toHaveBeenCalled();
   });
 
   it('binds the owned information request into the signed upload intent', async () => {

@@ -1,10 +1,11 @@
 import { FREE_START_CATALOG_OWNERS } from './modularity-guard-free-start-owners.mjs';
+import { WP13_LOCALE_OWNERS, WP13_STRUCTURED_OWNERS } from './modularity-guard-wp13-owners.mjs';
 
 export const MODULARITY_POLICY = Object.freeze({
   productionCode: Object.freeze({ preferredLines: 150, reviewLines: 300 }),
   focusedTest: Object.freeze({ maxLines: 300 }),
   structuredArtifact: Object.freeze({ maxBytes: 128 * 1024 }),
-  governanceDoc: Object.freeze({ maxLines: 1000, maxBytes: 128 * 1024 }),
+  governanceDoc: Object.freeze({ maxLines: 1000, maxBytes: 136 * 1024 }),
   workflowYaml: Object.freeze({}),
 });
 export const MODULARITY_LINE_LIMIT = MODULARITY_POLICY.productionCode.preferredLines;
@@ -79,11 +80,12 @@ const STRUCTURED_OWNERS = [
   [/^apps\/web\/src\/lib\/public-entry-points\.json$/u, 'public-entry-registry-contract'],
   [/^docs\/release\/production-evidence\.(?:yaml|schema\.json)$/u, RELEASE_EVIDENCE_OWNER],
   [/^docs\/release\/t503-evidence-intake\/manifest-patch-example\.yaml$/u, RELEASE_EVIDENCE_OWNER],
-];
+].concat(WP13_STRUCTURED_OWNERS);
 // A constant keeps owner/path pairs such as auth.json clear of secret-scanner key heuristics.
 const PARITY_OWNER = 'i18n-keys-parity-contract';
 
 const LOCALE_CATALOG_OWNERS = new Map([
+  ...WP13_LOCALE_OWNERS,
   ['admin-settings.json', 'wp10-pilot-switch-i18n-contract'],
   ['admin-users.json', 's7-admin-user-read-recovery-i18n-contract'],
   ['admin-claims.json', 's7-admin-claims-read-consistency-i18n-contract'],

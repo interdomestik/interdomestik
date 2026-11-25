@@ -1,4 +1,4 @@
-import { eq } from '@interdomestik/database';
+import { and, eq } from '@interdomestik/database';
 import { aiRuns, documentExtractions } from '@interdomestik/database/schema';
 import {
   readTenantAuthority,
@@ -73,7 +73,13 @@ export async function getAiRun(params: {
         completedAt: aiRuns.completedAt,
       })
       .from(aiRuns)
-      .leftJoin(documentExtractions, eq(documentExtractions.sourceRunId, aiRuns.id))
+      .leftJoin(
+        documentExtractions,
+        and(
+          eq(documentExtractions.sourceRunId, aiRuns.id),
+          eq(documentExtractions.tenantId, aiRuns.tenantId)
+        )
+      )
       .where(withTenant(tenantId, aiRuns.tenantId, eq(aiRuns.id, params.runId)))
       .limit(1)
   );

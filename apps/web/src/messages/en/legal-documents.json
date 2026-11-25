@@ -1,0 +1,67 @@
+{
+  "legal-documents": {
+    "terms": {
+      "v2026_11_pilot_draft_1": {
+        "title": "Legal review pending — Terms of Service",
+        "intro": "Legal review pending — Welcome to Interdomestik Asistenca. These terms govern your membership.",
+        "sections": {
+          "membership": "Legal review pending — Membership is valid for 1 year from the date of purchase. It includes access to our protection network and discount mediation.",
+          "services": "Legal review pending — We provide claim handling assistance, legal consultation, and damage assessment.",
+          "fees": "Legal review pending — Membership fees are non-refundable after the 30-day launch refund window closes. Success fees apply only upon successful claim recovery.",
+          "billing": {
+            "eyebrow": "Legal review pending — Annual membership terms",
+            "title": "Legal review pending — Annual billing, cancellation, and refund rules",
+            "subtitle": "Legal review pending — The same contract applies on pricing, at checkout, and in member settings.",
+            "sections": {
+              "annualBilling": {
+                "title": "Legal review pending — Annual billing in v1",
+                "body": "Legal review pending — Memberships are billed annually at launch. Public pricing shows the yearly fee and paid term before checkout starts."
+              },
+              "cancellation": {
+                "title": "Legal review pending — Cancellation stops the next renewal",
+                "body": "Legal review pending — You can cancel renewal at any time. Access stays active until the current paid term ends, and cancellation does not reopen expired benefits."
+              },
+              "refundWindow": {
+                "title": "Legal review pending — 30-day launch refund window",
+                "body": "Legal review pending — We refund the membership fee if you ask within 30 days of purchase and no staff-led recovery matter has been accepted for that membership yet."
+              },
+              "coolingOff": {
+                "title": "Legal review pending — Cooling-off rights stay separate",
+                "body": "Legal review pending — Any statutory cooling-off or withdrawal right applies separately from the launch refund promise. Where local law gives a different withdrawal window, that statutory rule controls."
+              },
+              "acceptedMatters": {
+                "title": "Legal review pending — Accepted escalations survive cancellation",
+                "body": "Legal review pending — If Interdomestik has already accepted a recovery matter, the agreed success-fee and escalation terms stay in force for that accepted matter even if the membership later cancels."
+              }
+            },
+            "footer": {
+              "title": "Legal review pending — What the refund covers",
+              "body": "Legal review pending — The launch refund covers the membership fee only. It does not erase fees or partner costs already agreed for an accepted escalation."
+            }
+          }
+        }
+      }
+    },
+    "privacy_notice": {
+      "v2026_11_pilot_draft_1": {
+        "title": "Legal review pending — Privacy Policy",
+        "intro": "Legal review pending — Your privacy is important to us. Included in your membership is strict data protection.",
+        "sections": {
+          "handling": {
+            "title": "Legal review pending — How we handle your data",
+            "body": "Legal review pending — We collect only the information required to provide membership services, process claims, and comply with legal obligations. Access is restricted by role and tenant scope."
+          },
+          "rights": {
+            "title": "Legal review pending — Your rights",
+            "body": "Legal review pending — You can request access to your stored data, request correction, and request deletion where legally permitted."
+          },
+          "deletion": {
+            "title": "Legal review pending — Deletion requests",
+            "body": "Legal review pending — Authenticated users can submit a deletion request using the endpoint below with an optional JSON body.",
+            "followup": "Legal review pending — Requests are logged as compliance events and reviewed by operations before irreversible deletion actions are performed."
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,4 +1,5 @@
-import { ensureClaimsAccess, type ClaimsSession } from '@/server/domains/claims/guards';
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
+import { ensureClaimsAccess } from '@/server/domains/claims/guards';
 import { deriveClaimSlaPhase } from '@/features/claims/policy';
 import { buildMemberClaimTrustSummary } from '@/features/claims/tracking/memberTrustSummary';
 import {
@@ -9,11 +10,9 @@ import {
   toMemberSafeRecoveryDecision,
 } from '@interdomestik/domain-claims';
 import { ERASURE_REDACTED_VALUE } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { UnauthorizedError } from '@interdomestik/shared-auth';
+import { withMemberActorRoleOnSession } from '@/app/[locale]/(app)/member/actor-role-on-session';
 import {
   claimDocuments,
   claimEscalationAgreements,
@@ -36,19 +35,20 @@ import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function getMemberClaimDetail(
-  session: ClaimsSession | null,
-  authority: TenantAuthority | null,
   claimId: string
 ): Promise<ClaimTrackingDetailDto | null> {
   return Sentry.withServerActionInstrumentation(
     'claims.tracking.detail',
     { recordResponse: false },
     async () => {
-      const access = ensureClaimsAccess(session);
+      const admission = await requireAdmittedMember();
+      if (!admission.ok) throw new UnauthorizedError();
+      const { session, authority } = admission.authorized;
+      const access = ensureClaimsAccess(withMemberActorRoleOnSession(session));
       const { tenantId, userId, role, branchId } = access;
 
       // Fail closed unless the session's tenant is the tenant the authority grants.
-      if (!authority || readTenantAuthority(authority).tenantId !== tenantId) {
+      if (readTenantAuthority(authority).tenantId !== tenantId) {
         throw new UnauthorizedError();
       }
 
@@ -129,7 +129,6 @@ export async function getMemberClaimDetail(
             piiStatus,
             updatedAt: claim.updatedAt,
           },
-          authority,
           db
         );
         const vaultConsentDisplay = await getMemberVaultConsentDisplay(
@@ -139,7 +138,6 @@ export async function getMemberClaimDetail(
             claimCategory: claim.category ?? '',
             piiStatus,
           },
-          authority,
           db
         );
         // Read status notes before the current decision, so a concurrent sensitive write

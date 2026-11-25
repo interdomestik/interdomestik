@@ -1,3 +1,5 @@
+import '@/test/tenant-transaction.test-support';
+import '@/test/member-acceptance.test-support';
 import { beforeEach, vi } from 'vitest';
 import { resetClaimActionMocks } from './claims.test-support';
 

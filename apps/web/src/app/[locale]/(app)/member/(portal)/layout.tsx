@@ -1,3 +1,4 @@
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
 import type { ReactNode } from 'react';
 
 import { MemberPortalFrame } from '@/components/dashboard/member-portal-runtime';
@@ -20,7 +21,9 @@ export default async function MemberPortalLayout({
   updates,
 }: Props) {
   const { locale } = await params;
-  const { copy } = await getMemberPortalContext(locale);
+  const context = await getMemberPortalContext(locale);
+  if (!context.ok) return <MemberAcceptanceStep locale={locale} refusal={context} />;
+  const { copy } = context;
   return (
     <MemberPortalPage
       content={

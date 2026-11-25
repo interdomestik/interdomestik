@@ -1,4 +1,4 @@
-import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { resolveEffectiveMembership } from '@interdomestik/domain-membership-billing/sponsor-coverage';
@@ -50,8 +50,9 @@ export async function getMemberSubscriptionsCore(args: {
   now?: Date;
 }): Promise<SubscriptionRecord[]> {
   if (!args.tenantId) return [];
-  const authority = await authorizeSessionUserTenant(args.userId);
-  if (!authority) return [];
+  const admission = await requireAdmittedMember();
+  if (!admission.ok || admission.authorized.session.user.id !== args.userId) return [];
+  const { authority } = admission.authorized;
   const { tenantId } = readTenantAuthority(authority);
   if (tenantId !== args.tenantId) return [];
   return withTenantAuthority(authority, async tx => {
@@ -120,8 +121,9 @@ export async function getMemberLeavableSponsorEntryCore(args: {
   now?: Date;
 }): Promise<string | null> {
   if (!args.tenantId) return null;
-  const authority = await authorizeSessionUserTenant(args.userId);
-  if (!authority) return null;
+  const admission = await requireAdmittedMember();
+  if (!admission.ok || admission.authorized.session.user.id !== args.userId) return null;
+  const { authority } = admission.authorized;
   const { tenantId } = readTenantAuthority(authority);
   if (tenantId !== args.tenantId) return null;
   const [entryId] = await withTenantAuthority(authority, tx =>
@@ -182,7 +184,9 @@ export async function getMemberDocumentsCore(args: {
     return [];
   }
 
-  const authority = await authorizeSessionUserTenant(args.userId);
+  const admission = await requireAdmittedMember();
+  if (!admission.ok || admission.authorized.session.user.id !== args.userId) return [];
+  const { authority } = admission.authorized;
   if (!authority || readTenantAuthority(authority).tenantId !== tenantId) return [];
   return withTenantAuthority(authority, db =>
     db.query.documents.findMany({

@@ -8,6 +8,7 @@ import './modularity-guard-legacy-focused.test.mjs';
 import './modularity-guard-semantic-governance.test.mjs';
 import './modularity-guard-t210-catalogs.test.mjs';
 import './modularity-guard-membership-catalog.test.mjs';
+import './modularity-guard-member-acceptance-registry.test.mjs';
 import { evaluateModularityGuard, parseNameStatus } from './lib/modularity-guard.mjs';
 import {
   FILE_CLASSES,
@@ -212,25 +213,6 @@ test('structured ownership', () => {
     ].map(structuredArtifactOwner),
     ['reviewer-routing-contract', 'package-manifest-contract', null, null]
   );
-});
-
-test('T117B/member upload catalog ownership', () => {
-  for (const locale of ['en', 'mk', 'sq', 'sr']) {
-    const prefix = `apps/web/src/messages/${locale}/`;
-    assert.deepEqual(
-      ['dashboard.json', 'claims.json'].map(file => structuredArtifactOwner(prefix + file)),
-      ['t117b-member-portal-i18n-contract', 'member-evidence-upload-locale-contract']
-    );
-  }
-
-  for (const denied of [
-    'apps/web/src/messages/hr/dashboard.json',
-    'apps/web/src/messages/en/settings.json',
-    'apps/web/src/messages/en/portal.json',
-    'apps/web/src/messages/hr/claims.json',
-  ]) {
-    assert.equal(structuredArtifactOwner(denied), null, denied);
-  }
 });
 
 test('governance documents cannot silently remove baseline headings', () => {

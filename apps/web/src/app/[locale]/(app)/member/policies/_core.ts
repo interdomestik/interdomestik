@@ -1,10 +1,8 @@
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 import type { PolicyAnalysis } from '@/lib/ai/policy-analyzer';
 
 import { documentExtractions, documents, policies } from '@interdomestik/database/schema';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { desc } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
@@ -36,11 +34,11 @@ function resolvePolicyAnalysis(
   return value as PolicyAnalysis;
 }
 
-export async function getPoliciesWithDocumentLinksCore(args: {
-  authority: TenantAuthority;
-  userId: string;
-}): Promise<PolicyWithDocumentLink[]> {
-  const { authority, userId } = args;
+export async function getPoliciesWithDocumentLinksCore(): Promise<PolicyWithDocumentLink[]> {
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) return [];
+  const { authority, session } = admission.authorized;
+  const userId = session.user.id;
   const { tenantId } = readTenantAuthority(authority);
   const userPolicies = await withTenantAuthority(authority, tx =>
     tx.query.policies.findMany({

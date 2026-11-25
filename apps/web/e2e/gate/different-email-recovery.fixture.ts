@@ -5,6 +5,7 @@ import { hash } from 'bcryptjs';
 import { randomUUID } from 'node:crypto';
 import { z } from 'zod';
 import { routes } from '../routes';
+import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 import { gotoApp } from '../utils/navigation';
 import { api, json } from './s5-otp-mailbox.fixture';
 
@@ -36,22 +37,49 @@ export async function withRecoveryAccount(
     `);
   });
 
+  // WP-13a: a synthetic member must accept the legal texts before member actions admit it.
+  const accepts = role === 'member';
+  let failed = false;
   try {
+    if (accepts) await fixtureLegalAcceptance('seed', [{ id, tenantId, email }]);
     await run({ id, email });
+  } catch (error) {
+    failed = true;
+    throw error;
   } finally {
-    await dbAdmin.transaction(async tx => {
-      await tx.execute(sql`
-        delete from verification
-        where identifier in (${`ida-ui03b:${id}:current`}, ${`ida-ui03b:${id}:replacement`})
-      `);
-      await tx.execute(sql`
-        delete from audit_log where actor_id = ${id} and tenant_id = ${tenantId}
-      `);
-      await tx.execute(sql`delete from session where "userId" = ${id}`);
-      await tx.execute(sql`delete from account where "userId" = ${id}`);
-      await tx.execute(sql`delete from "user" where id = ${id}`);
-    });
+    // Attempt every cleanup step; a cleanup error fails the run only when nothing else did.
+    const errors: unknown[] = [];
+    if (accepts) {
+      try {
+        // The flow may replace the address; clean by the current one with the original as legacy.
+        const [current] = await dbAdmin.execute<{ email: string }>(
+          sql`select email from "user" where id = ${id}`
+        );
+        await fixtureLegalAcceptance('clean', [
+          { id, tenantId, email: current?.email ?? email, legacyEmail: email },
+        ]);
+      } catch (error) {
+        errors.push(error);
+      }
+    }
+    await deleteRecoveryAccount(id).catch((error: unknown) => errors.push(error));
+    if (!failed && errors.length > 0) throw errors[0];
   }
+}
+
+async function deleteRecoveryAccount(id: string) {
+  await dbAdmin.transaction(async tx => {
+    await tx.execute(sql`
+      delete from verification
+      where identifier in (${`ida-ui03b:${id}:current`}, ${`ida-ui03b:${id}:replacement`})
+    `);
+    await tx.execute(sql`
+      delete from audit_log where actor_id = ${id} and tenant_id = ${tenantId}
+    `);
+    await tx.execute(sql`delete from session where "userId" = ${id}`);
+    await tx.execute(sql`delete from account where "userId" = ${id}`);
+    await tx.execute(sql`delete from "user" where id = ${id}`);
+  });
 }
 
 export async function persistedOwner(id: string) {

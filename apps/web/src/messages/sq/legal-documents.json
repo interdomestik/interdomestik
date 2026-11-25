@@ -1,0 +1,67 @@
+{
+  "legal-documents": {
+    "terms": {
+      "v2026_11_pilot_draft_1": {
+        "title": "Në pritje të shqyrtimit ligjor — Kushtet e Shërbimit",
+        "intro": "Në pritje të shqyrtimit ligjor — Mirësevini në Interdomestik Asistenca. Këto kushte rregullojnë anëtarësimin tuaj.",
+        "sections": {
+          "membership": "Në pritje të shqyrtimit ligjor — Anëtarësimi është i vlefshëm për 1 vit nga data e blerjes. Përfshin qasje në rrjetin tonë të mbrojtjes dhe zbritje në ndërmjetësim.",
+          "services": "Në pritje të shqyrtimit ligjor — Ne ofrojmë asistencë në trajtimin e dëmeve, konsultime ligjore dhe vlerësim dëmi.",
+          "fees": "Në pritje të shqyrtimit ligjor — Tarifat e anëtarësimit janë të pakthyeshme pas periudhës së garancisë 30-ditore. Tarifat e suksesit aplikohen vetëm pas rikuperimit të suksesshëm të dëmit.",
+          "billing": {
+            "eyebrow": "Në pritje të shqyrtimit ligjor — Kushtet vjetore të anëtarësisë",
+            "title": "Në pritje të shqyrtimit ligjor — Rregullat për faturimin vjetor, anulimin dhe rimbursimin",
+            "subtitle": "Në pritje të shqyrtimit ligjor — E njëjta kontratë vlen te çmimet, në checkout dhe te cilësimet e anëtarit.",
+            "sections": {
+              "annualBilling": {
+                "title": "Në pritje të shqyrtimit ligjor — Faturim vjetor në v1",
+                "body": "Në pritje të shqyrtimit ligjor — Anëtarësitë faturohen vjetore në nisje. Çmimet publike tregojnë tarifën vjetore dhe periudhën e paguar para se të nisë checkout-i."
+              },
+              "cancellation": {
+                "title": "Në pritje të shqyrtimit ligjor — Anulimi ndal rinovimin e radhës",
+                "body": "Në pritje të shqyrtimit ligjor — Mund ta ndalni rinovimin në çdo kohë. Qasja mbetet aktive deri në fund të periudhës së paguar dhe anulimi nuk rikthen përfitimet e skaduara."
+              },
+              "refundWindow": {
+                "title": "Në pritje të shqyrtimit ligjor — Afati 30-ditor i rimbursimit në nisje",
+                "body": "Në pritje të shqyrtimit ligjor — Tarifa e anëtarësisë rimbursohet nëse kërkesa bëhet brenda 30 ditëve nga blerja dhe ende nuk është pranuar asnjë rast rikuperimi i drejtuar nga stafi për atë anëtarësi."
+              },
+              "coolingOff": {
+                "title": "Në pritje të shqyrtimit ligjor — Të drejtat e cooling-off mbeten të ndara",
+                "body": "Në pritje të shqyrtimit ligjor — Çdo e drejtë ligjore për tërheqje ose cooling-off zbatohet veçmas nga premtimi ynë i rimbursimit në nisje. Kur ligji vendor jep afat tjetër statutor, ai rregull mbizotëron."
+              },
+              "acceptedMatters": {
+                "title": "Në pritje të shqyrtimit ligjor — Përshkallëzimet e pranuara mbeten në fuqi",
+                "body": "Në pritje të shqyrtimit ligjor — Nëse Interdomestik ka pranuar tashmë një rast rikuperimi, tarifë suksesi dhe kushtet e përshkallëzimit mbeten në fuqi për atë rast edhe nëse anëtarësia anulohet më vonë."
+              }
+            },
+            "footer": {
+              "title": "Në pritje të shqyrtimit ligjor — Çfarë mbulon rimbursimi",
+              "body": "Në pritje të shqyrtimit ligjor — Rimbursimi i nisjes mbulon vetëm tarifën e anëtarësisë. Ai nuk fshin tarifa ose kosto partnerësh të pranuara tashmë për një përshkallëzim të pranuar."
+            }
+          }
+        }
+      }
+    },
+    "privacy_notice": {
+      "v2026_11_pilot_draft_1": {
+        "title": "Në pritje të shqyrtimit ligjor — Politika e Privatësisë",
+        "intro": "Në pritje të shqyrtimit ligjor — Privatësia juaj ka rëndësi për ne. Në anëtarësimin tuaj përfshihet mbrojtje e rreptë e të dhënave.",
+        "sections": {
+          "handling": {
+            "title": "Në pritje të shqyrtimit ligjor — Si i trajtojmë të dhënat tuaja",
+            "body": "Në pritje të shqyrtimit ligjor — Ne mbledhim vetëm informacionin që nevojitet për të ofruar shërbimet e anëtarësisë, për të trajtuar kërkesat dhe për të përmbushur detyrimet ligjore. Qasja kufizohet sipas rolit dhe fushës së subjektit."
+          },
+          "rights": {
+            "title": "Në pritje të shqyrtimit ligjor — Të drejtat tuaja",
+            "body": "Në pritje të shqyrtimit ligjor — Mund të kërkoni qasje në të dhënat e ruajtura, korrigjim dhe fshirje kur kjo lejohet ligjërisht."
+          },
+          "deletion": {
+            "title": "Në pritje të shqyrtimit ligjor — Kërkesat për fshirje",
+            "body": "Në pritje të shqyrtimit ligjor — Përdoruesit e autentikuar mund të dërgojnë një kërkesë për fshirje duke përdorur endpoint-in më poshtë me një trup opsional JSON.",
+            "followup": "Në pritje të shqyrtimit ligjor — Kërkesat regjistrohen si ngjarje të përputhshmërisë dhe rishikohen nga operacionet para se të kryhen veprime të pakthyeshme të fshirjes."
+          }
+        }
+      }
+    }
+  }
+}

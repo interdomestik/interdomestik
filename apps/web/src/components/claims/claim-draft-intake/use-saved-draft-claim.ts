@@ -73,6 +73,10 @@ export function useSavedDraftClaim(options: Options) {
     lookupSavedDraftClaim({ id: draftId })
       .then(result => {
         if (!active) return;
+        if ('code' in result) {
+          setLookup({ claim: null, identity, origin: null, status: 'error' });
+          return;
+        }
         setLookup({
           claim: result.claim,
           identity,

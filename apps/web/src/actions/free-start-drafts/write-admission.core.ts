@@ -1,27 +1,18 @@
 import { readFreeStartDraftIntakeOpen } from '@interdomestik/database/free-start-drafts';
-import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
-import { hasActiveMembership } from '@interdomestik/domain-membership-billing/subscription';
 import * as Sentry from '@sentry/nextjs';
 import { getTranslations } from 'next-intl/server';
 
-import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
 import { resolvePublicAdmissionTenant } from '@/lib/tenant/public-admission-tenant';
 import { isPublicIntakeOpenForTenant } from '@/lib/tenant/public-intake-admission';
 
+import { hasAdmittedClaimEntitlement } from './claim-entitlement.core';
 import type { FreeStartDraftLifecycleDependencies } from './lifecycle.core';
 import type { FreeStartDraftSessionResult } from './session.core';
 
 export const draftWriteAdmissionDefaults: Pick<
   FreeStartDraftLifecycleDependencies,
-  'hasClaimEntitlement' | 'readIntakeOpen' | 'readPublicIntakeOpen'
+  'readIntakeOpen' | 'readPublicIntakeOpen'
 > = {
-  async hasClaimEntitlement(context) {
-    const authority = await authorizeSessionUserTenant(context.ownerUserId);
-    if (!authority) return false;
-    const { tenantId, accessTenantId } = readTenantAuthority(authority);
-    if (tenantId !== context.tenantId || accessTenantId !== context.accessTenantId) return false;
-    return hasActiveMembership(context.ownerUserId, authority);
-  },
   readIntakeOpen: readFreeStartDraftIntakeOpen,
   async readPublicIntakeOpen(requestHeaders) {
     const tenantId = resolvePublicAdmissionTenant(requestHeaders);
@@ -53,7 +44,7 @@ export async function withDraftWriteAdmission<T>(
   if (session.emailVerified === true) {
     let entitled = false;
     try {
-      entitled = await dependencies.hasClaimEntitlement(session.context);
+      entitled = await hasAdmittedClaimEntitlement(session.context);
     } catch (error) {
       Sentry.captureException(error, { tags: { operation: 'pilot.freeStartDraftIntake' } });
     }

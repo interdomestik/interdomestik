@@ -9,8 +9,15 @@ const h = vi.hoisted(() => ({
   revalidate: vi.fn(),
   outlook: vi.fn(),
 }));
-vi.mock('@/components/shell/session', () => ({ getSessionSafe: h.session }));
-vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionUserTenant: h.authorize }));
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: async () => {
+    const session = await h.session();
+    const authority = session ? await h.authorize() : null;
+    return authority
+      ? { ok: true, authorized: { authority, session } }
+      : { ok: false, failure: { code: 'UNAUTHORIZED' } };
+  },
+}));
 vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   withTenantAuthority: (_authority: unknown, callback: (tx: unknown) => unknown) => callback({}),
 }));
@@ -35,7 +42,7 @@ describe('leave company programme action', () => {
   });
   it('revokes the session member’s current, pending or future entry and revalidates', async () => {
     expect(await leaveCompanyProgramme({ entryId: 'my-entry' })).toEqual({ ok: true });
-    expect(h.authorize).toHaveBeenCalledWith('me');
+    expect(h.authorize).toHaveBeenCalledOnce();
     expect(h.resolve).toHaveBeenCalledWith({}, 'tenant-ks', 'me', expect.any(Date));
     expect(h.leave).toHaveBeenCalledWith(
       authority,
@@ -115,7 +122,7 @@ describe('pricing sponsor outlook action', () => {
   ])('reads only the signed-in member’s outlook', async outlook => {
     h.outlook.mockResolvedValue(new Map([['me', outlook]]));
     expect(await getCompanyMembershipOutlook()).toEqual({ ok: true, outlook });
-    expect(h.authorize).toHaveBeenCalledWith('me');
+    expect(h.authorize).toHaveBeenCalledOnce();
     expect(h.outlook).toHaveBeenCalledWith(
       expect.anything(),
       'tenant-ks',
@@ -126,7 +133,7 @@ describe('pricing sponsor outlook action', () => {
   });
   it('fails closed without a session', async () => {
     h.session.mockResolvedValue(null);
-    expect(await getCompanyMembershipOutlook()).toEqual({ ok: false });
+    expect(await getCompanyMembershipOutlook()).toEqual({ ok: false, code: 'UNAUTHORIZED' });
     expect(h.outlook).not.toHaveBeenCalled();
   });
   it('fails closed on lookup failure', async () => {

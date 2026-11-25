@@ -12,15 +12,11 @@ describe('member help support handoff form', () => {
 
     expect(screen.getByTestId('member-page-ready')).toBeVisible();
     expect(mocks.advisoryBanner).toHaveBeenCalledWith({
-      authority: expect.any(Object),
-      memberId: 'member-1',
       selectedClaim: null,
     });
     expect(mocks.publicResponseBanner).toHaveBeenCalledWith({
-      authority: expect.any(Object),
       handoffId: null,
       locale: 'en',
-      memberId: 'member-1',
       selectedClaim: null,
     });
     expect(screen.getByTestId('member-support-handoff-form')).toBeVisible();
@@ -30,6 +26,15 @@ describe('member help support handoff form', () => {
     expect(document.querySelector('input[name="source"]')).toHaveValue('member_help');
     expect(screen.queryByDisplayValue('tenant-1')).not.toBeInTheDocument();
     expect(screen.queryByDisplayValue('member-1')).not.toBeInTheDocument();
+  });
+
+  it('renders the acceptance step without loading claims or banners on refusal', async () => {
+    mocks.admit.mockResolvedValueOnce({ ok: false, failure: { code: 'acceptance_required' } });
+    await renderPage();
+    expect(screen.getByTestId('acceptance-step-ready')).toBeVisible();
+    expect(mocks.select).not.toHaveBeenCalled();
+    expect(mocks.advisoryBanner).not.toHaveBeenCalled();
+    expect(mocks.publicResponseBanner).not.toHaveBeenCalled();
   });
 
   it('shows the created acknowledgement after server action redirect', async () => {

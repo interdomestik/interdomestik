@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 /** In-memory model only; not PostgreSQL/RLS attestation. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { errors, reply, noNotification } from './public-reply-flow.test-support';
@@ -75,10 +76,17 @@ for (const mode of ['restricted', 'permissive'] as const) {
         );
       }
     );
+    it('refuses before protected work when acceptance is missing', async () => {
+      refuseAcceptance();
+      state.session = session('member');
+      expect(await reply()).toEqual({ success: false, error: 'acceptance_required' });
+      expect(state.rows.claimMessages).toEqual([]);
+      noNotification();
+    });
+
     it('blocks a missing tenant before notification effects', async () => {
       state.session = session('staff', { tenantId: undefined });
-      // Session tenant authorization fails closed by throwing before any tenant transaction.
-      await expect(reply()).rejects.toThrow('Session missing tenantId');
+      await expect(reply()).resolves.toEqual({ success: false, error: 'Unauthorized' });
       expect(state.rows.claimMessages).toEqual([]);
       noNotification();
     });

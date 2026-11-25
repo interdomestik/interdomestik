@@ -1,3 +1,4 @@
+import '@/test/tenant-transaction.test-support';
 import { user } from '@interdomestik/database/schema';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';

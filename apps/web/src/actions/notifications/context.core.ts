@@ -1,5 +1,5 @@
 import { auth } from '@/lib/auth';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { resolveMemberAcceptanceForRequest } from '@/lib/privacy/require-member-acceptance';
 import { headers } from 'next/headers';
 
 export type Session = Awaited<ReturnType<typeof auth.api.getSession>>;
@@ -10,13 +10,15 @@ export async function getActionContext() {
   return { session, requestHeaders };
 }
 
-/** The request's authenticated session and the tenant authority it grants; nulls when unauthenticated. */
 export async function getAuthorizedActionContext() {
   const requestHeaders = await headers();
-  const authorized = await authorizeSessionTenant(requestHeaders);
+  const admission = await resolveMemberAcceptanceForRequest(requestHeaders);
+  if (!admission.ok && admission.failure.code === 'acceptance_required') {
+    throw new Error(admission.failure.code);
+  }
   return {
-    session: authorized?.session ?? null,
-    authority: authorized?.authority ?? null,
+    session: admission.ok ? admission.authorized.session : null,
+    authority: admission.ok ? admission.authorized.authority : null,
     requestHeaders,
   };
 }
