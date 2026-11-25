@@ -3,6 +3,23 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import { waitForTestSignal } from './signal-wait.fixture';
 
+// Browser probe: the target is on screen and its top stays put across two animation frames.
+async function isSettledInViewport(id: string): Promise<boolean> {
+  const target = document.getElementById(id);
+  if (!target) return false;
+
+  const { top, bottom } = target.getBoundingClientRect();
+  if (top >= window.innerHeight || bottom <= 0) return false;
+
+  const nextFrameTop = () =>
+    new Promise<number>(resolve => {
+      requestAnimationFrame(() => resolve(target.getBoundingClientRect().top));
+    });
+  const nextTop = await nextFrameTop();
+  const finalTop = await nextFrameTop();
+  return top === nextTop && nextTop === finalTop;
+}
+
 // Task-first reading order of the member case workspace.
 const READING_ORDER_SELECTORS = [
   '#member-claim-detail-progress',
@@ -144,25 +161,9 @@ test('member case workspace keeps reading order and keyboard destinations at 320
   await waitForTestSignal(testInfo, 'Finish the keyboard jump to messages', async remaining => {
     await expect(page).toHaveURL(/#member-claim-detail-messaging$/, { timeout: remaining() });
     await expect
-      .poll(
-        () =>
-          page.evaluate(async () => {
-            const target = document.getElementById('member-claim-detail-messaging');
-            if (!target) return false;
-
-            const { top, bottom } = target.getBoundingClientRect();
-            if (top >= window.innerHeight || bottom <= 0) return false;
-
-            const nextFrameTop = () =>
-              new Promise<number>(resolve => {
-                requestAnimationFrame(() => resolve(target.getBoundingClientRect().top));
-              });
-            const nextTop = await nextFrameTop();
-            const finalTop = await nextFrameTop();
-            return top === nextTop && nextTop === finalTop;
-          }),
-        { timeout: remaining() }
-      )
+      .poll(() => page.evaluate(isSettledInViewport, 'member-claim-detail-messaging'), {
+        timeout: remaining(),
+      })
       .toBe(true);
     await expect(page.locator('#member-claim-detail-messaging')).toBeInViewport({
       timeout: remaining(),
