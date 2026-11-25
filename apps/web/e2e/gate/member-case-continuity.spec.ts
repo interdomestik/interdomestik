@@ -3,6 +3,30 @@ import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import { waitForTestSignal } from './signal-wait.fixture';
 
+// Browser probe: wait for the mobile layout before the native fragment jump measures it.
+async function isLayoutSettledAt320Px(link: Element, targetId: string): Promise<boolean> {
+  const root = document.documentElement;
+  const target = document.getElementById(targetId);
+  if (root.clientWidth !== 320 || !target) return false;
+
+  const captureLayout = () =>
+    JSON.stringify([
+      root.clientWidth,
+      root.scrollHeight,
+      link.getBoundingClientRect(),
+      target.getBoundingClientRect(),
+    ]);
+  const nextFrameLayout = () =>
+    new Promise<string>(resolve => {
+      requestAnimationFrame(() => resolve(captureLayout()));
+    });
+
+  const layout = captureLayout();
+  const nextLayout = await nextFrameLayout();
+  const finalLayout = await nextFrameLayout();
+  return layout === nextLayout && nextLayout === finalLayout;
+}
+
 // Browser probe: the target is on screen and its top stays put across two animation frames.
 async function isSettledInViewport(id: string): Promise<boolean> {
   const target = document.getElementById(id);
@@ -156,6 +180,18 @@ test('member case workspace keeps reading order and keyboard destinations at 320
 
   const messagesLink = page.locator('a[href="#member-claim-detail-messaging"]:visible');
   await expect(messagesLink).toHaveCount(1);
+  await waitForTestSignal(
+    testInfo,
+    'Settle the 320 px layout before the keyboard jump',
+    async remaining => {
+      await expect
+        .poll(
+          () => messagesLink.evaluate(isLayoutSettledAt320Px, 'member-claim-detail-messaging'),
+          { timeout: remaining() }
+        )
+        .toBe(true);
+    }
+  );
   await messagesLink.focus();
   await page.keyboard.press('Enter');
   await waitForTestSignal(testInfo, 'Finish the keyboard jump to messages', async remaining => {
