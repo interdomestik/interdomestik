@@ -1,3 +1,5 @@
+import '@/test/tenant-transaction.test-support';
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
 
@@ -109,6 +111,15 @@ describe('POST /api/uploads', () => {
 
   afterEach(() => {
     vi.unstubAllEnvs();
+  });
+
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    mockUploadUserSession();
+    const response = await POST(buildUploadRequest());
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: 'acceptance_required' });
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 
   it('returns 200 when the claim is in the agent scope', async () => {

@@ -1,3 +1,4 @@
+import '@/test/tenant-transaction.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // getDocumentAccessCore opens its tenant-bound transaction with the database package's

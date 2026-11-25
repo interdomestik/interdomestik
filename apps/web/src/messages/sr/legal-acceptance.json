@@ -1,0 +1,27 @@
+{
+  "legal-acceptance": {
+    "heading": "Pre nego što nastavite",
+    "intro": "Pročitajte dokumente u nastavku da biste otvorili svoj članski portal.",
+    "readTerms": "Pročitajte uslove",
+    "readPrivacyNotice": "Pročitajte obaveštenje o privatnosti",
+    "acceptTerms": "Prihvatam uslove",
+    "acknowledgePrivacyNotice": "Pročitao sam obaveštenje o privatnosti",
+    "version": "Verzija {version}",
+    "continue": "Nastavite",
+    "saving": "Čuvanje je u toku…",
+    "opening": "Otvaranje vašeg portala…",
+    "stale": "Tekst je izmenjen. Pročitajte novu verziju.",
+    "unavailable": "Trenutno ne možemo da prikažemo dokumente.",
+    "contactOffice": "Obratite se svojoj poslovnici.",
+    "pendingApproval": "Aktivacija će uskoro biti dostupna.",
+    "saveError": "Nismo uspeli da sačuvamo vašu potvrdu.",
+    "retry": "Pokušajte ponovo",
+    "signOut": "Odjavite se",
+    "openError": "Nismo uspeli da otvorimo vaš portal.",
+    "confirmBoth": "Nastavkom prihvatate uslove i potvrđujete da ste pročitali obaveštenje o privatnosti.",
+    "confirmTerms": "Nastavkom prihvatate uslove.",
+    "confirmPrivacyNotice": "Nastavkom potvrđujete da ste pročitali obaveštenje o privatnosti.",
+    "reviewPending": "Čeka se pravna provera",
+    "signOutError": "Nismo uspeli da vas odjavimo."
+  }
+}

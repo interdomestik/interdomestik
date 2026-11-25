@@ -1,12 +1,14 @@
 // v2.0.0-ops — Admin Claims lifecycle hardening
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { MissingTenantError } from '@interdomestik/shared-auth';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { GET } from './route';
 
 const hoisted = vi.hoisted(() => ({
   authorizeSessionTenant: vi.fn(),
   enforceRateLimit: vi.fn(),
   getClaimsListV2: vi.fn(),
+  readOwnAcceptanceState: vi.fn(),
   setTag: vi.fn(),
 }));
 
@@ -14,10 +16,27 @@ vi.mock('@/lib/tenant-authority.server', () => ({
   authorizeSessionTenant: hoisted.authorizeSessionTenant,
 }));
 
+const user = { id: 'user-1', role: 'user', tenantId: 'tenant_mk' };
 const AUTHORIZED = {
-  session: { user: { id: 'user-1', role: 'user', tenantId: 'tenant_mk' } },
-  authority: { kind: 'session-authority' },
+  session: { user },
+  authority: mintTestTenantAuthority(user.tenantId, { userId: user.id, role: user.role }),
 };
+
+vi.mock('@interdomestik/database/tenant-authority', async importOriginal => {
+  const actual = await importOriginal<typeof import('@interdomestik/database/tenant-authority')>();
+  return {
+    ...actual,
+    readTenantAuthority: (authority: Parameters<typeof actual.readTenantAuthority>[0]) => ({
+      ...actual.readTenantAuthority(authority),
+      purpose: 'session',
+    }),
+  };
+});
+
+vi.mock('@interdomestik/domain-privacy/acceptance', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/domain-privacy/acceptance')>()),
+  readOwnAcceptanceState: hoisted.readOwnAcceptanceState,
+}));
 
 vi.mock('@/lib/rate-limit', () => ({
   enforceRateLimit: hoisted.enforceRateLimit,
@@ -35,6 +54,15 @@ describe('GET /api/claims', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.enforceRateLimit.mockResolvedValue(null);
+    hoisted.readOwnAcceptanceState.mockResolvedValue({ accepted: true });
+  });
+
+  it('applies rate limits before resolving session or acceptance', async () => {
+    hoisted.enforceRateLimit.mockResolvedValueOnce(new Response(null, { status: 429 }));
+    const response = await GET(new Request('http://localhost:3000/api/claims'));
+    expect(response.status).toBe(429);
+    expect(hoisted.authorizeSessionTenant).not.toHaveBeenCalled();
+    expect(hoisted.readOwnAcceptanceState).not.toHaveBeenCalled();
   });
 
   it('returns 401 when unauthenticated', async () => {
@@ -45,7 +73,7 @@ describe('GET /api/claims', () => {
     const data = await response.json();
 
     expect(response.status).toBe(401);
-    expect(data).toEqual({ success: false, error: 'Unauthorized' });
+    expect(data).toEqual({ error: 'UNAUTHORIZED' });
     expect(hoisted.getClaimsListV2).not.toHaveBeenCalled();
   });
 
@@ -55,7 +83,18 @@ describe('GET /api/claims', () => {
     const response = await GET(new Request('http://localhost:3000/api/claims'));
 
     expect(response.status).toBe(401);
-    expect(await response.json()).toEqual({ success: false, error: 'Unauthorized' });
+    expect(await response.json()).toEqual({ error: 'UNAUTHORIZED' });
+    expect(hoisted.getClaimsListV2).not.toHaveBeenCalled();
+  });
+
+  it('refuses an unaccepted member before reading claims', async () => {
+    hoisted.authorizeSessionTenant.mockResolvedValue(AUTHORIZED);
+    hoisted.readOwnAcceptanceState.mockResolvedValue({ accepted: false, missing: [] });
+
+    const response = await GET(new Request('http://localhost:3000/api/claims'));
+
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: 'acceptance_required' });
     expect(hoisted.getClaimsListV2).not.toHaveBeenCalled();
   });
 

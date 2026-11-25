@@ -1,9 +1,7 @@
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 import { claimDocuments, claimStageHistory, claims, eq } from '@interdomestik/database';
 import { CLAIM_STATUSES, type ClaimStatus } from '@interdomestik/database/constants';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { and, desc } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
@@ -56,10 +54,12 @@ export type MemberClaimDetailsResult =
 
 export async function getMemberClaimDetailsCore(args: {
   claimId: string;
-  viewerUserId: string;
-  authority: TenantAuthority;
 }): Promise<MemberClaimDetailsResult> {
-  const { claimId, authority, viewerUserId } = args;
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) return { kind: 'not_found' };
+  const { authority, session } = admission.authorized;
+  const { id: viewerUserId } = session.user;
+  const { claimId } = args;
   const { tenantId: viewerTenantId } = readTenantAuthority(authority);
 
   const claim = (await withTenantAuthority(authority, tx =>

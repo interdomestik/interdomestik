@@ -1,3 +1,4 @@
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
 import { render, screen } from '@testing-library/react';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import type { ReactNode } from 'react';
@@ -35,12 +36,16 @@ vi.mock('next-intl/server', () => ({
   setRequestLocale: vi.fn(),
 }));
 
-vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionUserTenant: vi.fn(async () => mintTestTenantAuthority('tenant-ks')),
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireMemberAcceptancePage: async () => {
+    const session = await hoisted.getSessionSafeMock();
+    return session
+      ? { ok: true, authorized: { session, authority: mintTestTenantAuthority('tenant-ks') } }
+      : { ok: false, failure: { code: 'UNAUTHORIZED' } };
+  },
 }));
-
-vi.mock('@/components/shell/session', () => ({
-  getSessionSafe: hoisted.getSessionSafeMock,
+vi.mock('@/components/privacy/member-acceptance-form', () => ({
+  MemberAcceptanceForm: () => null,
 }));
 
 vi.mock('@interdomestik/database', () => {
@@ -120,7 +125,7 @@ describe('MemberCardPage hotline disclaimer', () => {
 
     render(tree);
 
-    expect(hoisted.getSessionSafeMock).toHaveBeenCalledWith('MemberMembershipCardPage');
+    expect(hoisted.getSessionSafeMock).toHaveBeenCalledOnce();
     expect(screen.getByText('membership.card.hotline_disclaimer.title')).toBeInTheDocument();
     expect(screen.getByText('membership.card.hotline_disclaimer.body')).toBeInTheDocument();
   });
@@ -169,11 +174,10 @@ describe('MemberCardPage hotline disclaimer', () => {
       throw new Error(`redirect:${url}`);
     });
 
-    await expect(
-      MemberCardPage({
-        params: Promise.resolve({ locale: 'mk' }),
-      })
-    ).rejects.toThrow('redirect:/mk/login');
+    const step = await MemberCardPage({ params: Promise.resolve({ locale: 'mk' }) });
+    expect(step.type).toBe(MemberAcceptanceStep);
+    await expect(MemberAcceptanceStep(step.props)).rejects.toThrow('redirect:/mk/login');
+    expect(hoisted.resolveMock).not.toHaveBeenCalled();
 
     expect(hoisted.redirectMock).toHaveBeenCalledWith('/mk/login');
   });

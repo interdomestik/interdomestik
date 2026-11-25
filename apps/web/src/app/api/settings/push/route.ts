@@ -1,8 +1,7 @@
 import { resolveTenantBoundary } from '@/app/api/tenant-boundary';
 import { logAuditEvent } from '@/lib/audit';
-import { auth } from '@/lib/auth';
 import { enforceRateLimit } from '@/lib/rate-limit';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import { withMemberAcceptance } from '@/lib/privacy/require-member-acceptance';
 import { NextResponse } from 'next/server';
 
 import {
@@ -11,7 +10,7 @@ import {
   upsertPushSubscriptionCore,
 } from './_core';
 
-export async function POST(request: Request) {
+export const POST = withMemberAcceptance(async (authorized, request) => {
   const limited = await enforceRateLimit({
     name: 'api/settings/push:post',
     limit: 20,
@@ -22,20 +21,11 @@ export async function POST(request: Request) {
   if (limited) return limited;
 
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { session } = authorized;
 
     const tenant = resolveTenantBoundary(session);
     if (!tenant.success) {
       return tenant.response;
-    }
-
-    const authorized = await authorizeSessionTenant(request.headers);
-    if (!authorized) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     let body: PushSubscriptionBody;
@@ -70,9 +60,9 @@ export async function POST(request: Request) {
     console.error('Error saving push subscription:', error);
     return NextResponse.json({ error: 'Failed to save push subscription' }, { status: 500 });
   }
-}
+});
 
-export async function DELETE(request: Request) {
+export const DELETE = withMemberAcceptance(async (authorized, request) => {
   const limited = await enforceRateLimit({
     name: 'api/settings/push:delete',
     limit: 30,
@@ -83,20 +73,11 @@ export async function DELETE(request: Request) {
   if (limited) return limited;
 
   try {
-    const session = await auth.api.getSession({ headers: request.headers });
-
-    if (!session?.user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
+    const { session } = authorized;
 
     const tenant = resolveTenantBoundary(session);
     if (!tenant.success) {
       return tenant.response;
-    }
-
-    const authorized = await authorizeSessionTenant(request.headers);
-    if (!authorized) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
     let body: { endpoint?: string };
@@ -132,4 +113,4 @@ export async function DELETE(request: Request) {
     console.error('Error deleting push subscription:', error);
     return NextResponse.json({ error: 'Failed to delete push subscription' }, { status: 500 });
   }
-}
+});

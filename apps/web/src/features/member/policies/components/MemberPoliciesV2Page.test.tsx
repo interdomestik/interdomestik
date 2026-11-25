@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import type { AbstractIntlMessages } from 'next-intl';
@@ -45,7 +46,8 @@ vi.mock('@/lib/auth', () => ({
   },
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
+vi.mock('@interdomestik/shared-auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
   ensureTenantId: () => 'tenant-1',
 }));
 
@@ -63,8 +65,17 @@ describe('MemberPoliciesV2Page', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.getSession.mockResolvedValue({
-      user: { id: 'user-1', tenantId: 'tenant-1' },
+      user: { id: 'user-1', role: 'member', tenantId: 'tenant-1' },
     });
+  });
+
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    const tree = await MemberPoliciesV2Page({ locale: 'en' });
+    expect(tree.props).toMatchObject({
+      refusal: { ok: false, failure: { code: 'acceptance_required' } },
+    });
+    expect(hoisted.getPoliciesWithDocumentLinksCore).not.toHaveBeenCalled();
   });
 
   it('does not render legacy raw policy URLs when no authorized document link exists', async () => {
@@ -84,10 +95,7 @@ describe('MemberPoliciesV2Page', () => {
     const tree = await MemberPoliciesV2Page({ locale: 'en' });
     const { container } = render(tree);
 
-    expect(hoisted.getPoliciesWithDocumentLinksCore).toHaveBeenCalledWith({
-      authority: expect.any(Object),
-      userId: 'user-1',
-    });
+    expect(hoisted.getPoliciesWithDocumentLinksCore).toHaveBeenCalledExactlyOnceWith();
     expect(screen.getByRole('button', { name: 'View PDF' })).toBeDisabled();
     expect(container.innerHTML).not.toContain('https://cdn.example/policy.pdf');
   });

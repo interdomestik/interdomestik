@@ -1,5 +1,5 @@
-import { getSessionSafe } from '@/components/shell/session';
-import { authorizeSessionUserTenant } from '@/lib/tenant-authority.server';
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
+import { requireMemberAcceptancePage } from '@/lib/privacy/require-member-acceptance';
 import { resolveEffectiveMembership } from '@interdomestik/domain-membership-billing/sponsor-coverage';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
@@ -17,17 +17,15 @@ export default async function MemberCardPage({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = await getSessionSafe('MemberMembershipCardPage');
-
-  if (!session) {
-    redirect(`/${locale}/login`);
-  }
+  const admission = await requireMemberAcceptancePage();
+  if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
+  const { session } = admission.authorized;
 
   const t = await getTranslations('membership.card');
 
   const hasTenant = !!(session.user as { tenantId?: string | null }).tenantId;
 
-  const authorized = hasTenant ? await authorizeSessionUserTenant(session.user.id) : null;
+  const authorized = hasTenant ? admission.authorized.authority : null;
 
   const effective = authorized
     ? await withTenantAuthority(authorized, async tx => {

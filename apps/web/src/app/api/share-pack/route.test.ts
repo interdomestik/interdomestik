@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { POST } from './route';
@@ -47,6 +48,7 @@ function sharePackRequest(body?: unknown): SharePackPostRequest {
 function session(user?: { id?: string; tenantId?: string | null }) {
   const baseUser = {
     id: 'user-1',
+    role: 'member',
     tenantId: 'tenant-1',
   };
 
@@ -72,12 +74,22 @@ describe('POST /api/share-pack', () => {
     hoisted.logAuditEvent.mockResolvedValue(undefined);
   });
 
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    hoisted.getSession.mockResolvedValue(session());
+    const response = await POST(sharePackRequest());
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: 'acceptance_required' });
+    expect(hoisted.createSharePack).not.toHaveBeenCalled();
+    expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
+  });
+
   it('returns 401 when unauthenticated', async () => {
     hoisted.getSession.mockResolvedValue(null);
 
     const response = await POST(sharePackRequest());
 
-    await expectJson(response, 401, { error: 'Unauthorized' });
+    await expectJson(response, 401, { error: 'UNAUTHORIZED' });
     expect(hoisted.createSharePack).not.toHaveBeenCalled();
     expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
   });
@@ -87,7 +99,7 @@ describe('POST /api/share-pack', () => {
 
     const response = await POST(sharePackRequest());
 
-    await expectJson(response, 401, { error: 'Unauthorized' });
+    await expectJson(response, 401, { error: 'UNAUTHORIZED' });
     expect(hoisted.createSharePack).not.toHaveBeenCalled();
     expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
   });
@@ -99,7 +111,7 @@ describe('POST /api/share-pack', () => {
 
       const response = await POST(sharePackRequest());
 
-      await expectJson(response, 401, { error: 'Missing tenant identity' });
+      await expectJson(response, 401, { error: 'UNAUTHORIZED' });
       expect(hoisted.createSharePack).not.toHaveBeenCalled();
       expect(hoisted.logAuditEvent).not.toHaveBeenCalled();
     }
@@ -138,7 +150,7 @@ describe('POST /api/share-pack', () => {
     });
     expect(hoisted.createSharePack).toHaveBeenCalledWith({
       authority: expect.any(Object),
-      actor: { id: 'user-1', branchId: null, role: null },
+      actor: { id: 'user-1', branchId: null, role: 'member' },
       documentIds: ['doc-1', 'doc-2'],
     });
     expect(hoisted.logAuditEvent).toHaveBeenCalledWith(

@@ -13,6 +13,7 @@ const h = vi.hoisted(() => {
     activeSubscription: null as Record<string, unknown> | null,
     documents: 0,
     active: vi.fn(),
+    requireAdmittedMember: vi.fn(),
     redirect: vi.fn(),
     findSubscriptions: vi.fn((): Promise<Array<Record<string, unknown>>> => Promise.resolve([])),
     // The member document count query: select().from().leftJoin().where() resolves the count row.
@@ -90,6 +91,10 @@ vi.mock('@interdomestik/database', () => ({
 
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   getActiveSubscription: (...args: unknown[]) => h.active(...args),
+}));
+
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: h.requireAdmittedMember,
 }));
 
 vi.mock('@/i18n/routing', () => ({

@@ -1,6 +1,7 @@
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
+import { requireMemberAcceptancePage } from '@/lib/privacy/require-member-acceptance';
 import { ClaimsFilters } from '@/components/dashboard/claims/claims-filters';
 import { MemberClaimsTable } from '@/components/dashboard/claims/member-claims-table';
-import { getSessionSafe, requireSessionOrRedirect } from '@/components/shell/session';
 import { Link, redirect } from '@/i18n/routing';
 import { Button } from '@interdomestik/ui';
 import { Plus } from 'lucide-react';
@@ -15,7 +16,9 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
   const { locale } = await params;
   setRequestLocale(locale);
 
-  const session = requireSessionOrRedirect(await getSessionSafe('MemberClaimsPage'), locale);
+  const admission = await requireMemberAcceptancePage();
+  if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
+  const { session } = admission.authorized;
   const memberSession = withMemberActorRoleOnSession(session);
 
   // The member surface maps agent/user sessions to the exercised member role.
@@ -34,7 +37,7 @@ export default async function ClaimsPage({ params }: { params: Promise<{ locale:
 
   const [t, newCase] = await Promise.all([
     getTranslations({ locale, namespace: 'claims' }),
-    resolveMemberNewCaseEntry(session),
+    resolveMemberNewCaseEntry(),
   ]);
   const newCaseLabel = newCase.kind === 'membership' ? t('gate.view_plans') : t('new');
 

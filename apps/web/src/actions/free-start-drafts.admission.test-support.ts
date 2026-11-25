@@ -1,5 +1,8 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { randomUUID } from 'node:crypto';
 import { vi } from 'vitest';
+import { hasAdmittedClaimEntitlement } from './free-start-drafts/claim-entitlement.core';
+import { resolveFreeStartDraftSession } from './free-start-drafts/session.core';
 
 vi.mock('next-intl/server', () => ({
   getTranslations: () => Promise.resolve((key: string) => key),
@@ -53,4 +56,26 @@ export function createInput(captured: unknown) {
 
 export function updateInput(captured: unknown) {
   return { ...facts, expectedVersion: 1, id: randomUUID(), ...capture(captured) };
+}
+
+vi.mock('./free-start-drafts/claim-entitlement.core', () => ({
+  hasAdmittedClaimEntitlement: vi.fn().mockResolvedValue(false),
+}));
+export const entitlement = vi.mocked(hasAdmittedClaimEntitlement);
+
+export function resolveWithVerdict(emailVerified: unknown) {
+  const session = { user: { id: 'owner-a', role: 'member', emailVerified } };
+  return resolveFreeStartDraftSession(headers, {
+    getSession: vi.fn().mockResolvedValue(session),
+    admitMember: vi.fn().mockResolvedValue({
+      ok: true,
+      authorized: {
+        session: { user: { id: 'owner-a', role: 'member', tenantId: 'tenant_ks' } },
+        authority: mintTestTenantAuthority('tenant_ks', { userId: 'owner-a', role: 'member' }),
+      },
+    }),
+    isAllowedHost: () => true,
+    resolveDefaultTenantId: () => 'tenant_ks',
+    resolveSessionAccessTenantId: () => 'tenant_ks',
+  });
 }

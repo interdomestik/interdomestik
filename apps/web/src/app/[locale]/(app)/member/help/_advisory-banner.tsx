@@ -1,5 +1,5 @@
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 import { getMemberActiveHandoffAdvisory } from '@interdomestik/domain-claims/support-handoffs/advisory';
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { AlertCircle } from 'lucide-react';
 import { getFormatter, getTranslations } from 'next-intl/server';
 
@@ -8,16 +8,14 @@ type SelectedClaim = {
 } | null;
 
 type AdvisoryBannerProps = {
-  authority: TenantAuthority;
-  memberId: string;
   selectedClaim: SelectedClaim;
 };
 
-export async function AdvisoryBanner({
-  authority,
-  memberId,
-  selectedClaim,
-}: Readonly<AdvisoryBannerProps>) {
+export async function AdvisoryBanner({ selectedClaim }: Readonly<AdvisoryBannerProps>) {
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) return null;
+  const { authority, session } = admission.authorized;
+  const memberId = session.user.id;
   let advisory: Awaited<ReturnType<typeof getMemberActiveHandoffAdvisory>>;
   try {
     advisory = await getMemberActiveHandoffAdvisory({

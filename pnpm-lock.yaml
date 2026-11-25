@@ -221,6 +221,9 @@ importers:
       '@interdomestik/domain-membership-billing':
         specifier: workspace:*
         version: link:../../packages/domain-membership-billing
+      '@interdomestik/domain-privacy':
+        specifier: workspace:*
+        version: link:../../packages/domain-privacy
       '@interdomestik/domain-referrals':
         specifier: workspace:*
         version: link:../../packages/domain-referrals
@@ -843,6 +846,10 @@ importers:
         version: 4.1.11(@opentelemetry/api@1.9.1)(@types/node@26.0.1)(@vitest/coverage-v8@4.1.11)(jsdom@28.1.0(@noble/hashes@2.2.0))(vite@8.3.3(@types/node@26.0.1)(esbuild@0.28.2)(jiti@2.7.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.8.3))
 
   packages/domain-privacy:
+    dependencies:
+      '@interdomestik/database':
+        specifier: workspace:*
+        version: link:../database
     devDependencies:
       '@vitest/coverage-v8':
         specifier: ^4.1.11

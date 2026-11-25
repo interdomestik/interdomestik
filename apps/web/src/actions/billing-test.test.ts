@@ -18,7 +18,13 @@ const mocks = vi.hoisted(() => ({
   record: vi.fn(),
 }));
 vi.mock('@/lib/runtime-environment', () => ({ isBillingTestActivationEnabled: mocks.enabled }));
-vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.authorize }));
+// WP-13a: the action admits through member acceptance; this suite covers WP-10's switch.
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  resolveMemberAcceptanceForRequest: async () => {
+    const authorized = await mocks.authorize();
+    return authorized ? { ok: true, authorized } : { ok: false, failure: { code: 'UNAUTHORIZED' } };
+  },
+}));
 vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   withTenantAuthority: mocks.transaction,
 }));
@@ -61,7 +67,7 @@ describe('billing test admission', () => {
 
   it('requires an authorized session before reading the tenant switch', async () => {
     mocks.authorize.mockResolvedValue(null);
-    await expect(mockActivateSubscription('plan', 'price')).rejects.toThrow('Unauthorized');
+    await expect(mockActivateSubscription('plan', 'price')).rejects.toThrow('UNAUTHORIZED');
     expect(mocks.transaction).not.toHaveBeenCalled();
   });
 

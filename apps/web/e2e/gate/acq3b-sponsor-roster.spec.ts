@@ -143,7 +143,7 @@ test('ACQ-3b office agent creates a contract; independent staff approves; CSV pr
         outcome: 'awaiting_paid_end',
       });
       // A changed account email must never replace the address the company supplied.
-      const privateEmail = `${f.prefix}-private@example.com`;
+      const { privateEmail } = f;
       await withTenantAuthority(f.authority, async tx => {
         await tx.update(user).set({ email: privateEmail }).where(eq(user.id, f.member.id));
         await tx.insert(claims).values({

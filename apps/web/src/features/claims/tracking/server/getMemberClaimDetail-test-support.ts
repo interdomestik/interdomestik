@@ -13,6 +13,7 @@ const hoisted = vi.hoisted(() => ({
     awaitingDateReason: 'case_team_review',
     renderMode: 'standard',
   },
+  admit: vi.fn(),
   claimFindFirst: vi.fn(),
   context: vi.fn(),
   timelineRows: vi.fn(),
@@ -55,8 +56,14 @@ vi.mock('../utils', () => ({
   buildClaimVisibilityWhere: hoisted.buildClaimVisibilityWhere,
 }));
 
-vi.mock('@interdomestik/database', () => ({
-  withTenantContext: vi.fn((_context: unknown, callback: (tx: unknown) => unknown) => {
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: hoisted.admit,
+}));
+
+vi.mock('@interdomestik/database', () => ({ ERASURE_REDACTED_VALUE: '[erased]' }));
+
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: vi.fn((_context: unknown, callback: (tx: unknown) => unknown) => {
     hoisted.context(_context);
     return callback({
       query: {
@@ -67,7 +74,6 @@ vi.mock('@interdomestik/database', () => ({
       select: hoisted.select,
     });
   }),
-  ERASURE_REDACTED_VALUE: '[erased]',
 }));
 
 vi.mock('@interdomestik/database/schema', () => ({

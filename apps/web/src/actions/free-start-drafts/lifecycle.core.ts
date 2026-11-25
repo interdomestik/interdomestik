@@ -47,7 +47,6 @@ const listSchema = z.strictObject({
 export type FreeStartDraftLifecycleDependencies = {
   createDraft: typeof createFreeStartDraft;
   deleteDraft: typeof deleteFreeStartDraft;
-  hasClaimEntitlement: (context: FreeStartDraftContext) => Promise<boolean>;
   listDrafts: typeof listFreeStartDrafts;
   readIntakeOpen: typeof readFreeStartDraftIntakeOpen;
   readPublicIntakeOpen: (requestHeaders: Headers) => Promise<boolean>;
@@ -66,10 +65,12 @@ const defaultDependencies: FreeStartDraftLifecycleDependencies = {
   updateDraft: updateFreeStartDraft,
 };
 
-type BoundaryFailure = {
-  ok: false;
-  code: 'authRequired' | 'invalid' | 'unavailable' | 'unavailableAccountContext';
-};
+type BoundaryFailure =
+  | Extract<FreeStartDraftSessionResult, { ok: false }>
+  | {
+      ok: false;
+      code: 'invalid';
+    };
 
 function facts(input: z.infer<typeof freeStartDraftPayloadSchema>): FreeStartDraftFacts {
   return {
@@ -129,13 +130,18 @@ async function runWithContext<T>(
   }
 }
 
+// Account reads need only the session; they never reach draft write admission.
+const accountReadDependencies: Pick<FreeStartDraftLifecycleDependencies, 'resolveSession'> = {
+  resolveSession: resolveFreeStartDraftSession,
+};
+
 /**
  * Presentation-only verdict for the account draft queue. It grants nothing: every mutation
  * resolves fresh authority again and re-checks verification before touching the repository.
  */
 export async function getFreeStartDraftAccountCore(
   requestHeaders: Headers,
-  dependencies = defaultDependencies
+  dependencies = accountReadDependencies
 ) {
   const session = await dependencies.resolveSession(requestHeaders);
   if (!session.ok) return session;

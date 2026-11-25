@@ -1,0 +1,67 @@
+{
+  "legal-documents": {
+    "terms": {
+      "v2026_11_pilot_draft_1": {
+        "title": "Čeka se pravna provera — Uslovi korišćenja",
+        "intro": "Čeka se pravna provera — Dobrodošli u Interdomestik Asistenca. Ovi uslovi uređuju vaše članstvo.",
+        "sections": {
+          "membership": "Čeka se pravna provera — Članstvo važi 1 godinu od datuma kupovine. Uključuje pristup našoj mreži zaštite i posredovanje uz popust.",
+          "services": "Čeka se pravna provera — Pružamo podršku u obradi zahteva, pravne konsultacije i procenu štete.",
+          "fees": "Čeka se pravna provera — Članarine nisu refundabilne nakon garantnog perioda od 30 dana. Naknada za uspeh se primenjuje samo nakon uspešnog povraćaja potraživanja.",
+          "billing": {
+            "eyebrow": "Čeka se pravna provera — Godišnji uslovi članstva",
+            "title": "Čeka se pravna provera — Pravila za godišnje naplaćivanje, otkazivanje i refundaciju",
+            "subtitle": "Čeka se pravna provera — Isti ugovor važi na cenama, u checkout-u i u članskim podešavanjima.",
+            "sections": {
+              "annualBilling": {
+                "title": "Čeka se pravna provera — Godišnje naplaćivanje u v1",
+                "body": "Čeka se pravna provera — Članstva se na lansiranju naplaćuju godišnje. Javne cene prikazuju godišnju tarifu i plaćeni period pre početka checkout-a."
+              },
+              "cancellation": {
+                "title": "Čeka se pravna provera — Otkazivanje zaustavlja sledeću obnovu",
+                "body": "Čeka se pravna provera — Obnovu možete otkazati u bilo kom trenutku. Pristup ostaje aktivan do kraja tekućeg plaćenog perioda, a otkazivanje ne vraća istekle pogodnosti."
+              },
+              "refundWindow": {
+                "title": "Čeka se pravna provera — Početni prozor refundacije od 30 dana",
+                "body": "Čeka se pravna provera — Tarifu članstva vraćamo ako zahtev stigne u roku od 30 dana od kupovine i za to članstvo još nije prihvaćen nijedan predmet naplate koji vodi tim."
+              },
+              "coolingOff": {
+                "title": "Čeka se pravna provera — Cooling-off prava ostaju odvojena",
+                "body": "Čeka se pravna provera — Svako zakonsko pravo na odustanak ili cooling-off primenjuje se odvojeno od početnog obećanja refundacije. Kada lokalni zakon daje drugačiji rok za odustanak, važi taj zakonski rok."
+              },
+              "acceptedMatters": {
+                "title": "Čeka se pravna provera — Prihvaćene eskalacije ostaju na snazi",
+                "body": "Čeka se pravna provera — Ako je Interdomestik već prihvatio predmet naplate, dogovorena naknada za uspeh i uslovi eskalacije ostaju na snazi za taj predmet čak i ako se članstvo kasnije otkaže."
+              }
+            },
+            "footer": {
+              "title": "Čeka se pravna provera — Šta refundacija pokriva",
+              "body": "Čeka se pravna provera — Početna refundacija pokriva samo članarinu. Ona ne briše naknade ili partnerske troškove koji su već dogovoreni za prihvaćenu eskalaciju."
+            }
+          }
+        }
+      }
+    },
+    "privacy_notice": {
+      "v2026_11_pilot_draft_1": {
+        "title": "Čeka se pravna provera — Politika privatnosti",
+        "intro": "Čeka se pravna provera — Vaša privatnost nam je važna. U vaše članstvo uključena je stroga zaštita podataka.",
+        "sections": {
+          "handling": {
+            "title": "Čeka se pravna provera — Kako obrađujemo vaše podatke",
+            "body": "Čeka se pravna provera — Prikupljamo samo informacije koje su potrebne za pružanje usluga članstva, obradu zahteva i ispunjavanje zakonskih obaveza. Pristup je ograničen po ulozi i opsegu subjekta."
+          },
+          "rights": {
+            "title": "Čeka se pravna provera — Vaša prava",
+            "body": "Čeka se pravna provera — Možete zatražiti pristup sačuvanim podacima, ispravku i brisanje kada je to zakonski dozvoljeno."
+          },
+          "deletion": {
+            "title": "Čeka se pravna provera — Zahtevi za brisanje",
+            "body": "Čeka se pravna provera — Autentifikovani korisnici mogu podneti zahtev za brisanje koristeći donji endpoint uz opciono JSON telo.",
+            "followup": "Čeka se pravna provera — Zahtevi se evidentiraju kao događaji usklađenosti i operacije ih pregledaju pre nego što se izvrše nepovratne radnje brisanja."
+          }
+        }
+      }
+    }
+  }
+}

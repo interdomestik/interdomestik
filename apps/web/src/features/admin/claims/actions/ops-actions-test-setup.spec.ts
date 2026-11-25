@@ -1,3 +1,4 @@
+import '@/test/tenant-transaction.test-support';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { beforeEach, expect, vi } from 'vitest';
 

@@ -1,13 +1,15 @@
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
+import {
+  requireAdmittedMember,
+  requireMemberAcceptancePage,
+} from '@/lib/privacy/require-member-acceptance';
 import { ChangePasswordForm } from '@/components/auth/change-password-form';
 import { CommercialBillingTerms } from '@/components/commercial/billing-terms';
 import { buildCommercialTermsProps } from '@/components/commercial/billing-terms-content';
 import { ProfileForm } from '@/components/auth/profile-form';
-import { getSessionSafe } from '@/components/shell/session';
 import { LanguageSettings } from '@/components/settings/language-settings';
 import { NotificationSettings } from '@/components/settings/notification-settings';
 import { ResidenceCountrySettings } from '@/components/settings/residence-country-settings';
-import { redirect } from '@/i18n/routing';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
 import { eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { Separator } from '@interdomestik/ui/components/separator';
@@ -28,17 +30,16 @@ interface SettingsPageProps {
   params: Promise<{ locale: string }>;
 }
 
-type MemberSettingsSession = NonNullable<Awaited<ReturnType<typeof getSessionSafe>>>;
-
-async function getResidenceCountry(session: MemberSettingsSession) {
+async function getResidenceCountry() {
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) return null;
+  const { session, authority } = admission.authorized;
   const tenantId = session.user.tenantId;
   if (!tenantId) return null;
 
   try {
-    const authorized = await authorizeSessionTenant();
-    if (!authorized) return null;
     // db-access-guard: tenant-scoped -- reason: member settings reads the signed-in user by session tenant and user id
-    const row = await withTenantAuthority(authorized.authority, tx =>
+    const row = await withTenantAuthority(authority, tx =>
       tx.query.user.findFirst({
         where: withTenant(tenantId, user.tenantId, eq(user.id, session.user.id)),
         columns: { residenceCountry: true },
@@ -53,16 +54,14 @@ async function getResidenceCountry(session: MemberSettingsSession) {
 
 export default async function SettingsPage({ params }: SettingsPageProps) {
   const { locale } = await params;
-  const session = await getSessionSafe('MemberSettingsPage');
-
-  if (!session) {
-    redirect({ href: '/login', locale });
-  }
+  const admission = await requireMemberAcceptancePage();
+  if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
+  const { session } = admission.authorized;
 
   const [t, commercialTerms, residenceCountry] = await Promise.all([
     getTranslations({ locale, namespace: 'settings' }),
     getTranslations({ locale, namespace: 'commercialTerms' }),
-    getResidenceCountry(session as MemberSettingsSession),
+    getResidenceCountry(),
   ]);
 
   return (

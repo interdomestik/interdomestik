@@ -10,6 +10,7 @@ export default async function MemberCaseSlot({
 }: Readonly<{ params: Promise<{ locale: string }> }>) {
   const { locale } = await params;
   const context = await getMemberPortalContext(locale);
+  if (!context.ok) return null;
   return (
     <Suspense
       fallback={<MemberPortalRegionBoundary copy={context.copy.regions.case} state="loading" />}
