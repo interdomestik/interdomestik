@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({
-  authorize: vi.fn(),
+  admit: vi.fn(),
   hasActive: vi.fn(),
   neutral: vi.fn(),
 }));
@@ -9,7 +9,7 @@ const h = vi.hoisted(() => ({
 vi.mock('@/app/api/auth/[...all]/neutral-otp-boundary', () => ({
   evaluateNeutralOtpHost: h.neutral,
 }));
-vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionUserTenant: h.authorize }));
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({ requireAdmittedMember: h.admit }));
 vi.mock('@/lib/tenant/tenant-hosts', () => ({ resolveDefaultPublicTenantId: () => 'tenant_ks' }));
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   hasActiveMembership: h.hasActive,
@@ -20,12 +20,15 @@ import { resolveMemberNewCaseEntry } from './new-case-entry.server';
 
 type User = { id: string; role: string; tenantId?: string; accessTenantId?: string };
 const MEMBER: User = { id: 'member-1', role: 'member', tenantId: 'tenant_ks' };
-const entryFor = (user: User) => resolveMemberNewCaseEntry({ user });
+const authority = { tenant: 'authority' };
+function entryFor(user: User) {
+  h.admit.mockResolvedValueOnce({ ok: true, authorized: { session: { user }, authority } });
+  return resolveMemberNewCaseEntry();
+}
 
 describe('resolveMemberNewCaseEntry', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    h.authorize.mockResolvedValue({ tenant: 'authority' });
     h.hasActive.mockResolvedValue(false);
     h.neutral.mockReturnValue(true);
   });
@@ -68,25 +71,22 @@ describe('resolveMemberNewCaseEntry', () => {
   });
 
   it('never reads membership without the session authority', async () => {
-    h.authorize.mockResolvedValue(null);
+    h.admit.mockResolvedValue({ ok: false, failure: { code: 'acceptance_required' } });
     h.neutral.mockReturnValue(false);
-    await expect(entryFor(MEMBER)).resolves.toMatchObject({ kind: 'membership' });
+    await expect(resolveMemberNewCaseEntry()).resolves.toMatchObject({ kind: 'membership' });
     expect(h.hasActive).not.toHaveBeenCalled();
   });
 
   it('keeps the draft door for an eligible member when the access check fails', async () => {
-    h.authorize.mockRejectedValue(new Error('db down'));
+    h.hasActive.mockRejectedValue(new Error('db down'));
     await expect(entryFor(MEMBER)).resolves.toEqual({
       href: '/member/claims/new?mode=drafts',
       kind: 'draft',
     });
-    h.authorize.mockResolvedValue({ tenant: 'authority' });
-    h.hasActive.mockRejectedValue(new Error('db down'));
-    await expect(entryFor(MEMBER)).resolves.toMatchObject({ kind: 'draft' });
   });
 
   it('falls back to the gated intake when the access check fails for anyone else', async () => {
-    h.authorize.mockRejectedValue(new Error('db down'));
+    h.hasActive.mockRejectedValue(new Error('db down'));
     h.neutral.mockReturnValue(false);
     await expect(entryFor(MEMBER)).resolves.toEqual({
       href: '/member/claims/new',

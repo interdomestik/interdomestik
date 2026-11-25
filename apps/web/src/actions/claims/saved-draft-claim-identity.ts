@@ -1,4 +1,5 @@
 import 'server-only';
+import type { resolveFreeStartDraftSession } from '@/actions/free-start-drafts/session.core';
 import { createHash } from 'node:crypto';
 import { claims } from '@interdomestik/database';
 import { isValidClaimNumber } from '@interdomestik/database/claim-number';
@@ -11,6 +12,20 @@ import { and, eq } from 'drizzle-orm';
 
 export type ExactSavedDraftClaim =
   { kind: 'absent' | 'invalid' } | { kind: 'found'; claimId: string; claimNumber: string };
+
+export function matchesSavedDraftOwner(
+  fresh: Extract<Awaited<ReturnType<typeof resolveFreeStartDraftSession>>, { ok: true }>
+) {
+  const {
+    authorized: { session },
+    context: { tenantId, ownerUserId, accessTenantId },
+  } = fresh;
+  return (
+    session.user.id === ownerUserId &&
+    session.user.tenantId === tenantId &&
+    accessTenantId === tenantId
+  );
+}
 
 export function savedDraftClaimId(tenantId: string, actorId: string, draftId: string) {
   const digest = createHash('sha256')

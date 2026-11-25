@@ -1,0 +1,72 @@
+[
+  {
+    "kind": "terms",
+    "version": "v2026_11_pilot_draft_1",
+    "locale": "sq",
+    "textSha256": "05799385a102a0aa2765cf7ba20d05b99e94b8e1826e9776ff9c2cd4635f4529",
+    "reviewStatus": "legal_review_pending"
+  },
+  {
+    "kind": "privacy_notice",
+    "version": "v2026_11_pilot_draft_1",
+    "locale": "sq",
+    "textSha256": "2070f8eadd0dade5d41a096b7ef5fe9c9f83982b7b8fdf8eadb1512e82cdba8c",
+    "reviewStatus": "legal_review_pending"
+  },
+  {
+    "kind": "terms",
+    "version": "v2026_11_pilot_draft_1",
+    "locale": "en",
+    "textSha256": "3f9bade073ca03021820bf66e1c92bb43d5ec0ab004fe7eb69a15182f49fce68",
+    "reviewStatus": "legal_review_pending"
+  },
+  {
+    "kind": "privacy_notice",
+    "version": "v2026_11_pilot_draft_1",
+    "locale": "en",
+    "textSha256": "0af5413567fcc5959dce9c7821d877c4a323454966428dfde290b62243cb6e58",
+    "reviewStatus": "legal_review_pending"
+  },
+  {
+    "kind": "terms",
+    "version": "v2026_11_pilot_draft_1",
+    "locale": "sr",
+    "textSha256": "6e01904429d454bd5980ac86c83a150108cfac738a06b84af41c31cc0c2fadd6",
+    "reviewStatus": "legal_review_pending"
+  },
+  {
+    "kind": "privacy_notice",
+    "version": "v2026_11_pilot_draft_1",
+    "locale": "sr",
+    "textSha256": "b4c934cbdb798cee64c5a0a892ae749db70881bbb674f558801c28b8f7d23988",
+    "reviewStatus": "legal_review_pending"
+  },
+  {
+    "kind": "terms",
+    "version": "v2026_11_pilot_draft_1",
+    "locale": "mk",
+    "textSha256": "b60ffc5c5e397d35da9611504c2c6803dce3ebe269d407fe03acba9a7f6294a4",
+    "reviewStatus": "legal_review_pending"
+  },
+  {
+    "kind": "privacy_notice",
+    "version": "v2026_11_pilot_draft_1",
+    "locale": "mk",
+    "textSha256": "e82ef5d7497923d4e5f17c7a6eca7d0211e74b1bd011c7ffab5f21555f74d20c",
+    "reviewStatus": "legal_review_pending"
+  },
+  {
+    "kind": "terms",
+    "version": "v2026_11_pilot_draft_1",
+    "locale": "de",
+    "textSha256": "c021062dcb077bdb623783275850f5bce9eb6fd751946809868403eb3dacffff",
+    "reviewStatus": "legal_review_pending"
+  },
+  {
+    "kind": "privacy_notice",
+    "version": "v2026_11_pilot_draft_1",
+    "locale": "de",
+    "textSha256": "fc0cebcbb6c8bf9fb2b3564f216b32ad8fc8ae6677496ec41a27b415c494c1d9",
+    "reviewStatus": "legal_review_pending"
+  }
+]

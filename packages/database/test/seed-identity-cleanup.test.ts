@@ -2,20 +2,26 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import { PgDialect } from 'drizzle-orm/pg-core';
 import { E2E_EMAIL_DOMAIN } from '../src/e2e-users';
+import { UNACCEPTED_MEMBER_ID } from '../src/seed-golden/users';
 import { user } from '../src/schema';
 import {
   seedCleanupIdentities,
   seedIdentityCleanupPredicate,
 } from '../src/seed-utils/identity-cleanup';
 
-test('the full E2E seed stays at 85 unique identities in one non-sending domain', () => {
+test('the full E2E seed stays at 86 unique identities, with only the unaccepted member on example.test', () => {
   const identities = seedCleanupIdentities();
-  assert.equal(identities.length, 85);
+  assert.equal(identities.length, 86);
   assert.ok(identities.length <= 100);
-  assert.equal(new Set(identities.map(identity => identity.id)).size, 85);
-  assert.equal(new Set(identities.map(identity => identity.email.trim().toLowerCase())).size, 85);
+  assert.equal(new Set(identities.map(identity => identity.id)).size, 86);
+  assert.equal(new Set(identities.map(identity => identity.email.trim().toLowerCase())).size, 86);
+  assert.equal(identities.filter(identity => identity.id === UNACCEPTED_MEMBER_ID).length, 1);
   for (const identity of identities) {
-    assert.ok(identity.email.endsWith(`@${E2E_EMAIL_DOMAIN}`));
+    if (identity.id === UNACCEPTED_MEMBER_ID) {
+      assert.equal(identity.email, 'unaccepted.member@example.test');
+    } else {
+      assert.ok(identity.email.endsWith(`@${E2E_EMAIL_DOMAIN}`));
+    }
     assert.notEqual(identity.email, identity.legacyEmail);
   }
 });

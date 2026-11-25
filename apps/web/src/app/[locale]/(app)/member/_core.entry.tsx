@@ -1,9 +1,9 @@
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
+import { requireMemberAcceptancePage } from '@/lib/privacy/require-member-acceptance';
 import { MemberRoleShell } from '@/components/shell/member-role-shell';
 import { toClientShellUser } from '@/components/shell/client-shell-user';
 import { NavigationFeedback } from '@/components/shell/navigation-feedback';
-import { requireSessionOrRedirect } from '@/components/shell/session';
 import { APP_NAMESPACES, pickMessages } from '@/i18n/messages';
-import { getCachedSession } from '@/lib/auth.server';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
 import { NextIntlClientProvider } from 'next-intl';
 import { getMessages, setRequestLocale } from 'next-intl/server';
@@ -20,17 +20,9 @@ export default async function DashboardLayout({
   const { locale } = await params;
   setRequestLocale(locale);
 
-  // 🔒 PROTECTED ROUTE: Check for valid session
-  const sessionNonNull = requireSessionOrRedirect(await getCachedSession(), locale);
-
-  if (process.env.PLAYWRIGHT === '1' || process.env.INTERDOMESTIK_AUTOMATED === '1') {
-    console.log('[E2E Debug] Member Layout Session:', {
-      hasSession: !!sessionNonNull,
-      userId: sessionNonNull?.user?.id,
-      role: sessionNonNull?.user?.role,
-      path: `/${locale}/member`,
-    });
-  }
+  const admission = await requireMemberAcceptancePage();
+  if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
+  const sessionNonNull = admission.authorized.session;
 
   const memberSession = withMemberActorRoleOnSession(sessionNonNull);
   const actorRoleOnSession = memberSession.user.role;

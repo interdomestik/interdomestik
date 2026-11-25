@@ -83,6 +83,14 @@ vi.mock('@/lib/tenant-authority.server', async () => {
   };
 });
 
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  resolveMemberAcceptanceForRequest: async (headers: Headers) => {
+    const { authorizeSessionTenant } = await import('@/lib/tenant-authority.server');
+    const authorized = await authorizeSessionTenant(headers);
+    return authorized ? { ok: true, authorized } : { ok: false, failure: { code: 'UNAUTHORIZED' } };
+  },
+}));
+
 vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn(),
 }));

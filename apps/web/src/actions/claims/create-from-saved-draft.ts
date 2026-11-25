@@ -1,15 +1,21 @@
 'use server';
 
 import { resolveFreeStartDraftSession } from '@/actions/free-start-drafts/session.core';
+import { runAdmittedAction } from '@/lib/privacy/require-member-acceptance';
 import { enforceRateLimitForAction } from '@/lib/rate-limit';
-import { runAuthenticatedAction } from '@/lib/safe-action';
+import { classifyThrown } from '@/lib/safe-action.classify';
+import { isRefusalCode } from '@/lib/safe-action.types';
+import { headers } from 'next/headers';
+import { unstable_rethrow } from 'next/navigation';
 // prettier-ignore
-import { createClaimSchema, type CreateClaimValues } from '@interdomestik/domain-claims/validators/claims';
-// prettier-ignore
-import { resumeFreeStartDraft, type FreeStartDraft } from '@interdomestik/database/free-start-drafts';
+import { resumeFreeStartDraft } from '@interdomestik/database/free-start-drafts';
 import { z } from 'zod';
-import { readSavedDraftClaim, savedDraftClaimId } from './saved-draft-claim-identity';
-import { buildSavedDraftClaimText } from './saved-draft-claim-text';
+import {
+  matchesSavedDraftOwner,
+  readSavedDraftClaim,
+  savedDraftClaimId,
+} from './saved-draft-claim-identity';
+import { mapDraft } from './saved-draft-claim-mapping';
 import { submitClaimCore } from './submit.core';
 
 const diasporaCountrySchema = z.enum(['DE', 'CH', 'AT', 'IT']);
@@ -18,129 +24,100 @@ const claimStartSchema = z.object({ confirmed: z.literal(true), handoffContext: 
 // prettier-ignore
 const inputSchema = z.object({ id: z.string().uuid(), expectedVersion: z.number().int().positive(), claimStart: claimStartSchema.optional() }).strict();
 const lookupSchema = z.object({ id: z.string().uuid() }).strict();
-const CATEGORY = { vehicle: 'Vehicle', property: 'Property' } as const;
-// prettier-ignore
-const ISSUE = { collision: 'Collision', theft: 'Theft', parking_damage: 'Parking damage', insurer_delay: 'Insurer delay', water_damage: 'Water damage', storm_fire: 'Storm or fire', burglary: 'Burglary', landlord_dispute: 'Landlord dispute' } as const;
-// prettier-ignore
-const OUTCOME = { repair: 'Repair', reimbursement: 'Reimbursement', compensation: 'Compensation', written_response: 'Written response' } as const;
 const unavailable = () => ({ success: false as const, error: 'Claim submission unavailable.' });
 export type SavedDraftClaimResult =
   ReturnType<typeof unavailable> | { success: true; claimId: string; claimNumber: string };
-export type SavedDraftClaimLookup = { claim: { id: string; number: string } | null };
-const noClaim = (): SavedDraftClaimLookup => ({ claim: null });
-function ownValue(record: Readonly<Record<string, string>>, key: string | null) {
-  return key && Object.hasOwn(record, key) ? record[key] : null;
-}
-
-// prettier-ignore
-async function mapDraft(draft: FreeStartDraft, incidentCountryCode?: z.infer<typeof diasporaCountrySchema>): Promise<CreateClaimValues | null> {
-  const category = ownValue(CATEGORY, draft.category);
-  const issue = ownValue(ISSUE, draft.issueType);
-  const outcome = ownValue(OUTCOME, draft.desiredOutcome);
-  const counterparty = draft.counterparty.trim();
-  const summary = draft.summary.trim();
-  if (!category || !issue || !outcome || counterparty.length < 2 || !summary) return null;
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(draft.incidentDate)) return null;
-  const text = await buildSavedDraftClaimText(
-    { category: draft.category, issueType: draft.issueType, incidentDate: draft.incidentDate, counterparty, desiredOutcome: draft.desiredOutcome, summary },
-    { category, issue, outcome }
-  );
-  const data = {
-    category: draft.category,
-    companyName: counterparty,
-    currency: 'EUR',
-    description: text.description,
-    files: [],
-    incidentDate: draft.incidentDate,
-    ...(incidentCountryCode ? { incidentCountryCode } : {}),
-    title: text.title,
-  };
-  const parsed = createClaimSchema.safeParse(data);
-  return parsed.success ? parsed.data : null;
-}
+export type SavedDraftClaimLookup =
+  { claim: { id: string; number: string } | null } | { code: 'unavailable' };
+const lookupUnavailable = { code: 'unavailable' } as const;
+const noClaim = () => ({ claim: null });
 export async function lookupSavedDraftClaim(input: unknown): Promise<SavedDraftClaimLookup> {
   const parsed = lookupSchema.safeParse(input);
   if (!parsed.success) return noClaim();
   try {
-    const result = await runAuthenticatedAction(
-      async ({ session, authority, tenantId, requestHeaders }) => {
-        const actorId = session.user.id;
-        const fresh = await resolveFreeStartDraftSession(requestHeaders);
-        if (
-          !fresh.ok ||
-          session.user.tenantId !== tenantId ||
-          fresh.context.ownerUserId !== actorId ||
-          fresh.context.tenantId !== tenantId ||
-          fresh.context.accessTenantId !== tenantId
-        )
-          return noClaim();
-        const claimId = savedDraftClaimId(tenantId, actorId, parsed.data.id);
-        const claim = await readSavedDraftClaim(claimId, authority, actorId);
-        return claim.kind === 'found'
-          ? { claim: { id: claim.claimId, number: claim.claimNumber } }
-          : noClaim();
-      }
+    const fresh = await resolveFreeStartDraftSession(await headers());
+    if (!fresh.ok) return fresh.code === 'unavailable' ? lookupUnavailable : noClaim();
+    if (!matchesSavedDraftOwner(fresh)) return noClaim();
+    const { tenantId, ownerUserId } = fresh.context;
+    const claimId = savedDraftClaimId(tenantId, ownerUserId, parsed.data.id);
+    const result = await runAdmittedAction(fresh.authorized, () =>
+      readSavedDraftClaim(claimId, fresh.authorized.authority, ownerUserId)
     );
-    return result.success && result.data ? result.data : noClaim();
+    if (!result.success) return isRefusalCode(result.code) ? noClaim() : lookupUnavailable;
+    const claim = result.data;
+    return claim?.kind === 'found'
+      ? { claim: { id: claim.claimId, number: claim.claimNumber } }
+      : noClaim();
   } catch (error) {
-    const redirect = error as { digest?: unknown; message?: unknown };
-    if (redirect.message === 'NEXT_REDIRECT' || String(redirect.digest).startsWith('NEXT_REDIRECT'))
-      throw error;
-    return noClaim();
+    unstable_rethrow(error);
+    return lookupUnavailable;
   }
 }
 
 export async function createClaimFromSavedDraft(input: unknown): Promise<SavedDraftClaimResult> {
   const parsed = inputSchema.safeParse(input);
   if (!parsed.success) return unavailable();
-  return runAuthenticatedAction(async ({ session, authority, tenantId, requestHeaders }) => {
-    const actorId = session.user.id;
+  try {
+    const requestHeaders = await headers();
     const fresh = await resolveFreeStartDraftSession(requestHeaders);
-    if (
-      !fresh.ok ||
-      session.user.tenantId !== tenantId ||
-      fresh.context.ownerUserId !== actorId ||
-      fresh.context.tenantId !== tenantId ||
-      fresh.context.accessTenantId !== tenantId
-    )
-      return unavailable();
-    const resumed = await resumeFreeStartDraft(fresh.context, parsed.data.id);
-    if (!resumed.ok) return unavailable();
-    const claimId = savedDraftClaimId(tenantId, actorId, resumed.draft.id);
-    const existing = await readSavedDraftClaim(claimId, authority, actorId);
-    // prettier-ignore
-    if (existing.kind === 'found') return { success: true as const, claimId: existing.claimId, claimNumber: existing.claimNumber };
-    // prettier-ignore
-    if (existing.kind === 'invalid' || resumed.draft.version !== parsed.data.expectedVersion || resumed.draft.resumeStep !== 'preview') return unavailable();
-    const claimStart = resumed.draft.category === 'vehicle' ? parsed.data.claimStart : undefined;
-    const data = await mapDraft(resumed.draft, claimStart?.incidentCountryCode);
-    if (!data) return unavailable();
-    const limit = await enforceRateLimitForAction({
-      name: 'action:submit-claim',
-      limit: 5,
-      windowSeconds: 600,
-      headers: requestHeaders,
-      productionSensitive: true,
+    if (!fresh.ok || !matchesSavedDraftOwner(fresh)) return unavailable();
+    const result = await runAdmittedAction(fresh.authorized, () =>
+      submitSavedDraft(fresh, parsed.data, requestHeaders)
+    );
+    return result.success && result.data ? result.data : unavailable();
+  } catch (error) {
+    unstable_rethrow(error);
+    return unavailable();
+  }
+}
+
+async function submitSavedDraft(
+  fresh: Extract<Awaited<ReturnType<typeof resolveFreeStartDraftSession>>, { ok: true }>,
+  input: z.infer<typeof inputSchema>,
+  requestHeaders: Headers
+): Promise<SavedDraftClaimResult> {
+  const { session, authority } = fresh.authorized;
+  const { tenantId, ownerUserId: actorId } = fresh.context;
+  const resumed = await resumeFreeStartDraft(fresh.context, input.id);
+  if (!resumed.ok) return unavailable();
+  const claimId = savedDraftClaimId(tenantId, actorId, resumed.draft.id);
+  const existing = await readSavedDraftClaim(claimId, authority, actorId);
+  // prettier-ignore
+  if (existing.kind === 'found') return { success: true as const, claimId: existing.claimId, claimNumber: existing.claimNumber };
+  // prettier-ignore
+  if (existing.kind === 'invalid' || resumed.draft.version !== input.expectedVersion || resumed.draft.resumeStep !== 'preview') return unavailable();
+  const claimStart = resumed.draft.category === 'vehicle' ? input.claimStart : undefined;
+  const data = await mapDraft(resumed.draft, claimStart?.incidentCountryCode);
+  if (!data) return unavailable();
+  const limit = await enforceRateLimitForAction({
+    name: 'action:submit-claim',
+    limit: 5,
+    windowSeconds: 600,
+    headers: requestHeaders,
+    productionSensitive: true,
+  });
+  if (limit.limited) return unavailable();
+  try {
+    const result = await submitClaimCore({
+      authority,
+      data,
+      handoffContext: claimStart?.handoffContext,
+      idempotencyKey: `ida-ui03a2-b1:${resumed.draft.id}`,
+      requestHeaders,
+      session,
+      trustedClaimId: claimId,
     });
-    if (limit.limited) return unavailable();
-    try {
-      const result = await submitClaimCore({
-        authority,
-        data,
-        handoffContext: claimStart?.handoffContext,
-        idempotencyKey: `ida-ui03a2-b1:${resumed.draft.id}`,
-        requestHeaders,
-        session,
-        trustedClaimId: claimId,
-      });
-      if (result.success && result.claimId === claimId)
-        return { success: true as const, claimId, claimNumber: result.claimNumber };
-    } catch {
-      // Ambiguous writer outcomes use the same bounded exact recovery below.
+    if (result.success && result.claimId === claimId)
+      return { success: true as const, claimId, claimNumber: result.claimNumber };
+    if (!result.success && isRefusalCode(result.code)) {
+      throw Object.assign(new Error(result.error), { code: result.code });
     }
-    const recovered = await readSavedDraftClaim(claimId, authority, actorId);
-    return recovered.kind === 'found'
-      ? { success: true as const, claimId: recovered.claimId, claimNumber: recovered.claimNumber }
-      : unavailable();
-  }) as Promise<SavedDraftClaimResult>;
+  } catch (error) {
+    if (classifyThrown(error, 'legacy').kind === 'refusal') throw error;
+    // Ambiguous writer outcomes use the same bounded exact recovery below.
+  }
+  const recovered = await readSavedDraftClaim(claimId, authority, actorId);
+  return recovered.kind === 'found'
+    ? { success: true as const, claimId: recovered.claimId, claimNumber: recovered.claimNumber }
+    : unavailable();
 }

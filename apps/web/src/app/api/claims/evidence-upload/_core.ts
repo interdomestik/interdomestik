@@ -14,7 +14,8 @@ import {
 } from '@/features/claims/upload/server/access';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 
-import { authorizeSessionTenant, type AuthorizedSession } from '@/lib/tenant-authority.server';
+import { withMemberAcceptance } from '@/lib/privacy/require-member-acceptance';
+import type { AuthorizedSession } from '@/lib/tenant-authority.server';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -62,24 +63,6 @@ async function validateClaimAccess(params: {
   return { success: true, isAdminSurface };
 }
 
-async function resolveTenantAuthority(
-  requestHeaders: Headers
-): Promise<ResponseResult<AuthorizedSession & { tenantId: string }>> {
-  try {
-    const authorized = await authorizeSessionTenant(requestHeaders);
-    if (!authorized) return { success: false, response: jsonError('Unauthorized', 401) };
-    return {
-      success: true,
-      data: {
-        ...authorized,
-        tenantId: readTenantAuthority(authorized.authority).tenantId,
-      },
-    };
-  } catch {
-    return { success: false, response: jsonError('Unauthorized', 401) };
-  }
-}
-
 function resolveEvidenceBucket(): ResponseResult<string> {
   try {
     return { success: true, data: resolveEvidenceBucketName() };
@@ -110,10 +93,9 @@ function captureConfirmFailure(params: {
   });
 }
 
-export async function POST(request: Request) {
-  const tenant = await resolveTenantAuthority(request.headers);
-  if (!tenant.success) return tenant.response;
-  const { session, authority, tenantId } = tenant.data;
+async function uploadEvidence(authorized: AuthorizedSession, request: Request) {
+  const { session, authority } = authorized;
+  const { tenantId } = readTenantAuthority(authority);
   const form = await parseEvidenceUploadForm(request);
   if (!form.success) return form.response;
 
@@ -239,3 +221,11 @@ export async function POST(request: Request) {
 
   return Response.json({ success: true, fileId, storagePath });
 }
+
+export const POST = withMemberAcceptance(uploadEvidence, {
+  authenticationRefusal: () => jsonError('Unauthorized', 401),
+  onError: error => {
+    Sentry.captureException(error);
+    return jsonError('Service unavailable', 503);
+  },
+});

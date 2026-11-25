@@ -1,0 +1,67 @@
+{
+  "legal-documents": {
+    "terms": {
+      "v2026_11_pilot_draft_1": {
+        "title": "Rechtliche Prüfung ausstehend — Nutzungsbedingungen",
+        "intro": "Rechtliche Prüfung ausstehend — Willkommen bei Interdomestik Asistenca. Diese Bedingungen regeln Ihre Mitgliedschaft.",
+        "sections": {
+          "membership": "Rechtliche Prüfung ausstehend — Die Mitgliedschaft gilt 1 Jahr ab dem Kaufdatum. Sie umfasst den Zugang zu unserem Schutznetzwerk und die Vermittlung von Rabatten.",
+          "services": "Rechtliche Prüfung ausstehend — Wir bieten Unterstützung bei der Schadensabwicklung, Rechtsberatung und Schadensbewertung.",
+          "fees": "Rechtliche Prüfung ausstehend — Mitgliedsgebühren werden nach Ablauf des 30-tägigen Erstattungsfensters zum Start nicht erstattet. Erfolgshonorare fallen nur bei erfolgreicher Erstattung im Schadensfall an.",
+          "billing": {
+            "eyebrow": "Rechtliche Prüfung ausstehend — Bedingungen der Jahresmitgliedschaft",
+            "title": "Rechtliche Prüfung ausstehend — Regeln zu jährlicher Abrechnung, Kündigung und Erstattung",
+            "subtitle": "Rechtliche Prüfung ausstehend — Derselbe Vertrag gilt bei den Preisen, an der Kasse und in den Mitgliedereinstellungen.",
+            "sections": {
+              "annualBilling": {
+                "title": "Rechtliche Prüfung ausstehend — Jährliche Abrechnung in v1",
+                "body": "Rechtliche Prüfung ausstehend — Mitgliedschaften werden zum Start jährlich abgerechnet. Die öffentlichen Preise zeigen die Jahresgebühr und die bezahlte Laufzeit, bevor der Bezahlvorgang beginnt."
+              },
+              "cancellation": {
+                "title": "Rechtliche Prüfung ausstehend — Eine Kündigung beendet die nächste Verlängerung",
+                "body": "Rechtliche Prüfung ausstehend — Sie können die Verlängerung jederzeit kündigen. Der Zugang bleibt bis zum Ende der aktuellen bezahlten Laufzeit aktiv, und eine Kündigung reaktiviert keine abgelaufenen Leistungen."
+              },
+              "refundWindow": {
+                "title": "Rechtliche Prüfung ausstehend — 30-tägiges Erstattungsfenster zum Start",
+                "body": "Rechtliche Prüfung ausstehend — Wir erstatten die Mitgliedsgebühr, wenn Sie innerhalb von 30 Tagen nach dem Kauf darum bitten und für diese Mitgliedschaft noch keine vom Team geführte Erstattungsangelegenheit angenommen wurde."
+              },
+              "coolingOff": {
+                "title": "Rechtliche Prüfung ausstehend — Widerrufsrechte bleiben unberührt",
+                "body": "Rechtliche Prüfung ausstehend — Ein gesetzliches Widerrufs- oder Rücktrittsrecht gilt unabhängig von der Erstattungszusage zum Start. Wenn das örtliche Recht eine andere Widerrufsfrist vorsieht, gilt diese gesetzliche Regel."
+              },
+              "acceptedMatters": {
+                "title": "Rechtliche Prüfung ausstehend — Angenommene Eskalationen bestehen nach einer Kündigung fort",
+                "body": "Rechtliche Prüfung ausstehend — Wenn Interdomestik eine Erstattungsangelegenheit bereits angenommen hat, bleiben die vereinbarten Erfolgshonorar- und Eskalationsbedingungen für diese angenommene Angelegenheit in Kraft, auch wenn die Mitgliedschaft später gekündigt wird."
+              }
+            },
+            "footer": {
+              "title": "Rechtliche Prüfung ausstehend — Was die Erstattung abdeckt",
+              "body": "Rechtliche Prüfung ausstehend — Die Erstattung zum Start deckt nur die Mitgliedsgebühr ab. Sie hebt keine Gebühren oder Partnerkosten auf, die für eine angenommene Eskalation bereits vereinbart wurden."
+            }
+          }
+        }
+      }
+    },
+    "privacy_notice": {
+      "v2026_11_pilot_draft_1": {
+        "title": "Rechtliche Prüfung ausstehend — Datenschutzerklärung",
+        "intro": "Rechtliche Prüfung ausstehend — Ihre Privatsphäre ist uns wichtig. Ihre Mitgliedschaft umfasst einen strengen Datenschutz.",
+        "sections": {
+          "handling": {
+            "title": "Rechtliche Prüfung ausstehend — Wie wir mit Ihren Daten umgehen",
+            "body": "Rechtliche Prüfung ausstehend — Wir erheben nur die Informationen, die zur Erbringung der Mitgliedschaftsleistungen, zur Bearbeitung von Schadensfällen und zur Erfüllung gesetzlicher Pflichten erforderlich sind. Der Zugriff ist nach Rolle und Mandantenbereich beschränkt."
+          },
+          "rights": {
+            "title": "Rechtliche Prüfung ausstehend — Ihre Rechte",
+            "body": "Rechtliche Prüfung ausstehend — Sie können Auskunft über Ihre gespeicherten Daten, deren Berichtigung und, soweit gesetzlich zulässig, deren Löschung verlangen."
+          },
+          "deletion": {
+            "title": "Rechtliche Prüfung ausstehend — Löschanträge",
+            "body": "Rechtliche Prüfung ausstehend — Angemeldete Benutzer können über den unten genannten Endpunkt mit einem optionalen JSON-Body einen Löschantrag stellen.",
+            "followup": "Rechtliche Prüfung ausstehend — Anträge werden als Compliance-Ereignisse protokolliert und vom Betrieb geprüft, bevor unumkehrbare Löschvorgänge ausgeführt werden."
+          }
+        }
+      }
+    }
+  }
+}

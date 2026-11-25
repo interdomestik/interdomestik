@@ -1,5 +1,3 @@
-import { getActiveSubscription } from '@interdomestik/domain-membership-billing/subscription';
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { parseSecureSaveCopy } from '@/app/[locale]/components/home/free-start-intake-shell/types';
 // prettier-ignore
 import { Bell, Car, ChevronRight, FileText, Handshake, MapPinned, Plane, ShieldAlert, UserRound } from 'lucide-react';
@@ -7,7 +5,6 @@ import { getTranslations } from 'next-intl/server';
 import { redirect } from 'next/navigation';
 
 import { ActiveCaseSummary } from './active-case-summary';
-import { getCachedClaimDocumentCount } from './data';
 import { DocumentVaultSummary } from './document-vault-summary';
 import { getDraftManagerHref, getRoleRedirect } from './helpers';
 // prettier-ignore
@@ -21,6 +18,7 @@ import type { DashboardTranslator, MemberDashboardViewProps } from './types';
 import { getNextStep } from './next-step';
 
 export type { MemberDashboardViewProps } from './types';
+export { getDashboardSupplementalData } from './data';
 
 // prettier-ignore
 const OPEN_STATUSES = new Set(['draft', 'submitted', 'verification', 'evaluation', 'negotiation', 'court']);
@@ -186,38 +184,6 @@ t={t}
 <MobileBottomNav labels={{ cases: t('bottomNav.cases'), documents: t('bottomNav.documents'), help: t('bottomNav.help'), home: t('bottomNav.home'), label: t('bottomNav.label'), more: t('bottomNav.more') }} locale={locale} />
 </main>
 );
-}
-
-// prettier-ignore
-export async function getDashboardSupplementalData({ memberId, authority }: { memberId: string; authority: TenantAuthority | null }) {
-  if (!authority) {
-    return [null, 0, false] as const;
-  }
-
-  const [subscriptionResult, documentsCountResult] = await Promise.allSettled([
-    getActiveSubscription(memberId, authority),
-    getCachedClaimDocumentCount(memberId, authority),
-  ]);
-
-  if (subscriptionResult.status === 'rejected') {
-    console.error(
-      '[MemberDashboardView] Active subscription lookup failed:',
-      subscriptionResult.reason
-    );
-  }
-
-  if (documentsCountResult.status === 'rejected') {
-    console.error(
-      '[MemberDashboardView] Document summary lookup failed:',
-      documentsCountResult.reason
-    );
-  }
-
-  return [
-    subscriptionResult.status === 'fulfilled' ? subscriptionResult.value : null,
-    documentsCountResult.status === 'fulfilled' ? documentsCountResult.value : 0,
-    subscriptionResult.status === 'fulfilled',
-  ] as const;
 }
 
 // prettier-ignore

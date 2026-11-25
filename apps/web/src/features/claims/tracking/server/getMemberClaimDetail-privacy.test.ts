@@ -27,9 +27,21 @@ vi.mock('@interdomestik/domain-claims', () => ({
   resolveClaimLifecycleReadProjection: () => ({ status: 'rejected' }),
   toMemberSafeRecoveryDecision: () => null,
 }));
-vi.mock('@interdomestik/database', () => ({
-  withTenantContext: vi.fn(async (_context: unknown, callback: (tx: unknown) => unknown) =>
-    callback({
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: () =>
+    Promise.resolve({
+      ok: true,
+      authorized: {
+        session: { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
+        authority,
+      },
+    }),
+}));
+
+vi.mock('@interdomestik/database', () => ({ ERASURE_REDACTED_VALUE: '[erased]' }));
+vi.mock('@interdomestik/database/tenant-authority-context', () => ({
+  withTenantAuthority: vi.fn((_context: unknown, callback: (tx: unknown) => unknown) => {
+    const tx = {
       query: { claims: { findFirst: mocks.claim } },
       select: () => ({
         from: () => ({
@@ -44,9 +56,9 @@ vi.mock('@interdomestik/database', () => ({
           }),
         }),
       }),
-    })
-  ),
-  ERASURE_REDACTED_VALUE: '[erased]',
+    };
+    return new Promise(resolve => resolve(callback(tx)));
+  }),
 }));
 vi.mock('@interdomestik/database/schema', () => ({
   claimDocuments: { createdAt: 'createdAt' },
@@ -124,11 +136,7 @@ describe('member claim detail privacy', () => {
     ]);
     mocks.decision.mockResolvedValueOnce([]);
 
-    await getMemberClaimDetail(
-      { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
-      authority,
-      'claim-scoped'
-    );
+    await getMemberClaimDetail('claim-scoped');
 
     expect(mocks.timeline).toHaveBeenCalledWith(
       {
@@ -139,7 +147,6 @@ describe('member claim detail privacy', () => {
         piiStatus: 'available',
         updatedAt,
       },
-      authority,
       expect.objectContaining({ query: { claims: { findFirst: mocks.claim } } })
     );
   });
@@ -189,11 +196,7 @@ describe('member claim detail privacy', () => {
       },
     ]);
 
-    const result = await getMemberClaimDetail(
-      { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
-      authority,
-      'claim-sensitive'
-    );
+    const result = await getMemberClaimDetail('claim-sensitive');
 
     expect(result?.timeline[0]?.note).toBeNull();
     expect(result?.timeline[1]?.note).toBe('We cannot accept this matter for staff-led recovery.');
@@ -259,11 +262,7 @@ describe('member claim detail privacy', () => {
       ]);
       mocks.decision.mockResolvedValueOnce([decision]);
 
-      const result = await getMemberClaimDetail(
-        { user: { id: 'member-1', role: 'member', tenantId: 'tenant-1' } },
-        authority,
-        'claim-ordinary'
-      );
+      const result = await getMemberClaimDetail('claim-ordinary');
 
       expect(result?.timeline[0]?.note).toBe('Please upload the receipt.');
       expect(result?.progressSummary.latestUpdateNote).toBe('Please upload the receipt.');

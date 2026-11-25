@@ -1,3 +1,5 @@
+import '@/test/tenant-transaction.test-support';
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { expectCommercialTerms } from '@/test/commercial-terms-test-utils';
@@ -12,6 +14,7 @@ const hoisted = vi.hoisted(() => ({
   getSessionMock: vi.fn(async () => ({
     user: {
       id: 'member-1',
+      role: 'member',
       name: 'Member One',
       image: null,
       tenantId: 'tenant-1',
@@ -113,6 +116,15 @@ vi.mock('@interdomestik/database/tenant-security', () => ({
 import SettingsPage from './_core.entry';
 
 describe('SettingsPage commercial billing terms', () => {
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    const tree = await SettingsPage({ params: Promise.resolve({ locale: 'en' }) });
+    expect(tree.props).toMatchObject({
+      refusal: { ok: false, failure: { code: 'acceptance_required' } },
+    });
+    expect(hoisted.userFindFirstMock).not.toHaveBeenCalled();
+  });
+
   it.each(['en', 'sq', 'mk', 'sr', 'de'])('renders settings in %s', async locale => {
     const tree = await SettingsPage({
       params: Promise.resolve({ locale }),

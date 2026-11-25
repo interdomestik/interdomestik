@@ -1,8 +1,9 @@
 // prettier-ignore
-import { account, db, E2E_PASSWORD, eq, session as authSession, subscriptions, user } from '@interdomestik/database';
+import { account, and, db, E2E_PASSWORD, eq, session as authSession, subscriptions, user } from '@interdomestik/database';
 import { randomUUID } from 'node:crypto';
 import type { Page, TestInfo } from '@playwright/test';
 import { expect, test } from '../fixtures/auth.fixture';
+import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
 import en from '../../src/messages/en/dashboard.json';
@@ -65,9 +66,14 @@ test.describe('Unified Member Portal', () => {
     const copy = portalCopy(testInfo);
     const tenantId = testInfo.project.name.includes('mk') ? 'tenant_mk' : 'tenant_ks';
     const subId = `t117b-${testInfo.project.name}-${testInfo.workerIndex}-${testInfo.retry}-${randomUUID()}`;
-    const email = `${subId}@example.com`;
+    const email = `${subId}@example.test`;
     const origin = new URL(String(testInfo.project.use.baseURL)).origin;
-    let uid: string | null = null;
+    const findMember = () =>
+      db.query.user.findFirst({
+        columns: { id: true, tenantId: true, email: true, branchId: true },
+        where: and(eq(user.email, email), eq(user.tenantId, tenantId)),
+      });
+    let member: Awaited<ReturnType<typeof findMember>>;
     const where = eq(subscriptions.id, subId);
     // prettier-ignore
     const set = (values: { status: 'active' | 'canceled' | 'past_due' | 'trialing'; cancelAtPeriodEnd?: boolean; gracePeriodEndsAt?: Date | null }) => db.update(subscriptions).set({ cancelAtPeriodEnd: false, gracePeriodEndsAt: null, ...values }).where(where);
@@ -85,9 +91,9 @@ test.describe('Unified Member Portal', () => {
       // prettier-ignore
       const signup = await page.request.post(`${origin}/api/auth/sign-up/email`, { data: { email, name: 'T117B lifecycle', onboarding: { mode: 'resolved', tenant: tenantId }, password: E2E_PASSWORD }, headers: { Origin: origin, Referer: `${origin}/register` } });
       if (!signup.ok()) throw new Error(`T117B signup failed: ${await signup.text()}`);
-      // prettier-ignore
-      const member = (await signup.json()).user as { branchId: string | null; id: string; tenantId: string };
-      uid = member.id;
+      member = await findMember();
+      if (!member) throw new Error('T117B lifecycle member was not created in the expected tenant');
+      await fixtureLegalAcceptance('seed', [member]);
       // prettier-ignore
       await db.insert(subscriptions).values({ branchId: member.branchId, id: subId, planId: 'standard', status: 'active', tenantId: member.tenantId, userId: member.id });
       await openPortal(page, testInfo);
@@ -103,8 +109,8 @@ test.describe('Unified Member Portal', () => {
       await state({ status: 'canceled' }, null, null, membership);
     } finally {
       await db.delete(subscriptions).where(where);
-      // prettier-ignore
-      uid ??= (await db.query.user.findFirst({ columns: { id: true }, where: eq(user.email, email) }))?.id ?? null;
+      if (member) await fixtureLegalAcceptance('clean', [member]);
+      const uid = member?.id ?? (await findMember())?.id;
       if (uid) {
         await db.delete(authSession).where(eq(authSession.userId, uid));
         await db.delete(account).where(eq(account.userId, uid));

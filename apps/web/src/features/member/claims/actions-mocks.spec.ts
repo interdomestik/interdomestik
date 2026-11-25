@@ -1,3 +1,5 @@
+import '@/test/tenant-transaction.test-support';
+import '@/test/member-acceptance.test-support';
 import { beforeEach, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => {
@@ -45,7 +47,8 @@ vi.mock('next/headers', () => ({
   headers: hoisted.headers,
 }));
 
-vi.mock('@interdomestik/shared-auth', () => ({
+vi.mock('@interdomestik/shared-auth', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/shared-auth')>()),
   ensureTenantId: hoisted.ensureTenantId,
 }));
 
@@ -87,7 +90,8 @@ vi.mock('@/lib/ai/claim-workflows', () => ({
   markClaimAiRunDispatchFailedService: hoisted.markClaimAiRunDispatchFailedService,
 }));
 
-vi.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
   and: hoisted.and,
   eq: hoisted.eq,
 }));

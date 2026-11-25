@@ -1,3 +1,4 @@
+import '@/test/tenant-transaction.test-support';
 import { type TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { vi } from 'vitest';
 
@@ -59,7 +60,8 @@ vi.mock('@interdomestik/database/schema', () => ({
     userId: 'user_id',
   },
 }));
-vi.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
   eq: hoistedMocks.eq,
   and: hoistedMocks.and,
 }));

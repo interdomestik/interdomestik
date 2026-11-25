@@ -1,3 +1,4 @@
+import '@/test/tenant-transaction.test-support';
 import { type TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { expect, vi } from 'vitest';
 
@@ -104,7 +105,7 @@ export async function expectMissingTenantIdentity(response: Response): Promise<v
   const data = await response.json();
 
   expect(response.status).toBe(401);
-  expect(data).toEqual({ error: 'Missing tenant identity' });
+  expect(data).toEqual({ error: 'UNAUTHORIZED' });
   expect(mockSelectChain.from).not.toHaveBeenCalled();
   expect(mockInsertChain.values).not.toHaveBeenCalled();
   expect(mockUpdateChain.set).not.toHaveBeenCalled();

@@ -15,7 +15,8 @@ export async function getPaymentUpdateUrl(subscriptionId: string) {
     return { ...(await subscriptionClosedFailure()), url: undefined };
   }
 
-  const { session, authority } = await getActionContext();
+  const { session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required') return { error: failure.code, url: undefined };
   return getPaymentUpdateUrlCore({ session, authority, subscriptionId });
 }
 
@@ -24,7 +25,9 @@ export async function cancelSubscription(subscriptionId: string, idempotencyKey?
     return subscriptionClosedFailure();
   }
 
-  const { session, authority } = await getActionContext();
+  const { session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   const result = await cancelSubscriptionCore(
     { session, authority, subscriptionId, idempotencyKey },
     { logAuditEvent }

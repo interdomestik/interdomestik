@@ -1,3 +1,5 @@
+import '@/test/tenant-transaction.test-support';
+import '@/test/member-acceptance.test-support';
 import { vi } from 'vitest';
 
 // Hoisted mocks must be defined before vi.mock calls
@@ -110,7 +112,8 @@ vi.mock('@/lib/audit', () => ({
   logAuditEvent: vi.fn().mockResolvedValue(undefined),
 }));
 
-vi.mock('drizzle-orm', () => ({
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
   eq: vi.fn(),
   ne: vi.fn(),
   and: vi.fn(),

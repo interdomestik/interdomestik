@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { type NextRequest } from 'next/server';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -55,7 +56,9 @@ describe('POST /api/policies/analyze', () => {
   beforeEach(() => {
     vi.resetModules();
     vi.clearAllMocks();
-    hoisted.getSession.mockResolvedValue({ user: { id: 'user-1', tenantId: 'tenant_mk' } });
+    hoisted.getSession.mockResolvedValue({
+      user: { id: 'user-1', role: 'member', tenantId: 'tenant_mk' },
+    });
     hoisted.enforceRateLimit.mockResolvedValue(null);
     hoisted.analyzePolicyImages.mockResolvedValue({ provider: 'Test' });
     hoisted.analyzePolicyText.mockResolvedValue({ provider: 'Test' });
@@ -84,6 +87,18 @@ describe('POST /api/policies/analyze', () => {
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://supabase.test';
     process.env.SUPABASE_SERVICE_ROLE_KEY = 'service-key';
     process.env.POLICY_ANALYSIS_TIMEOUT_MS = '';
+  });
+
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    const { POST } = await import('./route');
+    const response = await POST(
+      new Request('http://localhost/api/policies/analyze', { method: 'POST' })
+    );
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: 'acceptance_required' });
+    expect(hoisted.upload).not.toHaveBeenCalled();
+    expect(hoisted.inngestSend).not.toHaveBeenCalled();
   });
 
   it('returns rate limit response directly', async () => {

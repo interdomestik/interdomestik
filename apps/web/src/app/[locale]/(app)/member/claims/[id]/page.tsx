@@ -1,7 +1,6 @@
-import { getSessionSafe } from '@/components/shell/session';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
-import { headers } from 'next/headers';
-import { notFound, redirect } from 'next/navigation';
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
+import { requireMemberAcceptancePage } from '@/lib/privacy/require-member-acceptance';
+import { notFound } from 'next/navigation';
 import { getMemberClaimDetail } from '@/features/claims/tracking/server/getMemberClaimDetail';
 import { serializeMemberVaultConsentDisplay } from '@/features/claims/tracking/server/member-vault-consent-serialization';
 import { MemberClaimDetailOpsPage } from '@/features/member/claims/components/MemberClaimDetailOpsPage';
@@ -21,18 +20,12 @@ export default async function ClaimDetailsPage({ params }: PageProps) {
   const { id, locale } = await params;
   setRequestLocale(locale);
 
-  const session = await getSessionSafe('MemberClaimDetailsPage');
-
-  if (!session) {
-    redirect(`/${locale}/login?callbackUrl=/${locale}/member/claims/${id}`);
-  }
+  const admission = await requireMemberAcceptancePage();
+  if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
+  const { session, authority } = admission.authorized;
   const memberSession = withMemberActorRoleOnSession(session);
 
-  const authorized = await authorizeSessionTenant(await headers());
-
-  const authority = authorized?.authority ?? null;
-
-  const claim = await getMemberClaimDetail(memberSession, authority, id);
+  const claim = await getMemberClaimDetail(id);
 
   if (!claim) {
     return notFound();

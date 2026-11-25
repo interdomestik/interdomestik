@@ -5,9 +5,6 @@ import {
   type Event,
   type rewriteFramesIntegration,
 } from '@sentry/nextjs';
-import { createRequire } from 'node:module';
-import { dirname, join } from 'node:path';
-import { pathToFileURL } from 'node:url';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { scrubSentryEvent } from './sentry-privacy';
 
@@ -134,11 +131,9 @@ describe('Sentry exception classification', () => {
     const sourceFile = `${process.cwd()}/.next/server/chunks/97131.js`;
     const stack = `PostgresError: private\n    at r (${sourceFile}:310:9)`;
     vi.stubGlobal('_sentryDebugIds', { [stack]: DEBUG_ID });
-    const sdkDirectory = dirname(
-      createRequire(import.meta.url).resolve('@sentry/nextjs/package.json')
-    );
-    const integrationPath = pathToFileURL(
-      join(sdkDirectory, 'build/esm/server/distDirRewriteFramesIntegration.js')
+    const integrationPath = new URL(
+      'build/esm/server/distDirRewriteFramesIntegration.js',
+      import.meta.resolve('@sentry/nextjs/package.json')
     ).href;
     const {
       distDirRewriteFramesIntegration,
