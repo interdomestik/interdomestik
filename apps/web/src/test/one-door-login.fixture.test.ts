@@ -17,12 +17,14 @@ vi.mock('@interdomestik/database', () => ({
   E2E_USERS: { KS_ADMIN: { email: 'admin@example.invalid' } },
 }));
 vi.mock('../../e2e/fixtures/one-door-data.fixture', () => ({
-  requireDoorActor: vi.fn(async () => ({
-    id: 'seed-admin',
-    tenantId: 'tenant_ks',
-    role: 'tenant_admin',
-    branchId: null,
-  })),
+  requireDoorActor: vi.fn(() =>
+    Promise.resolve({
+      id: 'seed-admin',
+      tenantId: 'tenant_ks',
+      role: 'tenant_admin',
+      branchId: null,
+    })
+  ),
 }));
 vi.mock('../../e2e/utils/navigation', () => ({ gotoApp: vi.fn() }));
 
@@ -34,9 +36,15 @@ function startLogin() {
   const redirect = createSignal<void>();
   const waitingForRedirect = createSignal<void>();
   const submitted = createSignal<void>();
-  const click = vi.fn(async () => submitted.resolve());
+  const click = vi.fn(() => {
+    submitted.resolve();
+    return Promise.resolve();
+  });
   const visibility = { click: vi.fn() };
-  const locator = { _apiName: 'Locator', _expect: vi.fn(async () => ({ matches: true })) };
+  const locator = {
+    _apiName: 'Locator',
+    _expect: vi.fn(() => Promise.resolve({ matches: true })),
+  };
   const password = {
     ...locator,
     locator: () => ({ getByRole: () => visibility }),
@@ -49,12 +57,15 @@ function startLogin() {
     waitingForRedirect.resolve();
     return redirect.promise;
   });
-  const get = vi.fn(async () => ({
-    status: () => 200,
-    json: async () => ({
-      user: { id: 'seed-admin', tenantId: 'tenant_ks', role: 'tenant_admin', branchId: null },
-    }),
-  }));
+  const get = vi.fn(() =>
+    Promise.resolve({
+      status: () => 200,
+      json: () =>
+        Promise.resolve({
+          user: { id: 'seed-admin', tenantId: 'tenant_ks', role: 'tenant_admin', branchId: null },
+        }),
+    })
+  );
   const page = {
     getByTestId: (id: string) =>
       ({ 'login-submit': { click }, 'login-email': email, 'login-password': password })[id],
