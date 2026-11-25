@@ -186,7 +186,7 @@ for (const [label, change, message] of [
   [
     'the staff RLS runner is missing',
     root => rmSync(join(root, 'scripts/run-staff-detail-rls.mjs')),
-    /Missing staff detail runner/u,
+    'Missing staff detail runner',
   ],
   [
     'the billing RLS opt-in is missing',
@@ -197,7 +197,7 @@ for (const [label, change, message] of [
       manifest.scripts['test:rls'] = manifest.scripts['test:rls'].replace(`${billingFlag} `, '');
       writeFileSync(file, JSON.stringify(manifest));
     },
-    new RegExp(`Missing ${billingFlag}`, 'u'),
+    `Missing ${billingFlag}`,
   ],
 ]) {
   test(`withdraws protected RLS credit when ${label}`, t => {
@@ -222,7 +222,8 @@ for (const [label, change, message] of [
       warnings.map(([lane]) => lane),
       ['e2e-gate/RLS']
     );
-    assert.match(warnings[0][1].message, message);
+    const actual = warnings[0][1].message;
+    assert.ok(actual.includes(message), `Expected "${actual}" to include "${message}"`);
   });
 }
 

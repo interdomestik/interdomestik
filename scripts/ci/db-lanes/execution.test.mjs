@@ -51,7 +51,8 @@ test('refuses incomplete, skipped, TODO, retried, or zero-case results', () => {
   );
   for (const key of ['failed', 'skipped', 'todo', 'cancelled', 'retried']) {
     const report = { complete: true, files: [{ ...passed, [key]: 1 }] };
-    assert.match(checkExecution([selected], report).join(), new RegExp(`\\b${key}\\b`, 'u'));
+    const problems = checkExecution([selected], report).join();
+    assert.ok(problems.split(/\W+/u).includes(key), `Expected the word "${key}" in "${problems}"`);
   }
   assert.match(
     checkExecution([selected], { complete: true, files: [{ ...passed, passed: 0 }] }).join(),
