@@ -4,6 +4,7 @@
 // confirmed CI container before it constructs a driver (R-13).
 import { randomBytes } from 'node:crypto';
 import { type DisposableClient, withDisposableClient } from '../../src/disposable-client';
+import { assertDisposableTarget } from '../../src/seed-target-guard';
 
 export type ScratchClient = DisposableClient;
 export { migrateJournal } from './journal-migrator';
@@ -16,25 +17,55 @@ export function scratchServerMissing(requiredBy: string): string | undefined {
   return 'DATABASE_URL names no disposable server';
 }
 
-export function withScratchDatabase<T>(
+export async function withScratchDatabase<T>(
   prefix: string,
-  work: (client: ScratchClient) => Promise<T>
+  work: (client: ScratchClient, maintenance: ScratchClient) => Promise<T>,
+  { maxConnections, loopbackOnly }: { maxConnections?: number; loopbackOnly?: boolean } = {}
 ): Promise<T> {
   const adminUrl = process.env.DATABASE_URL ?? '';
+  if (loopbackOnly) {
+    // Without CI confirmation the target guard admits only loopback.
+    const { PGHOST, PGHOSTADDR, PGUSER, PGUSERNAME } = process.env;
+    assertDisposableTarget({ DATABASE_URL: adminUrl, PGHOST, PGHOSTADDR, PGUSER, PGUSERNAME });
+  }
   const name = `${prefix}_${randomBytes(6).toString('hex')}`;
-  // The factory classifies (and, on refusal, redacts) the admin URL before anything parses it here.
-  return withDisposableClient(adminUrl, { applicationName: 'wp04_scratch_admin' }, async admin => {
-    const scratchUrl = new URL(adminUrl);
-    scratchUrl.pathname = `/${name}`;
-    await admin.unsafe(`create database "${name}"`);
-    try {
-      return await withDisposableClient(
-        scratchUrl.toString(),
-        { applicationName: 'wp04_scratch' },
-        work
+  let workFailure: { error: unknown } | undefined;
+  try {
+    return await withDisposableClient(
+      adminUrl,
+      { applicationName: 'wp04_scratch_admin' },
+      async admin => {
+        const scratchUrl = new URL(adminUrl);
+        scratchUrl.pathname = `/${name}`;
+        await admin.unsafe(`create database "${name}"`);
+        try {
+          return await withDisposableClient(
+            scratchUrl.toString(),
+            { applicationName: 'wp04_scratch', max: maxConnections },
+            async client => {
+              try {
+                return await work(client, admin);
+              } catch (error) {
+                workFailure = { error };
+                throw error;
+              }
+            }
+          );
+        } finally {
+          await admin.unsafe(`drop database if exists "${name}" with (force)`);
+        }
+      }
+    );
+  } catch (error) {
+    if (workFailure && !Object.is(error, workFailure.error)) {
+      throw new AggregateError(
+        [workFailure.error, error],
+        'Scratch database work and teardown both failed',
+        {
+          cause: workFailure.error,
+        }
       );
-    } finally {
-      await admin.unsafe(`drop database if exists "${name}" with (force)`);
     }
-  });
+    throw error;
+  }
 }
