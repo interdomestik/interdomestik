@@ -603,37 +603,37 @@
     "file": "packages/database/test/migration-callback-boundary.test.ts",
     "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its canonical corpus check rejects main's drizzle directory: migration-corpus-manifest.ts pins the 2026-09 corpus hashes and migration-corpus-directories.ts caps the root at 101 entries (main has 109 including meta).",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and its corpus manifest, entry cap, callback-plan journal count and static size ceilings follow the live migration journal."
+    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
   },
   {
     "file": "packages/database/test/migration-callback-plan.test.ts",
     "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its canonical corpus check rejects main's drizzle directory: migration-corpus-manifest.ts pins the 2026-09 corpus hashes and migration-corpus-directories.ts caps the root at 101 entries (main has 109 including meta).",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and its corpus manifest, entry cap, callback-plan journal count and static size ceilings follow the live migration journal."
+    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
   },
   {
     "file": "packages/database/test/migration-callback-validation.test.ts",
     "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its callback-plan builder expects the 96-entry journal of 2026-09 (migration-callback-plan-builder.ts:75) and rejects main's 108 entries.",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and its corpus manifest, entry cap, callback-plan journal count and static size ceilings follow the live migration journal."
+    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
   },
   {
     "file": "packages/database/test/migration-corpus-boundary.test.ts",
     "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its canonical corpus check rejects main's drizzle directory: migration-corpus-manifest.ts pins the 2026-09 corpus hashes and migration-corpus-directories.ts caps the root at 101 entries (main has 109 including meta).",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and its corpus manifest, entry cap, callback-plan journal count and static size ceilings follow the live migration journal."
+    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
   },
   {
     "file": "packages/database/test/migration-corpus-journal.test.ts",
-    "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its direct journal hash and length assertions pin the 2026-09 journal; the copied-corpus cases pass.",
+    "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its assertions pin the 2026-09 journal: the per-file SQL hashes in journal order and a journal length of 96 (main has 108); the copied-corpus cases pass.",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and its corpus manifest, entry cap, callback-plan journal count and static size ceilings follow the live migration journal."
+    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
   },
   {
     "file": "packages/database/test/migration-corpus.test.ts",
     "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its canonical corpus check rejects main's drizzle directory: migration-corpus-manifest.ts pins the 2026-09 corpus hashes and migration-corpus-directories.ts caps the root at 101 entries (main has 109 including meta).",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and its corpus manifest, entry cap, callback-plan journal count and static size ceilings follow the live migration journal."
+    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
   },
   {
     "file": "packages/database/test/migration-execution-boundary.test.ts",
@@ -657,7 +657,7 @@
     "file": "packages/database/test/migration-ledger-inspection-faults.test.ts",
     "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its canonical corpus check rejects main's drizzle directory: migration-corpus-manifest.ts pins the 2026-09 corpus hashes and migration-corpus-directories.ts caps the root at 101 entries (main has 109 including meta). It reaches the check through authenticCorpus().",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and its corpus manifest, entry cap, callback-plan journal count and static size ceilings follow the live migration journal."
+    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
   },
   {
     "file": "packages/database/test/migration-ledger-inspection.test.ts",
@@ -675,7 +675,7 @@
     "file": "packages/database/test/migration-runtime-role-fixture-boundary.test.ts",
     "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its static boundary scan fails because the kernel's migration-corpus-validator.ts has 151 lines against the test's 150-line ceiling, unchanged since 2026-09.",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and its corpus manifest, entry cap, callback-plan journal count and static size ceilings follow the live migration journal."
+    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
   },
   {
     "file": "packages/database/test/pg16/migration-runtime-role-fixture.test.ts",
