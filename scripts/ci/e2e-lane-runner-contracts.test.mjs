@@ -5,7 +5,8 @@ import test from 'node:test';
 
 import { playwrightReportArgs } from './playwright-lane-evidence.mjs';
 
-const runner = readFileSync(new URL('../run-e2e-lane.mjs', import.meta.url), 'utf8');
+const runnerUrl = new URL('../run-e2e-lane.mjs', import.meta.url);
+const runner = readFileSync(runnerUrl, 'utf8');
 const helper = readFileSync(new URL('run-detached-command.mjs', import.meta.url), 'utf8');
 const playwrightConfig = readFileSync(
   new URL('../../apps/web/playwright.config.ts', import.meta.url),
@@ -62,10 +63,11 @@ test('PR verification owns the full gate and orchestration never repeats it or R
 
 test('canonical PR lanes consolidate MK while pilot invocations retain the legacy project', () => {
   // The gate path filter keeps the security specs that GATE_SECURITY_MATCH admits.
-  assert.match(runner, /const gateArgs = \['e2e\/gate', 'e2e\/security', \.\.\.strictWorkers\];/u);
+  assert.match(runner, /const gatePaths = \['e2e\/gate', 'e2e\/security'\];/u);
+  assert.match(runner, /playwrightArgs: \[\.\.\.gatePaths, \.\.\.runnerArgs, \.\.\.projects\]/u);
   assert.match(runner, /pr: gateLane\(\[ksSq, mkContract\], true\)/u);
   assert.match(runner, /'pr-fast': gateLane\(\[ksSq, mkContract\]\)/u);
-  assert.match(runner, /gate: gateLane\(\[ksSq, mkMk\], true\)/u);
+  assert.match(runner, /gate: gateLane\(\[ksSq, mkMk\], true, fullGateWorkers\)/u);
   assert.match(runner, /'gate-fast': gateLane\(\[ksSq, mkMk\]\)/u);
   assert.match(
     runner,
@@ -81,7 +83,6 @@ test('split PR gates retain strict fast setup and smoke retains its package argu
   assert.match(runner, /'pr-mk-contract': gateLane\(\[mkContract\], true\)/u);
   assert.match(runner, /const fastEnv = \{ PW_FAST_GATES: '1' \};/u);
   assert.match(runner, /const strictWorkers = \['--workers=1', \.\.\.strictArgs\];/u);
-  assert.match(runner, /const strictArgs = \['--max-failures=1', \.\.\.reportArgs\];/u);
   assert.match(
     runner,
     /const setupArgs = \['e2e\/setup\.state\.spec\.ts', '--project=setup-ks', '--project=setup-mk'\];/u
@@ -92,10 +93,74 @@ test('split PR gates retain strict fast setup and smoke retains its package argu
   );
 });
 
+// Execute the runner with host preparation and subprocesses stubbed out.
+const capProbe = `
+  import { registerHooks } from 'node:module';
+  Object.defineProperty(process, 'platform', { value: process.env.TEST_PLATFORM });
+  const stubs = {
+    './ci/ensure-local-test-hosts.mjs': 'export async function ensureLocalTestHosts() {}',
+    './ci/run-detached-command.mjs': \`
+      export async function runDetachedCommand(command, args) {
+        if (command === 'pnpm' && args.includes('playwright')) {
+          console.log(JSON.stringify(args.filter(arg => /^--max-failures(?:=|$)|^-x$/.test(arg))));
+        }
+      }
+    \`,
+  };
+  registerHooks({
+    resolve(specifier, context, nextResolve) {
+      return nextResolve(Object.hasOwn(stubs, specifier)
+        ? 'data:text/javascript,' + encodeURIComponent(stubs[specifier])
+        : specifier, context);
+    },
+  });
+`;
+
+test('only the local Mac full gate uses a cap of 10', () => {
+  const macLanes = {
+    state: [1],
+    gate: [1, 10],
+    pr: [1, 1],
+    'pr-ks': [1, 1],
+    'pr-mk-contract': [1, 1],
+    'pr-smoke': [null],
+    'gate-fast': [1],
+    'pr-fast': [1],
+    merge: [null],
+    'merge-fast': [null],
+    'smoke-ida': [1],
+    ks: [1],
+    mk: [1],
+    'ks-fast': [1],
+    'mk-fast': [1],
+    'front-door': [1],
+  };
+  const cases = [
+    ...Object.entries(macLanes).map(([lane, caps]) => ({ lane, caps, platform: 'darwin' })),
+    { lane: 'gate', caps: [1, 1], platform: 'darwin', hosted: true },
+    { lane: 'gate', caps: [1, 1], platform: 'linux' },
+  ];
+  const preload = `data:text/javascript,${encodeURIComponent(capProbe)}`;
+  for (const { lane, caps, platform, hosted } of cases) {
+    const label = `${lane} (${platform}${hosted ? ', hosted' : ''})`;
+    const result = spawnSync(process.execPath, ['--import', preload, runnerUrl.pathname, lane], {
+      encoding: 'utf8',
+      env: {
+        TEST_PLATFORM: platform,
+        GITHUB_ACTIONS: hosted ? 'true' : 'false',
+        SKIP_DOCKER_DOCTOR: '1',
+        BETTER_AUTH_SECRET: 'fixture-value-for-lane-cap-test-only',
+      },
+    });
+    assert.equal(result.status, 0, `${label}: ${result.stderr}`);
+    const expected = caps.map(cap => (cap === null ? [] : [`--max-failures=${cap}`]));
+    assert.deepEqual(result.stdout.trim().split('\n').map(JSON.parse), expected, label);
+  }
+});
+
 test('an empty or unknown lane is refused before any preparation runs', () => {
-  const script = new URL('../run-e2e-lane.mjs', import.meta.url).pathname;
   for (const lane of ['', 'pr-unknown']) {
-    const result = spawnSync(process.execPath, [script, lane], {
+    const result = spawnSync(process.execPath, [runnerUrl.pathname, lane], {
       encoding: 'utf8',
       // If lane selection ever regressed, the too-short secret would stop the runner at secret
       // validation (exit 1), before host preparation, the doctor or the gatekeeper could run.

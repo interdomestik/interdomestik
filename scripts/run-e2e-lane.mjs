@@ -41,9 +41,14 @@ const reportArgs = playwrightReportArgs(process.env.PW_EVIDENCE_LANE);
 const strictArgs = ['--max-failures=1', ...reportArgs];
 const workerArgs = ['--workers=1', ...reportArgs];
 const strictWorkers = ['--workers=1', ...strictArgs];
+// Hosted main CI also runs the full gate.
+const fullGateWorkers =
+  process.platform === 'darwin' && process.env.GITHUB_ACTIONS !== 'true'
+    ? ['--workers=1', '--max-failures=10', ...reportArgs]
+    : strictWorkers;
 // The gate projects also admit the configured security specs (GATE_SECURITY_MATCH); the path filter
 // must not drop them.
-const gateArgs = ['e2e/gate', 'e2e/security', ...strictWorkers];
+const gatePaths = ['e2e/gate', 'e2e/security'];
 const setupArgs = ['e2e/setup.state.spec.ts', '--project=setup-ks', '--project=setup-mk'];
 const mergeArgs = ['e2e/gate', 'e2e/golden', '--grep-invert', '@quarantine|@visual|@legacy'];
 const pwArgs = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
@@ -52,11 +57,11 @@ const ksSq = '--project=gate-ks-sq';
 const mkMk = '--project=gate-mk-mk';
 const mkContract = '--project=gate-mk-contract';
 const smokeIda = '--project=smoke-ida';
-const gateLane = (projects, state = false) => ({
+const gateLane = (projects, state = false, runnerArgs = strictWorkers) => ({
   gatekeeper: true,
   state,
   env: fastEnv,
-  playwrightArgs: [...gateArgs, ...projects],
+  playwrightArgs: [...gatePaths, ...runnerArgs, ...projects],
 });
 const projectLane = (project, env) => ({
   gatekeeper: true,
@@ -65,7 +70,7 @@ const projectLane = (project, env) => ({
 });
 const laneDefinitions = {
   state: { playwrightArgs: [...setupArgs, ...strictWorkers] },
-  gate: gateLane([ksSq, mkMk], true),
+  gate: gateLane([ksSq, mkMk], true, fullGateWorkers),
   pr: gateLane([ksSq, mkContract], true),
   'pr-ks': gateLane([ksSq], true),
   'pr-mk-contract': gateLane([mkContract], true),
