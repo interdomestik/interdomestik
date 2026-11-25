@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 /** Same claim fixtures through all three mounted actions; an in-memory model, not RLS proof. */
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { noNotification, reply } from './public-reply-flow.test-support';
@@ -16,6 +17,7 @@ type Admission = {
   send: boolean;
   read: boolean;
   internal: boolean;
+  refusal?: 'Unauthorized';
 };
 const roles: Admission[] = [
   { role: 'member', send: true, read: true, internal: false },
@@ -28,8 +30,8 @@ const roles: Admission[] = [
   { role: 'super_admin', send: true, read: true, internal: true },
   { role: 'auditor', send: false, read: false, internal: false },
   { role: 'global_support', send: false, read: true, internal: false },
-  { role: 'unknown', send: false, read: false, internal: false },
-  { role: 'admin,member', send: false, read: false, internal: false },
+  { role: 'unknown', send: false, read: false, internal: false, refusal: 'Unauthorized' },
+  { role: 'admin,member', send: false, read: false, internal: false, refusal: 'Unauthorized' },
 ];
 const messageIds = ['public-message', 'internal-message', 'unspecified-message'];
 
@@ -69,6 +71,25 @@ const visibleIds = (row: Admission): string[] => (row.internal ? messageIds : [m
 describe('explicit messaging role admission', () => {
   beforeEach(seedConversation);
 
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    actAs('member');
+    const before = structuredClone(state.rows);
+    expect(await getMessagesForClaim(ids.claim)).toEqual({
+      success: false,
+      error: 'acceptance_required',
+    });
+    refuseAcceptance();
+    expect(await reply()).toEqual({ success: false, error: 'acceptance_required' });
+    refuseAcceptance();
+    expect(await markMessagesAsRead(messageIds)).toEqual({
+      success: false,
+      error: 'acceptance_required',
+    });
+    expect(state.rows).toEqual(before);
+    noWriteEffects();
+  });
+
   it('covers every declared role plus legacy and unrecognized role strings', () => {
     expect(roles.map(row => row.role)).toEqual(expect.arrayContaining(Object.values(ROLES)));
   });
@@ -96,8 +117,11 @@ describe('explicit messaging role admission', () => {
     const result = await reply();
     expect(result.success).toBe(row.send);
     if (!row.send) {
-      expect(result).toEqual({ success: false, error: 'Access denied' });
-      expect(await reply(ids.claim, true)).toEqual({ success: false, error: 'Access denied' });
+      expect(result).toEqual({ success: false, error: row.refusal ?? 'Access denied' });
+      expect(await reply(ids.claim, true)).toEqual({
+        success: false,
+        error: row.refusal ?? 'Access denied',
+      });
       expect(state.rows.claimMessages).toEqual(before);
       noWriteEffects();
       return;
@@ -130,7 +154,7 @@ describe('explicit messaging role admission', () => {
       expect(result.canAcknowledge).toBe(row.send);
       expect(result.messages?.map(message => message.id)).toEqual(visibleIds(row));
     } else {
-      expect(result).toEqual({ success: false, error: 'Access denied' });
+      expect(result).toEqual({ success: false, error: row.refusal ?? 'Access denied' });
     }
     expect(state.rows).toEqual(before);
     noWriteEffects();
@@ -194,7 +218,7 @@ describe('explicit messaging role admission', () => {
     const result = await markMessagesAsRead(messageIds);
     if (!row.send) expect(state.rows).toEqual(before);
     expect(result).toEqual(
-      row.send ? { success: true } : { success: false, error: 'Access denied' }
+      row.send ? { success: true } : { success: false, error: row.refusal ?? 'Access denied' }
     );
     expect(
       state.rows.claimMessages.filter(message => message.readAt !== null).map(m => m.id)
@@ -202,21 +226,16 @@ describe('explicit messaging role admission', () => {
     noWriteEffects();
   });
 
-  it.each([null, undefined, ''])('retains the pinned member fallback for role %s', async role => {
+  it.each([null, undefined, ''])('refuses an absent raw session role %s', async role => {
     state.session = session('member', { role });
-    expect((await getMessagesForClaim(ids.claim)).messages?.map(message => message.id)).toEqual([
-      messageIds[0],
-    ]);
-    expect(await markMessagesAsRead(messageIds)).toEqual({ success: true });
-    expect(
-      state.rows.claimMessages.filter(message => message.readAt !== null).map(m => m.id)
-    ).toEqual([messageIds[0]]);
-    expect(await reply()).toMatchObject({ success: true });
-    expect(await reply(ids.claim, true)).toEqual({
-      success: false,
-      error: 'Only staff can send internal messages',
-    });
-    expect(state.rows.notifications).toMatchObject([{ type: 'staff_member_message' }]);
+    const before = structuredClone(state.rows);
+    const refusal = { success: false, error: 'Unauthorized' };
+    expect(await getMessagesForClaim(ids.claim)).toEqual(refusal);
+    expect(await markMessagesAsRead(messageIds)).toEqual(refusal);
+    expect(await reply()).toEqual(refusal);
+    expect(await reply(ids.claim, true)).toEqual(refusal);
+    expect(state.rows).toEqual(before);
+    noWriteEffects();
   });
 
   it.each([

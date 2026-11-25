@@ -12,9 +12,10 @@ export const E2E_PASSWORD = getE2EPassword();
 /** The one mailbox domain of every synthetic E2E identity; seeds and tests never spell it. */
 export const E2E_EMAIL_DOMAIN = 'plan070.example.invalid';
 
-/** The synthetic E2E address for a local part, always in {@link E2E_EMAIL_DOMAIN}. */
-export function e2eEmail(local: string): string {
-  return `${local}@${E2E_EMAIL_DOMAIN}`;
+/** Builds an E2E fixture address, with an explicit option for the separate full demo seed. */
+export function e2eEmail(local: string, dataset: 'e2e' | 'full' = 'e2e'): string {
+  const domain = dataset === 'full' ? 'interdomestik.com' : E2E_EMAIL_DOMAIN;
+  return `${local}@${domain}`;
 }
 
 /** E2E login keys and their strict email, DB role, tenant and optional branch contracts. */

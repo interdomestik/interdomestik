@@ -2,8 +2,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { Session } from './context';
 const mocks = vi.hoisted(() => ({ read: vi.fn(), claim: vi.fn() }));
-vi.mock('@/features/claims/tracking/server/getMemberClaimDetail', () => ({
-  getMemberClaimDetail: mocks.claim,
+vi.mock('@interdomestik/domain-claims', () => ({
+  getMemberClaimTitle: mocks.claim,
 }));
 vi.mock('@interdomestik/domain-communications/notifications/get', () => ({
   getNotificationsCore: mocks.read,
@@ -30,7 +30,7 @@ const row = {
 beforeEach(() => {
   vi.clearAllMocks();
   mocks.read.mockResolvedValue([row]);
-  mocks.claim.mockResolvedValue({ title: 'Visible claim' });
+  mocks.claim.mockResolvedValue('Visible claim');
 });
 describe('in-app BM notification reader boundary', () => {
   it.each([
@@ -123,7 +123,7 @@ describe('in-app BM notification reader boundary', () => {
     async update => {
       mocks.read.mockResolvedValue([update, { ...update, id: 'second' }]);
       await getNotificationsCore({ authority, session: session('member') });
-      expect(mocks.claim).toHaveBeenCalledOnce();
+      expect(mocks.claim).toHaveBeenCalledExactlyOnceWith({ authority, claimId: 'id' });
       mocks.claim.mockClear();
       mocks.read.mockResolvedValue([{ ...update, content: 'Update on: Car damage' }]);
       await getNotificationsCore({ authority, session: session('member') });

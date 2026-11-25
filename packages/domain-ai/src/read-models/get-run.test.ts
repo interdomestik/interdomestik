@@ -28,7 +28,10 @@ const hoisted = vi.hoisted(() => {
 vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
   db: hoisted.db,
-  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(hoisted.db)),
+  withTenantContext: vi.fn(
+    (_ctx: unknown, cb: (tx: typeof hoisted.db) => unknown) =>
+      new Promise(resolve => resolve(cb(hoisted.db)))
+  ),
   eq: hoisted.eq,
 }));
 
@@ -51,6 +54,7 @@ vi.mock('@interdomestik/database/schema', () => ({
   },
   documentExtractions: {
     sourceRunId: 'document_extractions.source_run_id',
+    tenantId: 'document_extractions.tenant_id',
     extractedJson: 'document_extractions.extracted_json',
     reviewStatus: 'document_extractions.review_status',
     warnings: 'document_extractions.warnings',
@@ -106,6 +110,13 @@ describe('getAiRun', () => {
       runId: 'run-1',
     });
 
+    expect(hoisted.leftJoin).toHaveBeenCalledWith(expect.anything(), {
+      op: 'and',
+      args: [
+        { op: 'eq', left: 'document_extractions.source_run_id', right: 'ai_runs.id' },
+        { op: 'eq', left: 'document_extractions.tenant_id', right: 'ai_runs.tenant_id' },
+      ],
+    });
     expect(result).toEqual({
       id: 'run-1',
       workflow: 'policy_extract',

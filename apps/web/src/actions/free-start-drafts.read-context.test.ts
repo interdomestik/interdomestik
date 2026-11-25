@@ -7,6 +7,10 @@ import {
   type FreeStartDraftLifecycleDependencies,
 } from './free-start-drafts/lifecycle.core';
 
+vi.mock('./free-start-drafts/claim-entitlement.core', () => ({
+  hasAdmittedClaimEntitlement: vi.fn().mockResolvedValue(false),
+}));
+
 const headers = new Headers({ host: 'ida.interdomestik.com' });
 const context = {
   ownerUserId: 'owner-a',
@@ -17,7 +21,6 @@ const context = {
 const expectedContext = { ownerUserId: context.ownerUserId, tenantId: context.tenantId };
 function setup(current: FreeStartDraftSessionContext = context, emailVerified = false) {
   const dependencies: FreeStartDraftLifecycleDependencies = {
-    hasClaimEntitlement: vi.fn().mockResolvedValue(false),
     readIntakeOpen: vi.fn().mockResolvedValue(true),
     readPublicIntakeOpen: vi.fn().mockResolvedValue(false),
     resolveSession: vi.fn().mockResolvedValue({ ok: true, context: current, emailVerified }),

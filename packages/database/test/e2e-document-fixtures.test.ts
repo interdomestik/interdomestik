@@ -17,7 +17,7 @@ import {
   buildDiscoveryShareDocumentsToSeed,
 } from '../src/seed-golden/discovery';
 import { buildRoleRelationshipDocuments } from '../src/seed-golden/role-relationships';
-import { buildUsersToSeed } from '../src/seed-golden/users';
+import { buildUsersToSeed, UNACCEPTED_MEMBER_ID } from '../src/seed-golden/users';
 import {
   assertStrictDiscoveryGroup,
   assertFixtureStoragePath,
@@ -86,7 +86,7 @@ test('read intentions cover nine roles, tenant/assignment/link denials and the d
   assert.ok(E2E_DISCOVERY_DOCUMENT_ACCESS.MK_FOREIGN_TENANT.read.denied.includes('KS_ADMIN'));
 });
 
-test('no identities are added and the complete golden plus pack population remains under 100', t => {
+test('only the unaccepted member extends the 85-identity golden plus pack population', t => {
   const users = buildUsersToSeed({ at: () => new Date(E2E_DISCOVERY_AS_OF) });
   const pack = readFileSync(
     new URL('../src/seed-packs/ks-workflow-pack.ts', import.meta.url),
@@ -96,10 +96,14 @@ test('no identities are added and the complete golden plus pack population remai
   assert.ok(names);
   const identities = users.length + [...names.matchAll(/'[^']+'/g)].length + 4;
   t.diagnostic(
-    `Identities: ${users.length} golden + ${identities - users.length} pack = ${identities}; added 0`
+    `Identities: ${users.length} golden + ${identities - users.length} pack = ${identities}`
   );
   assert.ok(identities <= 100, `identity count ${identities}`);
-  assert.equal(identities, 85, 'PR 3 preserves the merged parent identity population');
+  const unacceptedMembers = users.filter(row => row.id === UNACCEPTED_MEMBER_ID);
+  assert.equal(unacceptedMembers.length, 1);
+  assert.equal(unacceptedMembers[0]?.role, 'member');
+  assert.equal(identities, 86);
+  assert.equal(identities - unacceptedMembers.length, 85);
   assert.equal(new Set(users.map(row => row.id)).size, users.length);
 });
 

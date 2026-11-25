@@ -2,7 +2,8 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
-  claimFindFirst: vi.fn(),
+  claimLock: vi.fn(),
+  claimWhere: vi.fn(),
   withTenantContext: vi.fn(),
   update: vi.fn(),
   updateSet: vi.fn(),
@@ -26,11 +27,7 @@ vi.mock('@interdomestik/database', () => ({
   ) => {
     hoisted.withTenantContext(context);
     return action({
-      query: {
-        claims: {
-          findFirst: hoisted.claimFindFirst,
-        },
-      },
+      select: () => ({ from: () => ({ where: hoisted.claimWhere }) }),
       update: hoisted.update,
       insert: hoisted.insert,
     });
@@ -84,6 +81,7 @@ describe('createPublicTrackingLink', () => {
     vi.clearAllMocks();
     process.env.NEXT_PUBLIC_SITE_URL = 'https://portal.example';
 
+    hoisted.claimWhere.mockReturnValue({ for: hoisted.claimLock });
     hoisted.buildClaimVisibilityWhere.mockReturnValue({ visibility: 'tenant-scope' });
     hoisted.hashDigest.mockReturnValue('hashed-token');
     hoisted.hashUpdate.mockReturnValue({ digest: hoisted.hashDigest });
@@ -122,10 +120,7 @@ describe('createPublicTrackingLink', () => {
   });
 
   it('revokes active same-tenant tokens and legacy null-tenant tokens before inserting a new token', async () => {
-    hoisted.claimFindFirst.mockResolvedValueOnce({
-      id: 'claim-1',
-      tenantId: 'tenant-ks',
-    });
+    hoisted.claimLock.mockResolvedValueOnce([{ id: 'claim-1' }]);
 
     const result = await createPublicTrackingLink('claim-1', {
       authority,
@@ -134,22 +129,18 @@ describe('createPublicTrackingLink', () => {
       branchId: null,
     });
 
-    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(3);
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
     for (const call of hoisted.withTenantContext.mock.calls) {
       expect(call[0]).toBe(authority);
     }
     expect(hoisted.buildClaimVisibilityWhere).toHaveBeenCalledWith(
       expect.objectContaining({ tenantId: 'tenant-ks', userId: 'staff-1', role: 'staff' })
     );
-    expect(hoisted.claimFindFirst).toHaveBeenCalledWith(
-      expect.objectContaining({
-        where: {
-          op: 'and',
-          args: [{ op: 'eq', left: 'claims.id', right: 'claim-1' }, { visibility: 'tenant-scope' }],
-        },
-        columns: { id: true, tenantId: true },
-      })
-    );
+    expect(hoisted.claimWhere).toHaveBeenCalledWith({
+      op: 'and',
+      args: [{ op: 'eq', left: 'claims.id', right: 'claim-1' }, { visibility: 'tenant-scope' }],
+    });
+    expect(hoisted.claimLock).toHaveBeenCalledWith('update', { noWait: true });
     expect(hoisted.updateWhere).toHaveBeenCalledWith({
       op: 'and',
       args: [
@@ -186,11 +177,11 @@ describe('createPublicTrackingLink', () => {
         expiresAt: expect.any(Date),
       })
     );
-    expect(result.url).toMatch(/^https:\/\/portal\.example\/track\//);
+    expect('url' in result && result.url).toMatch(/^https:\/\/portal\.example\/track\//);
   });
 
-  it('throws when the claim is not visible in the caller tenant', async () => {
-    hoisted.claimFindFirst.mockResolvedValueOnce(null);
+  it('refuses when the claim is not visible in the caller tenant', async () => {
+    hoisted.claimLock.mockResolvedValueOnce([]);
 
     await expect(
       createPublicTrackingLink('claim-1', {
@@ -199,10 +190,42 @@ describe('createPublicTrackingLink', () => {
         role: 'staff',
         branchId: null,
       })
-    ).rejects.toThrow('Claim not found or access denied');
+    ).resolves.toEqual({ code: 'NOT_FOUND' });
 
     expect(hoisted.update).not.toHaveBeenCalled();
     expect(hoisted.insert).not.toHaveBeenCalled();
+  });
+
+  it('returns conflict without writing when another replacement holds the claim lock', async () => {
+    hoisted.claimLock.mockRejectedValueOnce(
+      new Error('query failed', { cause: { code: '55P03' } })
+    );
+    await expect(
+      createPublicTrackingLink('claim-1', {
+        authority,
+        actorUserId: 'staff-1',
+        role: 'staff',
+        branchId: null,
+      })
+    ).resolves.toEqual({ code: 'conflict' });
+    expect(hoisted.update).not.toHaveBeenCalled();
+    expect(hoisted.insert).not.toHaveBeenCalled();
+  });
+
+  it('propagates the insert error out of the transaction after revocation', async () => {
+    const failure = new Error('insert failed');
+    hoisted.claimLock.mockResolvedValueOnce([{ id: 'claim-1' }]);
+    hoisted.insertValues.mockRejectedValueOnce(failure);
+    await expect(
+      createPublicTrackingLink('claim-1', {
+        authority,
+        actorUserId: 'staff-1',
+        role: 'staff',
+        branchId: null,
+      })
+    ).rejects.toBe(failure);
+    expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
+    expect(hoisted.updateWhere).toHaveBeenCalledBefore(hoisted.insertValues);
   });
 
   it('does not fall back to localhost for production tracking links', async () => {
@@ -212,10 +235,7 @@ describe('createPublicTrackingLink', () => {
     delete process.env.VERCEL_URL;
     process.env.VERCEL_ENV = 'production';
 
-    hoisted.claimFindFirst.mockResolvedValueOnce({
-      id: 'claim-1',
-      tenantId: 'tenant-ks',
-    });
+    hoisted.claimLock.mockResolvedValueOnce([{ id: 'claim-1' }]);
 
     const result = await createPublicTrackingLink('claim-1', {
       authority,
@@ -224,7 +244,7 @@ describe('createPublicTrackingLink', () => {
       branchId: null,
     });
 
-    expect(result.url).toMatch(/^https:\/\/www\.interdomestik\.com\/track\//);
-    expect(result.url).not.toContain('localhost');
+    expect('url' in result && result.url).toMatch(/^https:\/\/www\.interdomestik\.com\/track\//);
+    expect('url' in result && result.url).not.toContain('localhost');
   });
 });

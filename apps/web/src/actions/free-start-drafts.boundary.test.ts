@@ -1,3 +1,4 @@
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
 
@@ -12,6 +13,10 @@ import {
   resolveFreeStartDraftSession,
   type FreeStartDraftSessionDependencies,
 } from './free-start-drafts/session.core';
+
+vi.mock('./free-start-drafts/claim-entitlement.core', () => ({
+  hasAdmittedClaimEntitlement: vi.fn().mockResolvedValue(false),
+}));
 
 const headers = new Headers({ host: 'ida.interdomestik.com' });
 // prettier-ignore
@@ -28,6 +33,13 @@ function sessionDeps(
     getSession: vi
       .fn()
       .mockResolvedValue({ user: { emailVerified: true, id: 'owner-1', role: 'member' } }),
+    admitMember: vi.fn().mockResolvedValue({
+      ok: true,
+      authorized: {
+        session: { user: { id: 'owner-1', role: 'member', tenantId: 'tenant_ks' } },
+        authority: mintTestTenantAuthority('tenant_ks', { userId: 'owner-1', role: 'member' }),
+      },
+    }),
     isAllowedHost: vi.fn().mockReturnValue(true),
     resolveDefaultTenantId: vi.fn().mockReturnValue('tenant_ks'),
     resolveSessionAccessTenantId: vi.fn().mockReturnValue('tenant_ks'),
@@ -41,7 +53,6 @@ function lifecycleDeps(
   return {
     createDraft: vi.fn().mockResolvedValue({ ok: false, code: 'limitReached' }),
     deleteDraft: vi.fn().mockResolvedValue({ ok: false, code: 'notFound' }),
-    hasClaimEntitlement: vi.fn().mockResolvedValue(false),
     listDrafts: vi.fn().mockResolvedValue({ items: [], nextCursor: null }),
     readIntakeOpen: vi.fn().mockResolvedValue(true),
     readPublicIntakeOpen: vi.fn().mockResolvedValue(false),
@@ -64,6 +75,18 @@ describe('free-start draft auth/action boundary C07-C12', () => {
       headers,
       query: { disableCookieCache: true, disableRefresh: true },
     });
+  });
+
+  it('reports a fresh session dependency failure as unavailable before admission', async () => {
+    const getSession = vi.fn().mockRejectedValue(new Error('session service unavailable'));
+    const admitMember = vi.fn();
+    expect(
+      await resolveFreeStartDraftSession(headers, sessionDeps({ getSession, admitMember }))
+    ).toEqual({
+      ok: false,
+      code: 'unavailable',
+    });
+    expect(admitMember).not.toHaveBeenCalled();
   });
 
   it('C08 denies a non-neutral host before session or tenant lookup', async () => {
@@ -98,6 +121,10 @@ describe('free-start draft auth/action boundary C07-C12', () => {
     expect(await resolveFreeStartDraftSession(headers, sessionDeps())).toEqual({
       ok: true,
       emailVerified: true,
+      authorized: {
+        session: { user: { id: 'owner-1', role: 'member', tenantId: 'tenant_ks' } },
+        authority: expect.anything(),
+      },
       context: {
         accessTenantId: 'tenant_ks',
         actorRole: 'member',

@@ -18,7 +18,9 @@ export async function getMessagesForClaim(claimId: string): Promise<{
   canAcknowledge?: boolean;
   error?: string;
 }> {
-  const { session, authority } = await getActionContext();
+  const { session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   return getMessagesForClaimCore({ session, authority, claimId });
 }
 
@@ -38,7 +40,9 @@ export async function sendMessage(
   message?: import('./messages/types').MessageWithSender;
   error?: string;
 }> {
-  const { requestHeaders, session, authority } = await getActionContext();
+  const { requestHeaders, session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   return sendMessageCore({
     session,
     authority,
@@ -56,6 +60,8 @@ export async function sendMessage(
 export async function markMessagesAsRead(
   messageIds: string[]
 ): Promise<{ success: boolean; error?: string }> {
-  const { session, authority, requestHeaders } = await getActionContext();
+  const { session, authority, requestHeaders, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   return markMessagesAsReadCore({ session, authority, messageIds, requestHeaders });
 }

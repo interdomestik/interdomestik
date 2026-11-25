@@ -1,0 +1,156 @@
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+
+import de from '../../../apps/web/src/messages/de/legal-documents.json';
+import en from '../../../apps/web/src/messages/en/legal-documents.json';
+import { withDisposableClient } from '../src/disposable-client';
+import { migrateJournalBeforeNotificationDeliveries } from './journal-prefix.support';
+import { migrateJournal, type ScratchClient } from './pg16/scratch-database';
+import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
+
+export const cleanup = 'interdomestik_seed_cleanup';
+const journal = fileURLToPath(new URL('../drizzle', import.meta.url));
+
+export async function withAcceptanceRuntime(
+  admin: ScratchClient,
+  scratchUrl: URL,
+  work: (client: ScratchClient, url: string) => Promise<void>
+) {
+  const username = `wp13_acceptance_${randomUUID().replaceAll('-', '')}`;
+  const login = quoteIdentifier(username);
+  const password = randomUUID();
+  await admin.begin(async tx => {
+    await tx.unsafe(
+      `create role ${login} login noinherit nosuperuser nobypassrls password ${quoteSqlLiteral(password)}`
+    );
+    await tx.unsafe(`grant interdomestik_runtime_rls to ${login}`);
+  });
+  try {
+    const url = new URL(scratchUrl);
+    url.username = username;
+    url.password = password;
+    await withDisposableClient(
+      url.toString(),
+      { applicationName: 'wp13_acceptance', max: 2 },
+      client => work(client, url.toString())
+    );
+  } finally {
+    await admin.unsafe(`drop role ${login}`);
+  }
+}
+
+type FixtureText = string | { [key: string]: FixtureText };
+
+function valuesOf(value: FixtureText): string[] {
+  return typeof value === 'string' ? [value] : Object.values(value).flatMap(valuesOf);
+}
+
+export async function migrateLegalAcceptanceFixture(admin: ScratchClient) {
+  await migrateJournalBeforeNotificationDeliveries(admin, journal);
+  // WP-11 checks for UPDATE on these tables. Grant only the id column for row locking.
+  await admin`grant update (id) on
+    public.claim, public."user", public.claim_escalation_agreements, public.subscriptions,
+    public.membership_plans, public.sponsor_terms, public.sponsor_roster_entries,
+    public.claim_recovery_no_fee_evidence, public.claim_transition_evidence, public.claim_messages
+    to interdomestik_runtime_rls`;
+  await migrateJournal(admin, journal);
+}
+
+export async function approveLegalAcceptanceFixture(admin: ScratchClient, tenantId: string) {
+  // The scratch owner projects a synthetic approval with the append-only trigger restored
+  // in the same transaction, before any restricted-role code runs.
+  await admin.begin(async tx => {
+    await tx`alter table public.legal_document_versions
+      disable trigger legal_document_versions_append_only`;
+    await tx`update public.legal_document_versions set review_status = 'approved' where locale = 'de'`;
+    await tx`alter table public.legal_document_versions
+      enable trigger legal_document_versions_append_only`;
+
+    await tx`set local role interdomestik_runtime_rls`;
+    await tx`select set_config('app.current_access_tenant_id', ${tenantId}, true)`;
+    const rows = await tx`select locale, kind, review_status from public.legal_document_versions
+      where locale in ('de', 'en') order by locale, kind`;
+    assert.deepEqual(
+      [...rows],
+      [
+        { locale: 'de', kind: 'privacy_notice', review_status: 'approved' },
+        { locale: 'de', kind: 'terms', review_status: 'approved' },
+        { locale: 'en', kind: 'privacy_notice', review_status: 'legal_review_pending' },
+        { locale: 'en', kind: 'terms', review_status: 'legal_review_pending' },
+      ]
+    );
+  });
+}
+
+export async function seedSubject(
+  admin: ScratchClient,
+  id: string,
+  tenantId: string,
+  email: string,
+  role = 'member'
+) {
+  await admin`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
+    values (${id}, ${tenantId}, 'Acceptance fixture', ${email}, true, ${role}, now(), now())`;
+}
+
+export function fixtureWithText(
+  documents: readonly { kind: 'terms' | 'privacy_notice'; version: string }[],
+  locale: 'en' | 'de',
+  requireApproved: boolean
+) {
+  const translations = (locale === 'en' ? en : de)['legal-documents'];
+  return {
+    locale,
+    requireApproved,
+    texts: documents.map(doc => {
+      const versions: Readonly<Record<string, FixtureText>> = translations[doc.kind];
+      assert.ok(versions[doc.version], 'expected current fixture text');
+      return { ...doc, values: valuesOf(versions[doc.version]) };
+    }),
+  };
+}
+
+export async function acceptanceEvidence(admin: ScratchClient, actor: string) {
+  const rows = await admin`
+    select a.document_kind, a.locale, a.text_sha256, evidence.metadata
+    from legal_acceptances a
+    left join audit_log evidence on evidence.entity_id = a.id
+      and evidence.tenant_id = a.tenant_id and evidence.actor_id = a.subject_user_id
+      and evidence.action = 'privacy.legal_document_accepted'
+    where a.subject_user_id = ${actor}
+    order by a.document_kind
+  `;
+  return [...rows];
+}
+
+export async function verifyReseed(admin: ScratchClient, pendingActor: string) {
+  const { cleanSeededLegalAcceptance, seedLegalAcceptance } =
+    await import('../src/seed-golden/index');
+  const { buildUsersToSeed } = await import('../src/seed-golden/users');
+  const fixture = buildUsersToSeed({ at: () => new Date() }).find(
+    candidate => candidate.role === 'member'
+  );
+  assert.ok(fixture);
+  await admin`insert into tenants (id, name, legal_name, country_code)
+    values (${fixture.tenantId}, 'Seed fixture', 'Seed fixture', 'MK')`;
+  await seedSubject(admin, fixture.id, fixture.tenantId, fixture.email);
+  const readFixture = async () => {
+    const rows =
+      await admin`select id from legal_acceptances where subject_user_id = ${fixture.id} order by id`;
+    return [...rows];
+  };
+
+  await seedLegalAcceptance();
+  const before = await readFixture();
+  assert.equal(before.length, 2);
+  await cleanSeededLegalAcceptance();
+  const [role] = await admin`select rolcanlogin from pg_roles where rolname = ${cleanup}`;
+  assert.deepEqual(role, { rolcanlogin: false });
+  assert.deepEqual(await readFixture(), []);
+  assert.equal((await acceptanceEvidence(admin, pendingActor)).length, 2);
+  await seedLegalAcceptance();
+  const after = await readFixture();
+  assert.equal(after.length, 2);
+  assert.notDeepEqual(after, before);
+}

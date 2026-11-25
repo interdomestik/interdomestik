@@ -1,13 +1,12 @@
 import { db, E2E_PASSWORD, E2E_USERS, eq, user } from '@interdomestik/database';
 import type { Page, TestInfo } from '@playwright/test';
-
-import { expect } from '../fixtures/auth.fixture';
-import { gotoApp } from '../utils/navigation';
-import { routes } from '../routes';
 import {
   preparePendingTenantClassificationMember,
   resetPendingTenantClassificationMember,
-} from './admin-tenant-classification-member.fixture';
+} from '../fixtures/admin-tenant-classification.fixture';
+import { expect } from '../fixtures/auth.fixture';
+import { gotoApp } from '../utils/navigation';
+import { routes } from '../routes';
 
 const COOKIE_CONSENT_STORAGE_KEY = 'interdomestik_cookie_consent_v1';
 const COOKIE_CONSENT_COOKIE_NAME = 'cookie_consent';
@@ -20,8 +19,6 @@ function baseOrigin(testInfo: TestInfo): string {
   const baseURL = testInfo.project.use.baseURL ?? fallbackBaseURL;
   return new URL(baseURL.toString()).origin;
 }
-
-export { preparePendingTenantClassificationMember, resetPendingTenantClassificationMember };
 
 export async function loginAsSuperAdmin(page: Page, testInfo: TestInfo): Promise<void> {
   const origin = baseOrigin(testInfo);
@@ -209,7 +206,7 @@ export function registerTenantClassificationSuite(
         return;
       }
 
-      const memberId = await preparePendingTenantClassificationMember({
+      const member = await preparePendingTenantClassificationMember({
         memberPrefix,
         namePrefix,
         emailPrefix,
@@ -222,11 +219,11 @@ export function registerTenantClassificationSuite(
         await confirmCurrentTenantClassification({
           page,
           testInfo,
-          memberId,
+          memberId: member.id,
           expectedTenantId: 'tenant_ks',
         });
       } finally {
-        await resetPendingTenantClassificationMember(memberId);
+        await resetPendingTenantClassificationMember(member);
       }
     });
 
@@ -243,7 +240,7 @@ export function registerTenantClassificationSuite(
         return;
       }
 
-      const memberId = await preparePendingTenantClassificationMember({
+      const member = await preparePendingTenantClassificationMember({
         memberPrefix,
         namePrefix,
         emailPrefix,
@@ -256,12 +253,12 @@ export function registerTenantClassificationSuite(
         await expectTenantReassignmentUnavailable({
           page,
           testInfo,
-          memberId,
+          memberId: member.id,
           currentTenantId: 'tenant_ks',
           dismissCookieBanner: dismissCookieBannerOnReassign,
         });
       } finally {
-        await resetPendingTenantClassificationMember(memberId);
+        await resetPendingTenantClassificationMember(member);
       }
     });
   });

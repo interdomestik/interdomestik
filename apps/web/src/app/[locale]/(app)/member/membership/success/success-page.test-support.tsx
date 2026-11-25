@@ -1,3 +1,4 @@
+import { MemberAcceptanceStep } from '@/components/privacy/member-acceptance-step';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render } from '@testing-library/react';
 import { cloneElement, isValidElement, type ReactElement, type ReactNode } from 'react';
@@ -55,11 +56,16 @@ vi.mock('next-intl/server', () => ({
     Promise.resolve(getNamespacedTranslation(options))
   ),
 }));
-vi.mock('@/components/shell/session', () => ({
-  getSessionSafe: hoisted.getSessionSafeMock,
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireMemberAcceptancePage: async () => {
+    const session = await hoisted.getSessionSafeMock();
+    if (!session) return { ok: false, failure: { code: 'UNAUTHORIZED' } };
+    const authority = await hoisted.authorizeSessionUserTenantMock(session.user.id);
+    return { ok: true, authorized: { session, authority } };
+  },
 }));
-vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionUserTenant: hoisted.authorizeSessionUserTenantMock,
+vi.mock('@/components/privacy/member-acceptance-form', () => ({
+  MemberAcceptanceForm: () => null,
 }));
 vi.mock('@interdomestik/domain-membership-billing/subscription', () => ({
   getActiveSubscription: hoisted.getActiveSubscriptionMock,
@@ -144,5 +150,6 @@ export async function renderSuccessPage(args: {
     params: Promise.resolve({ locale: args.locale ?? 'en' }),
     searchParams: Promise.resolve(args.searchParams ?? {}),
   });
+  if (tree.type === MemberAcceptanceStep) return render(await MemberAcceptanceStep(tree.props));
   return render(tree);
 }

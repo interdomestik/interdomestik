@@ -12,6 +12,8 @@ The seed runner uses the internal `src/seed-receipt.ts` module to build and prin
 
 `package.json:7-30` declares 22 subpath exports (recounted in R3) (root `./src/index.ts`, plus `./schema`, `./db`, `./tenant-authority`, `./tenant-security`, `./ingress`, `./testing/tenant-authority`, …). The entries other code should use: `withTenantAuthority` (`src/tenant-authority-context.ts:12-18`), `withTenantContext` / `withTenantDb` (`src/tenant.ts:23-55`), `dbAdmin` and `dbRls` (`src/db.ts:244-251`), `withTenant` (`src/tenant-security.ts:22-37`). Transaction-scoped advisory locks live here so their raw statements stay inside the database package: `./branch-policy-lock`, `./sponsor-locks` and `./claim-evidence-object-lock` (`lockClaimEvidenceObjects`, one lock per stored evidence object of a tenant, taken in ascending order of the 64-bit lock ids; it refuses a transaction that is not READ COMMITTED, since its callers' re-read must see the previous holder's commit).
 
+The `./free-start-drafts` subpath also exports `withPrincipalTenantContext` for session-bound actor settings. This keeps the actor transaction helper out of the root barrel's import graph.
+
 `@interdomestik/database/pilot-switch` exposes `readPilotSwitch`, `assertNewSalesOpen` and the `changePilotSwitch` command for the `tenant_settings` category `pilot`. The switch reader uses the caller's tenant transaction. The writer derives the access tenant and acting principal from the supplied authority and records the change in the same transaction.
 
 `@interdomestik/database/free-start-drafts` exposes `readFreeStartDraftIntakeOpen` for create and update admission using the same session context as the draft repository.

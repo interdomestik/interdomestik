@@ -2,8 +2,11 @@ import { E2E_PASSWORD, E2E_USERS, e2eEmail } from '../e2e-users';
 import { hashPassword } from '../seed-utils/hash-password';
 import { goldenId } from '../seed-utils/seed-ids';
 import { TENANTS } from './constants';
+import { buildMkMemberFixtures } from './mk-member-fixtures';
 import { buildStateUsersToSeed } from './state-users';
 import type { SeedGoldenContext } from './types';
+
+export { UNACCEPTED_MEMBER_ID } from './mk-member-fixtures';
 
 const pilotMembers = [
   ['01', 'Arta Krasniqi'],
@@ -121,16 +124,7 @@ export function buildUsersToSeed({ at }: Pick<SeedGoldenContext, 'at'>) {
       tenantId: TENANTS.MK,
       branchId: 'mk_branch_a',
     },
-    {
-      id: goldenId('mk_member_1'),
-      name: E2E_USERS.MK_MEMBER.name,
-      email: E2E_USERS.MK_MEMBER.email,
-      role: 'member',
-      tenantId: TENANTS.MK,
-      branchId: E2E_USERS.MK_MEMBER.branchId,
-      memberNumber: 'MEM-2026-000001',
-      memberNumberIssuedAt: at(),
-    },
+    ...buildMkMemberFixtures({ at }),
     {
       id: goldenId('ks_admin'),
       name: E2E_USERS.KS_ADMIN.name,

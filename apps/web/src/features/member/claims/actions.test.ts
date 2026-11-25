@@ -1,3 +1,4 @@
+import { refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { isTenantAuthority, readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { getUploadActionMocks } from './actions-mocks.spec';
 import { confirmUpload, generateUploadUrl } from './actions';
@@ -7,6 +8,21 @@ import { createConfirmUploadParams } from './actions.test-fixtures';
 const hoisted = getUploadActionMocks();
 
 describe('member claim upload actions', () => {
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    await expect(
+      generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024)
+    ).resolves.toEqual({ success: false, error: 'acceptance_required', status: 403 });
+    refuseAcceptance();
+    await expect(confirmUpload(createConfirmUploadParams())).resolves.toEqual({
+      success: false,
+      error: 'acceptance_required',
+      status: 403,
+    });
+    expect(hoisted.findOwnedMemberUploadClaim).not.toHaveBeenCalled();
+    expect(hoisted.insert).not.toHaveBeenCalled();
+  });
+
   it('creates an upload URL for claims owned by the member', async () => {
     const result = await generateUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 1024);
 

@@ -1,5 +1,5 @@
+import { fixtureSessionAuthority, refuseAcceptance } from '@/test/member-acceptance.test-support';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 const m = vi.hoisted(() => ({
   authorize: vi.fn(),
   admin: vi.fn(),
@@ -25,8 +25,8 @@ vi.mock('./_upload', () => ({
   uploadEvidenceObject: m.upload,
 }));
 vi.mock('./confirm', () => ({ confirmEvidenceUpload: m.confirm }));
-vi.mock('@sentry/nextjs', () => ({ captureMessage: vi.fn() }));
-import { POST } from './_core';
+vi.mock('@sentry/nextjs', () => ({ captureMessage: vi.fn(), captureException: vi.fn() }));
+import { POST } from './route';
 const request = () =>
   new Request('https://ida.localhost/api/claims/evidence-upload', {
     method: 'POST',
@@ -53,9 +53,10 @@ describe('canonical direct upload authority', () => {
   it.each(['tenant_ks', 'tenant_mk', 'pilot-mk'])(
     'uses the admin path on IDA for %s',
     async tenantId => {
-      const authority = mintTestTenantAuthority(tenantId);
+      const user = { id: 'actor', role: 'admin', branchId: 'branch' };
+      const authority = fixtureSessionAuthority(tenantId, user);
       m.authorize.mockResolvedValue({
-        session: { user: { id: 'actor', role: 'admin', branchId: 'branch' } },
+        session: { user },
         authority,
       });
       expect((await POST(request())).status).toBe(200);
@@ -79,24 +80,48 @@ describe('canonical direct upload authority', () => {
       );
     }
   );
-  it.each([null, { session: { user: { id: 'actor' } }, authority: {} }])(
-    'rejects %j before form parsing or storage',
-    async authorized => {
-      m.authorize.mockResolvedValue(authorized);
-      expect((await POST(request())).status).toBe(401);
-      expect(m.parse).not.toHaveBeenCalled();
-      expect(m.upload).not.toHaveBeenCalled();
-    }
-  );
-  it('fails closed on authority errors', async () => {
-    m.authorize.mockRejectedValueOnce(new Error('invalid session tenant'));
-    expect((await POST(request())).status).toBe(401);
+  it('refuses before protected work when acceptance is missing', async () => {
+    refuseAcceptance();
+    const user = { id: 'member', role: 'member' };
+    m.authorize.mockResolvedValue({
+      session: { user },
+      authority: fixtureSessionAuthority('tenant_mk', user),
+    });
+    const response = await POST(request());
+    expect(response.status).toBe(403);
+    await expect(response.json()).resolves.toEqual({ error: 'acceptance_required' });
     expect(m.parse).not.toHaveBeenCalled();
+    expect(m.upload).not.toHaveBeenCalled();
+  });
+
+  it('rejects an unauthenticated request before form parsing or storage', async () => {
+    m.authorize.mockResolvedValue(null);
+    const response = await POST(request());
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: 'Unauthorized' });
+    expect(m.parse).not.toHaveBeenCalled();
+    expect(m.upload).not.toHaveBeenCalled();
+  });
+  it('rejects an invalid authority token before effects', async () => {
+    m.authorize.mockResolvedValue({ session: { user: { id: 'actor' } }, authority: {} });
+    const response = await POST(request());
+    expect(response.status).toBe(401);
+    await expect(response.json()).resolves.toEqual({ error: 'Unauthorized' });
+    expect(m.parse).not.toHaveBeenCalled();
+    expect(m.upload).not.toHaveBeenCalled();
+  });
+  it('returns a JSON service failure before effects if the session lookup fails', async () => {
+    m.authorize.mockRejectedValueOnce(new Error('session service unavailable'));
+    const response = await POST(request());
+    expect(response.status).toBe(503);
+    await expect(response.json()).resolves.toEqual({ error: 'Service unavailable' });
+    expect(m.parse).not.toHaveBeenCalled();
+    expect(m.upload).not.toHaveBeenCalled();
   });
   it('preserves member ownership denial before upload', async () => {
     m.authorize.mockResolvedValue({
       session: { user: { id: 'member', role: 'member' } },
-      authority: mintTestTenantAuthority('tenant_mk'),
+      authority: fixtureSessionAuthority('tenant_mk', { id: 'member', role: 'member' }),
     });
     m.member.mockResolvedValueOnce(null);
     expect((await POST(request())).status).toBe(404);

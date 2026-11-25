@@ -25,6 +25,15 @@ const dbMock = vi.hoisted(() => {
   );
   return db;
 });
+vi.mock('@interdomestik/database/tenant-authority-context', async () => {
+  const { isTenantAuthority } = await import('@interdomestik/database/tenant-authority');
+  return {
+    withTenantAuthority: (authority: unknown, callback: (tx: never) => unknown) => {
+      if (!isTenantAuthority(authority)) throw new Error('Unrecognized tenant authority');
+      return hoisted.withTenantContext(authority, callback);
+    },
+  };
+});
 vi.mock('@interdomestik/database/db', () => ({ db: dbMock }));
 vi.mock('@interdomestik/database', async importOriginal => ({
   ...(await importOriginal<typeof import('@interdomestik/database')>()),

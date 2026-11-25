@@ -1,4 +1,3 @@
-import { createRequire } from 'node:module';
 import { MissingTenantError, UnauthorizedError } from '@interdomestik/shared-auth/errors';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { z } from 'zod';
@@ -201,9 +200,10 @@ describe('defineAction at run time', () => {
           typeof value !== 'object' ||
           (Object.getPrototypeOf(value) === Object.prototype && Object.values(value).every(plain));
     expect(plain((result as { data: unknown }).data)).toBe(true);
-    const { encodeReply } = createRequire(import.meta.url)(
-      'next/dist/compiled/react-server-dom-webpack/client.node'
-    ) as { encodeReply(value: unknown): Promise<string | FormData> };
+    const clientUrl = import.meta
+      .resolve('next/dist/compiled/react-server-dom-webpack/client.node.js');
+    const { encodeReply }: { encodeReply(value: unknown): Promise<string | FormData> } =
+      await import(clientUrl);
     expect(await encodeReply(result)).toBe(JSON.stringify(result));
   });
 

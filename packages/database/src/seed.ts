@@ -14,6 +14,8 @@ import {
 } from './seed-target-guard';
 import { seedFull } from './seed-full';
 import { seedGolden } from './seed-golden';
+import { cleanSeededLegalAcceptance, seedLegalAcceptance } from './seed-golden/index';
+import { runSeedMode } from './seed-mode';
 import { TENANTS } from './seed-golden/constants';
 import { seedAgentPack } from './seed-packs/agent-pack';
 import { seedKsWorkflowPack } from './seed-packs/ks-workflow-pack';
@@ -255,31 +257,20 @@ async function main() {
   const config = createSeedConfig(mode, seedBaseTime);
 
   try {
-    switch (mode) {
-      case 'e2e':
-        console.log('🚀 Mode: E2E (Baseline + KS Pack + Agent Pack)');
-        await seedGolden(config);
-        await seedKsWorkflowPack(config);
-        await seedAgentPack(config);
-        await seedOpenPilotSwitches(db, schema);
-        break;
-
-      case 'golden':
-        console.log('🏆 Mode: Golden (Baseline Only)');
-        await seedGolden(config);
-        break;
-
-      case 'full':
-        console.log('🌍 Mode: Full (Full System Seed)');
-        await seedFull(config);
-        break;
-
-      case 'workload':
-        console.log('🏋️ Mode: Workload (Golden + Workload Overlay)');
-        await seedGolden(config);
-        await seedWorkload(config);
-        break;
-    }
+    await runSeedMode(
+      config,
+      {
+        seedAgentPack,
+        seedFull,
+        seedGolden,
+        seedKsWorkflowPack,
+        seedOpenPilotSwitches: () => seedOpenPilotSwitches(db, schema),
+        seedWorkload,
+      },
+      targetClassification === 'confirmed-non-local'
+        ? undefined
+        : { clean: cleanSeededLegalAcceptance, seed: seedLegalAcceptance }
+    );
 
     // Write receipt to database
     await writeSeedMeta(db, schema, receipt);

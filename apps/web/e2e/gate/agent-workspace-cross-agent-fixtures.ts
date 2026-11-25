@@ -2,17 +2,17 @@ import { agentClients, claimMessages, claims, db, user } from '@interdomestik/da
 import { claimLifecycleFieldsForStatus } from '@interdomestik/database/claim-lifecycle';
 import { and, desc, eq, ne } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
+import { fixtureLegalAcceptance, type FixtureMember } from '../fixtures/legal-acceptance.fixture';
 
 const SUBMITTED_LIFECYCLE = claimLifecycleFieldsForStatus('submitted');
 
 type CrossAgentClaimResult = {
   claimId: string;
   assignmentId: string | null;
-  memberId: string | null;
+  member: FixtureMember | null;
   otherAgentId: string | null;
   createdClaim: boolean;
   createdAssignment: boolean;
-  createdMember: boolean;
   createdOtherAgent: boolean;
 };
 export async function resolveCrossAgentClaimId(agentEmail: string): Promise<CrossAgentClaimResult> {
@@ -57,11 +57,10 @@ export async function resolveCrossAgentClaimId(agentEmail: string): Promise<Cros
     return {
       claimId: existingPeerClaim.id,
       assignmentId: null,
-      memberId: null,
+      member: null,
       otherAgentId: null,
       createdClaim: false,
       createdAssignment: false,
-      createdMember: false,
       createdOtherAgent: false,
     };
   }
@@ -100,11 +99,14 @@ export async function resolveCrossAgentClaimId(agentEmail: string): Promise<Cros
   }
 
   const memberId = `e2e-d02-member-${suffix}`;
-  await db.insert(user).values({
+  const member = {
     id: memberId,
     tenantId: seededAgent.tenantId,
+    email: `${memberId}@example.test`,
+  };
+  await db.insert(user).values({
+    ...member,
     name: `D02 Peer Member ${suffix.slice(0, 8)}`,
-    email: `${memberId}@example.com`,
     emailVerified: true,
     role: 'member',
     branchId: seededAgent.branchId ?? null,
@@ -134,16 +136,22 @@ export async function resolveCrossAgentClaimId(agentEmail: string): Promise<Cros
     ...claimLifecycleFieldsForStatus('submitted'),
   });
 
-  return {
+  const result = {
     claimId,
     assignmentId,
-    memberId,
+    member,
     otherAgentId,
     createdClaim: true,
     createdAssignment: true,
-    createdMember: true,
     createdOtherAgent,
   };
+  try {
+    await fixtureLegalAcceptance('seed', [member]);
+    return result;
+  } catch (error) {
+    await cleanupCrossAgentClaim(result);
+    throw error;
+  }
 }
 
 export async function cleanupCrossAgentClaim(result: CrossAgentClaimResult): Promise<void> {
@@ -157,8 +165,9 @@ export async function cleanupCrossAgentClaim(result: CrossAgentClaimResult): Pro
       await db.delete(agentClients).where(eq(agentClients.id, result.assignmentId));
     }
 
-    if (result.createdMember && result.memberId) {
-      await db.delete(user).where(eq(user.id, result.memberId));
+    if (result.member) {
+      await fixtureLegalAcceptance('clean', [result.member]);
+      await db.delete(user).where(eq(user.id, result.member.id));
     }
 
     if (result.createdOtherAgent && result.otherAgentId) {
@@ -169,5 +178,6 @@ export async function cleanupCrossAgentClaim(result: CrossAgentClaimResult): Pro
       `[agent-workspace-e2e] Failed to cleanup cross-agent claim ${result.claimId}:`,
       error instanceof Error ? error.message : String(error)
     );
+    throw error;
   }
 }

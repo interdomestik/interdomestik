@@ -54,7 +54,9 @@ function toMessageData(message: MessageWithSender, currentUserId: string): Messa
  * Members only see public messages. Staff/Admins see all.
  */
 export async function getClaimMessages(claimId: string): Promise<ActionResult<MessageData[]>> {
-  const { session, authority } = await getActionContext();
+  const { session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   const result: GetMessagesResult = await getMessagesForClaimCore({ session, authority, claimId });
 
   if (!result.success) {
@@ -82,7 +84,9 @@ export async function sendMessage(
   isInternal: boolean = false,
   clientMessageId?: string
 ): Promise<ActionResult> {
-  const { requestHeaders, session, authority } = await getActionContext();
+  const { requestHeaders, session, authority, failure } = await getActionContext();
+  if (failure?.code === 'acceptance_required')
+    return { success: false as const, error: failure.code };
   const result = await sendMessageCore({
     session,
     authority,

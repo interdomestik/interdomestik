@@ -5,7 +5,8 @@ import test from 'node:test';
 
 import { playwrightReportArgs } from './playwright-lane-evidence.mjs';
 
-const runner = readFileSync(new URL('../run-e2e-lane.mjs', import.meta.url), 'utf8');
+const runnerUrl = new URL('../run-e2e-lane.mjs', import.meta.url);
+const runner = readFileSync(runnerUrl, 'utf8');
 const helper = readFileSync(new URL('run-detached-command.mjs', import.meta.url), 'utf8');
 const playwrightConfig = readFileSync(
   new URL('../../apps/web/playwright.config.ts', import.meta.url),
@@ -40,6 +41,12 @@ test('PR verification owns the full gate and orchestration never repeats it or R
   const verify = packageJson.scripts['pr:verify'].split(' && ');
   assert.equal(verify.filter(command => command === 'pnpm db:rls:test:required').length, 1);
   assert.equal(verify.filter(command => command === 'pnpm coverage:gate').length, 1);
+  assert.equal(packageJson.scripts['e2e:smoke'], 'node scripts/run-e2e-lane.mjs smoke');
+  assert.equal(
+    verify.filter(command => command === 'node scripts/run-with-default-db-url.mjs pnpm e2e:smoke')
+      .length,
+    1
+  );
   assert.equal(
     verify.filter(command => command === 'node scripts/run-with-default-db-url.mjs pnpm e2e:gate')
       .length,
@@ -62,10 +69,11 @@ test('PR verification owns the full gate and orchestration never repeats it or R
 
 test('canonical PR lanes consolidate MK while pilot invocations retain the legacy project', () => {
   // The gate path filter keeps the security specs that GATE_SECURITY_MATCH admits.
-  assert.match(runner, /const gateArgs = \['e2e\/gate', 'e2e\/security', \.\.\.strictWorkers\];/u);
+  assert.match(runner, /const gatePaths = \['e2e\/gate', 'e2e\/security'\];/u);
+  assert.match(runner, /playwrightArgs: \[\.\.\.gatePaths, \.\.\.runnerArgs, \.\.\.projects\]/u);
   assert.match(runner, /pr: gateLane\(\[ksSq, mkContract\], true\)/u);
   assert.match(runner, /'pr-fast': gateLane\(\[ksSq, mkContract\]\)/u);
-  assert.match(runner, /gate: gateLane\(\[ksSq, mkMk\], true\)/u);
+  assert.match(runner, /gate: gateLane\(\[ksSq, mkMk\], true, fullGateWorkers\)/u);
   assert.match(runner, /'gate-fast': gateLane\(\[ksSq, mkMk\]\)/u);
   assert.match(
     runner,
@@ -81,7 +89,6 @@ test('split PR gates retain strict fast setup and smoke retains its package argu
   assert.match(runner, /'pr-mk-contract': gateLane\(\[mkContract\], true\)/u);
   assert.match(runner, /const fastEnv = \{ PW_FAST_GATES: '1' \};/u);
   assert.match(runner, /const strictWorkers = \['--workers=1', \.\.\.strictArgs\];/u);
-  assert.match(runner, /const strictArgs = \['--max-failures=1', \.\.\.reportArgs\];/u);
   assert.match(
     runner,
     /const setupArgs = \['e2e\/setup\.state\.spec\.ts', '--project=setup-ks', '--project=setup-mk'\];/u
@@ -93,9 +100,8 @@ test('split PR gates retain strict fast setup and smoke retains its package argu
 });
 
 test('an empty or unknown lane is refused before any preparation runs', () => {
-  const script = new URL('../run-e2e-lane.mjs', import.meta.url).pathname;
   for (const lane of ['', 'pr-unknown']) {
-    const result = spawnSync(process.execPath, [script, lane], {
+    const result = spawnSync(process.execPath, [runnerUrl.pathname, lane], {
       encoding: 'utf8',
       // If lane selection ever regressed, the too-short secret would stop the runner at secret
       // validation (exit 1), before host preparation, the doctor or the gatekeeper could run.

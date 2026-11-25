@@ -55,8 +55,13 @@ export function getMembershipCoreMocks(): typeof hoisted {
   return hoisted;
 }
 
-vi.mock('@/lib/tenant-authority.server', () => ({
-  authorizeSessionUserTenant: hoisted.authorize,
+vi.mock('@/lib/privacy/require-member-acceptance', () => ({
+  requireAdmittedMember: async () => {
+    const authority = await hoisted.authorize();
+    return authority
+      ? { ok: true, authorized: { authority, session: { user: { id: 'member-1' } } } }
+      : { ok: false, failure: { code: 'UNAUTHORIZED' } };
+  },
 }));
 vi.mock('@interdomestik/domain-membership-billing/sponsor-coverage', () => ({
   resolveEffectiveMembership: hoisted.resolve,

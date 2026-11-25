@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import { setTimeout as sleep } from 'node:timers/promises';
-import postgres from 'postgres';
 import {
   END,
   insert,
@@ -58,17 +57,13 @@ async function race(
   first: (tx: Tx) => Promise<void>,
   second: (tx: Tx) => Promise<void>
 ): Promise<void> {
-  const url = process.env.DATABASE_URL;
-  assert.ok(url);
-  const one = postgres(url, { max: 1 });
-  const two = postgres(url, { max: 1 });
   const ready = gate();
   const started = gate();
   const release = gate();
   let holder = 0;
   let waiter = 0;
   let secondFinished = false;
-  const firstWork = restricted(one, f.a, async tx => {
+  const firstWork = restricted(f.admin, f.a, async tx => {
     const [pid] = await tx`select pg_backend_pid() as pid`;
     holder = Number(pid?.pid);
     await lock(tx, f, target);
@@ -76,7 +71,7 @@ async function race(
     ready.release();
     await release.promise;
   });
-  // Observe rejections immediately and let finally release/close both clients on every path.
+  // Observe rejections immediately and let finally drain both transactions before teardown.
   const firstResult = firstWork.then(
     () => null,
     (error: unknown) => error
@@ -85,7 +80,7 @@ async function race(
   try {
     await Promise.race([ready.promise, firstWork]);
     assert.ok(holder > 0);
-    const secondWork = restricted(two, f.a, async tx => {
+    const secondWork = restricted(f.admin, f.a, async tx => {
       const [pid] = await tx`select pg_backend_pid() as pid`;
       waiter = Number(pid?.pid);
       started.release();
@@ -107,7 +102,6 @@ async function race(
   } finally {
     release.release();
     await Promise.all([firstResult, secondResult]);
-    await Promise.all([one.end({ timeout: 5 }), two.end({ timeout: 5 })]);
   }
 }
 

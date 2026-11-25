@@ -1,8 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { withTenantContext } from '@interdomestik/database';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { getMemberClaimDetail } from './get-member-claim-detail';
+import { UnauthorizedError } from '@interdomestik/shared-auth';
+import { getMemberClaimDetail, getMemberClaimTitle } from './get-member-claim-detail';
 
 const mocks = vi.hoisted(() => {
   const selectChain = {
@@ -35,7 +37,9 @@ const mocks = vi.hoisted(() => {
 
 vi.mock('@interdomestik/database', () => ({
   db: mocks.db,
-  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: any) => unknown) => cb(mocks.db)),
+  withTenantContext: vi.fn(async (_ctx: unknown, cb: (tx: typeof mocks.db) => unknown) =>
+    cb(mocks.db)
+  ),
   claims: mocks.claims,
   eq: mocks.eq,
   and: mocks.and,
@@ -44,6 +48,11 @@ vi.mock('@interdomestik/database', () => ({
 vi.mock('@interdomestik/database/tenant-security', () => ({
   withTenant: mocks.withTenant,
 }));
+
+vi.mock('@interdomestik/database/tenant-authority', async importOriginal => {
+  const actual = await importOriginal<typeof import('@interdomestik/database/tenant-authority')>();
+  return { ...actual, readTenantAuthority: vi.fn(actual.readTenantAuthority) };
+});
 
 vi.mock('../staff-claims/get-claim-timeline', () => ({
   getClaimTimeline: mocks.getClaimTimeline,
@@ -132,4 +141,26 @@ describe('getMemberClaimDetail', () => {
     expect(result?.status).toBe('submitted');
     expect(mocks.getClaimStatus).not.toHaveBeenCalled();
   });
+});
+
+describe('getMemberClaimTitle', () => {
+  it.each([
+    { purpose: 'test', role: 'member' },
+    { purpose: 'session', role: 'staff' },
+  ] as const)(
+    'refuses $purpose/$role authority before reading claims',
+    async ({ purpose, role }) => {
+      vi.clearAllMocks();
+      const authority = mintTestTenantAuthority('tenant-1', { userId: 'user-1', role });
+      vi.mocked(readTenantAuthority).mockReturnValueOnce({
+        ...readTenantAuthority(authority),
+        purpose,
+      });
+
+      await expect(getMemberClaimTitle({ authority, claimId: 'claim-1' })).rejects.toThrow(
+        UnauthorizedError
+      );
+      expect(withTenantContext).not.toHaveBeenCalled();
+    }
+  );
 });

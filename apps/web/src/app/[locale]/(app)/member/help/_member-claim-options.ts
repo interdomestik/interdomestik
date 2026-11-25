@@ -1,8 +1,6 @@
+import { requireAdmittedMember } from '@/lib/privacy/require-member-acceptance';
 import { and, claims, desc, eq } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { resolveClaimLifecycleReadProjection } from '@interdomestik/domain-claims';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
@@ -40,16 +38,17 @@ function mapMemberClaimOption(claim: RawMemberClaimOption): MemberClaimOption {
 }
 
 export async function getMemberClaimOptions(args: {
-  memberId: string;
-  authority: TenantAuthority;
   requestedClaimId?: string | null;
 }): Promise<MemberClaimOption[]> {
-  const { tenantId } = readTenantAuthority(args.authority);
-  const recentClaims = await withTenantAuthority(args.authority, tx =>
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) return [];
+  const { authority, session } = admission.authorized;
+  const { tenantId } = readTenantAuthority(authority);
+  const recentClaims = await withTenantAuthority(authority, tx =>
     tx
       .select(memberClaimOptionSelection)
       .from(claims)
-      .where(withTenant(tenantId, claims.tenantId, eq(claims.userId, args.memberId)))
+      .where(withTenant(tenantId, claims.tenantId, eq(claims.userId, session.user.id)))
       .orderBy(desc(claims.createdAt))
       .limit(10)
   );
@@ -59,7 +58,7 @@ export async function getMemberClaimOptions(args: {
   }
 
   const requestedClaimId = args.requestedClaimId;
-  const requestedClaims = await withTenantAuthority(args.authority, tx =>
+  const requestedClaims = await withTenantAuthority(authority, tx =>
     tx
       .select(memberClaimOptionSelection)
       .from(claims)
@@ -67,7 +66,7 @@ export async function getMemberClaimOptions(args: {
         withTenant(
           tenantId,
           claims.tenantId,
-          and(eq(claims.userId, args.memberId), eq(claims.id, requestedClaimId))
+          and(eq(claims.userId, session.user.id), eq(claims.id, requestedClaimId))
         )
       )
       .limit(1)

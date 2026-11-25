@@ -11,7 +11,7 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 
 // 4. Action: Resubmit (Agent)
 export async function resubmitCashAttemptCore(
-  ctx: ProtectedActionContext,
+  ctx: Pick<ProtectedActionContext, 'tenantId' | 'session' | 'authority'>,
   input: z.infer<typeof resubmitCashSchema>
 ) {
   const { tenantId, session, authority } = ctx;
