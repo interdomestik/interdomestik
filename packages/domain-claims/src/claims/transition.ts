@@ -1,11 +1,17 @@
 import { and, claims, eq, sql } from '@interdomestik/database';
+import type { SQLWrapper } from 'drizzle-orm';
 import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
+import { isClaimCategoryOpenForIntake } from './intake-category';
 import { canTransition } from './transition-guard';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
-import { loadTransitionReadContext } from './transition-read-context';
+import {
+  buildTransitionClaimWhere,
+  loadTransitionReadContext,
+  type LockedTransitionInputs,
+} from './transition-read-context';
 import { transitionCurrentStateCas } from './transition-current-state-cas';
 import { isValidTransitionCurrentState } from './transition-current-state';
 import {
@@ -27,16 +33,21 @@ export * from './transition-side-effects';
 // same transaction, through recordAuthorizedTransitionSideEffects.
 export async function writeAuthorizedTransitionStatus(
   tx: TransitionTx,
-  args: PersistAuthorizedTransitionArgs
+  args: Omit<PersistAuthorizedTransitionArgs, 'readWhere'>,
+  readWhere: SQLWrapper,
+  now = new Date()
 ): Promise<WrittenTransitionStatus> {
-  const { actor, authorization, claimId, current, readWhere } = args;
+  const { actor, authorization, claimId, current } = args;
 
   if (authorization.from !== current.status || authorization.actorId !== actor.id) {
     throw new ClaimTransitionAuthorizationError(claimId);
   }
   const toStatus = authorization.to;
+  const intakeCategoryCondition =
+    current.status === 'draft' && toStatus === 'submitted'
+      ? sql`public.claim_category_open_for_intake(${claims.category})`
+      : undefined;
 
-  const now = new Date();
   const updateData =
     current.status === toStatus
       ? { updatedAt: now }
@@ -54,7 +65,8 @@ export async function writeAuthorizedTransitionStatus(
       and(
         readWhere,
         transitionCurrentStateCas(current),
-        eq(claims.lifecycleVersion, current.lifecycleVersion)
+        eq(claims.lifecycleVersion, current.lifecycleVersion),
+        intakeCategoryCondition
       )
     )
     .returning({ id: claims.id, lifecycleVersion: claims.lifecycleVersion });
@@ -66,7 +78,7 @@ export async function writeAuthorizedTransitionStatus(
 // Stage history and domain events of a written transition, with the note the caller resolved.
 export async function recordAuthorizedTransitionSideEffects(
   tx: TransitionTx,
-  args: PersistAuthorizedTransitionArgs,
+  args: Omit<PersistAuthorizedTransitionArgs, 'readWhere'>,
   written: WrittenTransitionStatus,
   note: string | null
 ): Promise<void> {
@@ -92,7 +104,7 @@ export async function persistAuthorizedTransition(
   tx: TransitionTx,
   args: PersistAuthorizedTransitionArgs
 ): Promise<{ lifecycleVersion: number }> {
-  const written = await writeAuthorizedTransitionStatus(tx, args);
+  const written = await writeAuthorizedTransitionStatus(tx, args, args.readWhere);
   await recordAuthorizedTransitionSideEffects(tx, args, written, args.note);
   return { lifecycleVersion: written.lifecycleVersion };
 }
@@ -102,7 +114,8 @@ export async function persistAuthorizedTransition(
 // writeAuthorizedTransitionStatus.
 export async function authorizeClaimTransitionInTransaction(
   tx: TransitionTx,
-  params: TransitionClaimStatusParams
+  params: TransitionClaimStatusParams,
+  locked?: LockedTransitionInputs
 ): Promise<AuthorizeClaimTransitionResult> {
   const {
     actor,
@@ -114,16 +127,23 @@ export async function authorizeClaimTransitionInTransaction(
     tenantId,
     toStatus,
   } = params;
-  const { current, guardContext, readWhere } = await loadTransitionReadContext(tx, {
-    claimId,
-    requiredWhereCondition,
-    tenantId,
-    toStatus,
-  });
+  const { current, guardContext } = await loadTransitionReadContext(
+    tx,
+    buildTransitionClaimWhere({ claimId, requiredWhereCondition, tenantId }),
+    { claimId, tenantId, toStatus },
+    locked
+  );
 
   if (!current) return { success: false, error: 'claim_not_found' };
   if (!isValidTransitionCurrentState(current)) {
     return { success: false, error: 'invalid_current_status' };
+  }
+  if (
+    current.status === 'draft' &&
+    toStatus === 'submitted' &&
+    !isClaimCategoryOpenForIntake(current.category)
+  ) {
+    return { success: false, error: 'transition_rejected', reason: 'category_closed_for_intake' };
   }
 
   const decision = canTransition({
@@ -132,7 +152,9 @@ export async function authorizeClaimTransitionInTransaction(
     from: current.status,
     to: toStatus,
   });
-  if (!decision.allowed) return { success: false, error: 'transition_rejected' };
+  if (!decision.allowed) {
+    return { success: false, error: 'transition_rejected', reason: decision.reason };
+  }
 
   return {
     success: true,
@@ -145,7 +167,6 @@ export async function authorizeClaimTransitionInTransaction(
       hostId: params.hostId,
       isPublic,
       note: note ?? null,
-      readWhere,
       tenantId,
     },
   };
@@ -156,9 +177,12 @@ export async function transitionClaimStatusInTransaction(
   params: TransitionClaimStatusParams
 ): Promise<TransitionClaimStatusResult> {
   const authorized = await authorizeClaimTransitionInTransaction(tx, params);
-  if (!authorized.success) return authorized;
+  if (!authorized.success) return { success: false, error: authorized.error };
   const { transition } = authorized;
-  const { lifecycleVersion } = await persistAuthorizedTransition(tx, transition);
+  const { lifecycleVersion } = await persistAuthorizedTransition(tx, {
+    ...transition,
+    readWhere: buildTransitionClaimWhere(params),
+  });
   return {
     success: true,
     fromStatus: transition.current.status,

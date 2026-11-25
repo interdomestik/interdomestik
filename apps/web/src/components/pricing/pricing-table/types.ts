@@ -54,7 +54,7 @@ export type PlanCardProps = Readonly<{
   billedAnnuallyLabel: string;
   popularLabel: string;
   ctaLabel: string;
-  onClick: (event: MouseEvent<HTMLButtonElement>) => void;
+  onClick?: (event: MouseEvent<HTMLButtonElement>) => void;
 }>;
 
 export type PricingPlanGridProps = Readonly<{
@@ -64,7 +64,7 @@ export type PricingPlanGridProps = Readonly<{
   isPilotMode: boolean;
   isSessionPending: boolean;
   t: TranslateFn;
-  onPlanCtaClick: (plan: PricingPlan, trigger: HTMLButtonElement) => void;
+  onPlanCtaClick?: (plan: PricingPlan, trigger: HTMLButtonElement) => void;
 }>;
 
 export type LocalCheckoutWarningProps = Readonly<{

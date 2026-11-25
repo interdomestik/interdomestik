@@ -1,3 +1,12 @@
+import {
+  PHASE_ANALYZE,
+  PHASE_DEVELOPMENT_SERVER,
+  PHASE_EXPORT,
+  PHASE_INFO,
+  PHASE_PRODUCTION_BUILD,
+  PHASE_PRODUCTION_SERVER,
+  PHASE_TEST,
+} from 'next/constants.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { assertRenderingBuildMode } from './rendering-build-mode';
@@ -16,6 +25,8 @@ vi.mock('../sentry.edge.config', () => ({}));
 beforeEach(() => {
   vi.resetModules();
   vi.stubEnv('SENTRY_VALIDATE_SOURCEMAPS', 'false');
+  vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', '[]');
+  vi.stubEnv('NEXT_PUBLIC_BILLING_TEST_MODE', undefined);
 });
 
 afterEach(() => {
@@ -59,6 +70,55 @@ describe('rendering build mode assertion', () => {
 });
 
 describe('Next rendering configuration', () => {
+  it('refuses a production build that skipped the pilot manifest preflight', async () => {
+    vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', undefined);
+    const { default: configureNext } = await import('../../next.config.mjs');
+
+    expect(() => configureNext(PHASE_PRODUCTION_BUILD)).toThrow(
+      'Missing INTERDOMESTIK_BUILT_PILOT_ENV. Run pnpm --filter @interdomestik/web build'
+    );
+  });
+
+  it('accepts and binds a valid pilot manifest during a production build', async () => {
+    const { default: configureNext } = await import('../../next.config.mjs');
+
+    const config = configureNext(PHASE_PRODUCTION_BUILD);
+    expect(config.env?.INTERDOMESTIK_BUILT_PILOT_ENV).toBe('[]');
+  });
+
+  it('refuses a stale empty manifest when the build resolves a refused public value', async () => {
+    vi.stubEnv('NEXT_PUBLIC_BILLING_TEST_MODE', 'build-value');
+    const { default: configureNext } = await import('../../next.config.mjs');
+
+    expect(() => configureNext(PHASE_PRODUCTION_BUILD)).toThrow(
+      'INTERDOMESTIK_BUILT_PILOT_ENV does not match the build environment'
+    );
+    expect(() => configureNext(PHASE_PRODUCTION_BUILD)).not.toThrow('build-value');
+  });
+
+  it('refuses a manifest containing a refused public name absent from the build', async () => {
+    vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', '["NEXT_PUBLIC_BILLING_TEST_MODE"]');
+    const { default: configureNext } = await import('../../next.config.mjs');
+
+    expect(() => configureNext(PHASE_PRODUCTION_BUILD)).toThrow(
+      'INTERDOMESTIK_BUILT_PILOT_ENV does not match the build environment'
+    );
+  });
+
+  it.each([
+    PHASE_ANALYZE,
+    PHASE_DEVELOPMENT_SERVER,
+    PHASE_EXPORT,
+    PHASE_INFO,
+    PHASE_PRODUCTION_SERVER,
+    PHASE_TEST,
+  ])('allows %s without a pilot manifest', async phase => {
+    vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', undefined);
+    const { default: configureNext } = await import('../../next.config.mjs');
+
+    expect(() => configureNext(phase)).not.toThrow();
+  });
+
   it.each([
     { raw: undefined, mode: 'off', enabled: true },
     { raw: 'off', mode: 'off', enabled: true },
@@ -68,12 +128,16 @@ describe('Next rendering configuration', () => {
     vi.setSystemTime(new Date('2026-09-08T00:00:00Z'));
     vi.stubEnv('CSP_NONCE_MODE', raw);
     vi.stubEnv('INTERDOMESTIK_BUILT_CSP_NONCE_MODE', 'forged');
-    const { default: config } = await import('../../next.config.mjs');
+    vi.stubEnv('INTERDOMESTIK_BUILT_PILOT_ENV', '["NEXT_PUBLIC_BILLING_TEST_MODE"]');
+    vi.stubEnv('NEXT_PUBLIC_BILLING_TEST_MODE', '1');
+    const { default: configureNext } = await import('../../next.config.mjs');
+    const config = configureNext(PHASE_PRODUCTION_BUILD);
 
     expect(config.cacheComponents).toBe(enabled);
     expect(config.env).toEqual({
       INTERDOMESTIK_BUILT_CSP_NONCE_MODE: mode,
       INTERDOMESTIK_BUILD_COPYRIGHT_YEAR: '2026',
+      INTERDOMESTIK_BUILT_PILOT_ENV: '["NEXT_PUBLIC_BILLING_TEST_MODE"]',
     });
     expect(config.env).not.toHaveProperty('CSP_NONCE_MODE');
     expect(process.env.CSP_NONCE_MODE).toBe(raw);
@@ -89,7 +153,8 @@ describe('Next rendering configuration', () => {
     vi.stubEnv('CSP_NONCE_MODE', 'off');
     vi.stubEnv('INTERDOMESTIK_BUILD_COPYRIGHT_YEAR', 'forged');
 
-    const { default: config } = await import('../../next.config.mjs');
+    const { default: configureNext } = await import('../../next.config.mjs');
+    const config = configureNext(PHASE_PRODUCTION_BUILD);
 
     expect(config.env?.INTERDOMESTIK_BUILD_COPYRIGHT_YEAR).toBe(year);
   });
@@ -104,6 +169,26 @@ describe('Next rendering configuration', () => {
 });
 
 describe('instrumentation mode guard', () => {
+  it('refuses the pilot environment before testing the rendering mode or registering handlers', async () => {
+    vi.stubEnv('NEXT_RUNTIME', 'nodejs');
+    vi.stubEnv('INTERDOMESTIK_PRODUCTION', '1');
+    vi.stubEnv('IDENTITY_PUBLIC_SIGN_UP', 'open');
+    vi.stubEnv('INTERDOMESTIK_BUILT_CSP_NONCE_MODE', 'off');
+    vi.stubEnv('CSP_NONCE_MODE', 'report');
+    const handlers = vi.spyOn(process, 'on');
+    const exits = vi.spyOn(process, 'exit').mockImplementation(code => {
+      throw new Error(`process exited ${String(code)}`);
+    });
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const { register } = await import('../instrumentation');
+
+    expect(() => register()).toThrow('process exited 1');
+    expect(exits).toHaveBeenCalledWith(1);
+    expect(errors).toHaveBeenCalledWith(expect.stringContaining('IDENTITY_PUBLIC_SIGN_UP'));
+    expect(errors).not.toHaveBeenCalledWith(expect.stringContaining('CSP_NONCE_MODE'));
+    expect(handlers).not.toHaveBeenCalled();
+  });
+
   it.each(['nodejs', 'edge'])('preserves matching %s initialization', async runtime => {
     vi.stubEnv('NEXT_RUNTIME', runtime);
     vi.stubEnv('INTERDOMESTIK_BUILT_CSP_NONCE_MODE', 'report');

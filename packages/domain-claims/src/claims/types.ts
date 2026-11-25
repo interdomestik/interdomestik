@@ -1,4 +1,5 @@
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import type { CaseScopedAccessGrant } from '@interdomestik/shared-auth';
 
 import type { QueuedClaimAiRun } from './ai-workflows';
 import type { EvidenceFile } from '../validators/claims';
@@ -16,6 +17,7 @@ export type ClaimsSession = {
     role?: string | null;
     tenantId?: string | null;
     accessTenantId?: string | null;
+    caseScopedAccessGrants?: readonly CaseScopedAccessGrant[] | null;
     email?: string | null;
   };
 };
@@ -43,32 +45,11 @@ export type ClaimsDeps = {
     tenantId: string;
   }) => Promise<void> | void;
   logAuditEvent?: (event: ClaimsAuditEvent) => Promise<void> | void;
-  notifyClaimSubmitted?: (
-    userId: string,
-    email: string,
-    claim: { id: string; title: string; category: string },
-    options: { authority: TenantAuthority }
-  ) => unknown;
-  notifyStatusChanged?: (
-    userId: string,
-    email: string,
-    claim: { id: string; title: string },
-    oldStatus: string,
-    newStatus: string,
-    options: { authority: TenantAuthority }
-  ) => unknown;
   notifyClaimAssigned?: (
     agentId: string,
     email: string,
     claim: { id: string; title: string },
     agentName: string,
-    options: { authority: TenantAuthority }
-  ) => unknown;
-  notifyRecoveryDecision?: (
-    userId: string,
-    email: string,
-    claim: { id: string; title: string },
-    decisionType: 'accepted' | 'declined',
     options: { authority: TenantAuthority }
   ) => unknown;
   dispatchClaimAiRun?: (queuedRun: QueuedClaimAiRun) => Promise<void> | void;

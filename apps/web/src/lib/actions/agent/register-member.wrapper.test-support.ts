@@ -2,12 +2,18 @@ import { vi } from 'vitest';
 
 const mocks = vi.hoisted(() => ({
   issueTenantMemberNumber: vi.fn(),
+  assertNewSalesOpen: vi.fn(),
   deletedTables: [] as unknown[],
   selectResults: [] as unknown[][],
   tenantTx: null as unknown,
   withRetry: vi.fn(),
   withTenantContext: vi.fn(),
   emailExecute: vi.fn(),
+}));
+
+vi.mock('@interdomestik/database/pilot-switch', async importOriginal => ({
+  ...(await importOriginal<typeof import('@interdomestik/database/pilot-switch')>()),
+  assertNewSalesOpen: mocks.assertNewSalesOpen,
 }));
 
 vi.mock('@interdomestik/shared-utils/resilience', async importOriginal => ({

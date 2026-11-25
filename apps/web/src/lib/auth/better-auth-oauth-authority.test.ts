@@ -3,6 +3,12 @@ import { getTestInstance } from 'better-auth/test';
 
 vi.mock('./member-number-session-hook', () => ({ runMemberNumberSessionHook: vi.fn() }));
 vi.mock('./member-number-user-create-hook', () => ({ runMemberNumberUserCreateHook: vi.fn() }));
+vi.mock('@/lib/tenant/public-admission-tenant', () => ({
+  resolvePublicAdmissionTenant: () => 'tenant_ks',
+}));
+vi.mock('@/lib/tenant/public-intake-admission', () => ({
+  isPublicIntakeOpenForTenant: async () => true,
+}));
 
 import { authRequestAuthority } from './auth-request-authority';
 import { databaseHooks } from './hooks';

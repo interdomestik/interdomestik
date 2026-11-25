@@ -1,5 +1,6 @@
 import { isE2EDiagnosticsEnabled } from '@/lib/runtime-environment';
 import { buildIdaLiveLoginRedirectUrl } from '@/lib/tenant/ida-live-login-cutover';
+import { TENANT_COOKIE_NAME } from '@/lib/tenant/tenant-hosts';
 import { NextRequest, NextResponse } from 'next/server';
 import { resolveProtectedRouteGuardResponse } from './proxy-gate';
 import { resolveProxyRequestContext } from './proxy-resolve';
@@ -31,5 +32,20 @@ export async function proxy(request: NextRequest): Promise<NextResponse> {
     response.headers.set('x-e2e-host', context.host);
   }
 
-  return applyResponseHardening(response, request, context.tenant, securityHeaders);
+  // Next.js revalidates the page when the proxy sets a cookie during a server action.
+  // The router marks Pages Router data requests even when their pathname becomes /<locale>.
+  const skipTenantCookie =
+    request.method === 'POST' &&
+    request.headers.has('next-action') &&
+    !request.headers.has('x-nextjs-data') &&
+    context.isLocale &&
+    request.nextUrl.pathname === `/${context.locale}` &&
+    request.cookies.get(TENANT_COOKIE_NAME)?.value === context.tenant;
+
+  return applyResponseHardening(
+    response,
+    request,
+    skipTenantCookie ? null : context.tenant,
+    securityHeaders
+  );
 }

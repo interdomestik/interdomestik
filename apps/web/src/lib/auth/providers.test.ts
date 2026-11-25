@@ -54,6 +54,16 @@ describe('authProviders email OTP plugin', () => {
     expect(providers).not.toHaveProperty('socialProviders.github');
   });
 
+  it.each([undefined, '', 'closed', 'Open', 'open ', 'open'])(
+    'only opens password and email code sign-up for the exact value open (%s)',
+    value => {
+      const providers = buildAuthProviders({ IDENTITY_PUBLIC_SIGN_UP: value });
+      const disableSignUp = value !== 'open';
+      expect(providers.emailAndPassword.disableSignUp).toBe(disableSignUp);
+      expect(mocks.emailOTP).toHaveBeenLastCalledWith(expect.objectContaining({ disableSignUp }));
+    }
+  );
+
   beforeEach(() => {
     mocks.sendPasswordResetEmail.mockReset();
     mocks.sendSignInOtpEmail.mockReset();

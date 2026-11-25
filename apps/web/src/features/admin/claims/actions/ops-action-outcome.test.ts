@@ -35,7 +35,7 @@ describe('safe Ops outcomes', () => {
     expect(JSON.stringify([result, log.mock.calls])).not.toContain(SENTINEL);
     expect(log).toHaveBeenCalledWith(
       'Revalidation failed after commit: sendMemberReminder',
-      'revalidation_failure'
+      expect.objectContaining({ message: 'revalidation_failure', cause: 'Error' })
     );
   });
   it('returns a plain success without the refresh marker when revalidation works', () => {

@@ -2,6 +2,8 @@ import { extractRequestMetadata } from '@/lib/audit.core';
 import { auth } from '@/lib/auth';
 import { lookupUserTenantByEmail } from '@/lib/auth/tenant-lookup';
 import { enforceRateLimit } from '@/lib/rate-limit';
+import { resolvePublicAdmissionTenant } from '@/lib/tenant/public-admission-tenant';
+import { isPublicIntakeOpenForTenant } from '@/lib/tenant/public-intake-admission';
 import { appendAnonymousTenantAuditEvent } from '@interdomestik/database';
 import { toNextJsHandler } from 'better-auth/next-js';
 import { after } from 'next/server';
@@ -23,7 +25,11 @@ import {
   getPasswordResetAuditEventFromUrl,
   resolveTenantIdForPasswordResetAudit,
 } from './_core';
-import { evaluateEmailSignUpTenantGuard, isEmailSignUpUrl } from './sign-up-tenant-guard';
+import {
+  evaluateEmailSignUpTenantGuard,
+  isEmailSignUpUrl,
+  refuseEmailSignUp,
+} from './sign-up-tenant-guard';
 
 // Anonymous request headers are attacker-controlled: bound them so an oversized value cannot push
 // a security event past the audit append's 2 KiB metadata cap and suppress it. Only printable ASCII
@@ -77,11 +83,19 @@ export async function POST(req: Request) {
       request: req,
       body: neutral.body,
       kind: neutralOtp,
+      tenantId: neutral.tenantId,
       handler: request => handler.POST(request as unknown as Parameters<typeof handler.POST>[0]),
     });
   }
   const emailSignIn = isEmailSignInUrl(req.url);
   const emailSignUp = isEmailSignUpUrl(req.url);
+  let admissionTenant: ReturnType<typeof resolvePublicAdmissionTenant> = null;
+  if (emailSignUp) {
+    admissionTenant = resolvePublicAdmissionTenant(req.headers);
+  }
+  if (emailSignUp && !admissionTenant) {
+    return refuseEmailSignUp();
+  }
   const authBody = emailSignIn || emailSignUp ? await parseAuthJsonBody(req) : null;
   const postRateLimitConfig = getAuthRateLimitConfig('POST', req.url);
 
@@ -150,17 +164,15 @@ export async function POST(req: Request) {
     }
   }
 
-  if (emailSignUp) {
+  if (admissionTenant) {
     const tenantGuard = evaluateEmailSignUpTenantGuard({
       url: req.url,
       headers: req.headers,
       body: authBody,
+      admissionTenant,
     });
-    if (tenantGuard?.decision === 'deny') {
-      return Response.json(
-        { code: tenantGuard.code, message: tenantGuard.message },
-        { status: 401 }
-      );
+    if (tenantGuard?.decision === 'deny' || !(await isPublicIntakeOpenForTenant(admissionTenant))) {
+      return refuseEmailSignUp();
     }
   }
   const audit = getPasswordResetAuditEventFromUrl(req.url);

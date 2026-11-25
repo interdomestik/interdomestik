@@ -16,9 +16,9 @@ const and =
   row =>
     predicates.every(p => !p || p(row));
 const or =
-  (...predicates: Predicate[]): Predicate =>
+  (...predicates: (Predicate | undefined)[]): Predicate =>
   row =>
-    predicates.some(p => p(row));
+    predicates.some(p => p?.(row));
 export const operators = {
   eq,
   and,
@@ -70,6 +70,16 @@ const columns = [
   'caseLifecycleState',
   'branchId',
   'staffId',
+  'category',
+  'claimNumber',
+  'answeredAt',
+  'idempotencyKey',
+  'kind',
+  'sourceMessageId',
+  'referralCode',
+  'memberNumber',
+  'notificationId',
+  'restricted',
 ];
 export const tables = Object.fromEntries(
   [
@@ -78,6 +88,10 @@ export const tables = Object.fromEntries(
     'agentClients',
     'claimMessages',
     'notifications',
+    'notificationPreviewRestrictions',
+    'notificationDeliveries',
+    'claimResponseRequests',
+    'auditLog',
     'pushSubscriptions',
     'userNotificationPreferences',
   ].map(name => [name, Object.fromEntries(columns.map(field => [field, { field }]))])
@@ -130,6 +144,8 @@ export function seedRows(): Record<string, Row[]> {
         branchId: 'branch-a',
         caseLifecycleState: 'submitted',
         title: 'Synthetic case',
+        category: 'retail',
+        claimNumber: null,
       },
       {
         id: 'claim-b',
@@ -150,6 +166,10 @@ export function seedRows(): Record<string, Row[]> {
     ],
     claimMessages: [],
     notifications: [],
+    notificationPreviewRestrictions: [],
+    notificationDeliveries: [],
+    claimResponseRequests: [],
+    auditLog: [],
     pushSubscriptions: [],
     userNotificationPreferences: [],
   };

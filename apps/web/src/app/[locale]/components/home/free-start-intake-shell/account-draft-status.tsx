@@ -25,6 +25,7 @@ export function AccountDraftStatus({
     'invalid',
     'unsupported',
     'accountContext',
+    'closed',
     'error',
   ].includes(state);
   let statusMessage = copy.status[state] ?? '';
@@ -32,6 +33,8 @@ export function AccountDraftStatus({
     statusMessage = review[state];
   } else if (state === 'idle') {
     statusMessage = t('accountDraft.ready');
+  } else if (state === 'closed') {
+    statusMessage = t('draft.CLOSED');
   }
   const message = statusMessage.replace(
     '{date}',

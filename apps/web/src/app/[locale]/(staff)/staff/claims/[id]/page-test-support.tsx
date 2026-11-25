@@ -75,10 +75,11 @@ const hoisted = vi.hoisted(() => ({
   getStaffAssignmentOptionsMock: vi.fn(() => Promise.resolve([])),
   getMessagesForClaimCoreMock: vi.fn(() => Promise.resolve({ success: true, messages: [] })),
   getAssignedStaffClaimDocumentsMock: vi.fn(
-    (): Promise<
-      Array<{ fileSize: number; fileType: string; id: string; name: string; url: string }>
-    > => Promise.resolve([])
+    (): ReturnType<
+      typeof import('@/features/staff/claims/server/get-assigned-claim-documents').getAssignedStaffClaimDocuments
+    > => Promise.resolve({ page: 1, documents: [], hasNextPage: false })
   ),
+  getRegisterPickerDocumentsMock: vi.fn(() => Promise.resolve([])),
   messagingPanelMock: vi.fn(
     ({
       allowInternal,
@@ -214,6 +215,7 @@ vi.mock('next-intl/server', () => ({
 vi.mock('@/i18n/routing', () => ({ useRouter: () => ({ refresh: vi.fn() }) }));
 
 vi.mock('next/navigation', () => ({
+  unstable_rethrow: vi.fn(),
   useRouter: () => ({ refresh: vi.fn() }),
   notFound: () => {
     throw new Error('notFound');
@@ -249,6 +251,7 @@ vi.mock('@/features/staff/claims/assignment-options', () => ({
 
 vi.mock('@/features/staff/claims/server/get-assigned-claim-documents', () => ({
   getAssignedStaffClaimDocuments: hoisted.getAssignedStaffClaimDocumentsMock,
+  getRegisterPickerDocuments: hoisted.getRegisterPickerDocumentsMock,
 }));
 
 vi.mock('@/actions/messages/get.core', () => ({
@@ -268,8 +271,16 @@ vi.mock('@/components/messaging/messaging-panel', () => ({
 
 import StaffClaimDetailsPage from './page';
 
-export async function renderPage(locale = 'en') {
-  render(await StaffClaimDetailsPage({ params: Promise.resolve({ locale, id: 'claim-1' }) }));
+export async function renderPage(
+  locale = 'en',
+  searchParams?: Awaited<Parameters<typeof StaffClaimDetailsPage>[0]['searchParams']>
+) {
+  render(
+    await StaffClaimDetailsPage({
+      params: Promise.resolve({ locale, id: 'claim-1' }),
+      searchParams: Promise.resolve(searchParams ?? {}),
+    })
+  );
 }
 
 export { hoisted };

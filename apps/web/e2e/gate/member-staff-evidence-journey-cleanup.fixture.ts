@@ -4,23 +4,29 @@ import {
   auditLog,
   claimDocuments,
   claimMessages,
+  claimResponseRequests,
   claimStageHistory,
   claims,
   db,
+  dbAdmin,
   domainEventDeliveries,
   domainEvents,
   eq,
   freeStartDrafts,
   inArray,
+  notificationDeliveries,
   notifications,
+  sql,
+  type TenantTransaction,
 } from '@interdomestik/database';
-import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
 import de from '../../src/messages/de/freeStart.json';
 import en from '../../src/messages/en/freeStart.json';
 import mk from '../../src/messages/mk/freeStart.json';
 import sq from '../../src/messages/sq/freeStart.json';
 import sr from '../../src/messages/sr/freeStart.json';
 import { expect } from '../fixtures/auth.fixture';
+import { inSequence } from './in-sequence';
+import { drainJourneyNotifications } from './member-staff-evidence-journey-notifications.fixture';
 
 export type S3JourneyIdentity = { counterparty: string; summary: string };
 export const S3_JOURNEY_INCIDENT_DATE = '2026-09-16';
@@ -66,118 +72,151 @@ export function exactClaimDescriptions(journey: S3JourneyIdentity): string[] {
 
 async function claimIdsForJourney(
   claimId: string | null,
-  journey: S3JourneyIdentity
+  journey: S3JourneyIdentity,
+  client: Pick<TenantTransaction, 'query'> = db
 ): Promise<string[]> {
-  const matches = await db.query.claims.findMany({
+  const matches = await client.query.claims.findMany({
     where: and(
       eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
       inArray(claims.description, exactClaimDescriptions(journey))
     ),
     columns: { id: true },
   });
-  return [...new Set([claimId, ...matches.map(row => row.id)].filter(Boolean))] as string[];
-}
-
-async function drainJourneyNotifications(ids: string[]): Promise<void> {
-  for (const claimId of ids) {
-    const claim = await db.query.claims.findFirst({
-      where: and(eq(claims.id, claimId), eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId)),
-      columns: { caseLifecycleState: true, recoveryLifecycleState: true },
-    });
-    if (!claim) continue;
-    const types = ['claim_submitted'];
-    if (claimStatusFromLifecycleFields(claim) !== 'submitted') {
-      types.unshift('claim_status_changed');
-    }
-    await expect
-      .poll(
-        async () => {
-          const r = await db.query.notifications.findMany({
-            where: and(
-              eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-              eq(notifications.actionUrl, `/member/claims/${claimId}`),
-              inArray(notifications.type, types)
-            ),
-            columns: { type: true },
-            orderBy: notifications.type,
-          });
-          return r.map(row => row.type);
-        },
-        { timeout: 15_000 }
-      )
-      .toEqual(types);
-  }
+  return [...new Set([...(claimId ? [claimId] : []), ...matches.map(row => row.id)])];
 }
 
 export async function cleanupJourney(
   claimId: string | null,
-  journey: S3JourneyIdentity
+  journey: S3JourneyIdentity,
+  cleanedIds: Set<string>
 ): Promise<void> {
-  const ids = await claimIdsForJourney(claimId, journey);
-  try {
-    await drainJourneyNotifications(ids);
-  } finally {
-    await db.transaction(async tx => {
-      if (ids.length) {
-        const events = await tx.query.domainEvents.findMany({
-          where: and(
-            inArray(domainEvents.entityId, ids),
-            eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
-          ),
-          columns: { id: true },
-        });
-        const eventIds = events.map(event => event.id);
-        if (eventIds.length) {
-          await tx
-            .delete(domainEventDeliveries)
-            .where(inArray(domainEventDeliveries.eventId, eventIds));
-          await tx.delete(domainEvents).where(inArray(domainEvents.id, eventIds));
-        }
+  for (let attempt = 0; attempt < 3; attempt++) {
+    if (await tryCleanupJourney(claimId, journey, cleanedIds)) return;
+  }
+  throw new Error('Journey notification deliveries kept changing before cleanup could lock them');
+}
+
+async function tryCleanupJourney(
+  claimId: string | null,
+  journey: S3JourneyIdentity,
+  cleanedIds: Set<string>
+): Promise<boolean> {
+  const drainFailures: unknown[] = [];
+  const cleanup = dbAdmin.transaction(async tx => {
+    // Rechecking deliveries and polling the inbox require a fresh snapshot for each read.
+    await tx.execute(sql`SET TRANSACTION ISOLATION LEVEL READ COMMITTED`);
+    await tx.execute(sql`SET LOCAL statement_timeout = '5s'`);
+    const ids = await claimIdsForJourney(claimId, journey, tx);
+    ids.forEach(id => cleanedIds.add(id));
+    if (ids.length) {
+      const journeyClaims = and(
+        eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+        inArray(claims.id, ids)
+      );
+      const journeyDeliveries = and(
+        eq(notificationDeliveries.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+        inArray(notificationDeliveries.claimId, ids)
+      );
+      // The delivery worker locks its delivery before taking a share lock on the claim.
+      const lockedDeliveries = await tx
+        .select({ id: notificationDeliveries.id })
+        .from(notificationDeliveries)
+        .where(journeyDeliveries)
+        .orderBy(notificationDeliveries.id)
+        .for('update');
+      // A committed status write is visible under the lock. A later writer cannot pass its
+      // claim update once this transaction deletes the row. Keep the lock through deletion.
+      const lockedClaims = await tx
+        .select({
+          id: claims.id,
+          caseLifecycleState: claims.caseLifecycleState,
+          recoveryLifecycleState: claims.recoveryLifecycleState,
+        })
+        .from(claims)
+        .where(journeyClaims)
+        .orderBy(claims.id)
+        .for('update');
+      // The claim lock blocks new foreign-key references. A delivery that committed while
+      // we waited for the claim might already be held by a worker. End this attempt without
+      // deleting anything so the next transaction can lock that delivery first.
+      const currentDeliveries = await tx.query.notificationDeliveries.findMany({
+        where: journeyDeliveries,
+        columns: { id: true },
+      });
+      const lockedDeliveryIds = new Set(lockedDeliveries.map(({ id }) => id));
+      if (currentDeliveries.some(({ id }) => !lockedDeliveryIds.has(id))) return false;
+
+      // Keep the lock and delete residue even when the notification assertion times out.
+      await drainJourneyNotifications(tx, lockedClaims).catch(error => drainFailures.push(error));
+      const events = await tx.query.domainEvents.findMany({
+        where: and(
+          inArray(domainEvents.entityId, ids),
+          eq(domainEvents.tenantId, E2E_USERS.KS_MEMBER.tenantId)
+        ),
+        columns: { id: true },
+      });
+      const eventIds = events.map(event => event.id);
+      if (eventIds.length) {
         await tx
-          .delete(auditLog)
-          .where(
-            and(
-              eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-              inArray(auditLog.entityId, ids)
-            )
-          );
-        await tx.delete(notifications).where(
-          and(
-            eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-            inArray(
-              notifications.actionUrl,
-              ids.map(id => `/member/claims/${id}`)
-            )
-          )
+          .delete(domainEventDeliveries)
+          .where(inArray(domainEventDeliveries.eventId, eventIds));
+        await tx.delete(domainEvents).where(inArray(domainEvents.id, eventIds));
+      }
+      await tx
+        .delete(auditLog)
+        .where(
+          and(eq(auditLog.tenantId, E2E_USERS.KS_MEMBER.tenantId), inArray(auditLog.entityId, ids))
         );
-        for (const table of [claimStageHistory, claimDocuments, claimMessages] as const) {
-          await tx
+      await tx.delete(notifications).where(
+        and(
+          eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+          inArray(
+            notifications.actionUrl,
+            ids.flatMap(id => [`/member/claims/${id}`, `/staff/claims/${id}`])
+          )
+        )
+      );
+      await tx.delete(notificationDeliveries).where(journeyDeliveries);
+      await inSequence(
+        [claimResponseRequests, claimStageHistory, claimDocuments, claimMessages] as const,
+        table =>
+          tx
             .delete(table)
             .where(
               and(eq(table.tenantId, E2E_USERS.KS_MEMBER.tenantId), inArray(table.claimId, ids))
-            );
-        }
-        await tx
-          .delete(claims)
-          .where(and(eq(claims.tenantId, E2E_USERS.KS_MEMBER.tenantId), inArray(claims.id, ids)));
-      }
-      await tx
-        .delete(freeStartDrafts)
-        .where(
-          and(
-            eq(freeStartDrafts.tenantId, E2E_USERS.KS_MEMBER.tenantId),
-            eq(freeStartDrafts.summary, journey.summary)
-          )
-        );
-    });
-  }
+            )
+      );
+      await tx.delete(claims).where(journeyClaims);
+    }
+    await tx
+      .delete(freeStartDrafts)
+      .where(
+        and(
+          eq(freeStartDrafts.tenantId, E2E_USERS.KS_MEMBER.tenantId),
+          eq(freeStartDrafts.summary, journey.summary)
+        )
+      );
+    return true;
+  });
+  const cleaned = await cleanup.catch(error => {
+    if (drainFailures.length) {
+      throw new AggregateError(
+        [...drainFailures, error],
+        'Journey notification drain and cleanup failed'
+      );
+    }
+    throw error;
+  });
+  if (drainFailures.length) throw drainFailures[0];
+  return cleaned;
 }
 
 export async function expectJourneyClean(
   claimId: string | null,
-  journey: S3JourneyIdentity
+  journey: S3JourneyIdentity,
+  cleanedIds: ReadonlySet<string>
 ): Promise<void> {
-  const ids = await claimIdsForJourney(claimId, journey);
+  const ids = [...new Set([...cleanedIds, ...(await claimIdsForJourney(claimId, journey))])];
   const selection = { columns: { id: true } } as const;
   const [claimRows, draftRows, eventRows, historyRows, notificationRows, auditRows] =
     await Promise.all([
@@ -219,7 +258,7 @@ export async function expectJourneyClean(
               eq(notifications.tenantId, E2E_USERS.KS_MEMBER.tenantId),
               inArray(
                 notifications.actionUrl,
-                ids.map(id => `/member/claims/${id}`)
+                ids.flatMap(id => [`/member/claims/${id}`, `/staff/claims/${id}`])
               )
             ),
           })

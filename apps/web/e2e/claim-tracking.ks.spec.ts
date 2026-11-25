@@ -8,7 +8,7 @@
  * - demo-ks-track-token-001 (public tracking token)
  */
 import { E2E_USERS } from '@interdomestik/database';
-import { expect, test } from './fixtures/auth.fixture';
+import { expect, test } from '../e2e-mac/closed-services.fixture';
 import { gotoApp } from './utils/navigation';
 
 const TOKENS = {

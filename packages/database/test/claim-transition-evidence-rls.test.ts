@@ -84,7 +84,7 @@ test('claim_transition_evidence RLS scopes reads by access tenant and writes by 
       updatedAt: now,
     });
     await dbAdmin.insert(claims).values({
-      category: 'retail',
+      category: 'property',
       companyName: 'RLS Evidence Co',
       description: 'transition evidence RLS proof',
       id: claimId,

@@ -15,7 +15,14 @@
       "filtered": "Passen Sie Ihre Filter oder Ihre Suche an.",
       "createFirst": "Ersten Fall anlegen"
     },
+    "memberList": {
+      "searchPlaceholder": "Suchen...",
+      "resultStatus": "Seite {page} von {pages}: {count, plural, one {# Fall} other {# Fälle}}",
+      "updating": "Bis zur Aktualisierung werden die bisherigen Ergebnisse angezeigt…",
+      "pageEmpty": "Auf dieser Seite gibt es keine Fälle."
+    },
     "table": {
+      "unavailable": "Nicht verfügbar",
       "title": "Titel",
       "company": "Unternehmen",
       "category": "Kategorie",

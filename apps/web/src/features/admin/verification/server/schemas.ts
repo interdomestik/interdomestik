@@ -6,7 +6,7 @@ export const verifyCashSchema = z.object({
   note: z.string().optional(),
 });
 
-export const resubmitCashSchema = z.object({
+export const resubmitCashSchema = z.strictObject({
   attemptId: z.string(),
   note: z.string().optional(),
 });

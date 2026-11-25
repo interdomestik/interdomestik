@@ -37,6 +37,12 @@ describe('staff claim page effective access tenant', () => {
       claimId: 'claim-1',
       session,
       authority,
+      page: 1,
+    });
+    expect(hoisted.getRegisterPickerDocumentsMock).toHaveBeenCalledExactlyOnceWith({
+      claimId: 'claim-1',
+      session,
+      authority,
     });
     expect(
       (

@@ -1,146 +1,224 @@
-import { and, claims, eq, user as userTable } from '@interdomestik/database';
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import { reportServerError } from '@interdomestik/domain-communications/server-error';
+import { and, auditLog, claims, eq, user, type TenantTransaction } from '@interdomestik/database';
+import { claimStatusFromLifecycleFields } from '@interdomestik/database/claim-lifecycle';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { ensureTenantId } from '@interdomestik/shared-auth';
+import { isNull } from 'drizzle-orm';
+import { nanoid } from 'nanoid';
+import { z } from 'zod';
 
-import type { ClaimsSession } from '../claims/types';
+import { resolveClaimStatusActor, type ClaimStatusActor } from '../claims/status-actor';
 import { assignClaimSchema } from '../validators/claims';
 import { buildScopedStaffClaimWhere } from './scope';
-import type { ActionResult } from './types';
-import { assignClaimInTransaction } from './assign-transaction';
-import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
-type StaffUser = ClaimsSession['user'] & { branchId?: string | null };
-type StaffClaimRecord = { id: string; staffId: string | null; branchId: string | null };
+export const changeClaimAssignmentInputSchema = z.strictObject({
+  claimId: z.string().min(1).max(128),
+  staffId: assignClaimSchema.shape.staffId.optional(),
+});
 
-function resolveNextStaffId(params: { requestedStaffId?: string | null; userId: string }) {
-  return params.requestedStaffId === undefined ? params.userId : params.requestedStaffId;
+type AssignmentError =
+  | 'forbidden_role'
+  | 'invalid_input'
+  | 'not_found'
+  | 'draft'
+  | 'terminal'
+  | 'target_denied'
+  | 'conflict'
+  | 'transaction_failed';
+
+type AssignmentSnapshot = {
+  id: string;
+  staffId: string | null;
+  assignedAt: Date | null;
+  assignedById: string | null;
+};
+
+export type ChangeClaimAssignmentResult =
+  | { ok: true; changed: boolean; assignment: AssignmentSnapshot }
+  | { ok: false; code: AssignmentError };
+
+class AssignmentConflict extends Error {}
+
+async function lockAssignableTarget(
+  tx: TenantTransaction,
+  actor: ClaimStatusActor,
+  targetId: string
+) {
+  // db-access-guard: tenant-scoped -- reason: tenant comes from the assignment authority.
+  const [target] = await tx
+    .select({ id: user.id })
+    .from(user)
+    .where(
+      withTenant(
+        actor.tenantId,
+        user.tenantId,
+        and(
+          eq(user.id, targetId),
+          eq(user.role, 'staff'),
+          actor.kind === 'staff' && actor.branchId !== null && targetId !== actor.id
+            ? eq(user.branchId, actor.branchId)
+            : undefined
+        )
+      )
+    )
+    .for('share');
+  return target;
 }
 
-async function getScopedClaim(args: {
-  authority: TenantAuthority;
-  branchId: string | null;
-  claimId: string;
-  userId: string;
-}): Promise<StaffClaimRecord | undefined> {
-  const { authority, ...scope } = args;
-  const { tenantId } = readTenantAuthority(authority);
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  const [existingClaim] = await withTenantAuthority(authority, tx =>
-    tx
-      .select({ id: claims.id, staffId: claims.staffId, branchId: claims.branchId })
-      .from(claims)
-      .where(buildScopedStaffClaimWhere({ ...scope, tenantId }))
-      .limit(1)
-  );
+function recordAssignmentAudit(
+  tx: TenantTransaction,
+  actor: ClaimStatusActor,
+  claim: Pick<typeof claims.$inferSelect, 'id' | 'staffId' | 'claimNumber'>,
+  staffId: string | null,
+  now: Date,
+  requestHeaders?: Headers
+) {
+  const staffAction = staffId === null ? 'claim.unassigned' : 'claim.assigned';
+  const adminAction = staffId === null ? 'unassign_owner' : 'assign_owner';
+  const metadata =
+    actor.kind === 'staff'
+      ? {
+          previousStaffId: claim.staffId,
+          newStaffId: staffId,
+          ip:
+            requestHeaders?.get('x-forwarded-for')?.split(',')[0]?.trim() ||
+            requestHeaders?.get('x-real-ip') ||
+            undefined,
+          userAgent: requestHeaders?.get('user-agent') || undefined,
+        }
+      : {
+          previousStaffId: claim.staffId,
+          claimNumber: claim.claimNumber,
+          ...(staffId === null ? {} : { newStaffId: staffId }),
+        };
 
-  return existingClaim;
-}
-
-function buildAssigneeScope(args: { branchId: string | null; staffId: string; tenantId: string }) {
-  const baseScope = and(eq(userTable.id, args.staffId), eq(userTable.role, 'staff'));
-
-  if (args.branchId == null) {
-    return withTenant(args.tenantId, userTable.tenantId, baseScope);
-  }
-
-  return withTenant(
-    args.tenantId,
-    userTable.tenantId,
-    and(baseScope, eq(userTable.branchId, args.branchId))
-  );
-}
-
-async function findScopedAssignee(args: {
-  authority: TenantAuthority;
-  branchId: string | null;
-  staffId: string;
-}) {
-  const { authority, ...scope } = args;
-  const { tenantId } = readTenantAuthority(authority);
-  // db-access-guard: tenant-scoped -- reason: tenantId from validated function parameter at current DB boundary
-  return withTenantAuthority(authority, tx =>
-    tx.query.user.findFirst({
-      where: buildAssigneeScope({ ...scope, tenantId }),
-      columns: {
-        id: true,
-      },
-    })
-  );
-}
-
-/** Assign a claim to an in-scope staff member, defaulting to self-assignment */
-export async function assignClaimCore(params: {
-  authority: TenantAuthority | null;
-  claimId: string;
-  staffId?: string | null;
-  session: ClaimsSession | null;
-  requestHeaders?: Headers;
-}): Promise<ActionResult> {
-  const { authority, claimId, session, requestHeaders } = params;
-
-  if (!authority || session?.user?.role !== 'staff') {
-    return { success: false, error: 'Unauthorized' };
-  }
-
-  ensureTenantId(session);
-  readTenantAuthority(authority);
-  const user = session.user as StaffUser;
-  const branchId = user.branchId ?? null;
-  const nextStaffId = resolveNextStaffId({
-    requestedStaffId: params.staffId,
-    userId: user.id,
+  // db-access-guard: tenant-scoped -- reason: the assignment audit commits with the scoped update.
+  return tx.insert(auditLog).values({
+    id: nanoid(),
+    tenantId: actor.tenantId,
+    actorId: actor.id,
+    actorRole: actor.kind === 'staff' ? 'staff' : actor.role,
+    action: actor.kind === 'staff' ? staffAction : adminAction,
+    entityType: 'claim',
+    entityId: claim.id,
+    metadata,
+    createdAt: now,
   });
-  const parsedAssignment = assignClaimSchema.safeParse({ staffId: nextStaffId });
-  if (!parsedAssignment.success) {
-    return { success: false, error: 'Invalid staff assignment', data: undefined };
+}
+
+function findAdminAssignmentDenial(
+  claim: Parameters<typeof claimStatusFromLifecycleFields>[0],
+  staffId: string | null
+): 'terminal' | 'draft' | null {
+  const status = claimStatusFromLifecycleFields(claim);
+  if (status === 'resolved' || status === 'rejected') return 'terminal';
+  if (staffId !== null && status === 'draft') return 'draft';
+  return null;
+}
+
+async function assignInTransaction(
+  tx: TenantTransaction,
+  actor: ClaimStatusActor,
+  claimId: string,
+  staffId: string | null,
+  requestHeaders?: Headers
+): Promise<ChangeClaimAssignmentResult> {
+  const tenantId = actor.tenantId;
+  const claimScope =
+    actor.kind === 'staff'
+      ? buildScopedStaffClaimWhere({
+          tenantId,
+          claimId,
+          userId: actor.id,
+          branchId: actor.branchId,
+        })
+      : withTenant(tenantId, claims.tenantId, eq(claims.id, claimId));
+  // db-access-guard: tenant-scoped -- reason: scoped claim lock uses the actor's validated tenant.
+  const [claim] = await tx.select().from(claims).where(claimScope).for('no key update');
+  if (!claim) return { ok: false, code: 'not_found' };
+
+  if (actor.kind === 'admin') {
+    const denial = findAdminAssignmentDenial(claim, staffId);
+    if (denial) return { ok: false, code: denial };
   }
 
-  try {
-    const existingClaim = await getScopedClaim({
-      authority,
-      branchId,
-      claimId,
-      userId: user.id,
+  if (claim.staffId === staffId && (actor.kind === 'staff' || staffId === null)) {
+    return {
+      ok: true,
+      changed: false,
+      assignment: {
+        id: claim.id,
+        staffId,
+        assignedAt: claim.assignedAt,
+        assignedById: claim.assignedById,
+      },
+    };
+  }
+  if (staffId !== null && !(await lockAssignableTarget(tx, actor, staffId))) {
+    return { ok: false, code: 'target_denied' };
+  }
+
+  const now = new Date();
+  // db-access-guard: tenant-scoped -- reason: the update repeats the scoped lock and lifecycle snapshot.
+  const [assignment] = await tx
+    .update(claims)
+    .set({
+      staffId,
+      assignedAt: staffId === null ? null : now,
+      assignedById: staffId === null ? null : actor.id,
+      updatedAt: now,
+    })
+    .where(
+      and(
+        claimScope,
+        claim.staffId === null ? isNull(claims.staffId) : eq(claims.staffId, claim.staffId),
+        eq(claims.caseLifecycleState, claim.caseLifecycleState),
+        eq(claims.recoveryLifecycleState, claim.recoveryLifecycleState)
+      )
+    )
+    .returning({
+      id: claims.id,
+      staffId: claims.staffId,
+      assignedAt: claims.assignedAt,
+      assignedById: claims.assignedById,
     });
+  if (!assignment) throw new AssignmentConflict();
 
-    if (existingClaim === undefined) {
-      return { success: false, error: 'Claim not found or access denied' };
-    }
+  await recordAssignmentAudit(tx, actor, claim, staffId, now, requestHeaders);
+  return { ok: true, changed: true, assignment };
+}
 
-    if (existingClaim.staffId === nextStaffId) {
-      return { success: true };
-    }
+export async function changeClaimAssignment(
+  authority: TenantAuthority,
+  input: unknown,
+  meta: { requestHeaders?: Headers } = {}
+): Promise<ChangeClaimAssignmentResult> {
+  let actor: ClaimStatusActor | null;
+  try {
+    actor = resolveClaimStatusActor(authority);
+  } catch {
+    return { ok: false, code: 'forbidden_role' };
+  }
+  if (!actor) return { ok: false, code: 'forbidden_role' };
 
-    if (nextStaffId !== null && nextStaffId !== user.id) {
-      const assignee = await findScopedAssignee({
-        authority,
-        branchId,
-        staffId: nextStaffId,
-      });
+  const parsed = changeClaimAssignmentInputSchema.safeParse(input);
+  if (!parsed.success) return { ok: false, code: 'invalid_input' };
 
-      if (assignee == null) {
-        return { success: false, error: 'Staff member not found or out of scope' };
-      }
-    }
-
+  let { staffId } = parsed.data;
+  if (actor.kind === 'admin') {
+    if (staffId === undefined) return { ok: false, code: 'invalid_input' };
+    staffId = staffId?.trim() ?? null;
+    if (staffId === '' || staffId === actor.id) return { ok: false, code: 'target_denied' };
+  }
+  const targetId = staffId === undefined ? actor.id : staffId;
+  try {
     return await withTenantAuthority(authority, tx =>
-      assignClaimInTransaction(tx, {
-        authority,
-        branchId,
-        claimId,
-        userId: user.id,
-        actorRole: user.role,
-        nextStaffId,
-        previousStaffId: existingClaim.staffId,
-        requestHeaders,
-      })
+      assignInTransaction(tx, actor, parsed.data.claimId, targetId, meta.requestHeaders)
     );
   } catch (error) {
-    console.error('Failed to assign claim:', error);
-    return { success: false, error: 'Failed to assign claim' };
+    if (error instanceof AssignmentConflict) return { ok: false, code: 'conflict' };
+    reportServerError('Claim assignment transaction failed', error);
+    return { ok: false, code: 'transaction_failed' };
   }
 }

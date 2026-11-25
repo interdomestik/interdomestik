@@ -23,6 +23,10 @@ export default defineConfig({
     },
   },
   test: {
+    // The opt-in identity and recovery contracts snapshot and restore the same tenant's switch rows.
+    fileParallelism:
+      process.env.REQUIRE_PILOT_IDENTITY_CONTRACT !== '1' &&
+      process.env.REQUIRE_DIFFERENT_EMAIL_RECOVERY_CONTRACT !== '1',
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./src/test/setup.ts'],
@@ -35,7 +39,9 @@ export default defineConfig({
       exclude: ['node_modules/', 'src/test/', '**/*.d.ts', '**/*.config.*', '**/types/**'],
     },
     env: {
-      DATABASE_URL: 'postgres://postgres:postgres@localhost:5432/interdomestik_test',
+      ...(process.env.DATABASE_URL === undefined && {
+        DATABASE_URL: 'postgres://postgres:postgres@localhost:5432/interdomestik_test',
+      }),
     },
   },
 });

@@ -20,7 +20,12 @@ vi.mock('@interdomestik/database/schema', () => ({
   documentExtractions: {},
   documents: { deletedAt: {} },
 }));
-vi.mock('drizzle-orm', () => ({ and: vi.fn(), eq: vi.fn(), isNull: vi.fn() }));
+vi.mock('drizzle-orm', async importOriginal => ({
+  ...(await importOriginal<typeof import('drizzle-orm')>()),
+  and: vi.fn(),
+  eq: vi.fn(),
+  isNull: vi.fn(),
+}));
 vi.mock('nanoid', () => ({ nanoid: vi.fn() }));
 vi.mock('@interdomestik/domain-ai', () => ({
   CLAIM_INTAKE_EXTRACT_SCHEMA_VERSION: 'claim-schema',

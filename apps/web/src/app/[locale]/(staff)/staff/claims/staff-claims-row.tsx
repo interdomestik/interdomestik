@@ -1,5 +1,6 @@
 import { ClaimStatusBadge } from '@/components/dashboard/claims/claim-status-badge';
 import { Link } from '@/i18n/routing';
+import { formatPilotDateTime } from '@/lib/utils/date';
 import type { AssignedClaimAttention, StaffClaimsListItem } from '@interdomestik/domain-claims';
 import { Button } from '@interdomestik/ui';
 
@@ -39,11 +40,10 @@ export function StaffClaimsRow({
   tStatus,
 }: Readonly<Props>) {
   const overdueDate = attention?.overdueFollowUpDueAt;
-  const dueFormatter = new Intl.DateTimeFormat(locale, {
-    timeZone: 'UTC',
-    dateStyle: 'medium',
-    timeStyle: 'short',
-  });
+  const overdueCopy =
+    attention?.overdueFollowUpSource === 'case_register'
+      ? 'staff_queue.attention.overdue_register_follow_up'
+      : 'staff_queue.attention.overdue_follow_up';
 
   return (
     <div
@@ -107,8 +107,9 @@ export function StaffClaimsRow({
             className="mt-2 rounded border border-amber-300 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-950"
             data-testid="staff-claim-overdue-follow-up"
           >
-            {tClaims('staff_queue.attention.overdue_follow_up', {
-              date: dueFormatter.format(new Date(overdueDate)),
+            {tClaims(overdueCopy, {
+              // The register panels use the same pilot-time helper, so both screens show one date (R-09).
+              date: formatPilotDateTime(overdueDate, locale, overdueDate),
             })}
           </p>
         ) : null}

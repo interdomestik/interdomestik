@@ -1,0 +1,183 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+
+import { eq, inArray, sql } from 'drizzle-orm';
+
+import { user, userLocalePreferences } from '../src/schema';
+import { grantTablePrivileges } from './activity-access-rls.support';
+import { grantColumnPrivileges } from './column-grants.support';
+import {
+  KS_TENANT_ID,
+  MK_TENANT_ID,
+  openS8RestrictedSession,
+} from './s8-claim-restricted-rls.fixture';
+
+// WP-11: the recipient locale lives in `user_locale_preferences`. The save runs under the
+// restricted role through `withTenantAuthority`, locks its user row FOR KEY SHARE and upserts one
+// row per user; an absent user is a conflict.
+test('saves the locale only when the session authority covers its own profile', async t => {
+  const session = await openS8RestrictedSession(t, { DB_MAX_CONNECTIONS: '4' });
+  if (!session) return;
+  const { adminDb, fixture } = session;
+  const { ks, mk } = fixture;
+  const raceUser = 'wp11-locale-race';
+  const lockUser = 'wp11-locale-lock';
+  const users = [ks.userId, mk.userId, raceUser];
+  let revokeColumns: (() => Promise<void>) | undefined;
+  let revokeTable: (() => Promise<void>) | undefined;
+  try {
+    const [{ savePreferredLocale }, { mintTenantAuthority }] = await Promise.all([
+      import('../../domain-communications/src/recipient-locale'),
+      import('../src/tenant-authority'),
+    ]);
+    // The key-share lock needs UPDATE on one column of the user row.
+    revokeColumns = await grantColumnPrivileges(adminDb, [
+      ['select', 'user', ['id', 'tenant_id']],
+      ['update', 'user', ['id']],
+    ]);
+    revokeTable = await grantTablePrivileges(adminDb, [
+      ['select, insert, update', 'user_locale_preferences'],
+    ]);
+    await adminDb.update(user).set({ role: 'admin' }).where(eq(user.id, mk.userId));
+
+    const readPreferences = () =>
+      adminDb
+        .select({ id: userLocalePreferences.userId, locale: userLocalePreferences.locale })
+        .from(userLocalePreferences)
+        .where(inArray(userLocalePreferences.userId, users))
+        .orderBy(userLocalePreferences.userId);
+    const before = await readPreferences();
+
+    const admin = { id: mk.userId, role: 'admin', tenantId: MK_TENANT_ID };
+    const authority = (tenantId: string, userId = admin.id) =>
+      mintTenantAuthority({
+        tenantId,
+        purpose: 'session',
+        principal: { userId, role: admin.role, branchId: null, agentId: null },
+      });
+    const crossHome = { user: { ...admin, accessTenantId: KS_TENANT_ID } };
+    assert.equal(
+      await savePreferredLocale(authority(KS_TENANT_ID), crossHome, 'mk'),
+      'profile_scope_unavailable'
+    );
+    assert.equal(
+      await savePreferredLocale(authority(KS_TENANT_ID, ks.userId), crossHome, 'mk'),
+      'UNAUTHORIZED'
+    );
+    assert.deepEqual(await readPreferences(), before);
+
+    const home = { user: { ...admin, accessTenantId: MK_TENANT_ID } };
+    assert.equal(await savePreferredLocale(authority(MK_TENANT_ID), home, 'mk'), 'saved');
+    const saved = [...before.filter(row => row.id !== admin.id), { id: admin.id, locale: 'mk' }];
+    const byId = (rows: typeof saved) => [...rows].sort((x, y) => x.id.localeCompare(y.id));
+    assert.deepEqual(await readPreferences(), byId(saved));
+    // A second save updates the one row.
+    assert.equal(await savePreferredLocale(authority(MK_TENANT_ID), home, 'de'), 'saved');
+    assert.deepEqual(
+      await readPreferences(),
+      byId(saved.map(row => (row.id === admin.id ? { ...row, locale: 'de' } : row)))
+    );
+
+    // A principal whose user row is absent gets 'conflict' and writes nothing.
+    const absent = 'wp11-absent-user';
+    const ghost = { user: { ...admin, id: absent, accessTenantId: MK_TENANT_ID } };
+    assert.equal(
+      await savePreferredLocale(authority(MK_TENANT_ID, absent), ghost, 'sq'),
+      'conflict'
+    );
+    const ghostRows = await adminDb
+      .select({ id: userLocalePreferences.userId })
+      .from(userLocalePreferences)
+      .where(eq(userLocalePreferences.userId, absent));
+    assert.deepEqual(ghostRows, []);
+
+    const seedUser = (id: string) =>
+      adminDb.insert(user).values({
+        id,
+        tenantId: MK_TENANT_ID,
+        name: 'Locale user',
+        email: `${id}@example.test`,
+        emailVerified: true,
+        role: 'admin',
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+    const sessionOf = (id: string) => ({ user: { ...admin, id, accessTenantId: MK_TENANT_ID } });
+
+    // Waits until `count` sessions are blocked on a row or key the holding transaction `tx` holds.
+    // It queries through `tx` itself: the admin pool has one connection, which `tx` occupies.
+    const waitForWaiters = async (tx: Pick<typeof adminDb, 'execute'>, count: number) => {
+      const deadline = Date.now() + 10_000;
+      for (;;) {
+        const [row] = await tx.execute<{ waiting: number }>(sql`
+          select count(*)::int as waiting from pg_locks
+          where locktype = 'transactionid' and not granted
+            and transactionid::text = (txid_current() % 4294967296)::text`);
+        if ((row?.waiting ?? 0) >= count) return;
+        assert.ok(Date.now() < deadline, `expected ${count} sessions waiting on the holder`);
+        await new Promise(resolve => setTimeout(resolve, 25));
+      }
+    };
+
+    // Two first saves for one user, held at the same key until both wait there, then released
+    // together: both succeed and leave one row.
+    await seedUser(raceUser);
+    let raced: Promise<string[]> | undefined;
+    await assert.rejects(
+      adminDb.transaction(async tx => {
+        await tx
+          .insert(userLocalePreferences)
+          .values({ tenantId: MK_TENANT_ID, userId: raceUser, locale: 'sq' });
+        raced = Promise.all([
+          savePreferredLocale(authority(MK_TENANT_ID, raceUser), sessionOf(raceUser), 'mk'),
+          savePreferredLocale(authority(MK_TENANT_ID, raceUser), sessionOf(raceUser), 'de'),
+        ]);
+        await waitForWaiters(tx, 2);
+        throw new Error('release the held key');
+      }),
+      /release the held key/
+    );
+    assert.deepEqual(await raced, ['saved', 'saved']);
+    const raceRows = await adminDb
+      .select({ locale: userLocalePreferences.locale })
+      .from(userLocalePreferences)
+      .where(eq(userLocalePreferences.userId, raceUser));
+    assert.equal(raceRows.length, 1);
+    assert.ok(['mk', 'de'].includes(raceRows[0]?.locale ?? ''));
+
+    // The save locks its user before it writes. Another transaction holds the user row; the save is
+    // seen waiting on it; that transaction then deletes the user, and the save reports a conflict.
+    // Without its own lock the save would read the user, then fail on the foreign key.
+    await seedUser(lockUser);
+    let pending: Promise<string> | undefined;
+    await adminDb.transaction(async tx => {
+      await tx.select({ id: user.id }).from(user).where(eq(user.id, lockUser)).for('update');
+      pending = savePreferredLocale(authority(MK_TENANT_ID, lockUser), sessionOf(lockUser), 'mk');
+      await waitForWaiters(tx, 1);
+      await tx.delete(user).where(eq(user.id, lockUser));
+    });
+    assert.equal(await pending, 'conflict');
+    const lockRows = await adminDb
+      .select({ id: userLocalePreferences.userId })
+      .from(userLocalePreferences)
+      .where(eq(userLocalePreferences.userId, lockUser));
+    assert.deepEqual(lockRows, []);
+  } finally {
+    try {
+      await adminDb
+        .delete(userLocalePreferences)
+        .where(inArray(userLocalePreferences.userId, users));
+      await adminDb.delete(user).where(inArray(user.id, [raceUser, lockUser]));
+    } finally {
+      try {
+        await revokeTable?.();
+      } finally {
+        try {
+          await revokeColumns?.();
+        } finally {
+          await session.close();
+        }
+      }
+    }
+  }
+});

@@ -11,7 +11,10 @@ import type { TenantResolutionResult } from './tenant-resolution-types';
 
 export type { TenantId } from './tenant-host-aliases';
 export type { TenantResolutionResult, TenantResolutionSource } from './tenant-resolution-types';
-export type TenantLocale = 'sq' | 'en' | 'sr' | 'mk' | 'de';
+export {
+  preferredLocaleForTenant,
+  type TenantLocale,
+} from '@interdomestik/domain-communications/tenant-locale';
 
 export const TENANT_COOKIE_NAME = 'tenantId';
 export const TENANT_HEADER_NAME = 'x-tenant-id';
@@ -55,12 +58,6 @@ export function isTenantHost(host: string): boolean {
 export function coerceTenantId(value: string | null | undefined): TenantId | null {
   if (!value) return null;
   return isTenantId(value) ? value : null;
-}
-
-export function preferredLocaleForTenant(tenantId: TenantId): TenantLocale {
-  if (tenantId === 'tenant_mk') return 'mk';
-  if (tenantId === 'pilot-mk') return 'en';
-  return 'sq';
 }
 
 export function preferredHostForTenant(tenantId: TenantId): string {

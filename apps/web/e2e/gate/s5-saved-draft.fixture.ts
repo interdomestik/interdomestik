@@ -130,7 +130,11 @@ export async function openSavedDrafts(page: Page, info: TestInfo) {
 }
 
 // Deletes the run's draft audit and submit keys (matched by draft id), which journeys do not own.
-export async function cleanupS5(claimId: string | null, journey: S3JourneyIdentity) {
+export async function cleanupS5(
+  claimId: string | null,
+  journey: S3JourneyIdentity,
+  cleanedIds: Set<string>
+) {
   const tenant = E2E_USERS.KS_MEMBER.tenantId;
   const drafts = await db.query.freeStartDrafts.findMany({
     columns: { id: true },
@@ -145,7 +149,7 @@ export async function cleanupS5(claimId: string | null, journey: S3JourneyIdenti
     cleared = (await db.delete(auditLog).where(audit).returning({ id: auditLog.id })).length;
     await db.delete(idempotency).where(submits);
   }
-  await cleanupJourney(claimId, journey);
+  await cleanupJourney(claimId, journey, cleanedIds);
   expect(cleared, 'draft audit rows matched').toBeGreaterThanOrEqual(ids.length);
 }
 

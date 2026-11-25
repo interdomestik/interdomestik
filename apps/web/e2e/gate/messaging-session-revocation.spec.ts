@@ -1,5 +1,6 @@
 import { agentClients, claims, dbAdmin, E2E_USERS, user } from '@interdomestik/database';
-import { expect, test, type Page, type TestInfo } from '@playwright/test';
+import { ROLES } from '@interdomestik/shared-auth';
+import { expect, type Page, type TestInfo } from '@playwright/test';
 import { and, eq } from 'drizzle-orm';
 import type { AgentMessageFixture } from './agent-message-visibility.fixture';
 import {
@@ -14,6 +15,7 @@ import {
   withMessagingFixture,
   type ActionIds,
 } from './messaging-session-revocation.fixture';
+import { signalTest as test } from './signal-wait.fixture';
 
 // Cookies are retained in memory only, including on failure. Never attach browser/API traces.
 test.use({ storageState: { cookies: [], origins: [] }, trace: 'off' });
@@ -24,7 +26,8 @@ async function expectAdmitted(
   info: TestInfo,
   fixture: AgentMessageFixture,
   ids: ActionIds,
-  actorId: string
+  actorId: string,
+  routingAudits: readonly unknown[] = []
 ): Promise<void> {
   const messageIds = await resetReceipts(fixture);
   const read = await callMessaging(page, info, ids, 'history', fixture, messageIds);
@@ -51,7 +54,12 @@ async function expectAdmitted(
   const after = await messagingSnapshot(fixture);
   expect(after.messages.find(row => row.id === eligible?.id)?.readAt).toBeInstanceOf(Date);
   expect(after.messages).toHaveLength(before.messages.length + 1);
-  expect(after.audits).toHaveLength(before.audits.length + 1);
+  // One message audit per send, plus the routing audit the caller expects (WP-11).
+  expect(after.audits).toHaveLength(before.audits.length + 1 + routingAudits.length);
+  const added = after.audits.filter(row => !before.audits.some(prior => prior.id === row.id));
+  expect(added.filter(row => row.action === 'claim.message_sent')).toHaveLength(1);
+  const others = added.filter(row => row.action !== 'claim.message_sent');
+  expect(others.map(row => [row.action, row.metadata, row.tenantId])).toEqual(routingAudits);
   expect(after.messages.some(row => messageIds.includes(row.id) && row.readAt !== null)).toBe(true);
 }
 
@@ -78,8 +86,9 @@ async function expectScopeDenied(
 
 test('revoked cookie cannot read, send or acknowledge messages and causes zero writes', async ({
   page,
+  waitForSignal,
 }, info) => {
-  await withMessagingFixture(page, info, async (fixture, ids) => {
+  await withMessagingFixture(page, info, waitForSignal, async (fixture, ids) => {
     await expectAdmitted(page, info, fixture, ids, fixture.agentId);
     const transport = transportFor(page, info);
     const captured = transport.cookies().filter(cookie => cookie.name.endsWith('session_token'));
@@ -105,8 +114,9 @@ test('revoked cookie cannot read, send or acknowledge messages and causes zero w
 
 test('active agent link becomes inactive in the same session and denies messaging without writes', async ({
   page,
+  waitForSignal,
 }, info) => {
-  await withMessagingFixture(page, info, async (fixture, ids) => {
+  await withMessagingFixture(page, info, waitForSignal, async (fixture, ids) => {
     await expectAdmitted(page, info, fixture, ids, fixture.agentId);
     const changed = await dbAdmin
       .update(agentClients)
@@ -128,8 +138,9 @@ test('active agent link becomes inactive in the same session and denies messagin
 test('live claim branch change denies scoped staff while its member keeps admission', async ({
   page,
   browser,
+  waitForSignal,
 }, info) => {
-  await withMessagingFixture(page, info, async (fixture, ids) => {
+  await withMessagingFixture(page, info, waitForSignal, async (fixture, ids) => {
     await dbAdmin
       .update(user)
       .set({ branchId: fixture.branchId })
@@ -154,7 +165,23 @@ test('live claim branch change denies scoped staff while its member keeps admiss
       await assertSession(page, info, fixture.staffId);
       await expectScopeDenied(page, info, fixture, ids);
       await assertSession(memberPage, info, fixture.memberId);
-      await expectAdmitted(memberPage, info, fixture, ids, fixture.memberId);
+      // No scoped staff reads the branchless claim, so a member message falls back to the tenant's
+      // tenant_admin; a tenant without one (the MK seed) records the message as unrouted.
+      const fallback = await dbAdmin
+        .select({ id: user.id })
+        .from(user)
+        .where(and(eq(user.tenantId, fixture.tenantId), eq(user.role, ROLES.tenant_admin)));
+      const unrouted = [
+        ['notification.unrouted', { kind: 'staff_member_message' }, fixture.tenantId],
+      ];
+      await expectAdmitted(
+        memberPage,
+        info,
+        fixture,
+        ids,
+        fixture.memberId,
+        fallback.length > 0 ? [] : unrouted
+      );
     } finally {
       await memberContext.close();
     }
@@ -163,8 +190,9 @@ test('live claim branch change denies scoped staff while its member keeps admiss
 
 test('real read-only global support session reads owned history but cannot send or acknowledge', async ({
   page,
+  waitForSignal,
 }, info) => {
-  await withMessagingFixture(page, info, async (fixture, ids) => {
+  await withMessagingFixture(page, info, waitForSignal, async (fixture, ids) => {
     // Historical owner retained after a role change: use the catalogue role, never a new seed.
     await dbAdmin
       .update(user)

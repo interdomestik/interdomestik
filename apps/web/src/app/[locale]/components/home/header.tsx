@@ -1,6 +1,7 @@
 'use client';
 
-import { Link } from '@/i18n/routing';
+import { useSavePreferredLocale } from '@/hooks/use-save-preferred-locale';
+import { Link, useRouter } from '@/i18n/routing';
 import { authClient } from '@/lib/auth-client';
 import { getCanonicalRouteForRole } from '@/lib/canonical-routes';
 import { ChevronDown, ShieldCheck } from 'lucide-react';
@@ -26,7 +27,9 @@ function useHasHydrated(): boolean {
 
 export function Header() {
   const locale = useLocale();
+  const router = useRouter();
   const t = useTranslations('nav');
+  const saveLocale = useSavePreferredLocale();
   const { data: session, isPending } = authClient.useSession();
   const hasHydrated = useHasHydrated();
   const [localeOpen, setLocaleOpen] = useState(false);
@@ -95,6 +98,29 @@ export function Header() {
                   locale={option}
                   data-testid="public-locale-option"
                   onClick={() => setLocaleOpen(false)}
+                  onClickCapture={async event => {
+                    if (
+                      !hasHydrated ||
+                      isPending ||
+                      !session?.user?.id ||
+                      event.defaultPrevented ||
+                      event.button !== 0 ||
+                      event.metaKey ||
+                      event.ctrlKey ||
+                      event.shiftKey ||
+                      event.altKey
+                    )
+                      return;
+                    // The localized link updates its locale cookie in the bubbling click handler.
+                    event.preventDefault();
+                    event.stopPropagation();
+                    setLocaleOpen(false);
+                    if ((await saveLocale(option)) === 'failed') {
+                      localeTrigger.current?.focus();
+                      return;
+                    }
+                    router.push('/', { locale: option });
+                  }}
                   onKeyDown={event => {
                     if (event.key !== 'Escape') return;
                     event.preventDefault();

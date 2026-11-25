@@ -13,6 +13,13 @@ import {
   verify,
 } from './better-auth-email-otp.contract-test-support';
 
+vi.mock('@/lib/tenant/public-admission-tenant', () => ({
+  resolvePublicAdmissionTenant: () => 'tenant_ks',
+}));
+vi.mock('@/lib/tenant/public-intake-admission', () => ({
+  isPublicIntakeOpenForTenant: async () => true,
+}));
+
 afterEach(async () => {
   vi.restoreAllMocks();
   await cleanupContractRows();

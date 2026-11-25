@@ -41,48 +41,69 @@ describe('MembershipOpsPage', () => {
     expect(screen.getByRole('button', leave)).toHaveAttribute('data-entry-id', 'entry-future');
   });
 
-  it('routes cancellation through the canonical subscription action', async () => {
-    selectionMocks.selectedId = 'sub-1';
-    actionMocks.cancelSubscription.mockResolvedValue({
-      cancellationTerms: {
-        coolingOffAppliesSeparately: true,
-        currentPeriodEndsAt: '2027-03-01T00:00:00.000Z',
-        effectiveFrom: 'next_billing_period',
-        hasAcceptedEscalation: false,
-        refundStatus: 'eligible',
-        refundWindowEndsAt: '2026-03-31T00:00:00.000Z',
+  it.each([
+    {
+      outcome: 'success',
+      result: {
+        cancellationTerms: {
+          coolingOffAppliesSeparately: true,
+          currentPeriodEndsAt: '2027-03-01T00:00:00.000Z',
+          effectiveFrom: 'next_billing_period',
+          hasAcceptedEscalation: false,
+          refundStatus: 'eligible',
+          refundWindowEndsAt: '2026-03-31T00:00:00.000Z',
+        },
+        error: undefined,
+        success: true,
       },
-      error: undefined,
-      success: true,
-    });
+    },
+    {
+      outcome: 'closed',
+      result: {
+        success: false,
+        code: 'CLOSED',
+        error: 'Payment and subscription management are currently unavailable.',
+      },
+    },
+  ])(
+    'routes cancellation through the canonical subscription action ($outcome)',
+    async ({ outcome, result }) => {
+      selectionMocks.selectedId = 'sub-1';
+      actionMocks.cancelSubscription.mockResolvedValueOnce(result);
 
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => true)
-    );
+      vi.stubGlobal(
+        'confirm',
+        vi.fn(() => true)
+      );
 
-    render(
-      <MembershipOpsPage
-        subscriptions={[
-          {
-            id: 'sub-1',
-            status: 'active',
-            planId: 'plan-family',
-            createdAt: '2026-03-01T00:00:00.000Z',
-            currentPeriodEnd: '2027-03-01T00:00:00.000Z',
-            plan: { name: 'Family' },
-          } as never,
-        ]}
-        documents={[]}
-      />
-    );
+      render(
+        <MembershipOpsPage
+          subscriptions={[
+            {
+              id: 'sub-1',
+              status: 'active',
+              planId: 'plan-family',
+              createdAt: '2026-03-01T00:00:00.000Z',
+              currentPeriodEnd: '2027-03-01T00:00:00.000Z',
+              plan: { name: 'Family' },
+            } as never,
+          ]}
+          documents={[]}
+        />
+      );
 
-    fireEvent.click(screen.getByText('Cancel membership'));
+      fireEvent.click(screen.getByText('Cancel membership'));
 
-    await waitFor(() => {
-      expect(actionMocks.cancelSubscription).toHaveBeenCalledWith('sub-1', expect.any(String));
-    });
-  });
+      await waitFor(() => {
+        expect(actionMocks.cancelSubscription).toHaveBeenCalledWith('sub-1', expect.any(String));
+      });
+      if (outcome === 'closed') {
+        const { toast } = await import('sonner');
+        expect(toast.error).toHaveBeenCalledWith('CLOSED');
+        expect(toast.success).not.toHaveBeenCalled();
+      }
+    }
+  );
 
   it('does not leak confirm stubs between tests', () => {
     expect(globalThis.confirm).toBe(originalConfirm);

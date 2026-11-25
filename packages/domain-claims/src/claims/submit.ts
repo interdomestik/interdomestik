@@ -9,7 +9,14 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directory';
+import {
+  enqueueClaimSubmittedNotification,
+  enqueueStaffClaimNotification,
+  lockClaimNotificationRecipient,
+} from '@interdomestik/domain-communications/notification-deliveries';
+import { reportServerError } from '@interdomestik/domain-communications/server-error';
 import { nanoid } from 'nanoid';
+import { resolveStaffClaimNotificationRecipients } from '../staff-claims/notification-recipients';
 import { createClaimSchema, type CreateClaimValues } from '../validators/claims';
 import type { QueuedClaimAiRun } from './ai-workflow-types';
 import { buildClaimDocumentRows } from './documents';
@@ -22,12 +29,9 @@ import {
   resolveSubmittedClaimIncidentCountry,
 } from './incident-country';
 import { mapClaimStatusToLifecycleStates } from './lifecycle-state';
+import { createClaimResponseRequest } from './response-requests';
 import { loadClaimAssignmentContext } from './submit-assignment';
-import {
-  dispatchQueuedClaimAiRuns,
-  logClaimSubmittedAudit,
-  notifyClaimSubmitted,
-} from './submit-side-effects';
+import { dispatchQueuedClaimAiRuns, logClaimSubmittedAudit } from './submit-side-effects';
 import { recordSubmittedClaimLifecycle } from './submitted-claim-lifecycle';
 import type { ClaimStartHandoffContext, ClaimsDeps, ClaimsSession } from './types';
 
@@ -43,16 +47,14 @@ async function persistSubmittedClaim(args: {
   handoffContext?: ClaimStartHandoffContext | null;
   data: CreateClaimValues;
   tenantMetadata: { tenantId: string; code: string };
-}): Promise<{ claimNumber: string; queuedRuns: QueuedClaimAiRun[] }> {
+}): Promise<{ claimNumber: string; queuedRuns: QueuedClaimAiRun[]; deliveryIds: string[] }> {
   const { title, description, category, companyName, claimAmount, currency, files } = args.data;
   const publicNote = buildClaimStartPublicNote(args.handoffContext);
   const incidentCountry = resolveSubmittedClaimIncidentCountry(args.data);
   const { tenantId } = readTenantAuthority(args.authority);
-  let claimNumber = '';
-
   // One tenant-context transaction keeps the claim number, lifecycle, events and
   // documents atomic under installed tenant RLS settings.
-  await withTenantAuthority(args.authority, async tx => {
+  return withTenantAuthority(args.authority, async tx => {
     await tx.insert(claims).values({
       id: args.claimId,
       tenantId,
@@ -72,7 +74,7 @@ async function persistSubmittedClaim(args: {
       updatedAt: args.createdAt,
     });
 
-    claimNumber = await generateClaimNumber(
+    const claimNumber = await generateClaimNumber(
       tx,
       {
         tenantId,
@@ -81,6 +83,14 @@ async function persistSubmittedClaim(args: {
       },
       args.tenantMetadata
     );
+
+    const claim = { tenantId, claimId: args.claimId, claimNumber, category };
+    const recipient = await lockClaimNotificationRecipient(tx, tenantId, args.userId);
+    const staff = await resolveStaffClaimNotificationRecipients(tx, {
+      tenantId,
+      claimId: args.claimId,
+      staffId: null,
+    });
 
     await recordSubmittedClaimLifecycle(tx, {
       changedByRole: args.changedByRole,
@@ -93,28 +103,29 @@ async function persistSubmittedClaim(args: {
       userId: args.userId,
     });
 
-    if (!files?.length) {
-      return;
+    if (files?.length) {
+      // One stored object is never the document of two claims: refused (and rolled back) if a
+      // concurrent or earlier command already attached it.
+      await assertEvidenceObjectsUnattached(tx, { tenantId, files });
+      const documentRows = buildClaimDocumentRows({
+        claimId: args.claimId,
+        uploadedBy: args.userId,
+        files,
+        tenantId,
+      });
+      await tx.insert(claimDocuments).values(documentRows);
     }
 
-    // One stored object is never the document of two claims: refused (and rolled back) if a
-    // concurrent or earlier command already attached it.
-    await assertEvidenceObjectsUnattached(tx, { tenantId, files });
-
-    const documentRows = buildClaimDocumentRows({
-      claimId: args.claimId,
-      uploadedBy: args.userId,
-      files,
-      tenantId,
-    });
-
-    await tx.insert(claimDocuments).values(documentRows);
+    const memberIds = await enqueueClaimSubmittedNotification(tx, { ...claim, title, recipient });
+    const staffIds = await enqueueStaffClaimNotification(
+      tx,
+      claim,
+      { kind: 'staff_claim_submitted' },
+      staff
+    );
+    await createClaimResponseRequest(tx, { ...claim, kind: 'claim_submitted' });
+    return { claimNumber, queuedRuns: [], deliveryIds: [...memberIds, ...staffIds] };
   });
-
-  return {
-    claimNumber,
-    queuedRuns: [],
-  };
 }
 
 export async function submitClaimCore(
@@ -151,6 +162,7 @@ export async function submitClaimCore(
   const claimId = params.trustedClaimId ?? nanoid();
   const createdAt = new Date();
   let queuedRuns: QueuedClaimAiRun[];
+  let deliveryIds: string[];
   let claimNumber = '';
 
   try {
@@ -177,7 +189,13 @@ export async function submitClaimCore(
     });
     queuedRuns = persistedClaim.queuedRuns;
     claimNumber = persistedClaim.claimNumber;
-
+    deliveryIds = persistedClaim.deliveryIds;
+  } catch (error) {
+    if (error instanceof ClaimValidationError) throw error;
+    reportServerError('Failed to create claim:', error);
+    throw new Error('Failed to create claim. Please try again.');
+  }
+  try {
     await logClaimSubmittedAudit({
       deps,
       session,
@@ -188,18 +206,16 @@ export async function submitClaimCore(
       assignment,
     });
   } catch (error) {
-    if (error instanceof ClaimValidationError) throw error;
-    console.error('Failed to create claim:', error);
-    throw new Error('Failed to create claim. Please try again.');
+    reportServerError('Claim submission audit failed after commit', error);
   }
 
   await dispatchQueuedClaimAiRuns(queuedRuns, deps);
 
-  notifyClaimSubmitted({ deps, session, authority, claimId, data: result.data });
-
-  if (deps.revalidatePath) {
-    await deps.revalidatePath('/member/claims');
+  try {
+    await deps.revalidatePath?.('/member/claims');
+  } catch (error) {
+    reportServerError('Claim submission cache refresh failed after commit', error);
   }
 
-  return { success: true, claimId, claimNumber };
+  return { success: true, claimId, claimNumber, deliveryIds };
 }
