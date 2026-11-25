@@ -34,7 +34,7 @@ export const legalDocumentVersions = pgTable(
       as: 'permissive',
       for: 'select',
       to: 'public',
-      using: sql`nullif(btrim(current_setting('app.current_access_tenant_id', true)), '') is not null`,
+      using: sql`coalesce(current_setting('app.current_access_tenant_id', true), '') ~ '[^[:space:]]'`,
     }),
   ]
 ).enableRLS();

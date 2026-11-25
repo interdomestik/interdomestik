@@ -168,13 +168,14 @@ async function proveRegistryRead(admin: postgres.Sql, roles: readonly string[]) 
   }
 
   for (const role of roles) {
-    for (const blank of ['', '   ']) {
+    for (const blank of ['', '   ', '\t', '\n', '\r']) {
+      const label = `${role} with access tenant ${JSON.stringify(blank)}`;
       await restricted(admin, role, [blank], async tx => {
         const [context] = await tx`
           select current_setting('app.current_access_tenant_id', true) as access_tenant_id
         `;
-        assert.equal(context.access_tenant_id, blank, role);
-        assert.deepEqual([...(await readRegistry(tx))], [], role);
+        assert.equal(context.access_tenant_id, blank, label);
+        assert.deepEqual([...(await readRegistry(tx))], [], label);
       });
     }
 

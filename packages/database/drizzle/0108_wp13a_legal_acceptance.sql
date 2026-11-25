@@ -52,7 +52,7 @@ BEGIN
 END;
 $$;
 --> statement-breakpoint
-CREATE POLICY "legal_document_versions_read" ON "legal_document_versions" AS PERMISSIVE FOR SELECT TO public USING (nullif(btrim(current_setting('app.current_access_tenant_id', true)), '') is not null);--> statement-breakpoint
+CREATE POLICY "legal_document_versions_read" ON "legal_document_versions" AS PERMISSIVE FOR SELECT TO public USING (coalesce(current_setting('app.current_access_tenant_id', true), '') ~ '[^[:space:]]');--> statement-breakpoint
 ALTER TABLE public.legal_document_versions
   ADD CONSTRAINT legal_document_versions_pkey PRIMARY KEY (kind, version, locale);
 --> statement-breakpoint
