@@ -150,7 +150,7 @@ async function runPlaywright(name, args, env) {
     return run('pnpm', args, env);
   }
 
-  const head = execFileSync('git', ['rev-parse', '--verify', 'HEAD'], {
+  const head = execFileSync('/usr/bin/git', ['rev-parse', '--verify', 'HEAD'], {
     cwd: rootDir,
     encoding: 'utf8',
   }).trim();
@@ -164,7 +164,8 @@ async function runPlaywright(name, args, env) {
     [...args, '--retries=0', '--workers=1', '--reporter=line,json', `--output=${output}`],
     {
       ...env,
-      PW_LOCAL_MAC_RESULTS_DIR: invocationDir,
+      // The config creates its evidence directory before applying the CLI overrides.
+      PW_EVIDENCE_LANE: 'default',
       PLAYWRIGHT_JSON_OUTPUT_FILE: report,
     }
   );

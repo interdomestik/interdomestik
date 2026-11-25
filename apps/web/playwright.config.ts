@@ -35,12 +35,7 @@ switch (REQUESTED_EVIDENCE_LANE) {
   default:
     throw new Error('PW_EVIDENCE_LANE_INVALID');
 }
-const LOCAL_MAC_RESULTS_DIR =
-  process.platform === 'darwin' && process.env.GITHUB_ACTIONS !== 'true'
-    ? process.env.PW_LOCAL_MAC_RESULTS_DIR
-    : undefined;
-const TEST_RESULTS_DIR =
-  LOCAL_MAC_RESULTS_DIR || path.resolve(__dirname, 'test-results', EVIDENCE_LANE);
+const TEST_RESULTS_DIR = path.resolve(__dirname, 'test-results', EVIDENCE_LANE);
 const HTML_REPORT_DIR = path.resolve(__dirname, 'playwright-report', EVIDENCE_LANE);
 const JUNIT_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'junit.xml');
 const JSON_REPORT_FILE = path.join(TEST_RESULTS_DIR, 'report.json');
