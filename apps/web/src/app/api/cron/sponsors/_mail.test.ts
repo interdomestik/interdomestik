@@ -24,6 +24,7 @@ vi.mock('@interdomestik/domain-membership-billing/sponsors/sponsor-jobs', () => 
 import { sponsorMailDeps } from './_mail';
 
 const authority = mintTestTenantAuthority('tenant_ks');
+const allowDispatch = () => null;
 const input = {
   locale: 'en',
   firstName: 'Ana',
@@ -52,14 +53,17 @@ describe('sponsor mail adapter', () => {
 
   it('renders the billing mail input before sending to the current recipient', async () => {
     const deps = sponsorMailDeps('tenant_ks', authority);
-    expect(await deps?.sendMail('current@example.test', input)).toEqual({ ok: true });
+    expect(await deps?.sendMail('current@example.test', input, allowDispatch)).toEqual({
+      ok: true,
+    });
     expect(h.sendEmail).toHaveBeenCalledExactlyOnceWith(
       'current@example.test',
       expect.objectContaining({
         subject: expect.any(String),
         html: expect.stringContaining('Controller'),
         text: expect.stringContaining('Company'),
-      })
+      }),
+      { canDispatch: expect.any(Function) }
     );
     expect(h.activate).not.toHaveBeenCalled();
   });
@@ -67,11 +71,26 @@ describe('sponsor mail adapter', () => {
   it('returns only the stable error code when email delivery fails', async () => {
     h.sendEmail.mockResolvedValue({ success: false, error: 'private provider response' });
     const deps = sponsorMailDeps('tenant_ks', authority);
-    expect(await deps?.sendMail('current@example.test', input)).toEqual({
+    expect(await deps?.sendMail('current@example.test', input, allowDispatch)).toEqual({
       ok: false,
       code: 'send_failed',
     });
   });
+
+  it.each(['aged_mail', 'lease_lost'] as const)(
+    'returns %s when admission refuses the provider handoff',
+    async reason => {
+      h.sendEmail.mockImplementationOnce((_to, _template, options) => {
+        const success = options?.canDispatch?.() ?? true;
+        return { success };
+      });
+      const deps = sponsorMailDeps('tenant_ks', authority);
+      expect(await deps?.sendMail('current@example.test', input, () => reason)).toEqual({
+        ok: false,
+        code: reason,
+      });
+    }
+  );
 
   it('keeps activation on the tenant-bound auth helper', async () => {
     const deps = sponsorMailDeps('tenant_ks', authority);
@@ -85,7 +104,11 @@ describe('sponsor mail adapter', () => {
   it('maps suppression to a non-delivered sponsor outcome', async () => {
     h.sendEmail.mockResolvedValue({ success: false, suppressed: true, error: 'email_suppressed' });
     expect(
-      await sponsorMailDeps('tenant_ks', authority)?.sendMail('member@other.invalid', input)
+      await sponsorMailDeps('tenant_ks', authority)?.sendMail(
+        'member@other.invalid',
+        input,
+        allowDispatch
+      )
     ).toEqual({ ok: false, code: 'email_suppressed' });
   });
 });

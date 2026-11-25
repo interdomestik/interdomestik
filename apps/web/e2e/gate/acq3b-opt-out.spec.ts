@@ -1,4 +1,7 @@
-import { optOutToken } from '@interdomestik/domain-membership-billing/sponsors/roster-crypto';
+import {
+  optOutToken,
+  optOutTokenHash,
+} from '@interdomestik/domain-membership-billing/sponsors/roster-crypto';
 import { CLOSED_SERVICES_PROJECT, expect, test } from '../../e2e-mac/closed-services.fixture';
 import { path as routePath } from '../fixtures/routes';
 import { gotoApp } from '../utils/navigation';
@@ -40,6 +43,7 @@ test.describe('ACQ-3b public opt-out', () => {
           ).toBeVisible();
           expect(await readEntry(f, entryId)).toEqual(before);
           expect(before.revokedAt).toBeNull();
+          expect(before.optedOutAt).toBeNull();
           await dismissCookies(page);
           const confirm = visible(
             page.getByRole('button', {
@@ -60,8 +64,9 @@ test.describe('ACQ-3b public opt-out', () => {
             .toBe('opted_out');
           const optedOut = await readEntry(f, entryId);
           expect(optedOut.revokedAt).toBeTruthy();
+          // optedOutAt records consumption of the token whose hash remains on the entry.
           expect(optedOut.optedOutAt).toBeTruthy();
-          expect(optedOut.optoutTokenHash).toBeNull();
+          expect(optedOut.optoutTokenHash).toBe(optOutTokenHash(token));
           await gotoApp(page, url, info, { marker: 'public-sponsor-opt-out-page-ready' });
           // GET never resolves the token (§3.8); a used or malformed link is refused on submission.
           for (const link of [url, routePath(info, `/${locale}/sponsor/opt-out/malformed`)]) {

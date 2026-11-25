@@ -30,10 +30,27 @@ import {
 
 export type { RetentionSummary } from './retention-plan';
 
-/** §3.9: each term is atomic; a failure rolls it back and is surfaced for the next cron retry. */
+// Opening and rollback builds require signed disposition and hold enforcement before reactivation.
+const DESTRUCTIVE_SPONSOR_RETENTION_ENABLED: boolean = false;
+
+export type SponsorRetentionResult =
+  | { state: 'skipped'; reason: 'sponsor_retention_dormant' }
+  | { state: 'completed'; summary: RetentionSummary };
+
 export async function runSponsorRetention(
   authority: TenantAuthority,
   { now }: { now: Date }
+): Promise<SponsorRetentionResult> {
+  if (!DESTRUCTIVE_SPONSOR_RETENTION_ENABLED) {
+    return { state: 'skipped', reason: 'sponsor_retention_dormant' };
+  }
+  return { state: 'completed', summary: await applySponsorRetention(authority, now) };
+}
+
+/** §3.9: each term is atomic; a failure rolls it back and is surfaced for the next cron retry. */
+async function applySponsorRetention(
+  authority: TenantAuthority,
+  now: Date
 ): Promise<RetentionSummary> {
   const { tenantId } = readTenantAuthority(authority);
   const cutoff = outboxRetentionCutoff(now).toISOString();

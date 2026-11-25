@@ -182,6 +182,7 @@ type EntryTarget = {
   legalEntityId: string;
   dispatchPeriodEndsAt: string | null;
   effectiveEnd: string;
+  termEnd: string;
 };
 export async function readEntryTarget(
   tx: TenantTransaction,
@@ -196,6 +197,7 @@ export async function readEntryTarget(
       legalEntityId: sponsorTerms.legalEntityId,
       dispatchPeriodEndsAt: sponsorHandoverIntents.dispatchPeriodEndsAt,
       effectiveEnd: sql<string>`coalesce(${sponsorTerms.terminatedEffectiveAt}, ${sponsorTerms.termEnd})`,
+      termEnd: sponsorTerms.termEnd,
     })
     .from(sponsorRosterEntries)
     .innerJoin(
