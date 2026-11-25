@@ -10,7 +10,6 @@ import { describe, expect, it, vi } from 'vitest';
 import { SPONSOR_SYSTEM_ACTOR } from './audit';
 import { auditTransaction, expectAudits } from './audit-test-support';
 import { leaveSponsorship, markLeftCompany, optOutByToken } from './opt-out';
-import { optOutTokenHash } from './roster-crypto';
 
 const actor = { userId: 'usr_staff', role: 'staff', branchId: null, agentTier: null };
 

@@ -60,7 +60,10 @@ import type { PreparedMail, SponsorMailDeps } from './mail-sender';
 
 export const now = new Date('2027-01-01T00:00:00.000Z');
 export const lease = { id: 'm1', leaseUntil: mailLeaseUntil(now) };
-export let authority: ReturnType<typeof mintTestTenantAuthority>;
+let authority: ReturnType<typeof mintTestTenantAuthority>;
+export function getAuthority(): ReturnType<typeof mintTestTenantAuthority> {
+  return authority;
+}
 export function deps(): SponsorMailDeps {
   return {
     secret: 'x'.repeat(32),

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { authority, deps, fake, lease, mail, now, sqlQueries } from './mail-sender.test-support';
+import { deps, fake, getAuthority, lease, mail, now, sqlQueries } from './mail-sender.test-support';
 import { claimDueMail, finishMail } from './mail-outbox';
 import { deliverSponsorMail, runSponsorMailOutbox, sponsorMailInput } from './mail-sender';
 import { optOutToken } from './roster-crypto';
@@ -7,7 +7,7 @@ import { optOutToken } from './roster-crypto';
 describe('mail lease and completion', () => {
   it('claims queued due and expired leases with SKIP LOCKED and one batched increment', async () => {
     fake.rows.push([{ id: 'm1' }, { id: 'm2' }]);
-    expect(await claimDueMail(authority, now, 2)).toEqual(['m1', 'm2']);
+    expect(await claimDueMail(getAuthority(), now, 2)).toEqual(['m1', 'm2']);
     expect(fake.locks).toEqual([['update', { skipLocked: true }]]);
     expect(fake.writes).toHaveLength(1);
     expect(fake.writes[0]).toMatchObject({
@@ -25,12 +25,12 @@ describe('mail lease and completion', () => {
       now.toISOString(),
     ]);
     expect(update?.params).toEqual(['tenant-1', 'm1', 'm2']);
-    expect(await claimDueMail(authority, now, 0)).toEqual([]);
+    expect(await claimDueMail(getAuthority(), now, 0)).toEqual([]);
   });
 
   it('fences both the completion read and write by tenant, id, claimed state and exact lease', async () => {
     fake.rows.push([{ attempts: 2 }]);
-    expect(await finishMail(authority, lease, { state: 'sent' }, now)).toBe('sent');
+    expect(await finishMail(getAuthority(), lease, { state: 'sent' }, now)).toBe('sent');
     for (const query of sqlQueries())
       expect(query.params).toEqual(['tenant-1', 'm1', 'claimed', lease.leaseUntil]);
     expect(fake.writes[0]).toMatchObject({
@@ -39,7 +39,7 @@ describe('mail lease and completion', () => {
       leaseUntil: null,
     });
     fake.writes = [];
-    expect(await finishMail(authority, lease, { state: 'sent' }, now)).toBe('lease_lost');
+    expect(await finishMail(getAuthority(), lease, { state: 'sent' }, now)).toBe('lease_lost');
     expect(fake.writes).toEqual([]);
   });
 });
@@ -145,7 +145,7 @@ describe('mail delivery', () => {
         expect(fake.writes).toHaveLength(1);
         return { ok: true };
       });
-      expect(await runSponsorMailOutbox(authority, d, { now, limit: 2 })).toEqual({
+      expect(await runSponsorMailOutbox(getAuthority(), d, { now, limit: 2 })).toEqual({
         claimed: 2,
         outcomes: { [exists ? 'sent' : 'skipped']: 1, lease_lost: 1 },
       });
@@ -175,7 +175,7 @@ it.each(['sponsor_notice', 'activation'] as const)(
     expect(outcome).toEqual({ state: 'skipped', reason: 'email_suppressed' });
     if (outcome === 'lease_lost') throw new Error('Unexpected lease loss');
     fake.rows = [[{ id: 'm1', attempts: 1, kind }]];
-    expect(await finishMail(authority, lease, outcome, now)).toBe('skipped');
+    expect(await finishMail(getAuthority(), lease, outcome, now)).toBe('skipped');
     expect(fake.writes).toContainEqual(
       expect.objectContaining({ state: 'skipped', leaseUntil: null, terminalAt: now.toISOString() })
     );

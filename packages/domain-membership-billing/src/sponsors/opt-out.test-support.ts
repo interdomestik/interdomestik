@@ -22,7 +22,7 @@ export const authority: TenantAuthority = mintTestTenantAuthority('tenant');
 export const now = new Date('2027-01-01');
 export const token = 'private-token';
 export function use(db: ReturnType<typeof auditTransaction>): void {
-  vi.mocked(withTenantAuthority).mockImplementation(async (_authority, fn) => fn(db.tx));
+  vi.mocked(withTenantAuthority).mockImplementation(async (_authority, fn) => await fn(db.tx));
 }
 export function entry(
   id: string,

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { authority, deps, fake, mail, now } from './mail-sender.test-support';
+import { deps, fake, getAuthority, mail, now } from './mail-sender.test-support';
 import { mailLeaseUntil } from './mail-outbox';
 import { deliverSponsorMail, runSponsorMailOutbox } from './mail-sender';
 
@@ -30,7 +30,7 @@ describe('dispatch-time roster mail cutoff', () => {
     fake.rows.push([{ id: row.id }], [row], [row]);
     fake.answerSelect = answerOriginReads;
     const d = deps();
-    const outcome = await runSponsorMailOutbox(authority, d, { now, limit: 1 });
+    const outcome = await runSponsorMailOutbox(getAuthority(), d, { now, limit: 1 });
     expect(d.sendMail).not.toHaveBeenCalled();
     expect(d.sendActivation).not.toHaveBeenCalled();
     expect(outcome).toEqual({
@@ -53,7 +53,7 @@ describe('dispatch-time roster mail cutoff', () => {
     d.sendMail = vi.fn().mockResolvedValueOnce({ ok: false }).mockResolvedValue({ ok: true });
     fake.answerSelect = answerOriginReads;
     fake.rows.push([{ id: delivery.id }], [delivery], [delivery]);
-    expect(await runSponsorMailOutbox(authority, d, { now: before, limit: 1 })).toEqual({
+    expect(await runSponsorMailOutbox(getAuthority(), d, { now: before, limit: 1 })).toEqual({
       claimed: 1,
       outcomes: { queued: 1 },
     });
@@ -66,7 +66,7 @@ describe('dispatch-time roster mail cutoff', () => {
     vi.setSystemTime(retryAt);
     const retry = { ...delivery, attempts: 2 };
     fake.rows.push([{ id: retry.id }], [retry], [retry]);
-    const outcome = await runSponsorMailOutbox(authority, d, { now: retryAt, limit: 1 });
+    const outcome = await runSponsorMailOutbox(getAuthority(), d, { now: retryAt, limit: 1 });
     expect(d.sendMail).toHaveBeenCalledTimes(1);
     expect(outcome).toEqual({
       claimed: 1,
@@ -106,7 +106,7 @@ describe('dispatch-time roster mail cutoff', () => {
     fake.answerSelect = answerOriginReads;
     fake.rows.push([{ id: delivery.id }], [delivery], [delivery]);
 
-    expect(await runSponsorMailOutbox(authority, d, { now: before, limit: 1 })).toEqual({
+    expect(await runSponsorMailOutbox(getAuthority(), d, { now: before, limit: 1 })).toEqual({
       claimed: 1,
       outcomes: { skipped: 1 },
     });
@@ -130,7 +130,7 @@ describe('dispatch-time roster mail cutoff', () => {
     fake.answerSelect = answerOriginReads;
     fake.rows.push([{ id: delivery.id }], [delivery], [delivery]);
 
-    expect(await runSponsorMailOutbox(authority, d, { now: before, limit: 1 })).toEqual({
+    expect(await runSponsorMailOutbox(getAuthority(), d, { now: before, limit: 1 })).toEqual({
       claimed: 1,
       outcomes: { lease_lost: 1 },
     });
@@ -141,7 +141,7 @@ describe('dispatch-time roster mail cutoff', () => {
   it('records missing origin facts as a retryable error without provider calls', async () => {
     const d = deps();
     fake.rows.push([{ id: delivery.id }], [delivery], [], [delivery]);
-    expect(await runSponsorMailOutbox(authority, d, { now, limit: 1 })).toEqual({
+    expect(await runSponsorMailOutbox(getAuthority(), d, { now, limit: 1 })).toEqual({
       claimed: 1,
       outcomes: { queued: 1 },
     });
