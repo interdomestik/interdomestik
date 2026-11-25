@@ -105,7 +105,9 @@ Migration `0102` enables and forces RLS on all six tables. The four tenant-owned
 
 PR-1b tests require the strict schemas to refuse injected `sold_by` in either sale entry and `published_by` or `publishedBy` in `publishPlanVersion`. Direct writes to the kind and channel lookups and direct sale UPDATEs are refused under the restricted role (R-06).
 
-### PR-1c — Official rate checks and sale-day pricing
+### PR-1c — Rate verification age
+
+#### Official rate checks and sale-day pricing
 
 - Publication revisions start at 1 for each effective date. The book lock serializes initial publications and corrections. Each correction targets the current revision of its own date. The ISO Monday remains derived metadata.
 - The port owns check windows, check events, verifications and verification limits. Finance approves explicit, finite windows. Release provisions them separately from the elapsed-age limit. Under `READ COMMITTED`, the commands lock the EUR/MKD book `FOR UPDATE` before the active entity `FOR SHARE`. Each check start captures its window and its exact same-date rate head, if present, and closes fresh sales upon commit. The verifier consults the official source after the start commits.
@@ -113,6 +115,7 @@ PR-1b tests require the strict schemas to refuse injected `sold_by` in either sa
 - Authorized replay returns the stored outcome. Changed content conflicts and a different actor's operation key is concealed. A legacy verification can be replayed with its original input. A fresh verification requires a check ID. The web actions audit auth and scope refusals.
 - Fresh individual pricing requires the exact sale-day head and the newest start in the open window to have a positive verification of that head. Missing or overdue evidence, pending checks and disputed rates close sales. The age limit is inclusive and the window deadline is exclusive. One invoker predicate serves quote, locked preflight and the PostgreSQL-stamped insert guard. A stale-rate refusal leaves no claim, sale or charge. Authorized replay returns the original sale before fresh pricing. A successful composed sale holds its book lock through outer commit.
 - Restricted-role command and sale proofs run in Billing's `test:rls` lane. Database `test:rls` covers constraints and grants. The web action invocation covers wrapped authorization and audit receipts.
+- The billing lane uses `individual-sale-parties.test-support.ts` for tenant, actor and entity fixtures. `rate-verification-concurrency.test-support.ts` registers races and cross-table key reuse cases through the existing individual sales suite.
 
 ### Later slices
 

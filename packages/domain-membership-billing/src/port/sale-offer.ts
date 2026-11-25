@@ -98,7 +98,7 @@ export async function readSaleOffer(
         and(eq(exchangeRateBooks.base, 'EUR'), eq(exchangeRateBooks.quote, 'MKD'))
       )
     )
-    .leftJoinLateral(
+    .leftJoin(
       sql`public.membership_sale_rate_at(${tenantId}, ${exchangeRateBooks.id}) as sale_rate`,
       sql`true`
     )

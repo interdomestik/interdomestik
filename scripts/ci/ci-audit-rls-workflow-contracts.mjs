@@ -21,6 +21,7 @@ const releaseUpgrade = {
   command: 'db:wp07:legacy-upgrade',
   receipt: 'wp07_legacy_upgrade',
   env: { DATABASE_URL: 'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test' },
+  script: 'scripts/ci/rc-wp07-legacy-upgrade.sh',
 };
 const legacyLockfileBlob = '30c68285cd04754daed56c49bc8fad334dee72b9';
 
@@ -28,7 +29,7 @@ function assertRlsRun(command) {
   assert.equal(command, 'pnpm db:rls:test');
 }
 
-function assertRequiredRcStep(step, { name, command, receipt, env }) {
+function assertRequiredRcStep(step, { name, command, receipt, env, script }, scriptSource) {
   const logDir = '${RC_LOGS_DIR}';
   const run = [
     'set -euo pipefail',
@@ -41,32 +42,54 @@ function assertRequiredRcStep(step, { name, command, receipt, env }) {
     'exit "${exit_code}"',
     '',
   ].join('\n');
-  assert.deepEqual(step, { name, shell: 'bash', ...(env && { env }), run });
+  assert.deepEqual(step, {
+    name,
+    shell: 'bash',
+    ...(env && { env }),
+    run: script ? `bash ${script}` : run,
+  });
+  if (script) assert.equal(scriptSource, `#!/usr/bin/env bash\n${run}`);
 }
 
 for (const contract of [releaseHostVerifier, releaseUpgrade]) {
   test(`${contract.name} rejects skipped, malformed, and fail-open steps`, () => {
     const step = findStep(releaseCandidate.jobs['rc-gate'].steps, contract.name);
-    const invalid = [
+    const scriptSource = contract.script
+      ? fs.readFileSync(path.join(root, contract.script), 'utf8')
+      : undefined;
+    const invalidSteps = [
       ['missing step', undefined],
       ['empty command', { ...step, run: '' }],
       ['unparseable command', { ...step, run: 'if' }],
       ['valid but empty step', {}],
       ['successful exit before the command', { ...step, run: `exit 0\n${step.run}` }],
-      [
-        'exit status from tee',
-        { ...step, run: step.run.replace('PIPESTATUS[0]', 'PIPESTATUS[1]') },
-      ],
-      [
-        'hardcoded successful exit',
-        { ...step, run: step.run.replace('exit "${exit_code}"', 'exit 0') },
-      ],
       ['skipped by workflow condition', { ...step, if: 'false' }],
       ['ignored failure', { ...step, 'continue-on-error': true }],
     ];
-    for (const [reason, candidate] of invalid) {
+    for (const [reason, candidate] of invalidSteps) {
       assert.throws(
-        () => assertRequiredRcStep(candidate, contract),
+        () => assertRequiredRcStep(candidate, contract, scriptSource),
+        { code: 'ERR_ASSERTION' },
+        reason
+      );
+    }
+
+    const body = scriptSource ?? step.run;
+    const invalidBodies = [
+      ['missing body', undefined],
+      ['empty body', ''],
+      ['unparseable body', 'if'],
+      ['valid but empty body', '#!/usr/bin/env bash\n'],
+      ['successful exit before the proof', `exit 0\n${body}`],
+      ['exit status from tee', body.replace('PIPESTATUS[0]', 'PIPESTATUS[1]')],
+      ['hardcoded successful exit', body.replace('exit "${exit_code}"', 'exit 0')],
+    ];
+    for (const [reason, candidate] of invalidBodies) {
+      assert.throws(
+        () =>
+          contract.script
+            ? assertRequiredRcStep(step, contract, candidate)
+            : assertRequiredRcStep({ ...step, run: candidate }, contract),
         { code: 'ERR_ASSERTION' },
         reason
       );
@@ -140,14 +163,18 @@ test('release candidate requires the host verifier and a separate PG16 legacy up
   const checkout = rc.steps.find(step => step.uses === 'actions/checkout@v5');
   assert.equal(checkout?.with?.['fetch-depth'], 0);
   assertRequiredRcStep(findStep(rc.steps, releaseHostVerifier.name), releaseHostVerifier);
-  assertRequiredRcStep(findStep(rc.steps, releaseUpgrade.name), releaseUpgrade);
+  assertRequiredRcStep(
+    findStep(rc.steps, releaseUpgrade.name),
+    releaseUpgrade,
+    fs.readFileSync(path.join(root, releaseUpgrade.script), 'utf8')
+  );
   assert.deepEqual(releaseCandidate.on, {
     push: { branches: ['rc/*'] },
     workflow_dispatch: null,
   });
   assert.doesNotMatch(
     JSON.stringify(workflow.jobs),
-    /db:wp07:legacy-upgrade|run-wp07-legacy-upgrade/u
+    /db:wp07:legacy-upgrade|(?:run|rc)-wp07-legacy-upgrade/u
   );
 });
 
@@ -162,7 +189,7 @@ test('Mac verification runs shared RLS coverage independently of the legacy inst
   assert.match(hosts, /^pnpm pr:verify$/mu);
   assert.doesNotMatch(
     [hosts, rootScripts['pr:verify'], rootScripts['db:rls:test:required']].join('\n'),
-    /db:wp07:legacy-upgrade|test:rls:upgrade|run-wp07-legacy-upgrade/u
+    /db:wp07:legacy-upgrade|test:rls:upgrade|(?:run|rc)-wp07-legacy-upgrade/u
   );
   assert.ok(rootScripts['pr:verify'].split(' && ').includes('pnpm db:rls:test:required'));
   assert.equal(
