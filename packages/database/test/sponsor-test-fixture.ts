@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import type { TestContext } from 'node:test';
+import { fileURLToPath } from 'node:url';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import { migrateJournal, scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
 import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
 import { grantRlsTestRole } from './rls-test-grants';
 import {
@@ -31,6 +33,8 @@ export {
   type Table,
   type Tx,
 } from './sponsor-seed.test-support';
+
+const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
 
 export type Fixture = { admin: postgres.Sql; a: Scope; b: Scope };
 /** drizzle(admin) makes postgres.js return timestamps as text; compare them as ISO strings. */
@@ -94,56 +98,41 @@ export async function withFixture(
   t: TestContext,
   fn: (f: Fixture) => Promise<void>
 ): Promise<void> {
-  const url = process.env.DATABASE_URL;
-  if (!url) {
-    assert.notEqual(
-      process.env.REQUIRE_RLS_INTEGRATION,
-      '1',
-      'Sponsor RLS tests require DATABASE_URL when REQUIRE_RLS_INTEGRATION=1.'
-    );
-    t.skip('DATABASE_URL is required for sponsor PostgreSQL integration tests');
-    return;
-  }
-  const admin = postgres(url, { max: 1 });
-  const a = createSponsorScope();
-  const b = createSponsorScope();
-  let seeded = false;
-  try {
-    // Sponsor policies use different names from requireRlsPreconditions; fail if 0099 is absent.
-    const posture = await admin`select relname, relrowsecurity, relforcerowsecurity
-      from pg_class c join pg_namespace n on n.oid = c.relnamespace
-      where n.nspname = 'public' and relname in ${admin(TABLES)}`;
-    assert.equal(posture.length, TABLES.length, 'Migration 0099 must be applied');
-    posture.forEach(p => assert.ok(p.relrowsecurity && p.relforcerowsecurity, p.relname));
-    await admin`select pg_advisory_lock(192837465)`;
-    try {
-      await admin.unsafe(`do $$ begin create role ${quoteIdentifier(TEST_DB_ROLE)} nologin;
+  const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
+  if (missing) return t.skip(missing);
+
+  await withScratchDatabase(
+    'sponsor_test',
+    async (admin, maintenance) => {
+      await migrateJournal(admin, migrations);
+      const posture = await admin`select relname, relrowsecurity, relforcerowsecurity
+        from pg_class c join pg_namespace n on n.oid = c.relnamespace
+        where n.nspname = 'public' and relname in ${admin(TABLES)}`;
+      assert.equal(posture.length, TABLES.length, 'Migration 0099 must be applied');
+      posture.forEach(p => assert.ok(p.relrowsecurity && p.relforcerowsecurity, p.relname));
+
+      // The role is shared across databases, so take the lock in the common maintenance database.
+      await maintenance`select pg_advisory_lock(192837465)`;
+      try {
+        await admin.unsafe(`do $$ begin create role ${quoteIdentifier(TEST_DB_ROLE)} nologin;
         exception when duplicate_object or unique_violation then null; end $$`);
-      await grantRlsTestRole(drizzle(admin), TABLES);
-      await serial(TABLES, async table => {
-        await admin.unsafe(
-          `grant insert, update, delete on ${quoteIdentifier(table)} to ${quoteIdentifier(TEST_DB_ROLE)}`
-        );
-      });
-    } finally {
-      await admin`select pg_advisory_unlock(192837465)`;
-    }
-    seeded = true;
-    await seedSponsorRows(admin, a);
-    await seedSponsorRows(admin, b);
-    await fn({ admin, a, b });
-  } finally {
-    try {
-      if (seeded) {
-        const parents =
-          'subscriptions member_leads membership_plans legal_entities user branches'.split(' ');
-        await serial([...[...TABLES].reverse(), ...parents], async table => {
-          await admin`delete from ${admin(table)} where tenant_id in ${admin([a.tenant, b.tenant])}`;
+        await grantRlsTestRole(drizzle(admin), TABLES);
+        await serial(TABLES, async table => {
+          await admin.unsafe(
+            `grant insert, update, delete on ${quoteIdentifier(table)} to ${quoteIdentifier(TEST_DB_ROLE)}`
+          );
         });
-        await admin`delete from tenants where id in ${admin([a.tenant, b.tenant])}`;
+      } finally {
+        await maintenance`select pg_advisory_unlock(192837465)`;
       }
-    } finally {
-      await admin.end({ timeout: 5 });
-    }
-  }
+
+      const a = createSponsorScope();
+      const b = createSponsorScope();
+      // These inserts commit before the test starts so both race transactions can see them.
+      await seedSponsorRows(admin, a);
+      await seedSponsorRows(admin, b);
+      await fn({ admin, a, b });
+    },
+    { maxConnections: 3, loopbackOnly: true }
+  );
 }
