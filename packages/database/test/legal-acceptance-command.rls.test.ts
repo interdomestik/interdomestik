@@ -7,9 +7,10 @@ import { pathToFileURL } from 'node:url';
 import { assertDisposableUrl } from '../src/disposable-client';
 import {
   acceptanceEvidence,
+  approveLegalAcceptanceFixture,
   cleanup,
   fixtureWithText,
-  migrateApprovedFixture,
+  migrateLegalAcceptanceFixture,
   seedSubject,
   verifyReseed,
   withAcceptanceRuntime,
@@ -196,7 +197,8 @@ test('WP-13a command and admission run against the restricted database role', as
     try {
       if (createdRuntime)
         await admin`create role interdomestik_runtime_rls nologin nosuperuser nobypassrls`;
-      await migrateApprovedFixture(admin);
+      await migrateLegalAcceptanceFixture(admin);
+      await approveLegalAcceptanceFixture(admin);
       await admin`grant usage on schema public to interdomestik_runtime_rls`;
       await admin`grant select, insert, update, delete on "user", audit_log, free_start_drafts
         to interdomestik_runtime_rls`;

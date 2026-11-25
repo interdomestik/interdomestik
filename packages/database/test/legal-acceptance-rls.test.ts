@@ -1,15 +1,14 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 import test, { type TestContext } from 'node:test';
 import type postgres from 'postgres';
 
 import registry from '../src/legal-document-versions.json';
+import { migrateLegalAcceptanceFixture } from './legal-acceptance-command.test-support';
+import { scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
 import { quoteIdentifier } from './rls-test-connection';
-import { migrateJournal, scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
 
 const runtime = 'interdomestik_runtime_rls';
-const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
 const tenant = 'wp13_fixture_tenant_a';
 const foreignTenant = 'wp13_fixture_tenant_b';
 const member = 'wp13_fixture_member_a';
@@ -192,7 +191,7 @@ test('WP-13a journal policies and append-only controls under restricted roles', 
     if (!existing) await admin.unsafe(`create role ${runtime} nologin nosuperuser nobypassrls`);
     await admin.unsafe(`create role ${quoteIdentifier(e2e)} nologin nosuperuser nobypassrls`);
     try {
-      await migrateJournal(admin, migrations);
+      await migrateLegalAcceptanceFixture(admin);
       await admin.unsafe(`grant usage on schema public to ${runtime}, ${quoteIdentifier(e2e)}`);
       // Reproduce the production e2e-runtime-role.mjs DML grant, including its lack of TRUNCATE.
       await admin.unsafe(

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import de from '../../../apps/web/src/messages/de/legal-documents.json';
 import en from '../../../apps/web/src/messages/en/legal-documents.json';
 import { withDisposableClient } from '../src/disposable-client';
+import { migrateJournalBeforeNotificationDeliveries } from './journal-prefix.support';
 import { migrateJournal, type ScratchClient } from './pg16/scratch-database';
 import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
 
@@ -45,8 +46,18 @@ function valuesOf(value: FixtureText): string[] {
   return typeof value === 'string' ? [value] : Object.values(value).flatMap(valuesOf);
 }
 
-export async function migrateApprovedFixture(admin: ScratchClient) {
+export async function migrateLegalAcceptanceFixture(admin: ScratchClient) {
+  await migrateJournalBeforeNotificationDeliveries(admin, journal);
+  // WP-11 checks for UPDATE on these tables. Grant only the id column for row locking.
+  await admin`grant update (id) on
+    public.claim, public."user", public.claim_escalation_agreements, public.subscriptions,
+    public.membership_plans, public.sponsor_terms, public.sponsor_roster_entries,
+    public.claim_recovery_no_fee_evidence, public.claim_transition_evidence, public.claim_messages
+    to interdomestik_runtime_rls`;
   await migrateJournal(admin, journal);
+}
+
+export async function approveLegalAcceptanceFixture(admin: ScratchClient) {
   // The scratch owner projects a synthetic approval with the append-only trigger restored
   // in the same transaction, before any restricted-role code runs.
   await admin.begin(async tx => {
