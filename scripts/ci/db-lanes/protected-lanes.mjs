@@ -150,6 +150,11 @@ function browserGateTargets(root, workflow, roots, read, databaseFiles) {
       /const mkMk = '--project=gate-mk-mk';/u,
       /playwrightArgs: \[\.\.\.gatePaths, \.\.\.runnerArgs, \.\.\.projects\]/u,
       /\bgate: gateLane\(\[ksSq, mkMk\], true, fullGateWorkers\)/u,
+      // The hosted worker arguments may limit failures and configure reports, but cannot filter tests.
+      /^const fullGateWorkers = localMac \? localMacGateArgs\(10\) : strictWorkers;$/mu,
+      /^const strictWorkers = \['--workers=1', \.\.\.strictArgs\];$/mu,
+      /^const strictArgs = \['--max-failures=1', \.\.\.reportArgs\];$/mu,
+      /^const reportArgs = playwrightReportArgs\(process\.env\.PW_EVIDENCE_LANE\);$/mu,
       /\[\.\.\.pwArgs, \.\.\.lane\.playwrightArgs, \.\.\.extraPlaywrightArgs\]/u,
     ];
     if (!selectors.every(selector => selector.test(runner))) return [];

@@ -245,6 +245,12 @@ test('credits the full Playwright gate for a spec that imports database helpers'
   assert.throws(row, orphan);
   writeFileSync(config, source);
 
+  const runner = join(root, 'scripts/run-e2e-lane.mjs');
+  const runnerSource = readFileSync(runner, 'utf8');
+  const filteredArgs = ": [...strictWorkers, '--grep', '@smoke'];";
+  writeFileSync(runner, runnerSource.replace(': strictWorkers;', filteredArgs));
+  assert.throws(row, orphan);
+  writeFileSync(runner, runnerSource);
   updateWorkflow(root, workflow => {
     const gate = workflow.jobs['e2e-gate'].steps.find(step => step.name === 'E2E Gate Suite');
     gate.if = false;
