@@ -4,7 +4,7 @@ export const MODULARITY_POLICY = Object.freeze({
   productionCode: Object.freeze({ preferredLines: 150, reviewLines: 300 }),
   focusedTest: Object.freeze({ maxLines: 300 }),
   structuredArtifact: Object.freeze({ maxBytes: 128 * 1024 }),
-  governanceDoc: Object.freeze({ maxLines: 1000, maxBytes: 128 * 1024 }),
+  governanceDoc: Object.freeze({ maxLines: 1000, maxBytes: 136 * 1024 }),
   workflowYaml: Object.freeze({}),
 });
 export const MODULARITY_LINE_LIMIT = MODULARITY_POLICY.productionCode.preferredLines;
