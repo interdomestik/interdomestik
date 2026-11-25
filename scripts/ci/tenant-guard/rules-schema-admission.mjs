@@ -218,16 +218,11 @@ function compare(before, after, anchor, role, inventoryOf, record, rateBook) {
     return reject(`schema destructuring export ${destructuring.getSourceFile().fileName}`);
   if (newInventory.outsideForwards.length)
     return reject(`schema forward outside scan roots ${newInventory.outsideForwards[0]}`);
-  const additions = tableAdmissionProblem(
-    before,
-    after,
-    anchor,
-    added,
-    accumulated,
-    oldInventory,
-    newInventory,
-    transition
-  );
+  const additions = tableAdmissionProblem(before, after, anchor, added, accumulated, {
+    beforeInventory: oldInventory,
+    afterInventory: newInventory,
+    transition,
+  });
   return additions ? reject(additions) : null;
 }
 

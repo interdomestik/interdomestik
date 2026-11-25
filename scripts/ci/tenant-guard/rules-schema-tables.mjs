@@ -9,9 +9,7 @@ export function tableAdmissionProblem(
   anchor,
   added,
   accumulated,
-  beforeInventory,
-  afterInventory,
-  transition
+  { beforeInventory, afterInventory, transition }
 ) {
   const legacy = legacyTableIdentities(before, before.reachable);
   if (legacy.reason) return legacy.reason;
