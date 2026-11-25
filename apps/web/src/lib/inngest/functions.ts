@@ -129,13 +129,9 @@ export const legalDocumentExtractionRequested = inngest.createFunction(
   }
 );
 
-/**
- * All Inngest functions to register with the handler
- */
+// The signed receiver serves notification delivery and extraction. Both campaign timers stay dormant.
 export const inngestFunctions = [
-  dailyEmailSequences,
   notificationDeliveries,
-  seasonalCampaigns,
   policyExtractionRequested,
   claimIntakeExtractionRequested,
   legalDocumentExtractionRequested,
