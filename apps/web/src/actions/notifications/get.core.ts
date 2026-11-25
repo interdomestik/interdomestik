@@ -1,13 +1,13 @@
 import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
 import { getBranchManagerNotificationCopy } from '@/lib/notifications/branch-manager-copy';
 import { getLocale, getTranslations } from 'next-intl/server';
-import { getMemberClaimDetail } from '@/features/claims/tracking/server/getMemberClaimDetail';
 import {
   notificationClaimId,
   notificationDisplayCopy,
   storedClaimLabel,
 } from '@/lib/notifications/display-copy';
 import { getNotificationsCore as getNotificationsCoreDomain } from '@interdomestik/domain-communications/notifications/get';
+import { getMemberClaimTitle } from '@interdomestik/domain-claims';
 import { reportServerError } from '@interdomestik/domain-communications/server-error';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import type { Session } from './context';
@@ -48,21 +48,20 @@ export async function getNotificationsCore(params: {
       continue;
     }
     const claimId = notificationClaimId(row);
-    // Legacy raw-ID entries reuse the member's existing claim reader and admission.
+    // Legacy raw-ID entries need only a title under the already admitted member authority.
     if (
       claimId &&
       !storedClaimLabel(row) &&
       params.session?.user.role === 'member' &&
+      params.authority &&
       !labels.has(claimId)
     ) {
       labels.set(
         claimId,
-        getMemberClaimDetail(claimId)
-          .then(claim => claim?.title ?? null)
-          .catch(error => {
-            reportServerError('Notification claim lookup failed', error);
-            throw new NotificationClaimLookupError();
-          })
+        getMemberClaimTitle({ authority: params.authority, claimId }).catch(error => {
+          reportServerError('Notification claim lookup failed', error);
+          throw new NotificationClaimLookupError();
+        })
       );
     }
     const label = claimId ? labels.get(claimId) : undefined;

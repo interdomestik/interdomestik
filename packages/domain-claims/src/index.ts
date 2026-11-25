@@ -45,6 +45,7 @@ export * from './claims/lifecycle-read-model';
 export * from './claims/lifecycle-read-sql';
 export * from './claims/case-companion-next-step';
 export * from './claims/vault-consent-display';
+export { getMemberClaimTitle } from './member-claims/get-member-claim-detail';
 export * from './claims/transition-guard';
 export { buildScopedStaffClaimWhere, buildStaffClaimReadScope } from './staff-claims/scope';
 export { getStaffClaimsList } from './staff-claims/get-staff-claims-list';
