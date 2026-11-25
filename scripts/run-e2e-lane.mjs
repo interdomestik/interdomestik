@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import { randomBytes } from 'node:crypto';
+import { execFileSync } from 'node:child_process';
+import { randomBytes, randomUUID } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -41,11 +42,12 @@ const reportArgs = playwrightReportArgs(process.env.PW_EVIDENCE_LANE);
 const strictArgs = ['--max-failures=1', ...reportArgs];
 const workerArgs = ['--workers=1', ...reportArgs];
 const strictWorkers = ['--workers=1', ...strictArgs];
+const localMac = process.platform === 'darwin' && process.env.GITHUB_ACTIONS !== 'true';
+const localMacReportDir = '.tmp/playwright/local-mac';
+const localMacGateArgs = cap => [`--max-failures=${cap}`, '--trace=retain-on-failure'];
 // Hosted main CI also runs the full gate.
-const fullGateWorkers =
-  process.platform === 'darwin' && process.env.GITHUB_ACTIONS !== 'true'
-    ? ['--workers=1', '--max-failures=10', ...reportArgs]
-    : strictWorkers;
+const fullGateWorkers = localMac ? localMacGateArgs(10) : strictWorkers;
+const stateRunnerArgs = localMac ? localMacGateArgs(1) : strictWorkers;
 // The gate projects also admit the configured security specs (GATE_SECURITY_MATCH); the path filter
 // must not drop them.
 const gatePaths = ['e2e/gate', 'e2e/security'];
@@ -69,7 +71,7 @@ const projectLane = (project, env) => ({
   playwrightArgs: ['e2e/gate', project, ...strictArgs],
 });
 const laneDefinitions = {
-  state: { playwrightArgs: [...setupArgs, ...strictWorkers] },
+  state: { playwrightArgs: [...setupArgs, ...stateRunnerArgs] },
   gate: gateLane([ksSq, mkMk], true, fullGateWorkers),
   pr: gateLane([ksSq, mkContract], true),
   'pr-ks': gateLane([ksSq], true),
@@ -78,6 +80,7 @@ const laneDefinitions = {
     gatekeeper: true,
     playwrightArgs: ['--grep', '@smoke', '--project=ks-sq', '--project=mk-mk', '--workers=1'],
   },
+  smoke: { pnpmArgs: ['--filter', '@interdomestik/web', 'run', 'e2e:smoke'] },
   'gate-fast': gateLane([ksSq, mkMk]),
   'pr-fast': gateLane([ksSq, mkContract]),
   merge: {
@@ -111,7 +114,8 @@ const laneDefinitions = {
 function usage() {
   const lanes = Object.keys(laneDefinitions).join(', ');
   console.error(
-    `Usage: node scripts/run-e2e-lane.mjs <lane> [playwright args...]\n\nLanes: ${lanes}`
+    `Usage: node scripts/run-e2e-lane.mjs <lane> [playwright args...]\n\nLanes: ${lanes}\n\n` +
+      `Local Mac setup, gate and smoke write JSON to ${localMacReportDir}/<head>/<lane>-<invocation>/report.json`
   );
 }
 
@@ -123,12 +127,6 @@ if (laneName === '-h' || laneName === '--help' || laneName === 'help') {
   process.exit(0);
 }
 const lane = laneDefinitions[laneName];
-const shouldRunLocalDoctor =
-  lane?.gatekeeper &&
-  process.env.SKIP_DOCKER_DOCTOR !== '1' &&
-  process.env.CI !== 'true' &&
-  !process.env.E2E_DATABASE_URL;
-
 if (!lane) {
   usage();
   process.exit(2);
@@ -137,19 +135,8 @@ const keepPilotMk =
   (laneName === 'pr' || laneName === 'pr-fast') &&
   extraPlaywrightArgs.some(arg => arg.includes('/pilot/'));
 if (keepPilotMk) lane.playwrightArgs.push(mkMk);
-const envSecret = process.env.BETTER_AUTH_SECRET;
-process.env.BETTER_AUTH_SECRET =
-  envSecret === undefined ? loadSecret() : assertSecret(envSecret, 'environment');
-const baseEnv = {
-  ...process.env,
-  E2E_DATABASE_URL: process.env.E2E_DATABASE_URL || dbUrl,
-  E2E_DATABASE_URL_RLS: process.env.E2E_DATABASE_URL_RLS || process.env.E2E_DATABASE_URL || dbUrl,
-  NEXT_PUBLIC_BILLING_TEST_MODE: '1',
-};
-const laneEnv = lane.env ? { ...baseEnv, ...lane.env } : baseEnv;
-const stateEnv = { ...laneEnv, PW_FAST_GATES: '0' };
-const finalEnv = laneName === 'state' ? stateEnv : laneEnv;
-async function run(command, args, env = baseEnv) {
+
+async function run(command, args, env) {
   try {
     await runDetachedCommand(command, args, { cwd: rootDir, env });
   } catch (error) {
@@ -157,8 +144,61 @@ async function run(command, args, env = baseEnv) {
     process.exit(error?.exitCode ?? 1);
   }
 }
-if (shouldRunLocalDoctor) await run('pnpm', ['run', 'doctor'], laneEnv);
-await ensureLocalTestHosts({ required: process.env.CI === 'true' });
-if (lane.gatekeeper) await run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
-if (lane.state) await run('pnpm', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
-await run('pnpm', [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs], finalEnv);
+
+async function runPlaywright(name, args, env) {
+  if (!localMac || !['state', 'gate', 'smoke'].includes(name)) {
+    return run('pnpm', args, env);
+  }
+
+  const head = execFileSync('git', ['rev-parse', '--verify', 'HEAD'], {
+    cwd: rootDir,
+    encoding: 'utf8',
+  }).trim();
+  // Playwright clears its output directory, which defaults to test-results, on startup.
+  const report = path.join(
+    rootDir,
+    localMacReportDir,
+    head,
+    `${name}-${randomUUID()}`,
+    'report.json'
+  );
+  console.log(`[e2e] ${name} JSON report: ${report}`);
+  return run('pnpm', [...args, '--retries=0', '--workers=1', '--reporter=line,json'], {
+    ...env,
+    PLAYWRIGHT_JSON_OUTPUT_FILE: report,
+  });
+}
+
+if (lane.pnpmArgs) {
+  // Keep the package smoke command's environment and preparation steps.
+  await runPlaywright(laneName, [...lane.pnpmArgs, ...extraPlaywrightArgs], process.env);
+} else {
+  const shouldRunLocalDoctor =
+    lane.gatekeeper &&
+    process.env.SKIP_DOCKER_DOCTOR !== '1' &&
+    process.env.CI !== 'true' &&
+    !process.env.E2E_DATABASE_URL;
+  const envSecret = process.env.BETTER_AUTH_SECRET;
+  process.env.BETTER_AUTH_SECRET =
+    envSecret === undefined ? loadSecret() : assertSecret(envSecret, 'environment');
+  const baseEnv = {
+    ...process.env,
+    E2E_DATABASE_URL: process.env.E2E_DATABASE_URL || dbUrl,
+    E2E_DATABASE_URL_RLS: process.env.E2E_DATABASE_URL_RLS || process.env.E2E_DATABASE_URL || dbUrl,
+    NEXT_PUBLIC_BILLING_TEST_MODE: '1',
+  };
+  const laneEnv = lane.env ? { ...baseEnv, ...lane.env } : baseEnv;
+  const stateEnv = { ...laneEnv, PW_FAST_GATES: '0' };
+  const finalEnv = laneName === 'state' ? stateEnv : laneEnv;
+  if (shouldRunLocalDoctor) await run('pnpm', ['run', 'doctor'], laneEnv);
+  await ensureLocalTestHosts({ required: process.env.CI === 'true' });
+  if (lane.gatekeeper) await run('bash', ['scripts/m4-gatekeeper.sh'], laneEnv);
+  if (lane.state) {
+    await runPlaywright('state', [...pwArgs, ...laneDefinitions.state.playwrightArgs], stateEnv);
+  }
+  await runPlaywright(
+    laneName,
+    [...pwArgs, ...lane.playwrightArgs, ...extraPlaywrightArgs],
+    finalEnv
+  );
+}

@@ -1,7 +1,10 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { execFileSync, spawnSync } from 'node:child_process';
+import { mkdtempSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 
 import { playwrightReportArgs } from './playwright-lane-evidence.mjs';
 
@@ -41,6 +44,12 @@ test('PR verification owns the full gate and orchestration never repeats it or R
   const verify = packageJson.scripts['pr:verify'].split(' && ');
   assert.equal(verify.filter(command => command === 'pnpm db:rls:test:required').length, 1);
   assert.equal(verify.filter(command => command === 'pnpm coverage:gate').length, 1);
+  assert.equal(packageJson.scripts['e2e:smoke'], 'node scripts/run-e2e-lane.mjs smoke');
+  assert.equal(
+    verify.filter(command => command === 'node scripts/run-with-default-db-url.mjs pnpm e2e:smoke')
+      .length,
+    1
+  );
   assert.equal(
     verify.filter(command => command === 'node scripts/run-with-default-db-url.mjs pnpm e2e:gate')
       .length,
@@ -94,16 +103,27 @@ test('split PR gates retain strict fast setup and smoke retains its package argu
 });
 
 // Execute the runner with host preparation and subprocesses stubbed out.
-const capProbe = `
+const laneProbe = `
   import { registerHooks } from 'node:module';
   Object.defineProperty(process, 'platform', { value: process.env.TEST_PLATFORM });
   const stubs = {
     './ci/ensure-local-test-hosts.mjs': 'export async function ensureLocalTestHosts() {}',
     './ci/run-detached-command.mjs': \`
-      export async function runDetachedCommand(command, args) {
-        if (command === 'pnpm' && args.includes('playwright')) {
-          console.log(JSON.stringify(args.filter(arg => /^--max-failures(?:=|$)|^-x$/.test(arg))));
+      import { mkdirSync, writeFileSync } from 'node:fs';
+      import path from 'node:path';
+      export async function runDetachedCommand(command, args, { cwd, env }) {
+        if (command !== 'pnpm' || !(args.includes('playwright') || args.includes('e2e:smoke'))) return;
+        const report = env.PLAYWRIGHT_JSON_OUTPUT_FILE ?? null;
+        const exitCode = args.includes(env.TEST_FAIL_ARG) ? 17 : 0;
+        console.log(JSON.stringify({ args, report, ci: env.CI }));
+        if (report && env.TEST_REPORT_ROOT) {
+          const relative = path.relative(cwd, report);
+          if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('report outside the worktree');
+          const file = path.join(env.TEST_REPORT_ROOT, relative);
+          mkdirSync(path.dirname(file), { recursive: true });
+          writeFileSync(file, JSON.stringify({ exitCode }));
         }
+        if (exitCode) throw Object.assign(new Error('fixture Playwright failure'), { exitCode });
       }
     \`,
   };
@@ -115,6 +135,32 @@ const capProbe = `
     },
   });
 `;
+
+const preload = `data:text/javascript,${encodeURIComponent(laneProbe)}`;
+
+function probeLane(lane, { platform = 'darwin', hosted = false, ci = '', env = {} } = {}) {
+  const result = spawnSync(
+    process.execPath,
+    ['--import', preload, fileURLToPath(runnerUrl), lane],
+    {
+      encoding: 'utf8',
+      env: {
+        PATH: process.env.PATH,
+        TEST_PLATFORM: platform,
+        GITHUB_ACTIONS: hosted ? 'true' : 'false',
+        CI: ci,
+        SKIP_DOCKER_DOCTOR: '1',
+        BETTER_AUTH_SECRET: 'fixture-value-for-lane-contract-tests-only',
+        ...env,
+      },
+    }
+  );
+  const invocations = result.stdout
+    .split('\n')
+    .filter(line => line.startsWith('{'))
+    .map(JSON.parse);
+  return { ...result, invocations };
+}
 
 test('only the local Mac full gate uses a cap of 10', () => {
   const macLanes = {
@@ -140,22 +186,134 @@ test('only the local Mac full gate uses a cap of 10', () => {
     { lane: 'gate', caps: [1, 1], platform: 'darwin', hosted: true },
     { lane: 'gate', caps: [1, 1], platform: 'linux' },
   ];
-  const preload = `data:text/javascript,${encodeURIComponent(capProbe)}`;
   for (const { lane, caps, platform, hosted } of cases) {
     const label = `${lane} (${platform}${hosted ? ', hosted' : ''})`;
-    const result = spawnSync(process.execPath, ['--import', preload, runnerUrl.pathname, lane], {
-      encoding: 'utf8',
-      env: {
-        TEST_PLATFORM: platform,
-        GITHUB_ACTIONS: hosted ? 'true' : 'false',
-        SKIP_DOCKER_DOCTOR: '1',
-        BETTER_AUTH_SECRET: 'fixture-value-for-lane-cap-test-only',
-      },
-    });
+    const result = probeLane(lane, { platform, hosted });
     assert.equal(result.status, 0, `${label}: ${result.stderr}`);
     const expected = caps.map(cap => (cap === null ? [] : [`--max-failures=${cap}`]));
-    assert.deepEqual(result.stdout.trim().split('\n').map(JSON.parse), expected, label);
+    const actual = result.invocations.map(({ args }) =>
+      args.filter(arg => /^--max-failures(?:=|$)|^-x$/.test(arg))
+    );
+    assert.deepEqual(actual, expected, label);
   }
+});
+
+const playwrightCommand = ['--filter', '@interdomestik/web', 'exec', 'playwright', 'test'];
+const setupProjects = ['e2e/setup.state.spec.ts', '--project=setup-ks', '--project=setup-mk'];
+const gateProjects = ['--project=gate-ks-sq', '--project=gate-mk-mk'];
+const gatePaths = ['e2e/gate', 'e2e/security'];
+const smokeCommand = ['--filter', '@interdomestik/web', 'run', 'e2e:smoke'];
+const repoRoot = fileURLToPath(new URL('../../', import.meta.url));
+const strictArgs = [
+  '--workers=1',
+  '--max-failures=1',
+  '--trace=retain-on-failure',
+  '--reporter=line',
+];
+
+test('hosted and Linux setup, gate and smoke preserve their existing arguments', () => {
+  const cases = [
+    { platform: 'darwin', hosted: true },
+    { platform: 'linux', hosted: true },
+    { platform: 'linux', hosted: false },
+  ];
+  const setup = [...playwrightCommand, ...setupProjects, ...strictArgs];
+  const gate = [...playwrightCommand, ...gatePaths, ...strictArgs, ...gateProjects];
+  const hostedSmoke = [
+    ...playwrightCommand,
+    '--grep',
+    '@smoke',
+    '--project=ks-sq',
+    '--project=mk-mk',
+    '--workers=1',
+  ];
+  for (const { platform, hosted } of cases) {
+    for (const [lane, expected] of Object.entries({
+      state: [setup],
+      gate: [setup, gate],
+      smoke: [smokeCommand],
+      'pr-smoke': [hostedSmoke],
+    })) {
+      const result = probeLane(lane, { platform, hosted, ci: 'true' });
+      const label = `${lane} (${platform}, hosted=${hosted})`;
+      assert.equal(result.status, 0, `${label}: ${result.stderr}`);
+      assert.deepEqual(
+        result.invocations,
+        expected.map(args => ({ args, report: null, ci: 'true' })),
+        label
+      );
+    }
+  }
+});
+
+test('local Mac setup, full gate and smoke use zero retries and one worker with any CI value', () => {
+  const localArgs = ['--retries=0', '--workers=1', '--reporter=line,json'];
+  const setup = [
+    ...playwrightCommand,
+    ...setupProjects,
+    '--max-failures=1',
+    '--trace=retain-on-failure',
+    ...localArgs,
+  ];
+  const gate = [
+    ...playwrightCommand,
+    ...gatePaths,
+    '--max-failures=10',
+    '--trace=retain-on-failure',
+    ...gateProjects,
+    ...localArgs,
+  ];
+  const head = execFileSync('git', ['rev-parse', 'HEAD'], {
+    cwd: repoRoot,
+    encoding: 'utf8',
+  }).trim();
+  const reportRoot = path.join(repoRoot, '.tmp/playwright/local-mac', head);
+  for (const ci of ['', 'true', 'false']) {
+    const paths = [];
+    for (const [lane, expected] of Object.entries({
+      state: [setup],
+      gate: [setup, gate],
+      smoke: [[...smokeCommand, ...localArgs]],
+    })) {
+      const result = probeLane(lane, { ci });
+      assert.equal(result.status, 0, `${lane}: ${result.stderr}`);
+      assert.deepEqual(
+        result.invocations.map(invocation => invocation.args),
+        expected,
+        lane
+      );
+      for (const { report, ci: actualCi } of result.invocations) {
+        assert.equal(actualCi, ci);
+        assert.ok(path.isAbsolute(report), lane);
+        assert.equal(path.basename(report), 'report.json');
+        assert.equal(path.dirname(path.dirname(report)), reportRoot);
+        paths.push(report);
+      }
+    }
+    assert.equal(new Set(paths).size, paths.length);
+  }
+});
+
+test('a failed local Mac gate keeps its report and status through follow-up smoke', t => {
+  const temp = mkdtempSync(path.join(tmpdir(), 'e2e-lane-reports-'));
+  t.after(() => rmSync(temp, { recursive: true, force: true }));
+  const env = { TEST_REPORT_ROOT: temp };
+  const gate = probeLane('gate', { env: { ...env, TEST_FAIL_ARG: gateProjects[0] } });
+  assert.equal(gate.status, 17, gate.stderr);
+  const smoke = probeLane('smoke', { env });
+  assert.equal(smoke.status, 0, smoke.stderr);
+  const gateReport = gate.invocations[1].report;
+  const smokeReport = smoke.invocations[0].report;
+  assert.notEqual(gateReport, smokeReport);
+  assert.deepEqual(JSON.parse(readFileSync(path.join(temp, path.relative(repoRoot, gateReport)))), {
+    exitCode: 17,
+  });
+  assert.deepEqual(
+    JSON.parse(readFileSync(path.join(temp, path.relative(repoRoot, smokeReport)))),
+    {
+      exitCode: 0,
+    }
+  );
 });
 
 test('an empty or unknown lane is refused before any preparation runs', () => {
