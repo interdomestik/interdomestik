@@ -51,13 +51,17 @@ export async function verifyHourlyCron(
   });
   const eligible = await addEntry(admin, scope, liveTerm, scope.user);
   const delivery = await addMail(admin, scope, eligible.id);
-  sendEmail.mockImplementation((_to, _template, options) =>
-    Promise.resolve(
-      options?.canDispatch?.() === false
-        ? { success: false, error: 'email_dispatch_blocked' }
-        : { success: true, id: 'synthetic-delivery' }
-    )
-  );
+  sendEmail.mockImplementation((_to, _template, options) => {
+    try {
+      return Promise.resolve(
+        options?.canDispatch?.() === false
+          ? { success: false, error: 'email_dispatch_blocked' }
+          : { success: true, id: 'synthetic-delivery' }
+      );
+    } catch (error) {
+      return Promise.reject(error);
+    }
+  });
 
   const response = await runCron();
   expect.soft(response.status).toBe(200);
