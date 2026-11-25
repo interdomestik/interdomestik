@@ -1,6 +1,7 @@
 import { expect, test } from '../fixtures/auth.fixture';
 import { routes } from '../routes';
 import { gotoApp } from '../utils/navigation';
+import { waitForTestSignal } from './signal-wait.fixture';
 
 // Task-first reading order of the member case workspace.
 const READING_ORDER_SELECTORS = [
@@ -97,6 +98,8 @@ test('member case workspace keeps reading order and keyboard destinations at 320
   page,
   loginAs,
 }, testInfo) => {
+  // Keep the original 60 s available before the signal helper's 30 s cleanup reserve.
+  test.setTimeout(90_000);
   await loginAs('member');
   await gotoApp(page, routes.member(testInfo), testInfo, { marker: 'member-dashboard-ready' });
   const caseLinks = page
@@ -138,8 +141,33 @@ test('member case workspace keeps reading order and keyboard destinations at 320
   await expect(messagesLink).toHaveCount(1);
   await messagesLink.focus();
   await page.keyboard.press('Enter');
-  await expect(page).toHaveURL(/#member-claim-detail-messaging$/);
-  await expect(page.locator('#member-claim-detail-messaging')).toBeInViewport();
+  await waitForTestSignal(testInfo, 'Finish the keyboard jump to messages', async remaining => {
+    await expect(page).toHaveURL(/#member-claim-detail-messaging$/, { timeout: remaining() });
+    await expect
+      .poll(
+        () =>
+          page.evaluate(async () => {
+            const target = document.getElementById('member-claim-detail-messaging');
+            if (!target) return false;
+
+            const { top, bottom } = target.getBoundingClientRect();
+            if (top >= window.innerHeight || bottom <= 0) return false;
+
+            const nextFrameTop = () =>
+              new Promise<number>(resolve => {
+                requestAnimationFrame(() => resolve(target.getBoundingClientRect().top));
+              });
+            const nextTop = await nextFrameTop();
+            const finalTop = await nextFrameTop();
+            return top === nextTop && nextTop === finalTop;
+          }),
+        { timeout: remaining() }
+      )
+      .toBe(true);
+    await expect(page.locator('#member-claim-detail-messaging')).toBeInViewport({
+      timeout: remaining(),
+    });
+  });
 
   // 200% presentation emulated by halving the CSS viewport and doubling the root font size.
   await page.setViewportSize({ width: 640, height: 512 });
