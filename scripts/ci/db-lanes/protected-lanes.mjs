@@ -123,7 +123,12 @@ function pg16WorkflowSelectors(workflow, roots, packageTargets, webTargets, onUn
 }
 
 // Inventory the existing runners without executing or rewriting them.
-export function protectedLanes(root, coverageCandidates = [], databaseFiles = [], onUnproven) {
+export function protectedLanes(
+  root,
+  coverageCandidates = [],
+  databaseFiles = [],
+  onUnproven = null
+) {
   const read = file => readFileSync(join(root, file), 'utf8');
   const manifest = (directory = '.') => JSON.parse(read(`${directory}/package.json`));
   const workflow = yaml.load(read('.github/workflows/ci.yml')) ?? {};
