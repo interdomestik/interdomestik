@@ -38,8 +38,15 @@ export function sponsorMailDeps(
     hasCredential: sponsorCredentialCheck(authority),
     reportError: (error, stage) =>
       captureException(error, { tags: { operation: `sponsor.mail.${stage}` } }),
-    sendMail: async (to, input) => {
-      const result = await sendEmail(to, renderSponsorMail(input));
+    sendMail: async (to, input, dispatchBlock) => {
+      let blocked: ReturnType<typeof dispatchBlock> = null;
+      const result = await sendEmail(to, renderSponsorMail(input), {
+        canDispatch: () => {
+          blocked = dispatchBlock();
+          return blocked === null;
+        },
+      });
+      if (blocked) return { ok: false, code: blocked };
       if (result.suppressed || (!result.success && result.error === 'email_suppressed'))
         return { ok: false, code: 'email_suppressed' };
       return result.success ? { ok: true } : { ok: false, code: 'send_failed' };

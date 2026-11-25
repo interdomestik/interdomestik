@@ -20,7 +20,7 @@ Sponsor term approvals and new roster provisioning check `pilot/new_sales` in th
 
 `optOutByToken` uses the hash resolver for discovery. The tenant transaction locks the person or unbound identity, then terms and roster rows in ID order. It refuses a missing, changed, revoked, consumed or expired origin. The locked decision uses the earlier of 30 days after the effective term end and 12 UTC calendar months after the scheduled term end. The originating roster row records consumption in its set-once `optedOutAt` field, including on a past term. Revocation, audit and confirmation for current and future seats commit together with consumption. Public opt-out, authenticated leave and staff handover revocation preserve token hashes. Their revocation and consumption timestamps govern token authority.
 
-`runSponsorMailOutbox` reads the originating term under the delivery lease on each attempt. Roster-linked deliveries at or after 12 UTC calendar months from that term's scheduled end are recorded as skipped with reason `aged_mail` and a terminal time. The sender checks again before provider handoff. Missing or inconsistent source facts use the outbox retry or terminal failure path.
+`runSponsorMailOutbox` reads the originating term under the delivery lease on each attempt. Roster-linked deliveries at or after 12 UTC calendar months from that term's scheduled end are recorded as skipped with reason `aged_mail` and a terminal time. The ordinary mail adapter checks the current lease expiry and age cutoff at each provider handoff, including fallback. An expired lease returns `lease_lost` for recovery by the next claim. Missing or inconsistent source facts use the outbox retry or terminal failure path.
 
 ## Owned tables
 

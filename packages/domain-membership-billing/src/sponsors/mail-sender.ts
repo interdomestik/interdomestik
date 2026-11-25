@@ -31,6 +31,7 @@ import { sponsorRosterRetentionDeadline } from './retention-plan';
 import { optOutToken } from './roster-crypto';
 
 type SendResult = { ok: boolean; code?: string };
+type DispatchBlock = 'aged_mail' | 'lease_lost';
 export type SponsorMailDeps = {
   secret: string;
   locale: 'sq' | 'en' | 'mk' | 'sr' | 'de';
@@ -38,7 +39,11 @@ export type SponsorMailDeps = {
   appUrl: string;
   supportEmail: string;
   hasCredential(userId: string): Promise<boolean>;
-  sendMail(to: string, input: SponsorMailInput): Promise<SendResult>;
+  sendMail(
+    to: string,
+    input: SponsorMailInput,
+    dispatchBlock: () => DispatchBlock | null
+  ): Promise<SendResult>;
   sendActivation(email: string): Promise<SendResult>;
   reportError(error: unknown, stage: 'prepare' | 'send' | 'finish'): void;
 };
@@ -202,23 +207,33 @@ export function sponsorMailInput(mail: PreparedMail, deps: SponsorMailDeps): Spo
 /** Called after the read transaction commits. No provider response text is persisted. */
 export async function deliverSponsorMail(
   mail: PreparedMail,
-  deps: SponsorMailDeps
-): Promise<MailFinish> {
+  deps: SponsorMailDeps,
+  leaseUntil?: string
+): Promise<MailFinish | 'lease_lost'> {
   if (mail.retentionDeadline && mail.retentionDeadline <= new Date()) {
     return { state: 'skipped', reason: 'aged_mail' };
   }
   if (!mail.check.send) return { state: 'skipped', reason: mail.check.reason };
   if (!mail.recipient) return { state: 'skipped', reason: 'recipient_missing' };
+  const leaseExpiresAt = leaseUntil === undefined ? Infinity : Date.parse(leaseUntil);
+  const dispatchBlock = (): DispatchBlock | null => {
+    const now = Date.now();
+    if (!(now < leaseExpiresAt)) return 'lease_lost';
+    return mail.retentionDeadline && now >= mail.retentionDeadline.getTime() ? 'aged_mail' : null;
+  };
   try {
     const input = mail.kind === 'activation' ? null : sponsorMailInput(mail, deps);
     // Payload preparation can itself cross the deadline.
-    if (mail.retentionDeadline && mail.retentionDeadline <= new Date()) {
-      return { state: 'skipped', reason: 'aged_mail' };
-    }
+    const blocked = dispatchBlock();
+    if (blocked === 'lease_lost') return blocked;
+    if (blocked === 'aged_mail') return { state: 'skipped', reason: blocked };
     const result = input
-      ? await deps.sendMail(mail.recipient, input)
+      ? await deps.sendMail(mail.recipient, input, dispatchBlock)
       : await deps.sendActivation(mail.recipient);
-    if (result.code === 'email_suppressed') return { state: 'skipped', reason: 'email_suppressed' };
+    if (result.code === 'lease_lost') return result.code;
+    if (result.code === 'aged_mail' || result.code === 'email_suppressed') {
+      return { state: 'skipped', reason: result.code };
+    }
     // There is no durable success counter. §brief fallback: finish activation after one success.
     return result.ok ? { state: 'sent' } : { state: 'error', code: 'send_failed' };
   } catch (error) {
@@ -246,7 +261,9 @@ async function runMail(
     return finishMail(authority, lease, { state: 'error', code: 'facts_unavailable' }, new Date());
   }
   if (!prepared || new Date().toISOString() >= lease.leaseUntil) return 'lease_lost';
-  const result = 'state' in prepared ? prepared : await deliverSponsorMail(prepared, deps);
+  const result =
+    'state' in prepared ? prepared : await deliverSponsorMail(prepared, deps, lease.leaseUntil);
+  if (result === 'lease_lost') return result;
   return finishMail(authority, lease, result, new Date());
 }
 

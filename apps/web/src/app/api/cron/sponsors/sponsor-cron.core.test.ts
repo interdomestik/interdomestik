@@ -1,6 +1,7 @@
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { NextRequest } from 'next/server';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const h = vi.hoisted(() => ({
   provisioning: vi.fn(),
@@ -42,11 +43,13 @@ vi.mock('@interdomestik/database/tenant-authority-context', () => ({
   }),
 }));
 vi.mock('@sentry/nextjs', () => ({ captureException: h.captureException }));
+vi.mock('@/lib/rate-limit', () => ({ enforceRateLimit: async () => null }));
 vi.mock('@interdomestik/domain-membership-billing/sponsors/mail-sender', () => ({
   runSponsorMailOutbox: h.outbox,
 }));
 vi.mock('./_mail', () => ({ sponsorMailDeps: h.deps }));
 
+import { GET } from './route';
 import { isHourlyPass, runSponsorCronCore } from './sponsor-cron.core';
 
 const run = (iso: string) => runSponsorCronCore({ ingress: {} as never, now: new Date(iso) });
@@ -58,6 +61,94 @@ describe('sponsor cron core', () => {
     h.handovers.mockResolvedValue({ processed: 1, failed: 0 });
     h.outbox.mockResolvedValue({ claimed: 3, outcomes: {} });
     h.deps.mockReturnValue({});
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  const authorizedRequest = () => {
+    vi.stubEnv('CRON_SECRET', 'synthetic-sponsor-cron-secret');
+    return new NextRequest('https://example.test/api/cron/sponsors', {
+      headers: { authorization: 'Bearer synthetic-sponsor-cron-secret' },
+    });
+  };
+
+  it.each(['finish_failed', 'queued', 'failed', 'lease_lost'])(
+    'reports %s mail outcomes as HTTP failures and continues other tenants',
+    async outcome => {
+      h.outbox.mockResolvedValueOnce({ claimed: 2, outcomes: { [outcome]: 1, sent: 1 } });
+      const response = await GET(authorizedRequest());
+
+      expect(response.status).toBe(500);
+      expect(await response.json()).toMatchObject({
+        success: false,
+        tenants: [
+          {
+            tenantId: 'tenant_ks',
+            mail: { claimed: 2, outcomes: { [outcome]: 1, sent: 1 } },
+            failedSteps: ['mail'],
+            failed: true,
+          },
+          { tenantId: 'tenant_mk', failed: false },
+        ],
+      });
+      expect(h.outbox).toHaveBeenCalledTimes(2);
+    }
+  );
+
+  it('returns an HTTP failure after a tenant step throws and still runs independent work', async () => {
+    const error = new Error('provisioning unavailable');
+    h.provisioning.mockRejectedValueOnce(error);
+    const response = await GET(authorizedRequest());
+
+    expect(response.status).toBe(500);
+    expect(await response.json()).toMatchObject({
+      success: false,
+      tenants: [{ failedSteps: ['provisioning'], failed: true }, { failed: false }],
+    });
+    expect(h.outbox).toHaveBeenCalledTimes(2);
+    expect(h.captureException).toHaveBeenCalledWith(error, {
+      tags: { operation: 'sponsor.cron.provisioning' },
+    });
+  });
+
+  it.each(['provisioning', 'handovers'] as const)(
+    'reports an item failure returned by %s',
+    async step => {
+      h[step].mockResolvedValueOnce({ processed: 1, failed: 1, outcomes: {} });
+      const response = await GET(authorizedRequest());
+
+      expect(response.status).toBe(500);
+      expect(await response.json()).toMatchObject({
+        success: false,
+        tenants: [
+          { [step]: { processed: 1, failed: 1 }, failedSteps: [step], failed: true },
+          { failed: false },
+        ],
+      });
+      expect(h.outbox).toHaveBeenCalledTimes(2);
+    }
+  );
+
+  it('returns HTTP success when both tenants finish, including skipped mail', async () => {
+    h.outbox.mockResolvedValue({ claimed: 2, outcomes: { sent: 1, skipped: 1 } });
+    const response = await GET(authorizedRequest());
+
+    expect(response.status).toBe(200);
+    expect(await response.json()).toMatchObject({
+      success: true,
+      tenants: [
+        { mail: { claimed: 2, outcomes: { sent: 1, skipped: 1 } }, failed: false },
+        { failed: false },
+      ],
+    });
+  });
+
+  it('rejects an unauthorized request before running tenant work', async () => {
+    const request = authorizedRequest();
+    request.headers.delete('authorization');
+    const response = await GET(request);
+
+    expect(response.status).toBe(401);
+    expect(h.outbox).not.toHaveBeenCalled();
   });
 
   it('runs hourly work only in the first pass of an hour', () => {

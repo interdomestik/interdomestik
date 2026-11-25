@@ -61,6 +61,49 @@ describe('email delivery fallback', () => {
     expect(m.resendConstructor).toHaveBeenCalledWith('re_test_key');
     expect(m.resendSend).toHaveBeenCalledOnce();
   });
+
+  it('checks the clock again when SMTP fails at the cutoff', async () => {
+    const deadline = Date.parse('2027-01-01T00:00:00.000Z');
+    vi.spyOn(Date, 'now').mockReturnValue(deadline - 1);
+    const canDispatch = vi.fn(() => Date.now() < deadline);
+    m.sendMail.mockImplementationOnce(async () => {
+      vi.mocked(Date.now).mockReturnValue(deadline);
+      throw new Error('SMTP delivery failed');
+    });
+    m.resendSend.mockResolvedValue({ data: { id: 'resend-message-id' }, error: null });
+    const { sendEmail } = await import('./email');
+
+    await expect(
+      sendEmail(
+        'member@example.test',
+        { subject: 'Sponsor update', html: '<p>Update</p>', text: 'Update' },
+        { canDispatch }
+      )
+    ).resolves.toEqual({ success: false, error: 'email_dispatch_blocked' });
+    expect(canDispatch).toHaveBeenCalledTimes(2);
+    expect(m.sendMail).toHaveBeenCalledOnce();
+    expect(m.resendSend).not.toHaveBeenCalled();
+  });
+
+  it.each(['smtp', 'resend'])(
+    'blocks the first %s handoff when admission expires',
+    async provider => {
+      if (provider === 'resend') vi.stubEnv('SMTP_HOST', '');
+      m.sendMail.mockResolvedValue({ messageId: 'smtp-message-id' });
+      m.resendSend.mockResolvedValue({ data: { id: 'resend-message-id' }, error: null });
+      const { sendEmail } = await import('./email');
+
+      await expect(
+        sendEmail(
+          'member@example.test',
+          { subject: 'Sponsor update', html: '<p>Update</p>', text: 'Update' },
+          { canDispatch: () => false }
+        )
+      ).resolves.toEqual({ success: false, error: 'email_dispatch_blocked' });
+      expect(m.sendMail).not.toHaveBeenCalled();
+      expect(m.resendSend).not.toHaveBeenCalled();
+    }
+  );
   it('passes a stable idempotency key to Resend', async () => {
     vi.stubEnv('SMTP_HOST', '');
     m.resendSend.mockResolvedValueOnce({ data: { id: 'resend-message-id' }, error: null });

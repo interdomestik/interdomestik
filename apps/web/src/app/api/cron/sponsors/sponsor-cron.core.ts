@@ -8,7 +8,10 @@ import {
   queueEndOffers,
   queueRenewalNotices,
 } from '@interdomestik/domain-membership-billing/sponsors/mail-producers';
-import { runSponsorMailOutbox } from '@interdomestik/domain-membership-billing/sponsors/mail-sender';
+import {
+  runSponsorMailOutbox,
+  type SponsorMailSummary,
+} from '@interdomestik/domain-membership-billing/sponsors/mail-sender';
 import { createHandoverPaddleClient } from '@interdomestik/domain-membership-billing/sponsors/paddle-handover-client';
 import {
   runSponsorRetention,
@@ -35,8 +38,8 @@ export type SponsorCronTenantResult = {
   } | null;
   handovers: { processed: number; failed: number } | null;
   retention: SponsorRetentionResult | null;
-  mail: { claimed: number } | null;
-  /** Steps that threw; the next pass retries them. */
+  mail: SponsorMailSummary | null;
+  /** Steps that threw or reported incomplete work. */
   failedSteps: SponsorCronStep[];
   failed: boolean;
 };
@@ -82,6 +85,7 @@ async function runTenant(
       summary.salesClosed = provisioning.outcomes.sales_closed;
     }
     result.provisioning = summary;
+    if (summary.failed > 0) result.failedSteps.push('provisioning');
   });
   await step('handovers', async () => {
     const handovers = await runSponsorHandovers(
@@ -93,6 +97,7 @@ async function runTenant(
       { now }
     );
     result.handovers = { processed: handovers.processed, failed: handovers.failed };
+    if (handovers.failed > 0) result.failedSteps.push('handovers');
   });
   if (isHourlyPass(now)) {
     await step('cache', async () => {
@@ -113,7 +118,14 @@ async function runTenant(
       now: new Date(),
       limit: MAIL_BATCH,
     });
-    result.mail = { claimed: mail.claimed };
+    result.mail = mail;
+    if (
+      Object.entries(mail.outcomes).some(
+        ([outcome, count]) => count > 0 && outcome !== 'sent' && outcome !== 'skipped'
+      )
+    ) {
+      result.failedSteps.push('mail');
+    }
   });
   result.failed = result.failedSteps.length > 0;
   return result;

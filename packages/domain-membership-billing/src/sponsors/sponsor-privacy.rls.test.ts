@@ -243,7 +243,8 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       }
       expect(deps.sendMail).toHaveBeenCalledExactlyOnceWith(
         `${b.user}@example.test`,
-        expect.objectContaining({ kind: 'opt_out_confirmation' })
+        expect.objectContaining({ kind: 'opt_out_confirmation' }),
+        expect.any(Function)
       );
       expect(deps.sendActivation).not.toHaveBeenCalled();
       expect(deps.reportError).not.toHaveBeenCalled();

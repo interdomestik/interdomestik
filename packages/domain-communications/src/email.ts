@@ -110,6 +110,9 @@ export async function sendEmail(
 
   try {
     if (provider.type === 'smtp') {
+      if (options.canDispatch?.() === false) {
+        return { success: false, error: 'email_dispatch_blocked' };
+      }
       try {
         const info = await (provider.client as nodemailer.Transporter).sendMail({
           from: getSenderAddress(),

@@ -173,7 +173,8 @@ describe('mail delivery', () => {
         startDate: now.toISOString(),
         optOutUrl: `https://tenant.example/sponsor/opt-out/${optOutToken(d.secret, 'e1')}`,
         loginUrl: 'https://tenant.example/en/login',
-      })
+      }),
+      expect.any(Function)
     );
   });
 
@@ -262,7 +263,8 @@ describe('mail delivery', () => {
       if (exists)
         expect(d.sendMail).toHaveBeenCalledWith(
           'current@example.test',
-          expect.objectContaining({ kind: row.kind })
+          expect.objectContaining({ kind: row.kind }),
+          expect.any(Function)
         );
       expect(
         sqlQueries().some(query => query.params.includes('u1') && query.params.includes('tenant-1'))
@@ -327,7 +329,8 @@ describe('dispatch-time roster mail cutoff', () => {
     });
     expect(d.sendMail).toHaveBeenCalledWith(
       'current@example.test',
-      expect.objectContaining({ kind: 'opt_out_confirmation' })
+      expect.objectContaining({ kind: 'opt_out_confirmation' }),
+      expect.any(Function)
     );
     const retryAt = new Date(before.getTime() + 15 * 60_000);
     vi.setSystemTime(retryAt);
@@ -360,6 +363,51 @@ describe('dispatch-time roster mail cutoff', () => {
     expect(d.sendMail).not.toHaveBeenCalled();
   });
 
+  it('finishes an in-flight attempt as aged when a later provider handoff is refused', async () => {
+    const before = new Date(now.getTime() - 1);
+    vi.setSystemTime(before);
+    const d = deps();
+    d.sendMail = vi.fn(async (_recipient, _input, dispatchBlock) => {
+      expect(dispatchBlock?.()).toBeNull();
+      vi.setSystemTime(now);
+      const code = dispatchBlock?.();
+      return code ? { ok: false, code } : { ok: true };
+    });
+    fake.answerSelect = answerOriginReads;
+    fake.rows.push([{ id: delivery.id }], [delivery], [delivery]);
+
+    expect(await runSponsorMailOutbox(authority, d, { now: before, limit: 1 })).toEqual({
+      claimed: 1,
+      outcomes: { skipped: 1 },
+    });
+    expect(fake.writes.at(-1)).toMatchObject({
+      state: 'skipped',
+      lastErrorCode: 'aged_mail',
+      terminalAt: now.toISOString(),
+    });
+  });
+
+  it('leaves an expired lease for recovery if a later provider handoff is refused', async () => {
+    const before = new Date(now.getTime() - 10 * 60_000 - 1);
+    vi.setSystemTime(before);
+    const d = deps();
+    d.sendMail = vi.fn(async (_recipient, _input, dispatchBlock) => {
+      expect(dispatchBlock?.()).toBeNull();
+      vi.setSystemTime(new Date(mailLeaseUntil(before)));
+      const code = dispatchBlock?.();
+      return code ? { ok: false, code } : { ok: true };
+    });
+    fake.answerSelect = answerOriginReads;
+    fake.rows.push([{ id: delivery.id }], [delivery], [delivery]);
+
+    expect(await runSponsorMailOutbox(authority, d, { now: before, limit: 1 })).toEqual({
+      claimed: 1,
+      outcomes: { lease_lost: 1 },
+    });
+    expect(fake.writes).toHaveLength(1);
+    expect(fake.writes[0]).toMatchObject({ state: 'claimed', leaseUntil: mailLeaseUntil(before) });
+  });
+
   it('records missing origin facts as a retryable error without provider calls', async () => {
     const d = deps();
     fake.rows.push([{ id: delivery.id }], [delivery], [], [delivery]);
@@ -386,6 +434,7 @@ it.each(['sponsor_notice', 'activation'] as const)(
       .mockResolvedValue({ ok: false, code: 'email_suppressed' });
     const outcome = await deliverSponsorMail(mail({ kind }), dependencies);
     expect(outcome).toEqual({ state: 'skipped', reason: 'email_suppressed' });
+    if (outcome === 'lease_lost') throw new Error('Unexpected lease loss');
     fake.rows = [[{ id: 'm1', attempts: 1, kind }]];
     expect(await finishMail(authority, lease, outcome, now)).toBe('skipped');
     expect(fake.writes).toContainEqual(
