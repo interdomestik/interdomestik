@@ -163,6 +163,7 @@ pagingTest(
     test.setTimeout(120_000);
     const path = (claimId: string, query = '') => `/admin/claims/${claimId}${query}`;
     const detail = page.locator('[data-admin-claim-detail]');
+    const adminMain = page.getByTestId('admin-page-ready').getByRole('main');
     const documents = page.getByTestId('ops-documents-panel');
     const rows = documents.getByTestId('ops-document-row');
     const staffSearch = page.locator('input[name="staffSearch"]');
@@ -263,7 +264,9 @@ pagingTest(
 
     await actor('KS_BRANCH_MANAGER');
     await open(path(localId, `?documentsAfter=${localAfter}&staffSearch=${prefix}`));
-    await expect(detail).toBeVisible();
+    // React can briefly retain a hidden streamed copy after the workspace becomes visible.
+    await expect(detail).toHaveCount(1);
+    await expect(adminMain.locator(detail)).toBeVisible();
     await expect(documents.getByTestId('ops-documents-empty')).toHaveText(
       '27 dokumente · Plotësia e provave nuk është konfirmuar.'
     );
