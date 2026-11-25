@@ -2,13 +2,18 @@ import { OpsDocumentsPanel } from '@/components/ops';
 import type { getAssignedStaffClaimDocuments } from '@/features/staff/claims/server/get-assigned-claim-documents';
 import { SECTION_DOCUMENTS } from '@/features/staff/claims/components/staff-claim-workspace-view';
 
-type AssignedClaimDocumentList = Awaited<ReturnType<typeof getAssignedStaffClaimDocuments>>;
+type AssignedClaimDocumentList = Awaited<
+  ReturnType<typeof getAssignedStaffClaimDocuments>
+>['documents'];
+type PageLink = { href: string; label: string };
 
 interface StaffClaimDocumentsSectionProps {
   documents: AssignedClaimDocumentList | null;
   emptyLabel: string;
   errorLabel: string;
   isAssignedStaff: boolean;
+  nextPage?: PageLink;
+  previousPage?: PageLink;
   retryHref: string;
   retryLabel: string;
   title: string;
@@ -22,6 +27,8 @@ export function StaffClaimDocumentsSection({
   emptyLabel,
   errorLabel,
   isAssignedStaff,
+  nextPage,
+  previousPage,
   retryHref,
   retryLabel,
   title,
@@ -45,6 +52,17 @@ export function StaffClaimDocumentsSection({
           emptyLabel={emptyLabel}
           viewLabel={viewLabel}
         />
+        {(previousPage || nextPage) && (
+          <nav aria-label={title} className="mt-2 flex gap-4 text-sm">
+            {[previousPage, nextPage].map(link =>
+              link ? (
+                <a key={link.href} href={`${link.href}#${SECTION_DOCUMENTS}`} className="underline">
+                  {link.label}
+                </a>
+              ) : null
+            )}
+          </nav>
+        )}
       </div>
     );
   }

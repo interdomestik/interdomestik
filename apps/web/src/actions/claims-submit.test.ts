@@ -32,7 +32,7 @@ describe('Claim Actions', () => {
       title: 'Valid title here',
       description: 'This description is long enough to pass validation',
       companyName: 'Company',
-      category: 'consumer',
+      category: 'travel',
       claimAmount: '100.00',
       currency: 'EUR',
       files: [
@@ -83,12 +83,12 @@ describe('Claim Actions', () => {
         claimNumber: 'CLM-MK-2026-000001',
         commercialFlow: {
           escalationRequest: {
-            claimCategory: 'consumer',
+            claimCategory: 'travel',
             decision: 'declined',
             decisionReason: 'outside_launch_scope',
           },
           freeStartCompletion: {
-            claimCategory: 'consumer',
+            claimCategory: 'travel',
           },
         },
       });
@@ -179,7 +179,7 @@ describe('Claim Actions', () => {
         title: 'AB', // Too short - needs min 5 chars
         description: 'Test',
         companyName: 'Company',
-        category: 'consumer',
+        category: 'travel',
         claimAmount: '100.00',
         currency: 'EUR',
         files: [],
@@ -221,7 +221,7 @@ describe('Claim Actions', () => {
         title: 'Valid title here',
         description: 'A description that is exactly the minimum required length',
         companyName: 'Company',
-        category: 'consumer',
+        category: 'travel',
         claimAmount: '', // Empty string for optional
         currency: 'EUR',
         files: [],
@@ -243,7 +243,7 @@ describe('Claim Actions', () => {
         title: 'Valid title here',
         description: 'A description that is exactly the minimum required length',
         companyName: 'Company',
-        category: 'consumer',
+        category: 'travel',
         claimAmount: '500',
         currency: 'USD',
         files: [

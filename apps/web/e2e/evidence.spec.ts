@@ -15,6 +15,6 @@ test.describe('Dormant claim draft evidence boundary', () => {
     await expect(intake.locator('input[type="file"]')).toHaveCount(0);
     await expect(intake.getByTestId('wizard-submit')).toHaveCount(0);
     await expect(page.getByTestId('claim-created-success')).toHaveCount(0);
-    await expect(intake.getByTestId('claim-draft-category-injury')).toBeDisabled();
+    await expect(intake.getByTestId('claim-draft-category-injury')).toHaveCount(0);
   });
 });

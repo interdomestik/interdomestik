@@ -16,7 +16,7 @@ test.describe('SQ dormant claim draft copy', () => {
     ).toBeVisible();
     await expect(intake).toContainText('Vetëm skicë');
     await expect(intake.getByRole('button', { name: 'Vazhdoni te hollësitë' })).toBeVisible();
-    await expect(intake.getByTestId('claim-draft-category-injury')).toBeDisabled();
+    await expect(intake.getByTestId('claim-draft-category-injury')).toHaveCount(0);
     await expect(page.getByText('Prepare your claim draft')).toHaveCount(0);
   });
 });

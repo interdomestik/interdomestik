@@ -67,6 +67,70 @@ export function parseFlightResult(reply: TransportReply): ActionResult {
   }
 }
 
+/** Playwright evaluates this in the workspace before the discovery click. */
+export function observeMessagingSend({
+  workspace,
+  claimId,
+  content,
+}: {
+  workspace: string;
+  claimId: string;
+  content: string;
+}): { result: Promise<{ id: string; reply: TransportReply } | null> } {
+  const expectedUrl = new URL(workspace);
+  const originalFetch = globalThis.fetch;
+  const result = new Promise<{ id: string; reply: TransportReply } | null>(resolve => {
+    function captureSend(
+      input: RequestInfo | URL,
+      init: RequestInit | undefined,
+      pending: Promise<Response>
+    ): void {
+      if (init?.method !== 'POST' || typeof init.body !== 'string' || input instanceof Request) {
+        return;
+      }
+
+      let id: string | null;
+      try {
+        const url = new URL(input, workspace);
+        if (url.origin !== expectedUrl.origin || url.pathname !== expectedUrl.pathname) {
+          return;
+        }
+        id = new Headers(init.headers).get('next-action');
+        if (!id) return;
+        const args: unknown = JSON.parse(init.body);
+        if (!Array.isArray(args) || args.length < 3 || args[0] !== claimId || args[1] !== content) {
+          return;
+        }
+      } catch {
+        return;
+      }
+
+      globalThis.fetch = originalFetch;
+      // Clone before the router reads the stream so capture never depends on the DevTools body cache.
+      void pending
+        .then(async response => {
+          if (response.redirected) return null;
+          return {
+            id,
+            reply: {
+              status: response.status,
+              contentType: response.headers.get('content-type'),
+              body: await response.clone().text(),
+            },
+          };
+        })
+        .then(resolve, () => resolve(null));
+    }
+
+    globalThis.fetch = (input, init) => {
+      const pending = originalFetch.call(globalThis, input, init);
+      captureSend(input, init, pending);
+      return pending;
+    };
+  });
+  return { result };
+}
+
 function cookieExpiry(attributes: Map<string, string>): number {
   const maxAge = attributes.get('max-age');
   if (maxAge !== undefined && /^-?\d+$/.test(maxAge)) {
