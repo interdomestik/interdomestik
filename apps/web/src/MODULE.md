@@ -40,6 +40,14 @@ The cash verification action returns the committed decision with `notice: 'pendi
 
 The origin check protects browsers against cross-site writes. Every client needs a valid session and the declared basis. Handlers must return typed failures for errors derived from submitted data and reserve throws for errors from server code and dependencies.
 
+### Scheduled work (WP-14 PR 1)
+
+[`lib/cron/scheduled-jobs.ts`](lib/cron/scheduled-jobs.ts) exports the read-only `scheduledJobs` inventory of cron routes and Inngest timers. Engagement, NPS and dunning return a literal 410 before authentication, rate limiting or job work. Public NPS token submission and sponsor opt-out remain available independently. The sponsor cron has no schedule and keeps its bearer contract during the WP-09 compatibility transition. Forecast snapshot backfill is bearer-authenticated and manual-only. `/api/cron/notifications` is an unscheduled bearer-authenticated GET that can drain due notification deliveries and returns HTTP 500 if any tenant sweep fails.
+
+The forecast snapshot schedule is `15 5 * * *` in the Vercel configuration wherever WP-15 enables that runner. WP-15 owns last-success storage and monitoring. Its forecast input is the completed scheduler response. `lib/cron/forecast-snapshot-last-success.ts` supplies a completion timestamp only for a valid completed run in which every considered item succeeded, with zero failures, deferrals and version conflicts. A timeout counts as a work-item failure. The existing HTTP 200 response can also report a partial run.
+
+`/api/inngest` serves `notification-deliveries`, policy extraction, claim intake extraction and legal document extraction in cloud mode. The notification worker runs every five minutes (`*/5 * * * *`). Its signed execution mints an Inngest capability and drains due records through WP-11's per-tenant authorities. The daily email sequence and seasonal campaign timers remain dormant. GET returns authenticated SDK introspection with `Cache-Control: private, no-store` and `Vary: x-inngest-signature`, or an uncacheable generic 401. POST and PUT use the SDK's signature validation. Their HTTP 401 responses carry `Cache-Control: private, no-store`, including when `INNGEST_STREAMING=force`. The receiver's SDK adapter omits the streaming response transform. PUT returns a signed, read-only manifest for in-band sync and refuses out-of-band and environment-forced fallback before delegation. The SDK accepts its primary and fallback signing keys. The registry records the three methods separately.
+
 ## Owned tables
 
 None of its own: this layer writes the tables of `packages/database` through the domain packages or directly. That is the problem to watch — **124 of 348 write sites are in the web app, and 24 of 81 written tables have more than one writer** (MAIN-07, `docs/engineering/DIRECTION.md:53`); no check enforces layers inside the app (MAIN-06).
