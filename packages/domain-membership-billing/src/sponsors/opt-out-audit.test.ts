@@ -183,6 +183,18 @@ describe('locked origin authority', () => {
     expect(db.writes).toEqual([]);
   });
 
+  it('refuses a legacy confirmation replay before revoking a later seat', async () => {
+    const rows = personRows();
+    Object.assign(rows[2][0], { termEnd: '2026-12-03T00:00:00Z' });
+    // The old writer queued the confirmation but left the past origin untouched.
+    rows.push([{ id: 'legacy-confirmation' }]);
+    const db = auditTransaction({ selects: rows });
+    use(db);
+
+    expect(await optOutByToken(token, now)).toEqual({ ok: false });
+    expect(db.writes).toEqual([]);
+  });
+
   it('consumes a valid past origin and revokes current and future seats with one confirmation', async () => {
     const rows = personRows();
     Object.assign(rows[2][0], { termEnd: '2026-12-03T00:00:00Z' });

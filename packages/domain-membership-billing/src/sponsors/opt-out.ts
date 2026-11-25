@@ -47,6 +47,10 @@ type Revocation = {
 );
 type RevocationResult = number | 'refused' | 'binding_changed';
 
+function optOutConfirmationKey(entryId: string): string {
+  return `sponsor-entry:${entryId}:opt_out_confirmation`;
+}
+
 async function revokeSponsorPerson(
   tx: TenantTransaction,
   input: Revocation
@@ -131,17 +135,30 @@ async function revokeSponsorPerson(
   if (origin.userId !== target.userId || origin.emailHmac !== target.emailHmac) {
     return 'binding_changed';
   }
+  if (input.reason === 'opted_out') {
+    if (
+      origin.tokenHash !== input.tokenHash ||
+      origin.revokedAt !== null ||
+      origin.optedOutAt !== null
+    ) {
+      return 'refused';
+    }
+    // Older builds queued the confirmation without marking an ended origin as consumed.
+    const [priorConfirmation] = await tx
+      .select({ id: sponsorMailOutbox.id })
+      .from(sponsorMailOutbox)
+      .where(
+        and(
+          eq(sponsorMailOutbox.tenantId, tenantId),
+          eq(sponsorMailOutbox.idempotencyKey, optOutConfirmationKey(entryId))
+        )
+      )
+      .limit(1);
+    if (priorConfirmation) return 'refused';
+  }
   const now = input.now ?? new Date();
   if (!Number.isFinite(now.getTime())) throw new Error('Invalid sponsor revocation clock');
-  if (
-    input.reason === 'opted_out' &&
-    (origin.tokenHash !== input.tokenHash ||
-      origin.revokedAt !== null ||
-      origin.optedOutAt !== null ||
-      sponsorOptOutExpired(originTerm, now))
-  ) {
-    return 'refused';
-  }
+  if (input.reason === 'opted_out' && sponsorOptOutExpired(originTerm, now)) return 'refused';
   const liveTermIds = new Set(
     terms
       .filter(term => parseTimestamp(term.terminatedEffectiveAt ?? term.termEnd) > now)
@@ -202,7 +219,7 @@ async function applySponsorRevocation(
       tenantId,
       rosterEntryId: input.entryId,
       kind: 'opt_out_confirmation',
-      idempotencyKey: `sponsor-entry:${input.entryId}:opt_out_confirmation`,
+      idempotencyKey: optOutConfirmationKey(entryId),
     })
     .onConflictDoNothing({ target: sponsorMailOutbox.idempotencyKey });
 }

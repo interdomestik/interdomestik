@@ -140,15 +140,27 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       expect(otherTenant).toEqual([]);
 
       const sourceTerm = await addTerm(admin, a, '2039-01-01T00:00:00.000Z', START);
-      const earlyTerm = await addTerm(admin, a, '2039-02-01T00:00:00.000Z', END, START);
       const nextTerm = await addTerm(admin, a, END, LATER);
+      // The term exclusion constraint uses scheduled dates, even after early termination.
+      const earlyScope = { ...a, sponsors: uid() };
+      await insert(admin, 'sponsors', { ...row(a, 'sponsors', true), id: earlyScope.sponsors });
+      const earlyTerm = await addTerm(admin, earlyScope, '2039-02-01T00:00:00.000Z', END, START);
+      const earlyNextTerm = await addTerm(admin, earlyScope, END, LATER);
       const token = uid();
       const earlyToken = uid();
       const origin = await addEntry(admin, a, sourceTerm, a.user, optOutTokenHash(token));
-      const earlyOrigin = await addEntry(admin, a, earlyTerm, a.user, optOutTokenHash(earlyToken));
+      const earlyOrigin = await addEntry(
+        admin,
+        earlyScope,
+        earlyTerm,
+        a.user,
+        optOutTokenHash(earlyToken)
+      );
+      const earlyFuture = await addEntry(admin, earlyScope, earlyNextTerm, a.user, uid());
       const future = await addEntry(admin, a, nextTerm, a.user, uid());
       const unrelated = await addEntry(admin, a, nextTerm, null, uid());
-      const seatIds = [a.sponsor_roster_entries, future, unrelated, b.sponsor_roster_entries];
+      const untouched = [earlyFuture, unrelated, b.sponsor_roster_entries];
+      const seatIds = [a.sponsor_roster_entries, future, ...untouched];
       const seatsBefore = await roster(admin, seatIds);
       const cutoff = new Date('2040-01-31T00:00:00.000Z');
       expect(await optOutByToken(token, cutoff)).toEqual({ ok: false });
@@ -159,6 +171,29 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       );
 
       const allowed = new Date(cutoff.getTime() - 1);
+      const legacyToken = uid();
+      const legacyOrigin = await addEntry(
+        admin,
+        a,
+        sourceTerm,
+        a.staff,
+        optOutTokenHash(legacyToken)
+      );
+      const legacyConfirmation = uid();
+      await insert(admin, 'sponsor_mail_outbox', {
+        ...row(a, 'sponsor_mail_outbox', true),
+        id: legacyConfirmation,
+        roster_entry_id: legacyOrigin,
+        kind: 'opt_out_confirmation',
+        idempotency_key: `sponsor-entry:${legacyOrigin}:opt_out_confirmation`,
+      });
+      const legacyFuture = await addEntry(admin, a, nextTerm, a.staff, uid());
+      const legacySeatsBefore = await roster(admin, [legacyOrigin, legacyFuture]);
+      const legacyMailBefore = await outbox(admin, [legacyConfirmation]);
+      expect(await optOutByToken(legacyToken, allowed)).toEqual({ ok: false });
+      expect(await roster(admin, [legacyOrigin, legacyFuture])).toEqual(legacySeatsBefore);
+      expect(await outbox(admin, [legacyConfirmation])).toEqual(legacyMailBefore);
+
       const race = await Promise.all([
         optOutByToken(token, allowed),
         optOutByToken(token, allowed),
@@ -175,8 +210,8 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       expect(
         revoked.every(entry => entry.revoked_at && entry.opted_out_at && entry.optout_token_hash)
       ).toBe(true);
-      expect(await roster(admin, [unrelated, b.sponsor_roster_entries])).toEqual(
-        seatsBefore.filter(entry => [unrelated, b.sponsor_roster_entries].includes(entry.id))
+      expect(await roster(admin, untouched)).toEqual(
+        seatsBefore.filter(entry => untouched.includes(entry.id))
       );
       expect((await roster(admin, [earlyOrigin]))[0]).toMatchObject({
         revoked_at: null,
