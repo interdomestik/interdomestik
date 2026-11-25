@@ -130,16 +130,18 @@ async function runWithContext<T>(
   }
 }
 
+// Account reads need only the session; they never reach draft write admission.
+const accountReadDependencies: Pick<FreeStartDraftLifecycleDependencies, 'resolveSession'> = {
+  resolveSession: resolveFreeStartDraftSession,
+};
+
 /**
  * Presentation-only verdict for the account draft queue. It grants nothing: every mutation
  * resolves fresh authority again and re-checks verification before touching the repository.
  */
 export async function getFreeStartDraftAccountCore(
   requestHeaders: Headers,
-  // Account reads need only the session; they never reach draft write admission.
-  dependencies: Pick<FreeStartDraftLifecycleDependencies, 'resolveSession'> = {
-    resolveSession: resolveFreeStartDraftSession,
-  }
+  dependencies = accountReadDependencies
 ) {
   const session = await dependencies.resolveSession(requestHeaders);
   if (!session.ok) return session;

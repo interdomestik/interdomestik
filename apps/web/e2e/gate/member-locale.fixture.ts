@@ -6,6 +6,7 @@ import { z } from 'zod';
 import { getTenantFromTestInfo } from '../fixtures/auth.project';
 import { getUserForTenant } from '../fixtures/auth-users';
 import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
+import { inSequence } from './in-sequence';
 
 const signupResponse = z.object({
   user: z.object({ branchId: z.string().nullable(), id: z.string(), tenantId: z.string() }),
@@ -89,13 +90,13 @@ async function deleteThrowawayMember(memberId: string, errors: unknown[]) {
     () => db.delete(account).where(eq(account.userId, memberId)),
     () => db.delete(user).where(eq(user.id, memberId)),
   ];
-  for (const remove of deletions) {
+  await inSequence(deletions, async remove => {
     try {
       await remove();
     } catch (error) {
       errors.push(error);
     }
-  }
+  });
 }
 
 export async function switchLocale(

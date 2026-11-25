@@ -57,19 +57,33 @@ export async function cleanupOtpJourney(args: {
               );
               await db.delete(auditLog).where(audit);
             },
-            async () => db.delete(freeStartDrafts).where(eq(freeStartDrafts.ownerUserId, owner.id)),
-            async () => db.delete(authSession).where(eq(authSession.userId, owner.id)),
-            async () => db.execute(sql`delete from account where "userId" = ${owner.id}`),
-            async () => db.delete(user).where(eq(user.id, owner.id)),
+            () =>
+              Promise.resolve().then(() =>
+                db.delete(freeStartDrafts).where(eq(freeStartDrafts.ownerUserId, owner.id))
+              ),
+            () =>
+              Promise.resolve().then(() =>
+                db.delete(authSession).where(eq(authSession.userId, owner.id))
+              ),
+            () =>
+              Promise.resolve().then(() =>
+                db.execute(sql`delete from account where "userId" = ${owner.id}`)
+              ),
+            () => Promise.resolve().then(() => db.delete(user).where(eq(user.id, owner.id))),
           ])
         );
       },
-      ...emails.map(email => async () => {
-        const identifierPattern = `%${email}`;
-        return db.execute(sql`delete from verification where identifier like ${identifierPattern}`);
-      }),
+      ...emails.map(
+        email => () =>
+          Promise.resolve().then(() => {
+            const identifierPattern = `%${email}`;
+            return db.execute(
+              sql`delete from verification where identifier like ${identifierPattern}`
+            );
+          })
+      ),
       () => deleteMail(args.seen),
-      ...args.pages.map(page => async () => page.context().close()),
+      ...args.pages.map(page => () => Promise.resolve().then(() => page.context().close())),
       async () => {
         expect(await userRows(), 'the task-owned accounts are removed').toEqual([]);
         expect(await db.$count(crmLeads, inArray(crmLeads.email, emails))).toBe(0);
