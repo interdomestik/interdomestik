@@ -4,14 +4,10 @@ import {
   eq,
   inArray,
   isNull,
-  memberLeads,
   or,
   resolveSponsorOptOutTenant,
   sponsorMailOutbox,
   sponsorRosterEntries,
-  sponsorRevisionDecisions,
-  sponsors,
-  sponsorTermRevisions,
   sponsorTerms,
   sql,
   type TenantTransaction,
@@ -25,13 +21,13 @@ import { withTenantAuthority } from '@interdomestik/database/tenant-authority-co
 import { nanoid } from 'nanoid';
 
 import { parseTimestamp } from '../sponsor-coverage/resolve';
-import { canManageRoster, type SponsorActor } from './access';
 import { SPONSOR_SYSTEM_ACTOR, writeSponsorAudit } from './audit';
 import { sponsorOptOutExpired } from './retention-plan';
 import { optOutTokenHash } from './roster-crypto';
 import type { SponsorResult } from './terms';
 
 export { listLeavableSponsorEntries } from './leavable-entries';
+export { markLeftCompany } from './mark-left-company';
 
 /**
  * ACQ-3b §3.7 opt-out (token) and leave (`/member/membership`): revoke the person's current and
@@ -51,13 +47,19 @@ function optOutConfirmationKey(entryId: string): string {
   return `sponsor-entry:${entryId}:opt_out_confirmation`;
 }
 
-function lockRevocationIdentity(
+async function lockRevocationIdentity(
   tx: TenantTransaction,
   target: Pick<typeof sponsorRosterEntries.$inferSelect, 'userId' | 'emailHmac'>
-): Promise<void> | 'refused' {
-  if (target.userId) return lockSponsorPerson(tx, target.userId);
-  if (target.emailHmac) return lockSponsorEntryIdentity(tx, target.emailHmac);
-  return 'refused';
+): Promise<boolean> {
+  if (target.userId) {
+    await lockSponsorPerson(tx, target.userId);
+    return true;
+  }
+  if (target.emailHmac) {
+    await lockSponsorEntryIdentity(tx, target.emailHmac);
+    return true;
+  }
+  return false;
 }
 
 async function revokeSponsorPerson(
@@ -86,9 +88,7 @@ async function revokeSponsorPerson(
   }
 
   // §3.5: lock 1 for an unbound person, otherwise lock 2; then terms FOR SHARE, entries FOR UPDATE.
-  const identityLock = lockRevocationIdentity(tx, target);
-  if (identityLock === 'refused') return identityLock;
-  await identityLock;
+  if (!(await lockRevocationIdentity(tx, target))) return 'refused';
   const sponsorTermIds = tx
     .select({ id: sponsorTerms.id })
     .from(sponsorTerms)
@@ -243,14 +243,16 @@ export async function optOutByToken(
   const revoke = async (): Promise<RevocationResult> => {
     const resolved = await resolveSponsorOptOutTenant(tokenHash);
     if (!resolved) return 'refused';
-    return withTenantAuthority(resolved.authority, tx =>
-      revokeSponsorPerson(tx, {
-        tenantId: resolved.tenantId,
-        entryId: resolved.entryId,
-        reason: 'opted_out',
-        now,
-        tokenHash,
-      })
+    return withTenantAuthority(
+      resolved.authority,
+      async tx =>
+        await revokeSponsorPerson(tx, {
+          tenantId: resolved.tenantId,
+          entryId: resolved.entryId,
+          reason: 'opted_out',
+          now,
+          tokenHash,
+        })
     );
   };
   let revoked = await revoke();
@@ -266,99 +268,18 @@ export async function leaveSponsorship(
   input: { entryId: string; now: Date }
 ): Promise<SponsorResult<{ revoked: number }>> {
   const { tenantId } = readTenantAuthority(authority);
-  const revoked = await withTenantAuthority(authority, tx =>
-    revokeSponsorPerson(tx, {
-      tenantId,
-      entryId: input.entryId,
-      reason: 'left',
-      now: input.now,
-      requireUserId: member.userId,
-    })
+  const revoked = await withTenantAuthority(
+    authority,
+    async tx =>
+      await revokeSponsorPerson(tx, {
+        tenantId,
+        entryId: input.entryId,
+        reason: 'left',
+        now: input.now,
+        requireUserId: member.userId,
+      })
   );
   return typeof revoked === 'number' && revoked > 0
     ? { ok: true, value: { revoked } }
     : { ok: false, error: 'not_found' };
-}
-
-/** §2: "left the company" is information only; it never ends or blocks a seat. */
-export async function markLeftCompany(
-  authority: TenantAuthority,
-  actor: SponsorActor,
-  input: { entryId: string; now: Date }
-): Promise<SponsorResult<{ marked: boolean }>> {
-  const { tenantId } = readTenantAuthority(authority);
-  return withTenantAuthority(authority, async tx => {
-    const [row] = await tx
-      .select({
-        termId: sponsorTerms.id,
-        branchId: sponsors.branchId,
-        ownerAgentId: memberLeads.agentId,
-      })
-      .from(sponsorRosterEntries)
-      .innerJoin(
-        sponsorTerms,
-        and(
-          eq(sponsorTerms.tenantId, sponsorRosterEntries.tenantId),
-          eq(sponsorTerms.id, sponsorRosterEntries.termId)
-        )
-      )
-      .innerJoin(
-        sponsors,
-        and(eq(sponsors.tenantId, sponsorTerms.tenantId), eq(sponsors.id, sponsorTerms.sponsorId))
-      )
-      .leftJoin(
-        memberLeads,
-        and(eq(memberLeads.tenantId, sponsors.tenantId), eq(memberLeads.id, sponsors.sourceLeadId))
-      )
-      .where(
-        and(eq(sponsorRosterEntries.tenantId, tenantId), eq(sponsorRosterEntries.id, input.entryId))
-      );
-    if (!row) return { ok: false, error: 'not_found' };
-    const [approved] = await tx
-      .select({ id: sponsorRevisionDecisions.id })
-      .from(sponsorTermRevisions)
-      .innerJoin(
-        sponsorRevisionDecisions,
-        and(
-          eq(sponsorRevisionDecisions.tenantId, sponsorTermRevisions.tenantId),
-          eq(sponsorRevisionDecisions.revisionId, sponsorTermRevisions.id),
-          eq(sponsorRevisionDecisions.decision, 'approved')
-        )
-      )
-      .where(
-        and(
-          eq(sponsorTermRevisions.tenantId, tenantId),
-          eq(sponsorTermRevisions.termId, row.termId)
-        )
-      )
-      .limit(1);
-    const scope = { ownerAgentId: row.ownerAgentId, branchId: row.branchId };
-    if (!canManageRoster(actor, scope, approved !== undefined)) {
-      return { ok: false, error: 'forbidden' };
-    }
-    const updated = await tx
-      .update(sponsorRosterEntries)
-      .set({ leftCompanyAt: input.now.toISOString() })
-      .where(
-        and(
-          eq(sponsorRosterEntries.tenantId, tenantId),
-          eq(sponsorRosterEntries.id, input.entryId),
-          isNull(sponsorRosterEntries.leftCompanyAt)
-        )
-      )
-      .returning({ id: sponsorRosterEntries.id });
-    if (updated.length > 0) {
-      await writeSponsorAudit(tx, tenantId, [
-        {
-          action: 'sponsor_roster.left_company',
-          entityType: 'sponsor_roster_entry',
-          entityId: input.entryId,
-          actorId: actor.userId,
-          actorRole: actor.role,
-          metadata: { at: input.now.toISOString() },
-        },
-      ]);
-    }
-    return { ok: true, value: { marked: updated.length > 0 } };
-  });
 }

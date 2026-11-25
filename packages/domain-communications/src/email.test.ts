@@ -1,4 +1,3 @@
-import { campaignSelectMock } from './campaign-query.test-support';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 // prettier-ignore
 const localizedOtpCopy = [
@@ -7,26 +6,25 @@ const localizedOtpCopy = [
   ['sr', 'Kod za potvrdu e-adrese', 'Upotrebite kod od 6 cifara da potvrdite e-adresu i nastavite. Važi 5 minuta; važi samo najnoviji kod. Ne potvrđuje uplatu, aktivno članstvo, zahtev niti prihvaćen predmet.'],
   ['mk', 'Код за потврда на е-поштата', 'Користете го 6-цифрениот код за да ја потврдите е-поштата и да продолжите. Важи 5 минути; важи само најновиот код. Не потврдува плаќање, активно членство, барање за надомест или прифатен случај.'],
 ] as const;
-// prettier-ignore
+
 const m = vi.hoisted(() => ({
-  and: vi.fn((...conditions: unknown[]) => ({ op: 'and', conditions })),
-  createTransport: vi.fn(), dbInsert: vi.fn(),
-  eq: vi.fn((left: unknown, right: unknown) => ({ op: 'eq', left, right })),
-  findManyLogs: vi.fn(), inArray: vi.fn((left: unknown, right: unknown[]) => ({ op: 'inArray', left, right })),
-  nanoid: vi.fn(() => 'test-id-123'), or: vi.fn((...conditions: unknown[]) => ({ op: 'or', conditions })),
-  resendConstructor: vi.fn(), resendSend: vi.fn(), sendMail: vi.fn(),
-  txInsert: vi.fn(), txValues: vi.fn(), withTenantContext: vi.fn(),
+  createTransport: vi.fn(),
+  resendConstructor: vi.fn(),
+  resendSend: vi.fn(),
+  sendMail: vi.fn(),
 }));
-// prettier-ignore
-vi.mock('nodemailer', () => ({ default: { createTransport: m.createTransport }, createTransport: m.createTransport }));
-// prettier-ignore
-vi.mock('resend', () => ({ Resend: function MockResend(...args: unknown[]) { m.resendConstructor(...args); return { emails: { send: m.resendSend } }; } }));
-// prettier-ignore
-vi.mock('@interdomestik/database', () => ({ db: { insert: m.dbInsert, query: { emailCampaignLogs: { findMany: m.findManyLogs } } }, inArray: m.inArray, withTenantContext: m.withTenantContext }));
-// prettier-ignore
-vi.mock('@interdomestik/database/schema', () => ({ engagementEmailSends: { tenantId: 'engagementEmailSends.tenantId', userId: 'engagementEmailSends.userId', templateKey: 'engagementEmailSends.templateKey', status: 'engagementEmailSends.status' }, emailCampaignLogs: { campaignId: 'emailCampaignLogs.campaignId', tenantId: 'emailCampaignLogs.tenantId', userId: 'emailCampaignLogs.userId' } }));
-vi.mock('drizzle-orm', () => ({ inArray: m.inArray, and: m.and, eq: m.eq, or: m.or }));
-vi.mock('nanoid', () => ({ nanoid: m.nanoid }));
+
+vi.mock('nodemailer', () => ({
+  default: { createTransport: m.createTransport },
+  createTransport: m.createTransport,
+}));
+vi.mock('resend', () => ({
+  Resend: function MockResend(...args: unknown[]) {
+    m.resendConstructor(...args);
+    return { emails: { send: m.resendSend } };
+  },
+}));
+
 describe('email delivery fallback', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -277,27 +275,5 @@ describe('email delivery fallback', () => {
     const { sendEmail } = await import('./email');
     await sendEmail('member@example.com', { subject: 'Default', html: '', text: '' });
     expect(log).toHaveBeenCalledWith('[SMTP] Email sent to member@example.com: default-message-id');
-  });
-});
-// prettier-ignore
-describe('campaign execution tenant-context writes', () => {
-  beforeEach(() => {
-    vi.clearAllMocks(); m.findManyLogs.mockResolvedValue([]); m.nanoid.mockReturnValue('test-id-123');
-    m.txInsert.mockReturnValue({ values: m.txValues }); m.txValues.mockResolvedValue(undefined);
-    m.withTenantContext.mockImplementation(async (_context: unknown, action: (tx: unknown) => Promise<void>) => await action({ select: campaignSelectMock(m.findManyLogs), insert: m.txInsert, query: { emailCampaignLogs: { findMany: m.findManyLogs } } }));
-  });
-  it('writes campaign logs through each item tenant context', async () => {
-    const { executeCampaign, processCampaignUser } = await import('./campaign-execution');
-    const { mintTestTenantAuthority } = await import('@interdomestik/database/testing/tenant-authority');
-    const authority1 = mintTestTenantAuthority('tenant-1'); const authority2 = mintTestTenantAuthority('tenant-2');
-    await processCampaignUser({ email: 'member@example.com', id: 'user-1', name: 'Member One', tenantId: 'tenant-1' }, { campaignId: 'campaign-1', sendToUser: vi.fn().mockResolvedValue(undefined) }, authority1, new Set(), { attempted: 0, sent: 0, skipped: 0 }, [], []);
-    await executeCampaign('campaign-2', authority2, vi.fn().mockResolvedValueOnce([{ email: 'member@example.com', id: 'item-1', tenantId: 'tenant-2', userId: 'user-2' }]).mockResolvedValueOnce([]), vi.fn().mockResolvedValue(undefined), { errors: [], logs: [], stats: { attempted: 0, failed: 0, sent: 0, skipped: 0 } });
-    expect(m.withTenantContext).toHaveBeenNthCalledWith(1, authority1, expect.any(Function));
-    expect(m.withTenantContext).toHaveBeenNthCalledWith(2, authority2, expect.any(Function));
-    expect(m.withTenantContext).toHaveBeenNthCalledWith(3, authority2, expect.any(Function));
-    expect(m.findManyLogs).toHaveBeenCalledTimes(1);
-    expect(m.txValues).toHaveBeenNthCalledWith(1, expect.objectContaining({ campaignId: 'campaign-1', tenantId: 'tenant-1', userId: 'user-1' }));
-    expect(m.txValues).toHaveBeenNthCalledWith(2, expect.objectContaining({ campaignId: 'campaign-2', tenantId: 'tenant-2', userId: 'user-2' }));
-    expect(m.dbInsert).not.toHaveBeenCalled();
   });
 });

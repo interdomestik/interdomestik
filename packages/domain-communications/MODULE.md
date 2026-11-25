@@ -10,6 +10,8 @@ The internal `src/claim-mail/catalogues` directory defines the copy keys and req
 
 `src/email-transport.ts` owns transport configuration and the single-transport email outcome path.
 
+`src/email-delivery.ts` owns provider selection and fallback for `sendEmail`. The email unit lane keeps provider delivery and campaign logging in separate specs.
+
 `sendEmail` accepts an optional synchronous `canDispatch` check. Each SMTP or Resend handoff, including fallback, checks it immediately before invoking the provider. A refused handoff returns `email_dispatch_blocked`.
 
 `./notification-deliveries` owns transactional enqueue, failed delivery listing, and re-drive for `notification_deliveries` (declared in `packages/database/src/schema/notification-deliveries.ts`). `./notification-deliveries/worker` exposes lease operations and rendering to `@interdomestik/domain-claims/claims/notification-delivery-runner`, which runs scheduled and targeted dispatch. The consumer claims one row at a time under a lease and records its transport before calling a provider.

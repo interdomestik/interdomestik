@@ -22,6 +22,10 @@ Sponsor term approvals and new roster provisioning check `pilot/new_sales` in th
 
 `runSponsorMailOutbox` reads the originating term under the delivery lease on each attempt. Roster-linked deliveries at or after 12 UTC calendar months from that term's scheduled end are recorded as skipped with reason `aged_mail` and a terminal time. The ordinary mail adapter checks the current lease expiry and age cutoff at each provider handoff, including fallback. An expired lease returns `lease_lost` for recovery by the next claim. Missing or inconsistent source facts use the outbox retry or terminal failure path.
 
+`src/sponsors/mail-preparation.ts` reads and checks the facts for a claimed delivery in its tenant transaction. `src/sponsors/mark-left-company.ts` owns the staff roster marker, exposed through `./sponsors/opt-out`.
+
+The billing `test:rls` lane runs the sponsor opt-out and held-delivery proofs through `src/sponsors/sponsor-privacy.rls.test.ts` using the same scratch database and restricted login.
+
 ## Owned tables
 
 `subscriptions`, `membership_plans`, `billing` (invoices and ledger), `sponsors`, `sponsor_roster`, `sponsor_handover`, `sponsor_mail_outbox`, the commission tables (`packages/database/src/schema/subscriptions.ts`, `membership-plans.ts`, `billing.ts`, `sponsors.ts`, `sponsor-roster.ts`, `sponsor-handover.ts`). Written from outside the owner: R1 measured 237 Drizzle call sites in the membership-billing stratum — 206 hand-scoped, 31 with no tenant token, 0 using the scoped helper (`A/modules/tenancy.md:90`); the count of those sites that live outside this package is `NOT MEASURED` here. `docs/engineering/DIRECTION.md:53` records that 124 of 348 write sites overall sit in the web app and 24 of 81 written tables have more than one writer (MAIN-07).

@@ -1,106 +1,19 @@
+import { expect, it, vi } from 'vitest';
 import {
   runtimeRole,
   withPaymentPortDatabase,
-  type PaymentPortDatabase,
 } from '../../../database/test/exchange-rates.fixture';
-import {
-  END,
-  LATER,
-  START,
-  insert,
-  row,
-  seedSponsorScope,
-  uid,
-  type Scope,
-} from '../../../database/test/sponsor-test-fixture';
-import { expect, it, vi } from 'vitest';
+import { insert, row, seedSponsorScope, uid } from '../../../database/test/sponsor-test-fixture';
 import type { SponsorMailDeps } from './mail-sender';
-
-type Admin = PaymentPortDatabase['admin'];
-
-async function grantSponsorProofAccess(admin: Admin) {
-  // These grants apply to the disposable test database. The commands use the restricted login.
-  await admin.unsafe(`grant usage on schema public to ${runtimeRole}`);
-  await admin.unsafe(`grant select on "user", subscriptions, sponsors, legal_entities,
-    sponsor_terms, sponsor_roster_entries, sponsor_handover_intents, sponsor_term_revisions,
-    sponsor_revision_decisions, sponsor_mail_outbox to ${runtimeRole}`);
-  await admin.unsafe(`grant update (id) on sponsor_terms to ${runtimeRole}`);
-  await admin.unsafe(`grant update on sponsor_roster_entries to ${runtimeRole}`);
-  await admin.unsafe(`grant insert, update, delete on sponsor_mail_outbox to ${runtimeRole}`);
-  await admin.unsafe(`grant insert on audit_log to ${runtimeRole}`);
-}
-
-async function addTerm(
-  admin: Admin,
-  scope: Scope,
-  start: string,
-  end: string,
-  effectiveEnd?: string
-) {
-  const id = uid();
-  await insert(admin, 'sponsor_terms', {
-    ...row(scope, 'sponsor_terms', true),
-    id,
-    term_start: start,
-    term_end: end,
-    ...(effectiveEnd
-      ? {
-          terminated_effective_at: effectiveEnd,
-          terminated_at: effectiveEnd,
-          terminated_by: scope.staff,
-        }
-      : {}),
-  });
-  return id;
-}
-
-async function addEntry(
-  admin: Admin,
-  scope: Scope,
-  termId: string,
-  userId: string | null,
-  hash: string
-) {
-  const id = uid();
-  const data = {
-    ...row(scope, 'sponsor_roster_entries', true),
-    id,
-    term_id: termId,
-    user_id: userId,
-    optout_token_hash: hash,
-  };
-  await insert(admin, 'sponsor_roster_entries', data);
-  return id;
-}
-
-async function addDelivery(
-  admin: Admin,
-  scope: Scope,
-  entryId: string,
-  state: 'queued' | 'claimed' | 'sent'
-) {
-  const id = uid();
-  await insert(admin, 'sponsor_mail_outbox', {
-    ...row(scope, 'sponsor_mail_outbox', true),
-    id,
-    roster_entry_id: entryId,
-    kind: 'opt_out_confirmation',
-    state,
-    attempts: state === 'queued' ? 0 : 1,
-    next_attempt_at: START,
-    lease_until: state === 'claimed' ? END : null,
-    terminal_at: state === 'sent' ? END : null,
-  });
-  return id;
-}
-
-const roster = (admin: Admin, ids: string[]) =>
-  admin`select id, term_id, user_id, first_name, last_name, email_normalized, email_hmac,
-    optout_token_hash, revoked_at, opted_out_at
-    from sponsor_roster_entries where id in ${admin(ids)} order by id`;
-const outbox = (admin: Admin, ids: string[]) =>
-  admin`select id, roster_entry_id, state, attempts, lease_until, terminal_at, last_error_code
-    from sponsor_mail_outbox where id in ${admin(ids)} order by id`;
+import { verifySponsorOptOutPrivacy } from './sponsor-opt-out-privacy.test-support';
+import {
+  addDelivery,
+  addEntry,
+  addTerm,
+  grantSponsorProofAccess,
+  outbox,
+  roster,
+} from './sponsor-privacy.test-support';
 
 it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
   'serializes opt-out consumption and protects held mail and roster evidence under RLS',
@@ -116,7 +29,6 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       const { withTenantAuthority } =
         await import('@interdomestik/database/tenant-authority-context');
       const { optOutByToken } = await import('./opt-out');
-      const { optOutTokenHash } = await import('./roster-crypto');
       const { runSponsorRetention } = await import('./retention');
       const { runSponsorMailOutbox } = await import('./mail-sender');
 
@@ -139,92 +51,7 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       );
       expect(otherTenant).toEqual([]);
 
-      const sourceTerm = await addTerm(admin, a, '2039-01-01T00:00:00.000Z', START);
-      const nextTerm = await addTerm(admin, a, END, LATER);
-      // The term exclusion constraint uses scheduled dates, even after early termination.
-      const earlyScope = { ...a, sponsors: uid() };
-      await insert(admin, 'sponsors', { ...row(a, 'sponsors', true), id: earlyScope.sponsors });
-      const earlyTerm = await addTerm(admin, earlyScope, '2039-02-01T00:00:00.000Z', END, START);
-      const earlyNextTerm = await addTerm(admin, earlyScope, END, LATER);
-      const token = uid();
-      const earlyToken = uid();
-      const origin = await addEntry(admin, a, sourceTerm, a.user, optOutTokenHash(token));
-      const earlyOrigin = await addEntry(
-        admin,
-        earlyScope,
-        earlyTerm,
-        a.user,
-        optOutTokenHash(earlyToken)
-      );
-      const earlyFuture = await addEntry(admin, earlyScope, earlyNextTerm, a.user, uid());
-      const future = await addEntry(admin, a, nextTerm, a.user, uid());
-      const unrelated = await addEntry(admin, a, nextTerm, null, uid());
-      const untouched = [earlyFuture, unrelated, b.sponsor_roster_entries];
-      const seatIds = [a.sponsor_roster_entries, future, ...untouched];
-      const seatsBefore = await roster(admin, seatIds);
-      const cutoff = new Date('2040-01-31T00:00:00.000Z');
-      expect(await optOutByToken(token, cutoff)).toEqual({ ok: false });
-      expect(await optOutByToken(earlyToken, cutoff)).toEqual({ ok: false });
-      expect(await roster(admin, seatIds)).toEqual(seatsBefore);
-      expect((await roster(admin, [origin, earlyOrigin])).every(entry => !entry.opted_out_at)).toBe(
-        true
-      );
-
-      const allowed = new Date(cutoff.getTime() - 1);
-      const legacyToken = uid();
-      const legacyOrigin = await addEntry(
-        admin,
-        a,
-        sourceTerm,
-        a.staff,
-        optOutTokenHash(legacyToken)
-      );
-      const legacyConfirmation = uid();
-      await insert(admin, 'sponsor_mail_outbox', {
-        ...row(a, 'sponsor_mail_outbox', true),
-        id: legacyConfirmation,
-        roster_entry_id: legacyOrigin,
-        kind: 'opt_out_confirmation',
-        idempotency_key: `sponsor-entry:${legacyOrigin}:opt_out_confirmation`,
-      });
-      const legacyFuture = await addEntry(admin, a, nextTerm, a.staff, uid());
-      const legacySeatsBefore = await roster(admin, [legacyOrigin, legacyFuture]);
-      const legacyMailBefore = await outbox(admin, [legacyConfirmation]);
-      expect(await optOutByToken(legacyToken, allowed)).toEqual({ ok: false });
-      expect(await roster(admin, [legacyOrigin, legacyFuture])).toEqual(legacySeatsBefore);
-      expect(await outbox(admin, [legacyConfirmation])).toEqual(legacyMailBefore);
-
-      const race = await Promise.all([
-        optOutByToken(token, allowed),
-        optOutByToken(token, allowed),
-      ]);
-      expect(race).toEqual(expect.arrayContaining([{ ok: true, revoked: 2 }, { ok: false }]));
-      expect(await optOutByToken(token, allowed)).toEqual({ ok: false });
-      expect((await roster(admin, [origin]))[0]).toMatchObject({
-        revoked_at: null,
-        opted_out_at: expect.anything(),
-        optout_token_hash: optOutTokenHash(token),
-      });
-      const revoked = await roster(admin, [a.sponsor_roster_entries, future]);
-      expect(revoked).toHaveLength(2);
-      expect(
-        revoked.every(entry => entry.revoked_at && entry.opted_out_at && entry.optout_token_hash)
-      ).toBe(true);
-      expect(await roster(admin, untouched)).toEqual(
-        seatsBefore.filter(entry => untouched.includes(entry.id))
-      );
-      expect((await roster(admin, [earlyOrigin]))[0]).toMatchObject({
-        revoked_at: null,
-        opted_out_at: null,
-        optout_token_hash: optOutTokenHash(earlyToken),
-      });
-      expect(
-        await admin`select kind from sponsor_mail_outbox where roster_entry_id = ${origin}`
-      ).toEqual([{ kind: 'opt_out_confirmation' }]);
-      expect(
-        await admin`select entity_id from audit_log where tenant_id = ${a.tenant}
-        and action = 'sponsor_entry.opted_out' order by entity_id`
-      ).toEqual(revoked.map(entry => ({ entity_id: entry.id })));
+      await verifySponsorOptOutPrivacy(admin, a, b, optOutByToken);
 
       const held = await addEntry(admin, b, b.sponsor_terms, null, uid());
       const queued = await addDelivery(admin, b, held, 'queued');
