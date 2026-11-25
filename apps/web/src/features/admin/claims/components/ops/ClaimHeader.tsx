@@ -28,7 +28,7 @@ export function ClaimHeader({
   claim,
   showAssignee = false,
   locale,
-}: Omit<ClaimHeaderProps, 'nextActions'>) {
+}: Readonly<Omit<ClaimHeaderProps, 'nextActions'>>) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const memberProfileHref = buildAdminUserProfileHref(claim.memberId, searchParams);

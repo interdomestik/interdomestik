@@ -19,7 +19,7 @@ export function ClaimHeaderSummary({
   showAssignee,
   memberProfileHref,
   activeLocale,
-}: ClaimHeaderSummaryProps) {
+}: Readonly<ClaimHeaderSummaryProps>) {
   const tCategory = useTranslations('claims.category');
   const tBadge = useTranslations('admin.claims_page.next_actions.risk');
   const tSource = useTranslations('admin.claims_page.source');

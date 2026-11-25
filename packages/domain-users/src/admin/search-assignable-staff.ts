@@ -28,7 +28,7 @@ export async function searchAssignableStaff(
   if (search && search.length > STAFF_SEARCH_MAX_LENGTH)
     throw new Error('Staff search is too long');
 
-  const pattern = search ? `%${search.replace(/[\\%_]/g, '\\$&')}%` : null;
+  const pattern = search ? `%${search.replace(/[\\%_]/g, String.raw`\$&`)}%` : null;
   const rows = await tx
     .select({ id: user.id, name: user.name, email: user.email })
     .from(user)

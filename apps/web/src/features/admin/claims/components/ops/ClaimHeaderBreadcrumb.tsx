@@ -21,7 +21,7 @@ export function ClaimHeaderBreadcrumb({
   backHref,
   memberProfileHref,
   activeLocale,
-}: ClaimHeaderBreadcrumbProps) {
+}: Readonly<ClaimHeaderBreadcrumbProps>) {
   const tLifecycle = useTranslations('admin.claims_page.lifecycle_tabs');
   const tPage = useTranslations('admin.claims_page');
   const tHeader = useTranslations('admin.claims_page.header');

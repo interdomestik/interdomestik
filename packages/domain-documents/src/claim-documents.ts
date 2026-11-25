@@ -102,7 +102,7 @@ export async function readOpsClaimDetailData({
   const { accessTenantId, principal } = scope;
   const countOnly = principal.role === ROLES.branch_manager;
 
-  return withTenantAuthority(authority, async tx => {
+  return await withTenantAuthority(authority, async tx => {
     const visibleClaim = selectVisibleOpsClaim(tx, { authority, claimId });
     if (!visibleClaim) return null;
     const [claim] = await tx.select().from(visibleClaim);

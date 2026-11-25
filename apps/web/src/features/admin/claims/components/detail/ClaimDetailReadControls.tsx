@@ -16,7 +16,7 @@ export async function ClaimDetailPageLinks({
   search,
   nextCursor,
   cursorKey,
-}: PageProps & { cursorKey: 'staffAfter' | 'documentsAfter' }) {
+}: Readonly<PageProps & { cursorKey: 'staffAfter' | 'documentsAfter' }>) {
   const { [cursorKey]: currentCursor, ...firstPageQuery } = search;
   if (!currentCursor && !nextCursor) return null;
   const [t, claims] = await Promise.all([
@@ -50,7 +50,7 @@ export async function ClaimDetailPageLinks({
   );
 }
 
-export async function ClaimStaffSearch({ claimId, search, nextCursor }: PageProps) {
+export async function ClaimStaffSearch({ claimId, search, nextCursor }: Readonly<PageProps>) {
   const [t, assignment] = await Promise.all([
     getTranslations('common'),
     getTranslations('admin.claims_page.assignment'),
