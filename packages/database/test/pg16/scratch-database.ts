@@ -67,7 +67,7 @@ export async function withCreatedScratchDatabase<T>(
      from pg_catalog.pg_database where datname = $1`,
     [name]
   );
-  if (!created || created.name !== name) {
+  if (created?.name !== name) {
     throw new Error(`Cannot record identity of scratch database ${identifier} after creation`);
   }
 

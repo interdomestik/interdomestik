@@ -70,20 +70,17 @@ export async function withDisposableCleanup<T>(
   cleanup: () => Promise<void>,
   failureMessage: string
 ): Promise<T> {
-  let workFailure: { error: unknown } | undefined;
+  let result: T;
   try {
-    return await work();
-  } catch (error) {
-    workFailure = { error };
-    throw error;
-  } finally {
+    result = await work();
+  } catch (workError) {
     try {
       await cleanup();
-    } catch (error) {
-      if (!workFailure) throw error;
-      throw new AggregateError([workFailure.error, error], failureMessage, {
-        cause: workFailure.error,
-      });
+    } catch (cleanupError) {
+      throw new AggregateError([workError, cleanupError], failureMessage, { cause: workError });
     }
+    throw workError;
   }
+  await cleanup();
+  return result;
 }
