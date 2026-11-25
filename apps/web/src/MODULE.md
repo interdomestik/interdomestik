@@ -24,6 +24,10 @@ Both Paddle webhook routes respond with HTTP 503 and `Retry-After` before reques
 
 The enabled billing-test activation and staff sponsor approval actions report `CLOSED` when new sales are paused. Staff handover closure reports `CLOSED` when the Paddle read-back is unavailable because Paddle is closed.
 
+The authorized sponsor cron reports `sponsor_retention_dormant` for each hourly tenant pass. Mail runs through the delivery outbox with its own dispatch-time cutoff. The authorized GET includes mail outcomes in the tenant summaries. It returns HTTP 500 with `success: false` and the summaries when any tenant reports a failure, after running independent work for the other tenants. The public sponsor opt-out POST applies token authority in the billing mutation. Missing, ambiguous, revoked, consumed and expired origins receive the same public refusal.
+
+The staff-detail RLS lane runs the hourly cron and public opt-out route proofs through `src/app/api/cron/sponsors/sponsor-routes.rls.test.ts` in a single restricted-role fixture.
+
 `importMembers` checks `pilot/new_sales` in each sponsored registration transaction. At the first closed row the action returns `CLOSED` with the partial import summary. Earlier committed rows remain available.
 
 The agent lead payment and status actions return `CLOSED` when `pilot/new_sales` refuses a payment start or a status-only conversion. The lead commands apply the check in the tenant write transaction.

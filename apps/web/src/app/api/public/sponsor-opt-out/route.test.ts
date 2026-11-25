@@ -27,7 +27,7 @@ describe('public sponsor opt-out POST', () => {
     const response = await post({ token });
     expect(response.status).toBe(200);
     expect(await response.json()).toEqual({ ok: true });
-    expect(mocks.optOut).toHaveBeenCalledWith(token, expect.any(Date));
+    expect(mocks.optOut).toHaveBeenCalledWith(token);
     expect(response.headers.get('Cache-Control')).toBe('no-store');
     expect(response.headers.get('Referrer-Policy')).toBe('no-referrer');
   });
