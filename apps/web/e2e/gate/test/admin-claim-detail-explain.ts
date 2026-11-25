@@ -11,11 +11,14 @@ import {
 } from './admin-claim-detail-plans';
 import { observeRestrictedPool, type Pool } from './admin-claim-detail-query-probe';
 
+type PlanCase = { claimId: string; tenant: string; size: number; label: string };
+type PlanEvidence = Awaited<ReturnType<typeof measureRead>>;
+
 async function seedPlanData<T>(
   controller: FixtureController,
   f: ClaimReadFixture,
   member: string,
-  work: (cases: { claimId: string; tenant: string; size: number; label: string }[]) => Promise<T>
+  work: (cases: PlanCase[]) => Promise<T>
 ) {
   const base = `${f.prefix}-volume`;
   const cases = [27, 500].flatMap(size => [
@@ -81,6 +84,55 @@ async function seedPlanData<T>(
   }
 }
 
+function assertDocumentPlanRead(
+  result: Awaited<ReturnType<ClaimDetailReader>>,
+  phase: 'first' | 'continuation' | 'count',
+  { size, label }: PlanCase,
+  skip: number,
+  id: (index: number) => string
+) {
+  assert.ok(result, label);
+  if (phase === 'count') {
+    assert.deepEqual(result.documents, { kind: 'summary', count: size }, label);
+    return;
+  }
+
+  const offset = phase === 'first' ? 0 : skip + 1;
+  assertPage(
+    result.documents,
+    Array.from({ length: Math.min(25, size - offset) }, (_, i) => id(offset + i)),
+    phase === 'first' ? id(24) : null
+  );
+}
+
+async function measureStaffPages(
+  f: ClaimReadFixture,
+  pool: Pool,
+  read: ClaimDetailReader,
+  admin: TenantAuthority,
+  evidence: PlanEvidence[]
+) {
+  for (const [label, staffAfter] of [
+    ['staff/first', undefined],
+    ['staff/continuation', f.staffAfter],
+  ] as const) {
+    const start = evidence.length;
+    const result = await observeRestrictedPool(
+      pool,
+      () => read({ authority: admin, claimId: f.localId, staffSearch: f.prefix, staffAfter }),
+      {
+        measurePoolTiming: true,
+        afterRead: async (kind, run, query, checkout) => {
+          if (kind === 'staff') evidence.push(await measureRead(run, query, label, checkout));
+        },
+      }
+    );
+    assert.equal(evidence.length, start + 1);
+    assert.equal(result?.staffPage?.items.length, staffAfter ? 1 : 25);
+    assert.equal(result.staffPage.nextCursor, staffAfter ? null : f.staffAfter);
+  }
+}
+
 export async function measureRestrictedClaimReads(
   controller: FixtureController,
   f: ClaimReadFixture,
@@ -100,8 +152,9 @@ export async function measureRestrictedClaimReads(
   }
 ) {
   const plans = await seedPlanData(controller, f, member, async cases => {
-    const evidence: Awaited<ReturnType<typeof measureRead>>[] = [];
-    for (const { claimId, tenant, size, label } of cases) {
+    const evidence: PlanEvidence[] = [];
+    for (const planCase of cases) {
+      const { claimId, tenant, size, label } = planCase;
       const metadataAuthority = tenant === f.home ? admin : current;
       const countAuthority = tenant === f.home ? manager : currentManager;
       const id = (index: number) => documentId(claimId, index, 4);
@@ -125,38 +178,10 @@ export async function measureRestrictedClaimReads(
           }
         );
         assert.equal(evidence.length, start + 1);
-        assert.ok(result, label);
-        if (phase === 'count') {
-          assert.deepEqual(result.documents, { kind: 'summary', count: size }, label);
-        } else {
-          const offset = phase === 'first' ? 0 : skip + 1;
-          assertPage(
-            result.documents,
-            Array.from({ length: Math.min(25, size - offset) }, (_, i) => id(offset + i)),
-            phase === 'first' ? id(24) : null
-          );
-        }
+        assertDocumentPlanRead(result, phase, planCase, skip, id);
       }
     }
-    for (const [label, staffAfter] of [
-      ['staff/first', undefined],
-      ['staff/continuation', f.staffAfter],
-    ] as const) {
-      const start = evidence.length;
-      const result = await observeRestrictedPool(
-        pool,
-        () => read({ authority: admin, claimId: f.localId, staffSearch: f.prefix, staffAfter }),
-        {
-          measurePoolTiming: true,
-          afterRead: async (kind, run, query, checkout) => {
-            if (kind === 'staff') evidence.push(await measureRead(run, query, label, checkout));
-          },
-        }
-      );
-      assert.equal(evidence.length, start + 1);
-      assert.equal(result?.staffPage?.items.length, staffAfter ? 1 : 25);
-      assert.equal(result.staffPage.nextCursor, staffAfter ? null : f.staffAfter);
-    }
+    await measureStaffPages(f, pool, read, admin, evidence);
     return evidence;
   });
   return {
