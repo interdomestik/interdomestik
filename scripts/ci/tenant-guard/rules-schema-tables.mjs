@@ -26,10 +26,7 @@ export function tableAdmissionProblem(
     ? [checks, ...added.filter(file => file !== checks)]
     : added;
   for (const file of ordered) {
-    const proof =
-      file === checks
-        ? { ...legacyTableIdentities(after, [file]), types: new Set() }
-        : proveBuilderModule(after, anchor, file, legacy.tables);
+    const proof = proveAddedModule(after, anchor, file, checks, legacy);
     if (proof.reason) return `${proof.reason} ${file}`;
     types.set(file, proof.types);
     for (const [key, table] of proof.tables) {
@@ -48,4 +45,10 @@ export function tableAdmissionProblem(
   if (exports.reason) return exports.reason;
   if (added.length === 0) return null;
   return retainedConsumerProblem(before, after, anchor, exports.affected, tableNames);
+}
+
+function proveAddedModule(after, anchor, file, checks, legacy) {
+  return file === checks
+    ? { ...legacyTableIdentities(after, [file]), types: new Set() }
+    : proveBuilderModule(after, anchor, file, legacy.tables);
 }
