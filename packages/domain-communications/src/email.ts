@@ -1,26 +1,37 @@
-import { sendEmail } from './email-delivery';
+import type { Transporter } from 'nodemailer';
+import type { Resend } from 'resend';
+import { getResendClient, getResendProvider, unconfiguredEmailResult } from './email-delivery';
 import {
-  renderCheckinEmail,
   renderClaimAssignedEmail,
   renderClaimSubmittedEmail,
-  renderEngagementDay30Email,
-  renderEngagementDay60Email,
-  renderEngagementDay90Email,
   renderMemberWelcomeEmail,
   renderNewMessageEmail,
-  renderNewsletterEmail,
-  renderNpsSurveyEmail,
-  renderOnboardingEmail,
   renderPasswordResetEmail,
   renderPaymentFinalWarningEmail,
   renderPaymentReminderEmail,
-  renderSeasonalEmail,
   renderStatusChangedEmail,
-  renderWelcomeEmail,
 } from './email-templates';
-import { renderSignInOtpEmail, type EmailResult, type SignInOtpLocale } from './sign-in-otp-email';
+import { configuredSmtpTarget, getSenderAddress } from './email-transport';
+import { createEngagementEmailSenders } from './engagement-email';
+import {
+  isAutomatedEmail as isAutomated,
+  selectEmailRecipients,
+  suppressedEmailResult,
+  type EmailRecipients,
+} from './non-sending-email';
+import {
+  createEmailTelemetry,
+  fallbackResend,
+  renderSignInOtpEmail,
+  sendViaResend,
+  smtpTransport,
+  type EmailResult,
+  type EmailSendOptions,
+  type EmailTelemetry,
+  type SignInOtpLocale,
+} from './sign-in-otp-email';
 
-export { getResendClient, sendEmail } from './email-delivery';
+export { getResendClient } from './email-delivery';
 export { isEmailSuppressed } from './non-sending-email';
 export {
   configuredEmailTransports,
@@ -30,6 +41,69 @@ export {
 } from './email-transport';
 export { normalizeSignInOtpLocale } from './sign-in-otp-email';
 export type { EmailResult };
+
+function getEmailClient(telemetry: EmailTelemetry, options: EmailSendOptions) {
+  const target = configuredSmtpTarget(options.automatedCatcher ?? false);
+  if (target === 'rejected') return target;
+  if (target) {
+    return {
+      type: 'smtp' as const,
+      client: smtpTransport(target),
+      ...(isAutomated() && { testOnly: true }),
+    };
+  }
+  if (isAutomated()) return null;
+  return getResendProvider(telemetry);
+}
+
+export async function sendEmail(
+  recipients: EmailRecipients,
+  template: { subject: string; html: string; text: string },
+  options: EmailSendOptions = {}
+): Promise<EmailResult> {
+  const to = selectEmailRecipients(recipients, options.automatedCatcher);
+  if (!to) return suppressedEmailResult;
+  const telemetry = createEmailTelemetry(options.telemetryPolicy);
+  const provider = getEmailClient(telemetry, options);
+  if (provider === 'rejected') return { success: false, error: 'Email provider not configured' };
+  if (!provider) return unconfiguredEmailResult(to, template, telemetry);
+
+  try {
+    if (provider.type === 'smtp') {
+      if (options.canDispatch?.() === false) {
+        return { success: false, error: 'email_dispatch_blocked' };
+      }
+      try {
+        const info = await (provider.client as Transporter).sendMail({
+          from: getSenderAddress(),
+          to,
+          subject: template.subject,
+          html: template.html,
+          text: template.text,
+          attachments: options.attachments,
+        });
+        telemetry.sent('smtp', () => console.log(`[SMTP] Email sent to ${to}: ${info.messageId}`));
+        return { success: true, id: info.messageId };
+      } catch (smtpError) {
+        const resend = fallbackResend(provider, () => getResendClient(telemetry));
+        if (!resend) throw smtpError;
+
+        telemetry.fallback('smtp', () =>
+          console.warn('SMTP delivery failed, falling back to Resend:', smtpError)
+        );
+        return sendViaResend(resend, getSenderAddress(), to, template, options, telemetry);
+      }
+    } else {
+      const client = provider.client as Resend;
+      return sendViaResend(client, getSenderAddress(), to, template, options, telemetry);
+    }
+  } catch (error) {
+    telemetry.failed(provider.type === 'smtp' ? 'smtp' : 'resend', 'delivery', () =>
+      console.error('Failed to send email:', error)
+    );
+    return { success: false, error: 'Failed to send email' };
+  }
+}
 
 export async function sendClaimSubmittedEmail(
   to: string,
@@ -163,63 +237,17 @@ export async function sendSignInOtpEmail(
   return sendEmail(to, renderSignInOtpEmail(otp, locale), CREDENTIAL_EMAIL);
 }
 
-// ============================================================================
-// PHASE 5: ENGAGEMENT & RETENTION EMAILS
-// ============================================================================
-
-export async function sendWelcomeEmail(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderWelcomeEmail({ name }));
-}
-
-export async function sendOnboardingEmail(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderOnboardingEmail({ name }));
-}
-
-export async function sendCheckinEmail(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderCheckinEmail({ name }));
-}
-
-export async function sendEngagementDay30Email(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderEngagementDay30Email({ name }));
-}
-
-export async function sendEngagementDay60Email(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderEngagementDay60Email({ name }));
-}
-
-export async function sendEngagementDay90Email(to: string, name: string): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderEngagementDay90Email({ name }));
-}
-
-export async function sendNewsletterEmail(
-  to: string,
-  props: Parameters<typeof renderNewsletterEmail>[0]
-): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderNewsletterEmail(props));
-}
-
-export async function sendSeasonalEmail(
-  to: string,
-  props: Parameters<typeof renderSeasonalEmail>[0]
-): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderSeasonalEmail(props));
-}
-
-export async function sendNpsSurveyEmail(
-  to: string,
-  props: { name: string; token: string }
-): Promise<EmailResult> {
-  if (!to) return { success: false, error: 'Missing recipient email' };
-  return sendEmail(to, renderNpsSurveyEmail(props));
-}
+export const {
+  sendWelcomeEmail,
+  sendOnboardingEmail,
+  sendCheckinEmail,
+  sendEngagementDay30Email,
+  sendEngagementDay60Email,
+  sendEngagementDay90Email,
+  sendNewsletterEmail,
+  sendSeasonalEmail,
+  sendNpsSurveyEmail,
+} = createEngagementEmailSenders(sendEmail);
 
 export async function sendPaymentVerificationEmail(
   to: string,

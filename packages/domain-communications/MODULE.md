@@ -10,7 +10,9 @@ The internal `src/claim-mail/catalogues` directory defines the copy keys and req
 
 `src/email-transport.ts` owns transport configuration and the single-transport email outcome path.
 
-`src/email-delivery.ts` owns provider selection and fallback for `sendEmail`. The email unit lane keeps provider delivery and campaign logging in separate specs.
+`src/email.ts` owns provider selection and fallback for `sendEmail`. `src/email-delivery.ts` checks Resend availability, initializes its client, and returns the result when no provider is configured.
+
+`src/engagement-email.ts` binds engagement templates to the shared sender. Callers continue to use the senders exported by `./email`. The email unit lane covers provider delivery, with campaign logging in separate specs.
 
 `sendEmail` accepts an optional synchronous `canDispatch` check. Each SMTP or Resend handoff, including fallback, checks it immediately before invoking the provider. A refused handoff returns `email_dispatch_blocked`.
 
