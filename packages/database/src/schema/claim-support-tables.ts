@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   boolean,
   index,
@@ -37,6 +38,9 @@ export const claimDocuments = pgTable(
   },
   table => [
     index('claim_documents_access_tenant_idx').on(table.accessTenantId),
+    index('claim_documents_access_claim_id_idx')
+      .on(table.accessTenantId, table.claimId, table.id)
+      .where(sql`${table.accessTenantId} is not null`),
     uniqueIndex('claim_documents_tenant_claim_id_uq').on(table.tenantId, table.claimId, table.id),
   ]
 );
