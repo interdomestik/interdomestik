@@ -1,10 +1,21 @@
-// Installed by the owner as gate-m5-worker.mjs. This bridge uses only Node built-ins.
+// Installed by the owner as gate-m5-worker.mjs beside worker-paths.mjs.
 import { execFileSync, spawn } from 'node:child_process';
-import { accessSync, constants, existsSync, lstatSync, readdirSync, realpathSync } from 'node:fs';
+import { constants, existsSync, readdirSync, realpathSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout } from 'node:timers/promises';
 import { fileURLToPath, pathToFileURL } from 'node:url';
+import {
+  CANONICAL,
+  OPTIONAL,
+  OPTIONAL_CANONICAL,
+  accessible,
+  protectedToolPath,
+  requireThat,
+  validatePath,
+} from './worker-paths.mjs';
+
+export { validatePath };
 
 const WORKER = '_interdomestik_gate_worker';
 const BASE_ENV = { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', LANG: 'C', NODE_V8_COVERAGE: undefined };
@@ -12,41 +23,6 @@ const VERIFIED_TOOLS = ['node', 'pnpm', 'bash'];
 const sudo = ['-n', '-u', WORKER, '--'];
 const toolPath = process.env.PATH;
 const bashPath = process.env.INTERDOMESTIK_M5_BASH;
-const CANONICAL = { canonical: true };
-const OPTIONAL = { allowMissing: true };
-const OPTIONAL_CANONICAL = { ...OPTIONAL, ...CANONICAL };
-const REQUIRED = {};
-
-function requireThat(condition) {
-  if (!condition) throw new Error('worker isolation');
-}
-
-export function validatePath(value, directory, options = REQUIRED) {
-  const candidate = path.resolve(directory, value);
-  const relative = path.relative(directory, candidate);
-  if (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) {
-    throw new Error('worker isolation');
-  }
-
-  // Check the nearest existing ancestor as well, including for a missing leaf below a symlink.
-  let current = candidate;
-  while (!lstatSync(current, { throwIfNoEntry: false })) {
-    requireThat(options.allowMissing && current !== directory);
-    current = path.dirname(current);
-  }
-  // Resolve symlink targets in filesystem order before checking containment.
-  const resolved = realpathSync.native(current);
-  const physicalRelative = path.relative(realpathSync.native(directory), resolved);
-  if (
-    physicalRelative === '..' ||
-    physicalRelative.startsWith('..' + path.sep) ||
-    path.isAbsolute(physicalRelative)
-  ) {
-    throw new Error('worker isolation');
-  }
-  requireThat(!options.canonical || resolved === current);
-  return candidate;
-}
 
 function output(command, args, env = BASE_ENV) {
   return execFileSync(command, args, {
@@ -106,23 +82,6 @@ function workerEnvironment() {
     'GIT_OPTIONAL_LOCKS=0',
     'GIT_NO_REPLACE_OBJECTS=1',
   ];
-}
-
-function accessible(file, mode) {
-  try {
-    accessSync(file, mode);
-    return true;
-  } catch (error) {
-    if (!['EACCES', 'EPERM', 'ENOENT'].includes(error.code)) throw error;
-    return false;
-  }
-}
-
-function protectedToolPath(file) {
-  for (let current = file; ; current = path.dirname(current)) {
-    if (accessible(current, constants.W_OK)) return false;
-    if (current === path.dirname(current)) return true;
-  }
 }
 
 function readOnlyTree(directory) {

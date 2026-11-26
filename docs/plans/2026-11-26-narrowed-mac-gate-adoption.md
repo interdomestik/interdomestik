@@ -122,6 +122,8 @@ approved text in its binding locations only after the adoption decision.
      sudo install -o root -g wheel -m 0644 \
        "$owner_stage/verify-machine.json" "$support/verify-machine.json" || exit 1
    sudo install -o root -g wheel -m 0644 \
+     "$bundle/scripts/ci/verification-evidence/worker-paths.mjs" "$support/worker-paths.mjs" || exit 1
+   sudo install -o root -g wheel -m 0644 \
      "$bundle/scripts/ci/verification-evidence/worker.mjs" "$support/gate-m5-worker.mjs" || exit 1
    installed="$(env -i PATH="$m5_path" LANG=C node --input-type=module -e '
      import { pathToFileURL } from "node:url";
@@ -178,7 +180,8 @@ approved text in its binding locations only after the adoption decision.
      "allowedSignersSha256": "<gate-evidence-allowed-signers>",
      "m4ResolverSha256": "<gate-m4-context>",
      "m4LauncherSha256": "<gate-m4-runner>",
-     "m5WorkerSha256": "<gate-m5-worker.mjs>"
+     "m5WorkerSha256": "<gate-m5-worker.mjs>",
+     "m5WorkerPathsSha256": "<worker-paths.mjs>"
    }
    ```
 

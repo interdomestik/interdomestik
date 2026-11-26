@@ -1,5 +1,5 @@
 import { execFileSync } from 'node:child_process';
-import { lstatSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { lstatSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { readTrustedBytes } from '../verify-machine-trust.mjs';
@@ -19,6 +19,7 @@ const APPROVAL_FIELDS = [
   'm4ResolverSha256',
   'm4LauncherSha256',
   'm5WorkerSha256',
+  'm5WorkerPathsSha256',
 ];
 
 export const cleanHostEnv = Object.freeze({
@@ -52,15 +53,27 @@ export function readApproval() {
   return { ...config, sha256 };
 }
 
-export function checkJobDirectory(directory) {
+function checkOwnedDirectory(directory, forbiddenMode, code) {
   const stat = lstatSync(directory);
   assertEvidence(
     stat.isDirectory() &&
       stat.uid === process.getuid() &&
-      (stat.mode & 0o077) === 0 &&
+      (stat.mode & forbiddenMode) === 0 &&
       path.resolve(directory) === directory,
-    'job-directory'
+    code
   );
+}
+
+export function checkJobDirectory(directory) {
+  checkOwnedDirectory(directory, 0o077, 'job-directory');
+}
+
+export function createSignatureDirectory(home) {
+  checkOwnedDirectory(home, 0o022, 'signature-home');
+  const base = path.join(home, '.interdomestik-gate-signatures');
+  mkdirSync(base, { recursive: true, mode: 0o700 });
+  checkOwnedDirectory(base, 0o077, 'signature-directory');
+  return mkdtempSync(path.join(base, 'signature-'));
 }
 
 export function hostCommand(file, args, options = {}) {
@@ -83,8 +96,7 @@ export function sign(payload, role) {
 
 export function authenticate(payload, signature, role, approved) {
   const signerFile = protectedFile('gate-evidence-allowed-signers', approved.allowedSignersSha256);
-  // mkdtemp creates a fresh mode-0700 directory atomically in the host's sticky /tmp.
-  const temp = mkdtempSync('/tmp/interdomestik-signature-');
+  const temp = createSignatureDirectory(os.userInfo().homedir);
   const file = path.join(temp, 'signature');
   try {
     writeFileSync(file, signature, { flag: 'wx', mode: 0o600 });

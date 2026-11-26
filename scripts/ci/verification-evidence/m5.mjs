@@ -50,6 +50,11 @@ export function runnerDigest() {
   );
 }
 
+function protectedWorker(approved) {
+  protectedFile('worker-paths.mjs', approved.m5WorkerPathsSha256);
+  return protectedFile('gate-m5-worker.mjs', approved.m5WorkerSha256).file;
+}
+
 function workerOptions([, cwd, PATH, bash]) {
   return { cwd, env: { ...cleanHostEnv, PATH, INTERDOMESTIK_M5_BASH: bash } };
 }
@@ -119,7 +124,7 @@ function nativeReport(root, report, startedAt, finishedAt, output) {
 
 export async function runEvidence(input, checkout, output, signal) {
   const approved = readApproval();
-  const worker = protectedFile('gate-m5-worker.mjs', approved.m5WorkerSha256).file;
+  const worker = protectedWorker(approved);
   const runnerSha256 = runnerDigest();
   assertEvidence(runnerSha256 === approved.m5RunnerSha256, 'runner-digest');
   checkManifest(path.resolve(VERIFY_ROOT, '../..'));
@@ -207,7 +212,7 @@ export async function runEvidence(input, checkout, output, signal) {
       same(start, finish) && readApproval().sha256 === approved.sha256,
       'm5-probe-drift'
     );
-    protectedFile('gate-m5-worker.mjs', approved.m5WorkerSha256);
+    protectedWorker(approved);
     assertEvidence(runnerDigest() === runnerSha256, 'runner-drift');
     const finishedAt = Date.now();
     checkTicket(ticket, approved, finishedAt);
