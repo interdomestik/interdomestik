@@ -1,8 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
-import { tmpdir } from 'node:os';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import type { TestContext } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -10,22 +9,13 @@ import { makeTestSigner } from '../../../../scripts/ci/migration-phase-test-key.
 import { withDisposableCleanup, withDisposableClient } from '../../src/disposable-client';
 import { readReleaseJournal, sha256 } from '../../src/release-migrations';
 import { quoteIdentifier } from '../rls-test-connection';
+import { policy, workspace } from './release-migration-journal.fixture';
 import { type ScratchClient, withScratchDatabase } from './scratch-database';
 
 const cli = fileURLToPath(
   new URL('../../../../scripts/ci/migration-phase/run.mjs', import.meta.url)
 );
 const dbPackage = fileURLToPath(new URL('../../', import.meta.url));
-export const folder = fileURLToPath(new URL('../../drizzle/', import.meta.url));
-export const policy = path.join(folder, 'contract-phases.json');
-const tags = ['0000_base', '0001_writer_expand', '0002_writer_contract', '0003_suffix'];
-const statements = [
-  'CREATE TABLE writer (id serial PRIMARY KEY, legacy integer NOT NULL)',
-  'ALTER TABLE writer ADD COLUMN replacement integer DEFAULT 0 NOT NULL',
-  'ALTER TABLE writer DROP COLUMN legacy',
-  'ALTER TABLE writer ADD COLUMN suffix integer',
-];
-const pairs = { '0002_writer_contract': '0001_writer_expand' };
 const marker = 'scratch-release-phase';
 const aliasHostname = 'staging.interdomestik.com';
 export const scratchOptions = { loopbackOnly: true, requirePg16: true };
@@ -84,46 +74,6 @@ export async function withReleaseDatabase<T>(
   );
 }
 
-function workspace(t: TestContext) {
-  const dir = mkdtempSync(path.join(tmpdir(), 'release-phase-'));
-  t.after(() => rmSync(dir, { force: true, recursive: true }));
-  return dir;
-}
-
-export function makeJournal(t: TestContext, { names = tags, contract = statements[2] } = {}) {
-  const dir = workspace(t);
-  const registry = path.join(dir, 'owner-policy.json');
-  mkdirSync(path.join(dir, 'meta'));
-  // Historical timestamps need not increase. PostgreSQL ledger insertion order is authoritative.
-  const times = [20, 10, 30, 40, 50];
-  const entries = names.map((tag, idx) => ({
-    idx,
-    version: '7',
-    when: times[idx],
-    tag,
-    breakpoints: true,
-  }));
-  writeFileSync(path.join(dir, 'meta/_journal.json'), JSON.stringify({ version: '7', entries }));
-  writeFileSync(
-    registry,
-    JSON.stringify({
-      version: 1,
-      pairs,
-      sqlSha256: {
-        '0001_writer_expand': sha256(statements[1]),
-        '0002_writer_contract': sha256(contract),
-      },
-    })
-  );
-  entries.forEach(({ tag, idx }) =>
-    writeFileSync(
-      path.join(dir, `${tag}.sql`),
-      idx === 2 ? contract : (statements[idx] ?? 'SELECT 1')
-    )
-  );
-  return { dir, registry };
-}
-
 export async function assertLedger(
   client: ScratchClient,
   journal: ReturnType<typeof readReleaseJournal>,
@@ -153,7 +103,10 @@ export function releaseFixture(
   writeFileSync(files('owner.pub'), signer.key);
   const attemptDirectory = files('attempts');
   mkdirSync(attemptDirectory, { mode: 0o700 });
-  const journal = readReleaseJournal(dir, registry);
+  const journal = readReleaseJournal(dir, registry, {
+    candidateRoot: dir,
+    policyRoot: registry === policy ? path.dirname(policy) : dir,
+  });
   const config = {
     version: 1,
     environment: 'scratch',
@@ -170,6 +123,7 @@ export function releaseFixture(
     expectedRolbypassrls: false,
     teamId: 'team_fixture',
     projectId: 'prj_fixture',
+    deploymentHosts: ['release-fixture.vercel.app'],
   };
   writeFileSync(files('config.json'), JSON.stringify(config));
 
@@ -206,7 +160,7 @@ export function releaseFixture(
   const livePath = files('deployment.json');
   writeFileSync(livePath, JSON.stringify(live));
 
-  async function run(mode?: 'expand' | 'contract' | 'recover', overrides = {}) {
+  async function run(mode?: 'inspect' | 'expand' | 'contract' | 'recover', overrides = {}) {
     return new Promise<{ code: number | string; stdout: string; stderr: string }>(resolve =>
       execFile(
         process.execPath,
@@ -218,6 +172,8 @@ export function releaseFixture(
             PATH: process.env.PATH,
             NODE_ENV: 'test',
             RELEASE_MIGRATION_URL: url.toString(),
+            RELEASE_PHASE_CANDIDATE_ROOT: dir,
+            RELEASE_PHASE_RUNNER_ROOT: temp,
             RELEASE_PHASE_CONFIG: files('config.json'),
             RELEASE_PHASE_MANIFEST: files('manifest.json'),
             RELEASE_PHASE_PUBLIC_KEY: files('owner.pub'),

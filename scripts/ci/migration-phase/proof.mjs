@@ -3,13 +3,14 @@ import { createHash } from 'node:crypto';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { resolveReleasePath } from '../../../packages/database/src/release-migration-path.mts';
 
 export const HEX = /^[a-f0-9]{64}$/u;
 export const COMMIT = /^[a-f0-9]{40}$/u;
 export const DIGEST = /^sha256:[a-f0-9]{64}$/u;
 export const ID = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/u;
-const DEPLOY_HOST = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.vercel\.app$/u;
-const DEPLOY_ID = /^dpl_[a-zA-Z0-9]{1,64}$/u;
+export const DEPLOY_HOST = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.vercel\.app$/u;
+export const DEPLOY_ID = /^dpl_[a-zA-Z0-9]{1,64}$/u;
 const MAX_AGE_MS = 10 * 60_000;
 const NAMESPACE = 'release-phase@interdomestik.com';
 const SIGNER = 'release-owner';
@@ -18,11 +19,12 @@ export const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 export const matches = (expression, value) => typeof value === 'string' && expression.test(value);
 export const object = value => value !== null && typeof value === 'object' && !Array.isArray(value);
 
-export function readBytes(file, label, limit = 16_384) {
+export function readBytes(root, file, label, limit = 16_384) {
   let raw;
   try {
-    raw = readFileSync(file);
-  } catch {
+    raw = readFileSync(resolveReleasePath(root, file));
+  } catch (error) {
+    if (error?.message === 'RELEASE_PATH_REJECTED') throw error;
     throw new Error(`${label}_MISSING_OR_SIZE`);
   }
   if (raw.length === 0 || raw.length > limit) throw new Error(`${label}_MISSING_OR_SIZE`);
@@ -33,7 +35,7 @@ export function readObject(raw, label) {
   const decoded = raw.toString('utf8');
   let value;
   try {
-    if (!Buffer.from(decoded).equals(raw)) throw new Error();
+    if (!Buffer.from(decoded).equals(raw)) throw new Error('Invalid UTF-8');
     value = JSON.parse(decoded);
   } catch {
     throw new Error(`${label}_JSON_INVALID`);
@@ -42,8 +44,8 @@ export function readObject(raw, label) {
   return value;
 }
 
-export function verificationKey(file, expectedDigest) {
-  const raw = readBytes(file, 'KEY', 4096);
+export function verificationKey(root, file, expectedDigest) {
+  const raw = readBytes(root, file, 'KEY', 4096);
   const key = /^sk-ssh-ed25519@openssh\.com ([A-Za-z0-9+/=]+)(?: [\x20-\x7e]*)?\r?\n?$/u.exec(
     raw.toString('utf8')
   );

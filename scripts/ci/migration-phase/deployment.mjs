@@ -1,4 +1,5 @@
 import { fetchVercelAttestation } from '../fetch-vercel-attestation.mjs';
+import { DEPLOY_HOST, DEPLOY_ID, matches } from './proof.mjs';
 
 const HOSTS = {
   staging: 'staging.interdomestik.com',
@@ -7,7 +8,8 @@ const HOSTS = {
 };
 
 async function providerJson(path, { teamId }, token) {
-  const endpoint = new URL(path, 'https://api.vercel.com');
+  const endpoint = new URL('https://api.vercel.com');
+  endpoint.pathname = path;
   endpoint.searchParams.set('teamId', teamId);
   const response = await fetch(endpoint, {
     redirect: 'error',
@@ -20,11 +22,18 @@ async function providerJson(path, { teamId }, token) {
 
 export async function verifyDeployment(expected, manifest, config, fixture) {
   const canonical = HOSTS[config.environment];
+  const hosts = config.deploymentHosts;
+  if (!Array.isArray(hosts) || !hosts.every(host => matches(DEPLOY_HOST, host)))
+    throw new Error('DEPLOYMENT_HOST_NOT_ALLOWED');
+  const host = hosts.find(allowed => allowed === expected.hostname);
+  if (!host) throw new Error('DEPLOYMENT_HOST_NOT_ALLOWED');
+  if (!matches(DEPLOY_ID, expected.id)) throw new Error('RECEIPT_DEPLOYMENT_INVALID');
+
   const token = process.env.VERCEL_TOKEN;
   if (!fixture && !token) throw new Error('DEPLOYMENT_AUTHORITY_MISSING');
   const deployment = fixture
     ? fixture.deployment
-    : await providerJson(`/v13/deployments/${expected.id}`, config, token);
+    : await providerJson(`/v13/deployments/${encodeURIComponent(expected.id)}`, config, token);
   if (
     deployment?.id !== expected.id ||
     deployment.url !== expected.hostname ||
@@ -39,8 +48,8 @@ export async function verifyDeployment(expected, manifest, config, fixture) {
     ? fixture.metadata
     : JSON.parse(
         await fetchVercelAttestation({
-          metadataUrl: `https://${expected.hostname}/.well-known/interdomestik-release-attestation.json`,
-          expectedHost: expected.hostname,
+          metadataUrl: `https://${host}/.well-known/interdomestik-release-attestation.json`,
+          expectedHost: host,
           maxRedirects: 0,
           fetchImpl: (url, options) => fetch(url, { ...options, signal: deadline }),
         })

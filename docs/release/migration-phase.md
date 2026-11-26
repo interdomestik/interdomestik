@@ -9,6 +9,8 @@ The DATA-03 pilot uses this CLI for all staging and production schema migrations
 3. Put the following values in an owner-controlled JSON config outside both checkouts and set `RELEASE_PHASE_CONFIG` to its path. Use `version` 1, `environment` (`staging` or `production`), `commitSha` (the reviewed candidate SHA), and `journalSha256`, `ledgerSha256` and `registrySha256` from `inspect`. Set `endpoint` to the enrolled direct `db.<project-ref>.supabase.co:5432` host and port, and pin `caSha256` (decoded CA PEM bytes), `backendMarkerSha256` (exact enrolled marker text without a trailing newline), `publicKeySha256` (exact OpenSSH public key file bytes), `expectedRolsuper` (false), `expectedRolbypassrls` (the reviewed migration role setting), and the Vercel `teamId` and `projectId`. Maintain separate config and enrollment for each environment. Set `attemptDirectory` to the absolute path of a persistent owner-owned directory outside the checkouts on the owner runner. Create it once with `mkdir -m 700 "$attempt_directory"` and use the same store for every candidate and invocation for that environment. Preserve the current store across runner moves and leave all active receipts retired if the store is lost.
 4. Provision the database through the existing owner enrollment process. The CLI expects the enrolled `runtime_attestation.backend_marker` and its schema to be owner-controlled. The migration role must own the database, `public` and its objects, and any existing Drizzle ledger and sequence. Restrict schema creation and ledger mutation to the migration authority. Supply the direct TLS URL as `RELEASE_MIGRATION_URL` and its CA PEM in `RELEASE_DATABASE_CA_BASE64` through the owner credential mechanism. Supply deployment-read `VERCEL_TOKEN` for contract and `VERCEL_AUTOMATION_BYPASS_SECRET` if the immutable deployment requires it. Keep credentials out of candidate checkouts, arguments, evidence and logs.
 
+Set `RELEASE_PHASE_CANDIDATE_ROOT` to the absolute candidate export root. For expand, contract and recovery, set `RELEASE_PHASE_RUNNER_ROOT` to the absolute owner-controlled directory outside both checkouts containing the config, manifest, public key, receipt, signature and persistent attempt directory. Keep both roots under owner control throughout the invocation. The CLI checks that each input stays inside its root after resolving symlinks.
+
 From the pinned runner checkout:
 
 ```sh
@@ -30,6 +32,8 @@ shasum -a 256 "$owner_signing_dir/phase-token.pub"
 ```
 
 Deploy the reviewed, expand-compatible build and check its immutable Vercel deployment and canonical alias. Before collecting evidence, establish exclusive control over deploys, rollbacks and alias changes. Wait for any that could restore a predecessor to finish. Fence predecessor writes from direct endpoints, worker processes, schedulers and queued or retried work. Drain in-flight transactions and resolve any prepared transactions. Keep the deploy and writer fence through a confirmed contract commit or verified recovery. A fresh production system can use a verified empty writer inventory. The staging hold supplies no drain evidence.
+
+Before contract, pin the reviewed immutable Vercel hostname in the owner config's `deploymentHosts` array. Use lowercase hostnames such as `release-fixture.vercel.app`. The receipt must name an exact member of that array. The CLI fetches the attestation over HTTPS without following redirects.
 
 Prepare a fresh receipt for one invocation, with these fields.
 

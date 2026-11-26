@@ -70,13 +70,18 @@ function advanceCommand(
 // quoted values, identifiers, comments and dollar-quoted function bodies. Transaction commands
 // would end the lock or commit the schema without its ledger rows.
 export function assertTransactionalMigration(statement: string) {
-  const token =
-    /\s+|--[^\r\n]*|\/\*|\$[a-z_][a-z_0-9]*\$|\$\$|[eE]'(?:[^'\\]|\\[\s\S]|'')*'|'(?:[^']|'')*'|"(?:[^"]|"")*"|[a-z_][a-z_0-9$]*|[^\s]/iuy;
+  const escapedString = /e'(?:[^'\\]|\\.|'')*'/isuy;
+  const quoted = /'(?:[^']|'')*'|"(?:[^"]|"")*"/uy;
+  const token = /\s+|--[^\r\n]*|\/\*|\$(?:[a-z_]\w*)?\$|[a-z_][\w$]*|./isuy;
   const state: CommandState = { first: true, createsRoutine: false, bodyDepth: 0 };
   while (token.lastIndex < statement.length) {
-    const match = token.exec(statement);
+    // An escape string takes precedence over the identifier at its start.
+    escapedString.lastIndex = token.lastIndex;
+    quoted.lastIndex = token.lastIndex;
+    const match = escapedString.exec(statement) ?? quoted.exec(statement) ?? token.exec(statement);
     if (!match) throw new Error('MIGRATION_SQL_INVALID');
     const [part] = match;
+    token.lastIndex = match.index + part.length;
     if (part === '/*') {
       token.lastIndex = blockCommentEnd(statement, token.lastIndex);
       continue;

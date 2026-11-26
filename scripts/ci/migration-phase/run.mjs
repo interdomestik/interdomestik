@@ -23,9 +23,9 @@ import {
   verifyDrainReceipt,
 } from './proof.mjs';
 
-const POLICY = fileURLToPath(
-  new URL('../../../packages/database/drizzle/contract-phases.json', import.meta.url)
-);
+const CHECKOUT = new URL('../../../', import.meta.url);
+const POLICY_ROOT = fileURLToPath(CHECKOUT);
+const POLICY = fileURLToPath(new URL('packages/database/drizzle/contract-phases.json', CHECKOUT));
 const SAFE_CODES = new Set(safeCodes);
 
 function validateConfig(config, env) {
@@ -55,9 +55,9 @@ function validateConfig(config, env) {
   return scratch;
 }
 
-function journalFrom(folder, policy) {
+function journalFrom(folder, candidateRoot, policy = POLICY, policyRoot = POLICY_ROOT) {
   try {
-    return readReleaseJournal(folder, policy);
+    return readReleaseJournal(folder, policy, { candidateRoot, policyRoot });
   } catch (error) {
     if (error instanceof SyntaxError || error?.code === 'ENOENT')
       throw new Error('JOURNAL_INPUT_UNAVAILABLE');
@@ -120,23 +120,25 @@ async function runWithAdminConnection(env, config, journal, request, scratch) {
 async function main() {
   const env = process.env;
   const [folder, mode = 'expand', ...extra] = process.argv.slice(2);
+  const runnerRoot = env.RELEASE_PHASE_RUNNER_ROOT;
+  const candidateRoot = env.RELEASE_PHASE_CANDIDATE_ROOT;
   let config;
   let receipt;
   if (mode === 'contract') {
-    config = readObject(readBytes(env.RELEASE_PHASE_CONFIG, 'CONFIG'), 'CONFIG');
-    const raw = readBytes(env.RELEASE_PHASE_RECEIPT, 'RECEIPT');
-    const key = verificationKey(env.RELEASE_PHASE_PUBLIC_KEY, config.publicKeySha256);
-    const signature = readBytes(env.RELEASE_PHASE_SIGNATURE, 'RECEIPT', 4096);
+    config = readObject(readBytes(runnerRoot, env.RELEASE_PHASE_CONFIG, 'CONFIG'), 'CONFIG');
+    const raw = readBytes(runnerRoot, env.RELEASE_PHASE_RECEIPT, 'RECEIPT');
+    const key = verificationKey(runnerRoot, env.RELEASE_PHASE_PUBLIC_KEY, config.publicKeySha256);
+    const signature = readBytes(runnerRoot, env.RELEASE_PHASE_SIGNATURE, 'RECEIPT', 4096);
     receipt = authenticateDrainReceipt(raw, signature, key);
     // Use the signed nonce even if the invocation names a different attempt or cannot connect.
-    reserveAttempt(config.attemptDirectory, receipt.attempt);
+    reserveAttempt(runnerRoot, config.attemptDirectory, receipt.attempt);
   }
   if (!folder || extra.length || !['inspect', 'expand', 'contract', 'recover'].includes(mode))
     throw new Error('RELEASE_USAGE_INVALID');
   if (mode === 'inspect') {
     const { journalSha256, ledgerSha256, registrySha256, contracts, entries } = journalFrom(
       folder,
-      POLICY
+      candidateRoot
     );
     return {
       journalSha256,
@@ -146,16 +148,19 @@ async function main() {
     };
   }
 
-  config ??= readObject(readBytes(env.RELEASE_PHASE_CONFIG, 'CONFIG'), 'CONFIG');
+  config ??= readObject(readBytes(runnerRoot, env.RELEASE_PHASE_CONFIG, 'CONFIG'), 'CONFIG');
   const scratch = validateConfig(config, env);
-  const journal = journalFrom(folder, (scratch && env.RELEASE_PHASE_TEST_POLICY) || POLICY);
+  const testPolicy = scratch && env.RELEASE_PHASE_TEST_POLICY;
+  const journal = testPolicy
+    ? journalFrom(folder, candidateRoot, testPolicy, candidateRoot)
+    : journalFrom(folder, candidateRoot);
   if (['journalSha256', 'ledgerSha256', 'registrySha256'].some(key => journal[key] !== config[key]))
     throw new Error('CANDIDATE_PIN_MISMATCH');
   const context = { version: 1, environment: config.environment, commitSha: config.commitSha };
 
   let request = { mode };
   if (mode !== 'expand') {
-    const manifestBytes = readBytes(env.RELEASE_PHASE_MANIFEST, 'MANIFEST');
+    const manifestBytes = readBytes(runnerRoot, env.RELEASE_PHASE_MANIFEST, 'MANIFEST');
     const manifest = readObject(manifestBytes, 'MANIFEST');
     if (
       !Object.keys(context).every(key => manifest[key] === context[key]) ||
@@ -178,7 +183,10 @@ async function main() {
             manifest,
             config,
             scratch
-              ? readObject(readBytes(env.RELEASE_PHASE_TEST_DEPLOYMENT, 'FIXTURE'), 'FIXTURE')
+              ? readObject(
+                  readBytes(runnerRoot, env.RELEASE_PHASE_TEST_DEPLOYMENT, 'FIXTURE'),
+                  'FIXTURE'
+                )
               : null
           ),
       };

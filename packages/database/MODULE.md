@@ -12,6 +12,10 @@ For the DATA-03 pilot, staging and production schema migrations run only through
 
 The release runner's internal `scripts/ci/migration-phase/safe-codes.json` lists the only error messages it may print verbatim. Other errors are reported as `MIGRATION_PHASE_FAILED`.
 
+The internal `src/release-migration-journal.ts` reads and validates the candidate journal against the pinned phase registry. `src/release-migrations.ts` re-exports the journal reader and coordinates phase execution. The journal-parity lane runs the synthetic phase and WP-07 candidate suites using shared journal, CLI and approval fixtures.
+
+The internal `src/release-migration-path.mts` confines journal and runner inputs to their declared roots after resolving symlinks. Contract deployment attestation uses the exact immutable HTTPS hostnames pinned in the owner configuration and refuses redirects.
+
 ## Public API
 
 Under test runners, `./testing/tenant-authority` can mint a synthetic session authority with a branch and access tenant for restricted-role integration tests. The default remains a test-purpose authority.
