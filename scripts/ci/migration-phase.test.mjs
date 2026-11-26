@@ -1,5 +1,13 @@
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import test from 'node:test';
@@ -13,6 +21,7 @@ import {
   verificationKey,
   verifyDrainReceipt,
 } from './migration-phase/proof.mjs';
+import { sponsorEvidence } from './migration-phase/sponsor-evidence.mjs';
 
 const signer = makeTestSigner();
 const now = 2_000_000;
@@ -54,6 +63,35 @@ function workspace(t) {
   t.after(() => rmSync(dir, { recursive: true, force: true }));
   return dir;
 }
+
+test('keeps sponsor evidence in the owner store and binds the exact retained records', t => {
+  const root = workspace(t);
+  const directory = join(root, 'attempts');
+  mkdirSync(directory, { mode: 0o700 });
+  const context = { environment: 'staging', commitSha: 'a'.repeat(40) };
+  const recorder = sponsorEvidence(root, directory, context);
+  assert.equal(recorder.reference(), undefined);
+  const before = { type: 'acl', evidence: { phase: 'before-trailing' } };
+  const after = { type: 'acl', evidence: { phase: 'after-trailing' } };
+  recorder.record('42', before);
+  recorder.record('42', after);
+  const reference = recorder.reference();
+  assert.match(reference.file, /^[a-f0-9]{64}\/sponsor-evidence\.jsonl$/u);
+  const raw = readFileSync(join(directory, reference.file));
+  assert.equal(digest(raw), reference.sha256);
+  assert.deepEqual(
+    raw
+      .toString('utf8')
+      .trimEnd()
+      .split('\n')
+      .map(line => JSON.parse(line)),
+    [before, after].map(record => ({ ...context, transactionId: '42', ...record }))
+  );
+  assert.throws(
+    () => sponsorEvidence(workspace(t), directory, context).record('42', before),
+    /SPONSOR_EVIDENCE_STORE_REJECTED/u
+  );
+});
 
 test('verifies a FIDO2 SSHSIG over the exact bytes with the pinned key and namespace', t => {
   const root = workspace(t);

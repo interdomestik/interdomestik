@@ -26,6 +26,7 @@ type ReleaseFixtureInputs = {
   registry: string;
   candidateRoot?: string;
   commitSha?: string;
+  prepare?: (runner: ScratchClient) => Promise<void>;
 };
 
 export async function withReleaseDatabase<T>(
@@ -66,6 +67,7 @@ export async function withReleaseDatabase<T>(
                   await runner`CREATE SCHEMA runtime_attestation`;
                   await runner`CREATE TABLE runtime_attestation.backend_marker (marker text PRIMARY KEY)`;
                   await runner`INSERT INTO runtime_attestation.backend_marker VALUES (${marker})`;
+                  await inputs.prepare?.(runner);
                 }
               );
               return work(client, releaseFixture(runnerUrl, inputs));

@@ -1,0 +1,9 @@
+import assert from 'node:assert/strict';
+export function describeRuntimeRoleFailure(error) { return error.message; }
+export async function provisionE2eRuntimeRole({ adminUrl, runtimeUrl }) {
+  assert.equal(adminUrl, process.env.DATABASE_URL);
+  assert.equal(runtimeUrl, undefined);
+  const url = new URL(adminUrl);
+  url.username = 'interdomestik_e2e_runtime';
+  return url.href;
+}
