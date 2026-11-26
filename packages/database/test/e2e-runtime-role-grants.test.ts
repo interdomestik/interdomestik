@@ -228,7 +228,7 @@ test('late E2E role provisioning preserves the WP-12.1 function and column grant
       const apiVerifiers = await admin`select rolname from pg_roles
         where rolname in ('anon', 'authenticated', 'service_role')
           and has_function_privilege(oid, 'public.record_claim_inbound_object_verification(uuid,text,text,integer,text)', 'EXECUTE')`;
-      assert.deepEqual(apiVerifiers, []);
+      assert.deepEqual([...apiVerifiers], []);
     } finally {
       const [exists] = await admin`select 1 from pg_roles where rolname = ${role}`;
       if (exists) {
