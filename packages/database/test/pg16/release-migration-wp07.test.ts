@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdirSync, realpathSync } from 'node:fs';
+import { mkdirSync, realpathSync, symlinkSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import test from 'node:test';
-import { resolveReleasePath } from '../../src/release-migration-path.mts';
+import { resolveReleasePath } from '../../src/release-migration-path.mjs';
 import { readReleaseJournal } from '../../src/release-migrations';
 import { exerciseRefusals, proveContractOnce } from './release-migration-approvals.fixture';
 import {
@@ -52,6 +52,26 @@ test('WP-07 requires a separate export root for an explicit candidate', t => {
   assert.throws(() => wp07Candidate(dir, undefined), /RELEASE_PHASE_CANDIDATE_ROOT is required/u);
   assert.throws(() => wp07Candidate(dir, dir), /must be inside the candidate export root/u);
   assert.deepEqual(wp07Candidate(dir, candidateRoot), { dir, candidateRoot });
+});
+
+test('release paths accept both root spellings and refuse a symlink leaf with noSymlink', t => {
+  const canonicalRoot = realpathSync.native(workspace(t));
+  const declaredRoot = join(workspace(t), 'export');
+  symlinkSync(canonicalRoot, declaredRoot, 'dir');
+  const canonicalChild = join(canonicalRoot, 'drizzle');
+  mkdirSync(canonicalChild);
+
+  assert.equal(resolveReleasePath(declaredRoot, declaredRoot), canonicalRoot);
+  assert.equal(resolveReleasePath(declaredRoot, canonicalRoot, { noSymlink: true }), canonicalRoot);
+  assert.equal(resolveReleasePath(declaredRoot, canonicalChild), canonicalChild);
+  assert.equal(
+    resolveReleasePath(declaredRoot, join(declaredRoot, 'drizzle'), { noSymlink: true }),
+    canonicalChild
+  );
+  assert.throws(
+    () => resolveReleasePath(declaredRoot, declaredRoot, { noSymlink: true }),
+    /RELEASE_PATH_REJECTED/u
+  );
 });
 
 test('PG16 WP-07 candidate CLI preserves same-week publications and checks the active guard', async t => {
