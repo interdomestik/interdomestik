@@ -93,7 +93,7 @@ async function assertInboundFunctionGrants(admin: ScratchClient, role: string) {
   const appRole = 'interdomestik_runtime_rls';
   const [app] = await admin`select 1 from pg_roles where rolname = ${appRole}`;
   const runtimeRoles = app ? [role, appRole] : [role];
-  const expectedGrants = {
+  const expectedGrants: Record<string, readonly string[]> = {
     'claim_inbound_reserved_path(text)': [...runtimeRoles, guard],
     'claim_inbound_staff_branch_allowed(text,text)': runtimeRoles,
     'claim_inbound_lock_staff_branch(text,text)': [receiptWriter],

@@ -55,13 +55,12 @@ async function proveEvidence(t: TestContext, connections: Connection, domain: Do
             uploaded_by: member,
             name: 'Member evidence.pdf',
           });
-          const legalDocument = {
+          const legal = await insertDocument(tx, {
             ...documentInput(claim),
             uploaded_by: member,
             name: 'Member legal.pdf',
             category: 'legal',
-          };
-          const legal = await insertDocument(tx, legalDocument);
+          });
           const uncited = await insertDocument(tx, documentInput(claim, ' sent-document '));
           const offCase = await insertDocument(tx, documentInput(other));
           await createBases(tx, other, offCase);

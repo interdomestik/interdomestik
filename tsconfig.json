@@ -27,6 +27,8 @@
       "@interdomestik/domain-case/*": ["packages/domain-case/src/*"],
       "@interdomestik/domain-claims": ["packages/domain-claims/src"],
       "@interdomestik/domain-claims/*": ["packages/domain-claims/src/*"],
+      "@interdomestik/domain-documents": ["packages/domain-documents/src"],
+      "@interdomestik/domain-documents/*": ["packages/domain-documents/src/*"],
       "@interdomestik/domain-recovery": ["packages/domain-recovery/src"],
       "@interdomestik/domain-recovery/*": ["packages/domain-recovery/src/*"],
       "@interdomestik/domain-activities": ["packages/domain-activities/src"],

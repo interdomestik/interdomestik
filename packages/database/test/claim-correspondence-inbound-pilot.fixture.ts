@@ -144,7 +144,12 @@ function recordVerification(
 function asVerifier<T>(
   admin: postgres.Sql,
   run: (tx: postgres.TransactionSql) => Promise<T>,
-  { home = homeTenant, access = home, actor = homeActor, branch = '' } = {}
+  {
+    home = homeTenant,
+    access = home,
+    actor = homeActor,
+    branch = '',
+  }: { home?: string; access?: string; actor?: string; branch?: string } = {}
 ) {
   return restricted(
     admin,
@@ -514,7 +519,7 @@ export async function proveDecisionExpiry(connections: Connection) {
   for (const [reason, authority] of [
     ['wrong user', sessionAuthority(homeTenant, staffPeer, 'staff')],
     ['wrong role', sessionAuthority(homeTenant, homeActor, 'tenant_admin')],
-    ['wrong tenant', sessionAuthority(foreignTenant, foreignActor, 'staff')],
+    ['wrong tenant', sessionAuthority(foreignTenant, homeActor, 'staff')],
   ] as const) {
     assert.equal(await load(freshId, authority), null, reason);
   }
