@@ -1,7 +1,11 @@
-import { reportServerError } from './server-error';
 import { isAutomatedEmail as isAutomated, selectEmailRecipients } from './non-sending-email';
 import { automatedSmtpTarget, smtpTransport } from './sign-in-otp-email';
-import { DeliveryTimeout, withDeliveryTimeout, type DeliveryOutcome } from './delivery-outcome';
+import {
+  DeliveryTimeout,
+  withDeliveryTimeout,
+  type DeliveryFailure,
+  type DeliveryOutcome,
+} from './delivery-outcome';
 import {
   emailTimeoutFailure,
   sendResendOutcome,
@@ -85,20 +89,24 @@ export async function sendEmailOutcome(
         return { ok: true, transport: 'smtp' };
       } catch (error) {
         signal.throwIfAborted();
-        reportServerError('SMTP delivery failed', error);
-        return smtpDeliveryFailure(error);
+        const failure = smtpDeliveryFailure(error);
+        console.error({ code: failure.code });
+        return failure;
       }
     });
   } catch (error) {
-    reportServerError('Email delivery failed', error);
-    if (error instanceof DeliveryTimeout) return emailTimeoutFailure(transport);
-    return {
-      ok: false,
-      retryable: true,
-      ambiguous: true,
-      preAcceptance: false,
-      code: 'email_failed',
-      detail: transport,
-    };
+    const failure: DeliveryFailure =
+      error instanceof DeliveryTimeout
+        ? emailTimeoutFailure(transport)
+        : {
+            ok: false,
+            retryable: true,
+            ambiguous: true,
+            preAcceptance: false,
+            code: 'email_failed',
+            detail: transport,
+          };
+    console.error({ code: failure.code });
+    return failure;
   }
 }
