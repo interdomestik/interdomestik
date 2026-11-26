@@ -30,13 +30,12 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
     await withExpiryFixture(
       1,
       async ({ admin, authority, email, enqueue, record, appPoolSize }) => {
-        const [{ createExpiryDeliveryWorker }, { withTenantAuthority }] = await Promise.all([
-          import('./index'),
-          import('@interdomestik/database/tenant-authority-context'),
-        ]);
+        // Resolve the async mock before the worker imports it, so both use the same spy.
+        const transactions = await import('@interdomestik/database/tenant-authority-context');
+        const { createExpiryDeliveryWorker } = await import('./index');
         expect(appPoolSize()).toBe(1);
         const accepted = () => Response.json({ id: 'provider-private-ref' });
-        const provider = vi.fn((_url: string, _request: RequestInit) => Promise.resolve(accepted()));
+        const provider = vi.fn(async (_url: string, _request: RequestInit) => accepted());
         const message = {
           subject: 'Private subject',
           html: '<p>Private body</p>',
@@ -171,7 +170,7 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
 
           await enqueue('rolled-back');
           const rolledBack = await claim('rolled-back');
-          const transaction = vi.mocked(withTenantAuthority);
+          const transaction = vi.mocked(transactions.withTenantAuthority);
           const realTransaction = transaction.getMockImplementation()!;
           let rolledBackResult: unknown;
           transaction.mockImplementationOnce((scope, action) =>
