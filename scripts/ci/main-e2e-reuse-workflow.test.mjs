@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 import yaml from 'js-yaml';
 
@@ -31,7 +32,7 @@ function normalizedReuse(rawReuse, resolverOutcome) {
   const output = path.join(directory, 'github-output');
   const normalizer = step(validation, 'Normalize main E2E reuse decision');
   try {
-    const result = spawnSync('/bin/bash', ['-c', `set -euo pipefail\n${normalizer.run}`], {
+    const result = spawnSync(contractBash(), ['-c', `set -euo pipefail\n${normalizer.run}`], {
       encoding: 'utf8',
       env: {
         GITHUB_OUTPUT: output,

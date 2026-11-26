@@ -3,6 +3,7 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { test } from 'node:test';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 import {
   REAL_SCOPED_PATH,
@@ -152,7 +153,7 @@ function makeStubs(output, exitCode) {
 // `label` is a closed internal enum selecting a trusted literal; no file-derived text is spawned.
 function runStep(label, stubs) {
   if (!Object.hasOwn(SCRIPTS, label)) throw new Error(`unknown step label: ${label}`);
-  return spawnSync('bash', ['--noprofile', '--norc', '-eo', 'pipefail', '-c', SCRIPTS[label]], {
+  return spawnSync(contractBash('bash'), ['--noprofile', '--norc', '-eo', 'pipefail', '-c', SCRIPTS[label]], {
     cwd: repoRoot,
     encoding: 'utf8',
     env: {

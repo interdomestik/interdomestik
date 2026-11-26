@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 
@@ -45,7 +46,7 @@ printf reached >"$STALE_MARKER"
 `,
       { mode: 0o600 }
     );
-    const result = spawnSync('bash', ['--', harness], {
+    const result = spawnSync(contractBash('bash'), ['--', harness], {
       cwd: rootDir,
       encoding: 'utf8',
       timeout: 5000,
@@ -79,7 +80,7 @@ printf passed >"$PASS_MARKER"
 `,
       { mode: 0o600 }
     );
-    const result = spawnSync('bash', ['--', harness], {
+    const result = spawnSync(contractBash('bash'), ['--', harness], {
       cwd: rootDir,
       encoding: 'utf8',
       timeout: 5000,
@@ -131,7 +132,7 @@ resolve_matching_checks audit 15368 '${JSON.stringify(checks)}'
 `,
         { mode: 0o600 }
       );
-      const result = spawnSync('bash', ['--', harness], {
+      const result = spawnSync(contractBash('bash'), ['--', harness], {
         cwd: rootDir,
         encoding: 'utf8',
         timeout: 5000,
@@ -192,7 +193,7 @@ printf reached >"$STALE_MARKER"
 `,
       { mode: 0o600 }
     );
-    const result = spawnSync('bash', ['--', harness], {
+    const result = spawnSync(contractBash('bash'), ['--', harness], {
       cwd: rootDir,
       encoding: 'utf8',
       timeout: 5000,

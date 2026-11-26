@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 const root = new URL('../../', import.meta.url);
 const head = '1'.repeat(40);
@@ -51,7 +52,7 @@ function readiness(env = {}) {
   }
   try {
     const log = path.join(directory, 'calls');
-    const result = spawnSync('bash', ['scripts/pr-review-ready.sh', '1694'], {
+    const result = spawnSync(contractBash('bash'), ['scripts/pr-review-ready.sh', '1694'], {
       cwd: directory,
       encoding: 'utf8',
       env: {

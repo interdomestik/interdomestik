@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 import yaml from 'js-yaml';
 
@@ -48,7 +49,7 @@ function runStep(
     const script = path.join(dir, 'step.sh');
     // Actions expressions are resolved by the runner before bash sees the body.
     fs.writeFileSync(script, body.replaceAll(/\$\{\{[^}]*\}\}/gu, 'expr'));
-    const result = spawnSync('/bin/bash', [...flags, script], {
+    const result = spawnSync(contractBash(), [...flags, script], {
       encoding: 'utf8',
       env: {
         PATH: `${bin}:${process.env.PATH}`,

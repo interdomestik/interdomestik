@@ -78,7 +78,7 @@ export function parseContainer(inspectOutput) {
  * `container`: the context name, whether its endpoint is a local socket, and the engine version.
  * `database`: the container (null when not found); `databaseNames`: null when unreadable.
  */
-export function probeDocker(exec, containerName, cwd) {
+export function probeDocker(exec, containerName, cwd, { evidence = false } = {}) {
   const context = tryRun(exec, ['context', 'show'], cwd);
   const endpoint = context
     ? parseLocalEndpoint(
@@ -104,6 +104,15 @@ export function probeDocker(exec, containerName, cwd) {
   if (result.database?.running) {
     const query = ['exec', id, 'env', '-i', CONTAINER_PATH, ...PSQL, '-d', 'postgres', '-tA'];
     result.databaseNames = parseDatabaseNames(docker([...query, '-c', DATABASE_LIST_QUERY]));
+    if (evidence) {
+      const imageId = docker(['inspect', '--format', '{{.Image}}', id]);
+      const digests = imageId && docker(['image', 'inspect', '--format', '{{json .RepoDigests}}', imageId]);
+      const ready = docker(['exec', id, 'env', '-i', CONTAINER_PATH,
+        'pg_isready', '-q', '-h', '127.0.0.1', '-p', '5432']);
+      result.evidence = {
+        endpoint, id, imageId, imageDigests: parseDatabaseNames(digests), ready: ready !== null,
+      };
+    }
   }
   return result;
 }
