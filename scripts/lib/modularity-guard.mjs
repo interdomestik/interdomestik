@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { delegatedGitEnvironment } from '../ci/verification-evidence/worker-profile.mjs';
 
 import { isWorkflowPermissionTightening } from './workflow-permission-tightening.mjs';
 
@@ -27,7 +28,7 @@ function git(root, args, options = {}) {
   return execFileSync(GIT_BIN, args, {
     cwd: root,
     encoding: options.encoding ?? 'utf8',
-    env: { ...SAFE_EXEC_ENV, ...options.env },
+    env: delegatedGitEnvironment({ ...SAFE_EXEC_ENV, ...options.env }),
     maxBuffer: options.maxBuffer ?? GIT_MAX_BUFFER_BYTES,
     stdio: options.stdio ?? ['ignore', 'pipe', 'pipe'],
   });

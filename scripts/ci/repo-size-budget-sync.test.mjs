@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
+import { execFileSync, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -13,25 +14,15 @@ const repoRoot = path.resolve(scriptDir, '../..');
 const syncScript = path.join(repoRoot, 'scripts/repo-size-budget-sync.mjs');
 const auditScript = path.join(repoRoot, 'scripts/repo-size-audit.mjs');
 
-function runSync(args) {
+function runSync(args, cwd = repoRoot) {
   return spawnSync(process.execPath, [syncScript, ...args], {
-    cwd: repoRoot,
+    cwd,
     encoding: 'utf8',
   });
 }
 
-function trackedBytes() {
-  const result = spawnSync(
-    process.execPath,
-    [auditScript, '--json', '--no-disk', '--min-lines=0', '--top=1'],
-    { cwd: repoRoot, encoding: 'utf8' }
-  );
-  assert.equal(result.status, 0, result.stderr);
-  return JSON.parse(result.stdout).tracked.total.bytes;
-}
-
-function createTempBudget(t, budget) {
-  const tempParent = path.join(repoRoot, 'tmp');
+function createTempBudget(t, budget, root = repoRoot) {
+  const tempParent = path.join(root, 'tmp');
   fs.mkdirSync(tempParent, { recursive: true });
   const tempRoot = fs.mkdtempSync(path.join(tempParent, 'repo-size-sync-'));
   t.after(() => fs.rmSync(tempRoot, { recursive: true, force: true }));
@@ -125,14 +116,22 @@ test('repo size sync accounts for the budget file write when audited', () => {
 });
 
 test('repo size sync includes non-ignored untracked files before staging', t => {
-  const untrackedPath = path.join(repoRoot, '.repo-size-sync-untracked.js');
-  fs.writeFileSync(untrackedPath, 'x'.repeat(321));
-  t.after(() => fs.rmSync(untrackedPath, { force: true }));
-  const budgetPath = createTempBudget(t, staleBudget());
-  const result = runSync([`--budget=${budgetPath}`]);
+  const root = fs.realpathSync(fs.mkdtempSync(path.join(os.tmpdir(), 'repo-size-sync-checkout-')));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  execFileSync('/usr/bin/git', ['init', '--quiet'], { cwd: root });
+  const ignores = '/scripts/\n/tmp/\n';
+  fs.writeFileSync(path.join(root, '.gitignore'), ignores);
+  fs.mkdirSync(path.join(root, 'scripts'));
+  fs.symlinkSync(auditScript, path.join(root, 'scripts/repo-size-audit.mjs'));
+  fs.writeFileSync(path.join(root, 'tracked.js'), 'x'.repeat(20));
+  execFileSync('/usr/bin/git', ['add', '--', '.gitignore', 'tracked.js'], { cwd: root });
+  fs.writeFileSync(path.join(root, 'untracked.js'), 'x'.repeat(321));
+  const budgetPath = createTempBudget(t, staleBudget(), root);
+  const result = runSync([`--budget=${budgetPath}`], root);
   assert.equal(result.status, 0, result.stderr);
   const syncedBudget = JSON.parse(fs.readFileSync(budgetPath, 'utf8'));
-  assert.equal(syncedBudget.maxTrackedBytes >= trackedBytes() + 321, true);
+  assert.equal(syncedBudget.maxTrackedBytes, Buffer.byteLength(ignores) + 20 + 321);
+  assert.equal(syncedBudget.maxTrackedFiles, 3);
 });
 
 test('repo size sync rejects an empty budget path clearly', () => {

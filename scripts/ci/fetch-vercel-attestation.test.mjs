@@ -61,6 +61,32 @@ test('fetchVercelAttestation rejects cross-host redirects', async () => {
   );
 });
 
+test('fetchVercelAttestation refuses redirects to another port on the pinned hostname', async t => {
+  const fetchImpl = t.mock.fn(async () =>
+    response(302, '', 'https://preview.vercel.app:8443/attestation')
+  );
+
+  await assert.rejects(
+    fetchVercelAttestation({
+      metadataUrl: 'https://preview.vercel.app/.well-known/interdomestik-release-attestation.json',
+      expectedHost: 'preview.vercel.app',
+      fetchImpl,
+    }),
+    /crossed host boundary/u
+  );
+  assert.equal(fetchImpl.mock.callCount(), 1);
+});
+
+test('fetchVercelAttestation preserves the path and query on the pinned hostname', async t => {
+  const metadataUrl = 'https://preview.vercel.app//path/attestation?sig=a%20b&key=%23#';
+  const fetchImpl = t.mock.fn(async () => response(200, '{}'));
+
+  await fetchVercelAttestation({ metadataUrl, expectedHost: 'preview.vercel.app', fetchImpl });
+
+  assert.equal(fetchImpl.mock.callCount(), 1);
+  assert.equal(fetchImpl.mock.calls[0].arguments[0].href, metadataUrl);
+});
+
 test('fetchVercelAttestation rejects redirect chains past the limit', async () => {
   const fetchImpl = async url => response(302, '', url.pathname.includes('/one') ? '/two' : '/one');
 

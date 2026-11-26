@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 import yaml from 'js-yaml';
 
@@ -62,7 +63,7 @@ function stubbed({ provisionExit }) {
   write('curl', 'exit 0');
   write('sleep', 'exit 0');
   const script = start.run.replaceAll('/tmp/', `${dir}/`);
-  const result = spawnSync('bash', ['-c', script], {
+  const result = spawnSync(contractBash('bash'), ['-c', script], {
     cwd: dir,
     encoding: 'utf8',
     env: { PATH: `${bin}:${process.env.PATH}`, DATABASE_URL: ADMIN_URL },

@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
+import { delegatedGitEnvironment } from './ci/verification-evidence/worker-profile.mjs';
 import {
   readNonEmptyValue,
   stableJson,
@@ -12,6 +13,7 @@ import {
 } from './repo-size-budget-sync-core.mjs';
 
 const DEFAULT_BUDGET_PATH = 'scripts/repo-size-budget.json';
+const gitEnv = delegatedGitEnvironment({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
 
 function parseArgs(argv) {
   const options = {
@@ -46,7 +48,7 @@ function parseArgs(argv) {
 function repoRoot() {
   return execFileSync('/usr/bin/git', ['rev-parse', '--show-toplevel'], {
     encoding: 'utf8',
-    env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
+    env: gitEnv,
   }).trim();
 }
 
@@ -73,7 +75,7 @@ function isAuditedFile(root, relPath, options) {
   return execFileSync('/usr/bin/git', args, {
     cwd: root,
     encoding: 'buffer',
-    env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin' },
+    env: gitEnv,
   }).length > 0;
 }
 
