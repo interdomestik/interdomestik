@@ -16,8 +16,15 @@ function requireThat(condition) {
 }
 
 function output(command, args, env = BASE_ENV) {
-  return execFileSync(command, args, { cwd: root, env, stdio: ['ignore', 'pipe', 'pipe'],
-    timeout: 30_000, maxBuffer: 32 * 1024 * 1024 }).toString().trim();
+  return execFileSync(command, args, {
+    cwd: root,
+    env,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    timeout: 30_000,
+    maxBuffer: 32 * 1024 * 1024,
+  })
+    .toString()
+    .trim();
 }
 
 function noWorkerProcesses() {
@@ -47,12 +54,22 @@ async function drain(attempt = 0) {
 
 function workerEnvironment() {
   return [
-    ...sudo, '/usr/bin/env', '-i',
-    `PATH=${toolPath}`, 'LANG=C', `HOME=${root}/tmp/m5-home`, `TMPDIR=${root}/tmp/m5-tmp`,
-    `INTERDOMESTIK_M5_CHECKOUT=${root}`, `INTERDOMESTIK_M5_BASH=${bashPath}`,
-    'GIT_CONFIG_COUNT=1', 'GIT_CONFIG_KEY_0=safe.directory', `GIT_CONFIG_VALUE_0=${root}`,
-    'GIT_CONFIG_NOSYSTEM=1', 'GIT_CONFIG_GLOBAL=/dev/null',
-    'GIT_OPTIONAL_LOCKS=0', 'GIT_NO_REPLACE_OBJECTS=1',
+    ...sudo,
+    '/usr/bin/env',
+    '-i',
+    `PATH=${toolPath}`,
+    'LANG=C',
+    `HOME=${root}/tmp/m5-home`,
+    `TMPDIR=${root}/tmp/m5-tmp`,
+    `INTERDOMESTIK_M5_CHECKOUT=${root}`,
+    `INTERDOMESTIK_M5_BASH=${bashPath}`,
+    'GIT_CONFIG_COUNT=1',
+    'GIT_CONFIG_KEY_0=safe.directory',
+    `GIT_CONFIG_VALUE_0=${root}`,
+    'GIT_CONFIG_NOSYSTEM=1',
+    'GIT_CONFIG_GLOBAL=/dev/null',
+    'GIT_OPTIONAL_LOCKS=0',
+    'GIT_NO_REPLACE_OBJECTS=1',
   ];
 }
 
@@ -74,26 +91,35 @@ function protectedToolPath(file) {
 }
 
 function readOnlyTree(directory) {
-  return !accessible(directory, constants.W_OK) && readdirSync(directory, {
-    withFileTypes: true,
-  }).every(entry => {
-    const file = path.join(directory, entry.name);
-    // Two QA contracts register temporary linked worktrees. Their private jobs can write only
-    // this registry. HEAD, the index, objects, refs and configuration stay protected.
-    if (file === path.join(root, '.git/worktrees')) {
-      return entry.isDirectory() && readdirSync(file).length === 0;
-    }
-    return entry.isDirectory() ? readOnlyTree(file) :
-      entry.isFile() && !accessible(file, constants.W_OK);
-  });
+  return (
+    !accessible(directory, constants.W_OK) &&
+    readdirSync(directory, {
+      withFileTypes: true,
+    }).every(entry => {
+      const file = path.join(directory, entry.name);
+      // Two QA contracts register temporary linked worktrees. Their private jobs can write only
+      // this registry. HEAD, the index, objects, refs and configuration stay protected.
+      if (file === path.join(root, '.git/worktrees')) {
+        return entry.isDirectory() && readdirSync(file).length === 0;
+      }
+      return entry.isDirectory()
+        ? readOnlyTree(file)
+        : entry.isFile() && !accessible(file, constants.W_OK);
+    })
+  );
 }
 
 function checkReadOnlyCheckout() {
   const gitDir = path.join(root, '.git');
-  requireThat(realpathSync(gitDir) === gitDir && readOnlyTree(gitDir) &&
-    !existsSync(path.join(gitDir, 'objects/info/alternates')));
+  requireThat(
+    realpathSync(gitDir) === gitDir &&
+      readOnlyTree(gitDir) &&
+      !existsSync(path.join(gitDir, 'objects/info/alternates'))
+  );
   const tracked = execFileSync('/usr/bin/git', ['ls-files', '-z'], { cwd: root })
-    .toString().split('\0').filter(Boolean);
+    .toString()
+    .split('\0')
+    .filter(Boolean);
   const protectedPaths = new Set([root]);
   for (const name of tracked) {
     for (let file = path.join(root, name); file !== root; file = path.dirname(file)) {
@@ -101,14 +127,20 @@ function checkReadOnlyCheckout() {
       protectedPaths.add(file);
     }
   }
-  requireThat(tracked.length > 0 && [...protectedPaths].every(file => !accessible(file, constants.W_OK)));
+  requireThat(
+    tracked.length > 0 && [...protectedPaths].every(file => !accessible(file, constants.W_OK))
+  );
 }
 
 function checkWorkspaceDirectories(stage) {
-  const workspaces = [root, ...['apps', 'packages'].flatMap(parent =>
-    readdirSync(path.join(root, parent), { withFileTypes: true })
-      .filter(entry => entry.isDirectory()).map(entry => path.join(root, parent, entry.name))
-  )];
+  const workspaces = [
+    root,
+    ...['apps', 'packages'].flatMap(parent =>
+      readdirSync(path.join(root, parent), { withFileTypes: true })
+        .filter(entry => entry.isDirectory())
+        .map(entry => path.join(root, parent, entry.name))
+    ),
+  ];
   const dependencyPaths = workspaces.map(dir => path.join(dir, 'node_modules'));
   const controlledTools = [...VERIFIED_TOOLS, 'git', 'docker', 'sh'];
   for (const dir of dependencyPaths) {
@@ -121,9 +153,11 @@ function checkWorkspaceDirectories(stage) {
     requireThat(!existsSync(path.join(root, 'tmp/m5-pnpm-store')));
     for (const name of ['m5-home', 'm5-tmp']) {
       const dir = path.join(root, 'tmp', name);
-      requireThat(realpathSync(dir) === dir &&
-        readdirSync(dir).length === 0 &&
-        accessible(dir, constants.W_OK));
+      requireThat(
+        realpathSync(dir) === dir &&
+          readdirSync(dir).length === 0 &&
+          accessible(dir, constants.W_OK)
+      );
     }
   }
 }
@@ -134,24 +168,38 @@ function inspectWorker(stage) {
   checkWorkspaceDirectories(stage);
   const directories = toolPath.split(':');
   for (const directory of directories) {
-    requireThat(path.isAbsolute(directory) && protectedToolPath(directory) &&
-      protectedToolPath(realpathSync(directory)));
+    requireThat(
+      path.isAbsolute(directory) &&
+        protectedToolPath(directory) &&
+        protectedToolPath(realpathSync(directory))
+    );
   }
-  const executables = Object.fromEntries(VERIFIED_TOOLS.map(name => {
-    const binary = directories.map(dir => path.join(dir, name))
-      .find(file => accessible(file, constants.X_OK));
-    const resolved = realpathSync(binary);
-    requireThat(protectedToolPath(resolved));
-    return [name, resolved];
-  }));
-  requireThat(executables.bash === bashPath &&
-    output('/usr/bin/git', ['rev-parse', '--show-toplevel'], process.env) === root &&
-    output('/usr/bin/git', ['config', '--get-all', 'safe.directory'], process.env) === root &&
-    ['true', 'undefined'].includes(output(executables.pnpm, ['config', 'get', 'bail'],
-      process.env)) && !existsSync(path.join(root, 'node_modules/.hooks')));
+  const executables = Object.fromEntries(
+    VERIFIED_TOOLS.map(name => {
+      const binary = directories
+        .map(dir => path.join(dir, name))
+        .find(file => accessible(file, constants.X_OK));
+      const resolved = realpathSync(binary);
+      requireThat(protectedToolPath(resolved));
+      return [name, resolved];
+    })
+  );
+  requireThat(
+    executables.bash === bashPath &&
+      output('/usr/bin/git', ['rev-parse', '--show-toplevel'], process.env) === root &&
+      output('/usr/bin/git', ['config', '--get-all', 'safe.directory'], process.env) === root &&
+      ['true', 'undefined'].includes(
+        output(executables.pnpm, ['config', 'get', 'bail'], process.env)
+      ) &&
+      !existsSync(path.join(root, 'node_modules/.hooks'))
+  );
   return {
-    isolated: true, processesDrained: true, gitReadOnly: true, trackedReadOnly: true,
-    freshDependencies: stage === 'start', executables,
+    isolated: true,
+    processesDrained: true,
+    gitReadOnly: true,
+    trackedReadOnly: true,
+    freshDependencies: stage === 'start',
+    executables,
     node: output(executables.node, ['--version']),
     pnpm: output(executables.pnpm, ['--version'], process.env),
     bash: output(executables.bash, ['--noprofile', '--norc', '-c', 'printf "%s" "$BASH_VERSION"']),
@@ -163,7 +211,9 @@ async function run(args) {
   // The repo's prepare hook configures Git hooks. The worker's protected Git config is immutable.
   const installEnv = args[1] === 'install' ? ['HUSKY=0'] : [];
   const child = spawn('/usr/bin/sudo', [...workerEnvironment(), ...installEnv, ...args], {
-    cwd: root, env: BASE_ENV, stdio: ['ignore', 'inherit', 'inherit'],
+    cwd: root,
+    env: BASE_ENV,
+    stdio: ['ignore', 'inherit', 'inherit'],
   });
   for (const signal of ['SIGINT', 'SIGHUP', 'SIGTERM']) {
     process.on(signal, () => child.kill(signal));
@@ -190,7 +240,12 @@ try {
   } else if (action === 'audit' && ['start', 'installed', 'finish'].includes(rest[0])) {
     requireThat(noWorkerProcesses());
     const argv = ['inspect', ticketId, root, toolPath, bashPath, rest[0]];
-    const data = output('/usr/bin/sudo', [...workerEnvironment(), process.execPath, process.argv[1], ...argv]);
+    const data = output('/usr/bin/sudo', [
+      ...workerEnvironment(),
+      process.execPath,
+      process.argv[1],
+      ...argv,
+    ]);
     requireThat(noWorkerProcesses());
     console.log(data);
   } else if (action === 'inspect' && ['start', 'installed', 'finish'].includes(rest[0])) {

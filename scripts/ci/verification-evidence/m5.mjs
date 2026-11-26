@@ -8,7 +8,13 @@ import { randomUUID } from 'node:crypto';
 import { MACHINE_ROLES, sha256Hex } from '../verify-machine-marker.mjs';
 import { readBytes } from './bytes.mjs';
 import {
-  checkJobDirectory, cleanHostEnv, hostCommand, protectedFile, readApproval, sign, signedDocument,
+  checkJobDirectory,
+  cleanHostEnv,
+  hostCommand,
+  protectedFile,
+  readApproval,
+  sign,
+  signedDocument,
   writeArtifact,
 } from './host.mjs';
 import { checkManifest, DELEGATED, MANIFEST_SHA256, M5_SCRIPT } from './manifest.mjs';
@@ -19,25 +25,38 @@ import { assertEvidence, checkTicket, same } from './ticket.mjs';
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const VERIFY_ROOT = path.dirname(HERE);
 const RUNNER_INPUTS = [
-  'verification-evidence/bytes.mjs', 'verification-evidence/host.mjs',
-  'verification-evidence/m5.mjs', 'verification-evidence/machine.mjs',
-  'verification-evidence/manifest.mjs', 'verification-evidence/receipt.mjs',
-  'verification-evidence/ticket.mjs', 'verify-machine-docker.mjs', 'verify-machine-env.mjs',
-  'verify-machine-env-files.mjs', 'verify-machine-env-names.mjs', 'verify-machine-exec.mjs',
-  'verify-machine-marker.mjs', 'verify-machine-probe.mjs', 'verify-machine-trust.mjs',
+  'verification-evidence/bytes.mjs',
+  'verification-evidence/host.mjs',
+  'verification-evidence/m5.mjs',
+  'verification-evidence/machine.mjs',
+  'verification-evidence/manifest.mjs',
+  'verification-evidence/receipt.mjs',
+  'verification-evidence/ticket.mjs',
+  'verify-machine-docker.mjs',
+  'verify-machine-env.mjs',
+  'verify-machine-env-files.mjs',
+  'verify-machine-env-names.mjs',
+  'verify-machine-exec.mjs',
+  'verify-machine-marker.mjs',
+  'verify-machine-probe.mjs',
+  'verify-machine-trust.mjs',
 ];
 
 export function runnerDigest() {
-  return sha256Hex(JSON.stringify(RUNNER_INPUTS.map(file =>
-    [file, sha256Hex(readFileSync(path.join(VERIFY_ROOT, file)))])
-  ));
+  return sha256Hex(
+    JSON.stringify(
+      RUNNER_INPUTS.map(file => [file, sha256Hex(readFileSync(path.join(VERIFY_ROOT, file)))])
+    )
+  );
 }
 
 // Only the supervisor owns the log descriptors. The worker gets pipes and clean credentials-free
 // execution from the host bridge. The bridge drains the worker before each next step.
 async function runWorker(worker, invocation, command, output, signal) {
   const child = spawn(process.execPath, [worker, 'run', ...invocation, '--', ...command], {
-    env: cleanHostEnv, stdio: ['ignore', 'pipe', 'pipe'], signal,
+    env: cleanHostEnv,
+    stdio: ['ignore', 'pipe', 'pipe'],
+    signal,
   });
   const closed = new Promise((resolve, reject) => {
     child.once('error', reject);
@@ -66,11 +85,15 @@ async function runWorker(worker, invocation, command, output, signal) {
 function auditWorker(worker, invocation, stage, probe) {
   const audit = JSON.parse(hostCommand(process.execPath, [worker, 'audit', ...invocation, stage]));
   assertEvidence(
-    audit.isolated === true && audit.processesDrained === true &&
-      audit.gitReadOnly === true && audit.trackedReadOnly === true &&
+    audit.isolated === true &&
+      audit.processesDrained === true &&
+      audit.gitReadOnly === true &&
+      audit.trackedReadOnly === true &&
       (stage !== 'start' || audit.freshDependencies === true) &&
-      same(audit.executables, probe.executables) && audit.bash === probe.bash &&
-      audit.node === probe.node && audit.pnpm === probe.pnpm,
+      same(audit.executables, probe.executables) &&
+      audit.bash === probe.bash &&
+      audit.node === probe.node &&
+      audit.pnpm === probe.pnpm,
     'worker-isolation'
   );
 }
@@ -90,11 +113,17 @@ export async function runEvidence(input, checkout, output, signal) {
   const runnerSha256 = runnerDigest();
   assertEvidence(runnerSha256 === approved.m5RunnerSha256, 'runner-digest');
   checkManifest(path.resolve(VERIFY_ROOT, '../..'));
-  const { value: ticket, bytes: ticketBytes, signature: ticketSignature } =
-    signedDocument(input, 'ticket', 'm4', approved);
+  const {
+    value: ticket,
+    bytes: ticketBytes,
+    signature: ticketSignature,
+  } = signedDocument(input, 'ticket', 'm4', approved);
   const startedAt = Date.now();
   checkTicket(ticket, approved, startedAt);
-  assertEvidence(realpathSync(checkout) === checkout && path.resolve(output) === output, 'job-path');
+  assertEvidence(
+    realpathSync(checkout) === checkout && path.resolve(output) === output,
+    'job-path'
+  );
   checkManifest(checkout, { historical: approved.mode === 'trial' });
   mkdirSync(output, { mode: 0o700 });
   checkJobDirectory(output);
@@ -109,7 +138,9 @@ export async function runEvidence(input, checkout, output, signal) {
   assertEvidence(packageManager === `pnpm@${start.pnpm}`, 'package-manager');
   const job = createWriteStream(path.join(output, JOB_LOG), { flags: 'wx', mode: 0o600 });
   let jobError;
-  job.on('error', error => { jobError = error; });
+  job.on('error', error => {
+    jobError = error;
+  });
   const lanes = [];
   let active = { id: 'install' };
   const step = async (id, command, log) => {
@@ -122,28 +153,40 @@ export async function runEvidence(input, checkout, output, signal) {
     if (jobError) throw jobError;
     if (jobError) throw jobError;
     await new Promise((resolve, reject) => {
-      job.write(Buffer.concat([Buffer.from(`\n=== ${id} ===\n`), bytes]),
-        error => error ? reject(error) : resolve());
+      job.write(Buffer.concat([Buffer.from(`\n=== ${id} ===\n`), bytes]), error =>
+        error ? reject(error) : resolve()
+      );
     });
     assertEvidence(result.code === 0 && !result.killed, 'm5-step-exit');
     return sha256Hex(bytes);
   };
   try {
-    const installLogSha256 = await step('install', [
-      'pnpm', 'install', '--frozen-lockfile', '--store-dir', path.join(checkout, 'tmp/m5-pnpm-store'),
-    ], INSTALL_LOG);
+    const installLogSha256 = await step(
+      'install',
+      [
+        'pnpm',
+        'install',
+        '--frozen-lockfile',
+        '--store-dir',
+        path.join(checkout, 'tmp/m5-pnpm-store'),
+      ],
+      INSTALL_LOG
+    );
     await DELEGATED.reduce(
-      (previous, [, id, command, report]) => previous.then(async () => {
-        signal?.throwIfAborted();
-        auditWorker(worker, invocation, 'installed', start);
-        const startedAt = Date.now();
-        if (report) assertEvidence(!existsSync(path.join(checkout, report)), 'report-already-present');
-        const transcript = `${id}.log`;
-        const reports = { [transcript]: await step(id, command.split(' '), transcript) };
-        const finishedAt = Date.now();
-        if (report) reports[PURITY_REPORT] = nativeReport(checkout, report, startedAt, finishedAt, output);
-        lanes.push({ id, command, startedAt, finishedAt, exit: 0, reports });
-      }),
+      (previous, [, id, command, report]) =>
+        previous.then(async () => {
+          signal?.throwIfAborted();
+          auditWorker(worker, invocation, 'installed', start);
+          const startedAt = Date.now();
+          if (report)
+            assertEvidence(!existsSync(path.join(checkout, report)), 'report-already-present');
+          const transcript = `${id}.log`;
+          const reports = { [transcript]: await step(id, command.split(' '), transcript) };
+          const finishedAt = Date.now();
+          if (report)
+            reports[PURITY_REPORT] = nativeReport(checkout, report, startedAt, finishedAt, output);
+          lanes.push({ id, command, startedAt, finishedAt, exit: 0, reports });
+        }),
       Promise.resolve()
     );
     await new Promise((resolve, reject) => {
@@ -152,17 +195,34 @@ export async function runEvidence(input, checkout, output, signal) {
     });
     const finish = await probeSlot(checkout, ticket, approved, 'finish');
     auditWorker(worker, invocation, 'finish', finish);
-    assertEvidence(same(start, finish) && readApproval().sha256 === approved.sha256, 'm5-probe-drift');
+    assertEvidence(
+      same(start, finish) && readApproval().sha256 === approved.sha256,
+      'm5-probe-drift'
+    );
     protectedFile('gate-m5-worker.mjs', approved.m5WorkerSha256);
     assertEvidence(runnerDigest() === runnerSha256, 'runner-drift');
     const finishedAt = Date.now();
     checkTicket(ticket, approved, finishedAt);
-    const receipt = Buffer.from(JSON.stringify({
-      class: RECEIPT_CLASS, machineRole: MACHINE_ROLES.m5, completed: true, exit: 0, runId,
-      ticket, ticketSha256: sha256Hex(ticketBytes), runnerSha256, manifestSha256: MANIFEST_SHA256,
-      startedAt, finishedAt, start, finish, lanes, installLogSha256,
-      logSha256: sha256Hex(readBytes(path.join(output, JOB_LOG))),
-    }));
+    const receipt = Buffer.from(
+      JSON.stringify({
+        class: RECEIPT_CLASS,
+        machineRole: MACHINE_ROLES.m5,
+        completed: true,
+        exit: 0,
+        runId,
+        ticket,
+        ticketSha256: sha256Hex(ticketBytes),
+        runnerSha256,
+        manifestSha256: MANIFEST_SHA256,
+        startedAt,
+        finishedAt,
+        start,
+        finish,
+        lanes,
+        installLogSha256,
+        logSha256: sha256Hex(readBytes(path.join(output, JOB_LOG))),
+      })
+    );
     const signature = sign(receipt, 'm5');
     await setImmediate();
     signal?.throwIfAborted();
@@ -181,8 +241,10 @@ if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
     process.on(signal, () => abort.abort());
   }
   try {
-    assertEvidence(process.env.npm_lifecycle_event === M5_SCRIPT && process.argv.length === 5,
-      'm5-command');
+    assertEvidence(
+      process.env.npm_lifecycle_event === M5_SCRIPT && process.argv.length === 5,
+      'm5-command'
+    );
     await runEvidence(...process.argv.slice(2), abort.signal);
   } catch {
     console.error('M5 delegated evidence failed. See the private job directory.');
