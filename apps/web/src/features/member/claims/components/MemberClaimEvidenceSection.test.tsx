@@ -35,7 +35,9 @@ describe('MemberClaimEvidenceSection', () => {
 
     const upload = screen.getByRole('button', { name: 'claimsPro.actions.uploadEvidence' });
     expect(upload).toHaveClass('min-h-11', 'text-foreground', 'bg-transparent');
-    expect(upload).not.toHaveClass('sm:h-9', 'text-slate-900', 'hover:bg-slate-100');
+    expect(upload).not.toHaveClass('sm:h-9');
+    expect(upload).not.toHaveClass('text-slate-900');
+    expect(upload).not.toHaveClass('hover:bg-slate-100');
     expect(within(screen.getByTestId('ops-documents-panel')).getByRole('button')).toBe(upload);
     expect(screen.getByTestId('claim-evidence-upload-dialog')).toHaveAttribute(
       'data-claim-id',

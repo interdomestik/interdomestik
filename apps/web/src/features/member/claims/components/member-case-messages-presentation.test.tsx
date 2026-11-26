@@ -70,6 +70,7 @@ describe('member case messages presentation', () => {
 
     const refresh = await screen.findByRole('button', { name: 'member.refresh' });
     expect(refresh).toHaveClass('text-foreground', 'hover:bg-[hsl(var(--surface-strong))]');
-    expect(refresh).not.toHaveClass('text-slate-900', 'hover:bg-slate-100');
+    expect(refresh).not.toHaveClass('text-slate-900');
+    expect(refresh).not.toHaveClass('hover:bg-slate-100');
   });
 });
