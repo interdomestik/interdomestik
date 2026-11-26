@@ -174,6 +174,18 @@ test('a client adapter is the reviewed text: a second Drizzle call on another va
   assert.throws(() => checkClientAdapter(entry('client-adapter'), real), /not a pinned adapter/u);
 });
 
+test('the release migration entry point must match its pinned bytes', () => {
+  const path = 'scripts/ci/migration-phase/run.mjs';
+  const kind = entry('pinned-release-migration', { path });
+  const source = readFileSync(join(root, path), 'utf8');
+  assert.doesNotThrow(() => checkEntry(kind, source));
+  assert.throws(() => checkEntry(kind, `${source}\n`), /changed since its review/u);
+  assert.throws(
+    () => checkEntry(entry('pinned-release-migration'), source),
+    /not a pinned release migration/u
+  );
+});
+
 test('a guarded script opens clients only through the factory', () => {
   const kind = entry('guarded');
   const guarded =
