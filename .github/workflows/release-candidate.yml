@@ -99,6 +99,11 @@ jobs:
           pnpm seed:e2e
           pnpm seed:assert-e2e
 
+      - name: Rehearse the release migration phases on scratch PG16
+        env:
+          REQUIRE_JOURNAL_SCHEMA_PARITY: '1'
+        run: pnpm --filter @interdomestik/database exec tsx --test test/pg16/release-migration-phase.test.ts
+
       - name: Build web standalone artifact
         run: pnpm --filter @interdomestik/web run build:ci
         env:

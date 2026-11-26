@@ -30,3 +30,28 @@ export function readExpectedLedger(root) {
     entries,
   };
 }
+
+/** Match the protected expand plan to this exact checkout before accepting a shorter ledger. */
+export function expectedExpandPrefix(journal, raw, { expectedSha, runId }) {
+  if (typeof raw !== 'string' || Buffer.byteLength(raw) > 16_384)
+    throw new Error('invalid expand manifest');
+  const manifest = JSON.parse(raw);
+  const plan = manifest?.plan;
+  if (
+    manifest?.version !== 1 ||
+    manifest.environment !== 'staging' ||
+    manifest.commitSha !== expectedSha ||
+    manifest.runId !== runId ||
+    plan?.journalSha256 !== journal.journalSha256 ||
+    plan.finalCount !== journal.entries.length ||
+    !Number.isSafeInteger(plan.expandCount) ||
+    plan.expandCount < 1 ||
+    plan.expandCount > plan.finalCount
+  )
+    throw new Error('expand manifest mismatch');
+  const entries = journal.entries.slice(0, plan.expandCount);
+  const prefix = entries.map(({ tag, when, hash }, idx) => ({ tag, idx, when, hash }));
+  if (createHash('sha256').update(JSON.stringify(prefix)).digest('hex') !== plan.expandLedgerSha256)
+    throw new Error('expand ledger mismatch');
+  return entries;
+}

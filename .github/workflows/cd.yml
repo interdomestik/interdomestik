@@ -3,7 +3,7 @@ on:
   workflow_dispatch:
     inputs:
       target:
-        description: Deploy target; production needs environment approval
+        description: Deploy target from main; production needs environment approval
         type: choice
         options: [staging, production]
         default: staging
@@ -31,6 +31,14 @@ jobs:
           GITHUB_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
+          case "${GITHUB_EVENT_NAME}:${GITHUB_REF}" in
+            push:refs/heads/main|workflow_dispatch:refs/heads/main) ;;
+            push:refs/tags/v*)
+              [[ "$(/usr/bin/git rev-parse refs/remotes/origin/main)" == "${GITHUB_SHA}" ]] ||
+                { echo '::error::Release tags must point to reviewed main.'; exit 1; }
+              ;;
+            *) echo '::error::CD dispatch must use protected main.'; exit 1 ;;
+          esac
           current_guard='scripts/ci/cd-nondeploy-guard.mjs'
           trusted_guard='tmp/cd-evidence/trusted-parent-guard.mjs'
           bootstrap_parent='ba9da7ff8b13ceb1f1bc64864a40045ce4a79051'
@@ -89,19 +97,63 @@ jobs:
           supabase-url: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
           supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
-  deploy-staging:
+  expand-staging:
     if: ${{ needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' }}
     needs: [scope, build-staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: { name: staging-migration-expand }
+    permissions: { contents: read }
+    outputs: { manifest: '${{ steps.phase.outputs.manifest }}', contract_required: '${{ steps.phase.outputs.contract_required }}', attempt: '${{ steps.phase.outputs.attempt }}' }
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with: { version: 10.28.2 }
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with: { node-version-file: '.nvmrc' }
+      - name: Install locked dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run protected migration expand
+        id: phase
+        shell: bash
+        env:
+          RELEASE_ENVIRONMENT: staging
+          RELEASE_PROTECTED_ENVIRONMENT: staging-migration-expand
+          RELEASE_MIGRATION_URL: ${{ secrets.RELEASE_MIGRATION_URL }}
+          RELEASE_DATABASE_CA_BASE64: ${{ vars.RELEASE_DATABASE_CA_BASE64 }}
+          RELEASE_DATABASE_HOST: ${{ vars.RELEASE_DATABASE_HOST }}
+          RELEASE_DATABASE_ROLE_BYPASSES_RLS: ${{ vars.RELEASE_DATABASE_ROLE_BYPASSES_RLS }}
+          RELEASE_BACKEND_MARKER: ${{ vars.RELEASE_BACKEND_MARKER }}
+          RELEASE_PHASE_EVIDENCE: ${{ runner.temp }}/release-expand.json
+          RELEASE_IMAGE_DIGEST: ${{ needs.build-staging.outputs.image_digest }}
+        run: pnpm exec tsx scripts/ci/migration-phase/run.mjs expand
+      - name: Upload migration expand evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: migration-expand-staging-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-expand.json
+          if-no-files-found: error
+          retention-days: 14
+  deploy-staging:
+    if: ${{ needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' }}
+    needs: [scope, build-staging, expand-staging]
     runs-on: ubuntu-latest
     timeout-minutes: 25
     environment: { name: staging }
     permissions: { contents: read, id-token: write, attestations: write }
     # prettier-ignore
-    outputs: { alias_moved: '${{ steps.vercel.outputs.alias_moved }}', base_url: '${{ steps.vercel.outputs.base_url }}', hostname: '${{ steps.vercel.outputs.hostname }}', gate_base_url: '${{ steps.vercel.outputs.gate_base_url }}', gate_hostname: '${{ steps.vercel.outputs.gate_hostname }}' }
+    outputs: { alias_moved: '${{ steps.vercel.outputs.alias_moved }}', base_url: '${{ steps.vercel.outputs.base_url }}', hostname: '${{ steps.vercel.outputs.hostname }}', gate_base_url: '${{ steps.vercel.outputs.gate_base_url }}', gate_hostname: '${{ steps.vercel.outputs.gate_hostname }}', release: '${{ steps.deployment.outputs.release }}' }
     env: { EXPECTED_COMMIT_SHA: '${{ github.sha }}', INTERDOMESTIK_VERCEL_IPV4_ONLY: '1', STAGING_PREIMAGE_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage.json' }
     steps:
       - { uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd } # v4
       - { uses: ./.github/actions/setup, with: { install-playwright: 'false' } }
+      - name: Require expand from this deployment attempt
+        shell: bash
+        env:
+          EXPAND_ATTEMPT: ${{ needs.expand-staging.outputs.attempt }}
+        run: 'test "${EXPAND_ATTEMPT}" = "${GITHUB_RUN_ATTEMPT}"'
       - name: Deploy Staging to Vercel
         id: vercel
         uses: ./.github/actions/trigger-digest-verified-deploy
@@ -124,7 +176,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: staging-alias-preimage-${{ github.run_id }}
+          name: staging-alias-preimage-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ env.STAGING_PREIMAGE_RECEIPT_PATH }}
           if-no-files-found: ignore
           retention-days: 14
@@ -146,9 +198,30 @@ jobs:
           BASE_URL: ${{ steps.vercel.outputs.gate_base_url }}
           VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
         run: node scripts/ci/wait-for-vercel-health.mjs "${BASE_URL}/api/health" "${EXPECTED_COMMIT_SHA}"
+      - name: Record verified immutable deployment
+        id: deployment
+        shell: bash
+        env:
+          RELEASE_ENVIRONMENT: staging
+          RELEASE_MANIFEST: ${{ needs.expand-staging.outputs.manifest }}
+          RELEASE_DEPLOYMENT_HOST: ${{ steps.vercel.outputs.hostname }}
+          RELEASE_VERCEL_OUTPUT_DIGEST: ${{ steps.vercel.outputs.vercel_output_digest }}
+          RELEASE_PHASE_EVIDENCE: ${{ runner.temp }}/release-deployment.json
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/ci/migration-phase/record-deployment.mjs
+      - name: Upload verified deployment and expand ledger identity
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: migration-deployment-staging-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-deployment.json
+          if-no-files-found: error
+          retention-days: 14
   e2e-staging:
     if: ${{ needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' }}
-    needs: [scope, deploy-staging]
+    needs: [scope, expand-staging, deploy-staging]
     runs-on: ubuntu-latest
     timeout-minutes: 30
     environment: { name: staging, deployment: false }
@@ -186,6 +259,7 @@ jobs:
           VERCEL_AUTOMATION_BYPASS_SECRET: '${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}'
           EXPECTED_COMMIT_SHA: '${{ github.sha }}'
           RUNTIME_ATTESTATION_MODE: enforce
+          RUNTIME_ATTESTATION_EXPAND_MANIFEST: ${{ needs.expand-staging.outputs.manifest }}
           RUNTIME_ATTESTATION_HOSTNAME: '${{ needs.deploy-staging.outputs.hostname }}'
           RUNTIME_ATTESTATION_CANONICAL_HOST: staging.interdomestik.com
           RUNTIME_ATTESTATION_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging/runtime-attestation/receipt.json'
@@ -193,6 +267,7 @@ jobs:
           RUNTIME_ATTESTATION_OBSERVER_PASSWORD: '${{ secrets.RUNTIME_ATTESTATION_OBSERVER_PASSWORD }}'
         run: >-
           set -euo pipefail; mkdir -p "${EVIDENCE_DIR}/logs" "${EVIDENCE_DIR}/release-gates";
+          test -n "${RUNTIME_ATTESTATION_EXPAND_MANIFEST}";
           attestation_status=0; node scripts/ci/runtime-attestation/isolated-collect.mjs || attestation_status=$?;
           env -u RUNTIME_ATTESTATION_OBSERVER_EMAIL -u RUNTIME_ATTESTATION_OBSERVER_PASSWORD pnpm -s release:gate:raw --envName staging --suite p0 --baseUrl "${BASE_URL}" --authBaseUrl "${AUTH_BASE_URL}" --outDir "${EVIDENCE_DIR}/release-gates" 2>&1 | tee "${EVIDENCE_DIR}/logs/release-gate-staging.log";
           exit "${attestation_status}"
@@ -200,26 +275,71 @@ jobs:
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: staging-verification-${{ github.run_id }}
+          name: staging-verification-${{ github.run_id }}-${{ github.run_attempt }}
           path: ${{ env.EVIDENCE_DIR }}/**
           if-no-files-found: error
           retention-days: 14
+  contract-staging:
+    if: ${{ needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && needs.expand-staging.outputs.contract_required == 'true' }}
+    needs: [scope, deploy-staging, e2e-staging, expand-staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: { name: staging-migration-contract }
+    permissions: { contents: read, actions: read }
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with: { version: 10.28.2 }
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with: { node-version-file: '.nvmrc' }
+      - name: Install locked dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run protected migration contract
+        id: phase
+        shell: bash
+        env:
+          RELEASE_ENVIRONMENT: staging
+          RELEASE_PROTECTED_ENVIRONMENT: staging-migration-contract
+          RELEASE_MIGRATION_URL: ${{ secrets.RELEASE_MIGRATION_URL }}
+          RELEASE_DATABASE_CA_BASE64: ${{ vars.RELEASE_DATABASE_CA_BASE64 }}
+          RELEASE_DATABASE_HOST: ${{ vars.RELEASE_DATABASE_HOST }}
+          RELEASE_DATABASE_ROLE_BYPASSES_RLS: ${{ vars.RELEASE_DATABASE_ROLE_BYPASSES_RLS }}
+          RELEASE_BACKEND_MARKER: ${{ vars.RELEASE_BACKEND_MARKER }}
+          RELEASE_PHASE_EVIDENCE: ${{ runner.temp }}/release-contract.json
+          RELEASE_DEPLOYMENT: ${{ needs.deploy-staging.outputs.release }}
+          RELEASE_DRAIN_RECEIPT: ${{ vars.RELEASE_DRAIN_RECEIPT }}
+          RELEASE_DRAIN_REVIEWER_IDS: ${{ vars.RELEASE_DRAIN_REVIEWER_IDS }}
+          GITHUB_TOKEN: ${{ github.token }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: pnpm exec tsx scripts/ci/migration-phase/run.mjs contract
+      - name: Upload migration contract evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: migration-contract-staging-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-contract.json
+          if-no-files-found: error
+          retention-days: 14
   rollback-staging-alias:
-    if: ${{ always() && !cancelled() && needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (needs.deploy-staging.result == 'failure' || needs.e2e-staging.result == 'failure') }}
-    needs: [scope, deploy-staging, e2e-staging]
+    if: ${{ always() && !cancelled() && github.run_attempt == 1 && needs.expand-staging.result == 'success' && needs.contract-staging.result == 'skipped' && needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (needs.deploy-staging.result == 'failure' || needs.e2e-staging.result == 'failure') }}
+    needs: [scope, expand-staging, deploy-staging, e2e-staging, contract-staging]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment: { name: staging, deployment: false }
     permissions: { contents: read }
     env: { STAGING_PREIMAGE_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage/staging-alias-preimage.json', STAGING_ROLLBACK_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging-alias-rollback.json' }
     steps:
-      - { uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd } # v4
+      - { uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd, with: { fetch-depth: 0, persist-credentials: false } } # v4
       - { uses: ./.github/actions/setup, with: { install-playwright: 'false' } }
       - name: Download staging alias preimage receipt
         continue-on-error: true
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
         with:
-          name: staging-alias-preimage-${{ github.run_id }}
+          name: staging-alias-preimage-${{ github.run_id }}-${{ github.run_attempt }}
           path: tmp/cd-evidence/${{ github.run_id }}/staging-alias-preimage
       - name: Validate staging alias rollback authority
         id: rollback_guard
@@ -227,8 +347,16 @@ jobs:
         shell: bash
         env: { STAGING_ALIAS_MOVED_SIGNAL: '${{ needs.deploy-staging.outputs.alias_moved }}' }
         run: node scripts/ci/configure-vercel-gate-url.mjs guard >> "${GITHUB_OUTPUT}"
-      - name: Restore exact staging alias preimage
+      - name: Confirm predecessor matches the pre-expand ledger
+        id: predecessor
         if: ${{ success() && steps.rollback_guard.outputs.should_restore == 'true' }}
+        shell: bash
+        env:
+          RELEASE_ENVIRONMENT: staging
+          RELEASE_MANIFEST: ${{ needs.expand-staging.outputs.manifest }}
+        run: node scripts/ci/migration-phase/rollback.mjs
+      - name: Restore exact staging alias preimage
+        if: ${{ success() && steps.rollback_guard.outputs.should_restore == 'true' && steps.predecessor.outputs.compatible == 'true' }}
         shell: bash
         env: { INTERDOMESTIK_VERCEL_IPV4_ONLY: '1', NODE_OPTIONS: '--import=${{ github.workspace }}/scripts/ci/cd-runner-preflight.mjs', STAGING_ALIAS_DOMAIN: staging.interdomestik.com, VERCEL_AUTOMATION_BYPASS_SECRET: '${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}', VERCEL_TOKEN: '${{ secrets.VERCEL_TOKEN }}', VERCEL_ORG_ID: '${{ vars.VERCEL_ORG_ID }}', VERCEL_PROJECT_ID: '${{ vars.VERCEL_PROJECT_ID }}' }
         run: node scripts/ci/configure-vercel-gate-url.mjs restore
@@ -236,13 +364,52 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: staging-alias-rollback-${{ github.run_id }}
+          name: staging-alias-rollback-${{ github.run_id }}-${{ github.run_attempt }}
           path: tmp/cd-evidence/${{ github.run_id }}/staging-alias-rollback.json
+          if-no-files-found: error
+          retention-days: 14
+  finalize-staging:
+    if: ${{ !cancelled() && needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && needs.e2e-staging.result == 'success' && needs.expand-staging.result == 'success' && ((needs.expand-staging.outputs.contract_required == 'true' && needs.contract-staging.result == 'success') || (needs.expand-staging.outputs.contract_required == 'false' && needs.contract-staging.result == 'skipped')) }}
+    needs: [scope, deploy-staging, e2e-staging, expand-staging, contract-staging]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment: { name: staging, deployment: false }
+    permissions: { contents: read }
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - name: Recheck Staging Immutable Deployment and Canonical Alias
+        shell: bash
+        env:
+          RELEASE_ENVIRONMENT: staging
+          RELEASE_DEPLOYMENT: ${{ needs.deploy-staging.outputs.release }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/ci/migration-phase/record-deployment.mjs verify
+      - name: Verify Staging Full Journal
+        shell: bash
+        env:
+          EXPECTED_COMMIT_SHA: ${{ github.sha }}
+          RUNTIME_ATTESTATION_MODE: enforce
+          RUNTIME_ATTESTATION_HOSTNAME: ${{ needs.deploy-staging.outputs.hostname }}
+          RUNTIME_ATTESTATION_CANONICAL_HOST: staging.interdomestik.com
+          RUNTIME_ATTESTATION_OBSERVER_EMAIL: ${{ secrets.RUNTIME_ATTESTATION_OBSERVER_EMAIL }}
+          RUNTIME_ATTESTATION_OBSERVER_PASSWORD: ${{ secrets.RUNTIME_ATTESTATION_OBSERVER_PASSWORD }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+          RUNTIME_ATTESTATION_RECEIPT_PATH: 'tmp/cd-evidence/${{ github.run_id }}/staging/runtime-attestation/final-receipt.json'
+        run: node scripts/ci/runtime-attestation/isolated-collect.mjs
+      - name: Upload staging full-journal attestation
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: staging-full-journal-${{ github.run_id }}-${{ github.run_attempt }}
+          path: 'tmp/cd-evidence/${{ github.run_id }}/staging/runtime-attestation/final-receipt.json'
           if-no-files-found: error
           retention-days: 14
   production-evidence:
     if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (inputs.target == 'production' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')))
-    needs: [scope, e2e-staging]
+    needs: [scope, finalize-staging]
     runs-on: ubuntu-latest
     environment: { name: production, deployment: false }
     permissions: { contents: read }
@@ -293,15 +460,60 @@ jobs:
           supabase-url: ${{ vars.NEXT_PUBLIC_SUPABASE_URL || secrets.NEXT_PUBLIC_SUPABASE_URL }}
           supabase-anon-key: ${{ vars.NEXT_PUBLIC_SUPABASE_ANON_KEY || secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           supabase-production-project-ref: ${{ vars.SUPABASE_PRODUCTION_PROJECT_REF || secrets.SUPABASE_PRODUCTION_PROJECT_REF }}
+  expand-production:
+    if: ${{ needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (inputs.target == 'production' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) }}
+    needs: [scope, build-production]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: { name: production-migration-expand }
+    permissions: { contents: read }
+    outputs: { manifest: '${{ steps.phase.outputs.manifest }}', contract_required: '${{ steps.phase.outputs.contract_required }}', attempt: '${{ steps.phase.outputs.attempt }}' }
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with: { version: 10.28.2 }
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with: { node-version-file: '.nvmrc' }
+      - name: Install locked dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run protected migration expand
+        id: phase
+        shell: bash
+        env:
+          RELEASE_ENVIRONMENT: production
+          RELEASE_PROTECTED_ENVIRONMENT: production-migration-expand
+          RELEASE_MIGRATION_URL: ${{ secrets.RELEASE_MIGRATION_URL }}
+          RELEASE_DATABASE_CA_BASE64: ${{ vars.RELEASE_DATABASE_CA_BASE64 }}
+          RELEASE_DATABASE_HOST: ${{ vars.RELEASE_DATABASE_HOST }}
+          RELEASE_DATABASE_ROLE_BYPASSES_RLS: ${{ vars.RELEASE_DATABASE_ROLE_BYPASSES_RLS }}
+          RELEASE_BACKEND_MARKER: ${{ vars.RELEASE_BACKEND_MARKER }}
+          RELEASE_PHASE_EVIDENCE: ${{ runner.temp }}/release-expand.json
+          RELEASE_IMAGE_DIGEST: ${{ needs.build-production.outputs.image_digest }}
+        run: pnpm exec tsx scripts/ci/migration-phase/run.mjs expand
+      - name: Upload migration expand evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: migration-expand-production-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-expand.json
+          if-no-files-found: error
+          retention-days: 14
   deploy-production:
     if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (inputs.target == 'production' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')))
-    needs: [scope, build-production]
+    needs: [scope, build-production, expand-production]
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 25
     environment: { name: production, url: https://www.interdomestik.com }
+    outputs: { release: '${{ steps.deployment.outputs.release }}' }
     permissions: { contents: read, id-token: write, attestations: write }
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+      - name: Require expand from this deployment attempt
+        shell: bash
+        env:
+          EXPAND_ATTEMPT: ${{ needs.expand-production.outputs.attempt }}
+        run: 'test "${EXPAND_ATTEMPT}" = "${GITHUB_RUN_ATTEMPT}"'
       - name: Deploy Production to Vercel
         id: vercel
         uses: ./.github/actions/trigger-digest-verified-deploy
@@ -318,9 +530,75 @@ jobs:
           commit-sha: ${{ github.sha }}
           attested-image-digest: ${{ needs.build-production.outputs.image_digest }}
           vercel-automation-bypass-secret: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+      - name: Record verified immutable deployment
+        id: deployment
+        shell: bash
+        env:
+          RELEASE_ENVIRONMENT: production
+          RELEASE_MANIFEST: ${{ needs.expand-production.outputs.manifest }}
+          RELEASE_DEPLOYMENT_HOST: ${{ steps.vercel.outputs.hostname }}
+          RELEASE_VERCEL_OUTPUT_DIGEST: ${{ steps.vercel.outputs.vercel_output_digest }}
+          RELEASE_PHASE_EVIDENCE: ${{ runner.temp }}/release-deployment.json
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: node scripts/ci/migration-phase/record-deployment.mjs
+      - name: Upload verified deployment and expand ledger identity
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: migration-deployment-production-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-deployment.json
+          if-no-files-found: error
+          retention-days: 14
+  contract-production:
+    if: ${{ needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (inputs.target == 'production' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) && needs.expand-production.outputs.contract_required == 'true' }}
+    needs: [scope, deploy-production, expand-production]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: { name: production-migration-contract }
+    permissions: { contents: read, actions: read }
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v4
+        with: { persist-credentials: false }
+      - uses: pnpm/action-setup@0977fd99725f1db4007ccb2928dbb4e90d06cc86 # v6
+        with: { version: 10.28.2 }
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with: { node-version-file: '.nvmrc' }
+      - name: Install locked dependencies without lifecycle scripts
+        run: pnpm install --frozen-lockfile --ignore-scripts
+      - name: Run protected migration contract
+        id: phase
+        shell: bash
+        env:
+          RELEASE_ENVIRONMENT: production
+          RELEASE_PROTECTED_ENVIRONMENT: production-migration-contract
+          RELEASE_MIGRATION_URL: ${{ secrets.RELEASE_MIGRATION_URL }}
+          RELEASE_DATABASE_CA_BASE64: ${{ vars.RELEASE_DATABASE_CA_BASE64 }}
+          RELEASE_DATABASE_HOST: ${{ vars.RELEASE_DATABASE_HOST }}
+          RELEASE_DATABASE_ROLE_BYPASSES_RLS: ${{ vars.RELEASE_DATABASE_ROLE_BYPASSES_RLS }}
+          RELEASE_BACKEND_MARKER: ${{ vars.RELEASE_BACKEND_MARKER }}
+          RELEASE_PHASE_EVIDENCE: ${{ runner.temp }}/release-contract.json
+          RELEASE_DEPLOYMENT: ${{ needs.deploy-production.outputs.release }}
+          RELEASE_DRAIN_RECEIPT: ${{ vars.RELEASE_DRAIN_RECEIPT }}
+          RELEASE_DRAIN_REVIEWER_IDS: ${{ vars.RELEASE_DRAIN_REVIEWER_IDS }}
+          GITHUB_TOKEN: ${{ github.token }}
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ vars.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ vars.VERCEL_PROJECT_ID }}
+          VERCEL_AUTOMATION_BYPASS_SECRET: ${{ secrets.VERCEL_AUTOMATION_BYPASS_SECRET }}
+        run: pnpm exec tsx scripts/ci/migration-phase/run.mjs contract
+      - name: Upload migration contract evidence
+        if: always()
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: migration-contract-production-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/release-contract.json
+          if-no-files-found: error
+          retention-days: 14
   verify-production:
-    if: needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (inputs.target == 'production' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')))
-    needs: [scope, deploy-production]
+    if: ${{ !cancelled() && needs.scope.result == 'success' && needs.scope.outputs.deploy == 'true' && (inputs.target == 'production' || (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v'))) && needs.deploy-production.result == 'success' && needs.expand-production.result == 'success' && ((needs.expand-production.outputs.contract_required == 'true' && needs.contract-production.result == 'success') || (needs.expand-production.outputs.contract_required == 'false' && needs.contract-production.result == 'skipped')) }}
+    needs: [scope, expand-production, deploy-production, contract-production]
     runs-on: [self-hosted, interdomestik-mac]
     timeout-minutes: 20
     environment: { name: production, deployment: false }
@@ -392,7 +670,7 @@ jobs:
         if: always()
         uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: production-verification-${{ github.run_id }}
+          name: production-verification-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             ${{ env.EVIDENCE_DIR }}/logs/*
             ${{ env.EVIDENCE_DIR }}/notes/*

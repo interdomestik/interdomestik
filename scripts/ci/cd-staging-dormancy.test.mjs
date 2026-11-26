@@ -32,15 +32,18 @@ test('dispatch defaults to staging; production needs a v* tag or an explicit tar
     n => workflow.jobs[n].environment?.name === 'production'
   );
   assert.equal(names.length, 4);
-  const guards = names.map(name => workflow.jobs[name].if);
+  const guards = names
+    .filter(name => name !== 'verify-production')
+    .map(name => workflow.jobs[name].if);
   assert.equal(new Set(guards).size, 1);
+  assert.ok(workflow.jobs['verify-production'].if.includes(guards[0]));
   const admits = (event_name, ref, input, deploy = 'true') =>
     vm.runInNewContext(guards[0].replace(/startsWith\(([^,]+), /gu, '($1).startsWith('), {
       needs: { scope: { result: 'success', outputs: { deploy } } },
       github: { event_name, ref },
       inputs: { target: input },
     });
-  const branch = ['workflow_dispatch', 'refs/heads/x'];
+  const branch = ['workflow_dispatch', 'refs/heads/main'];
   const tag = ['workflow_dispatch', 'refs/tags/v3.2.1'];
   assert.deepEqual(
     [

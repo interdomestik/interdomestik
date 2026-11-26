@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 
 import { fetchVercelAttestation } from '../fetch-vercel-attestation.mjs';
 import { evaluateObservation } from './evaluate.mjs';
-import { readExpectedLedger } from './journal.mjs';
+import { expectedExpandPrefix, readExpectedLedger } from './journal.mjs';
 import { buildReceipt, receiptPathFor } from './receipt.mjs';
 import { STAGING_EXPECTATION } from './staging-expectation.mjs';
 
@@ -218,7 +218,20 @@ export async function collect(input) {
     requestTimeoutMs: timeoutMs = REQUEST_TIMEOUT_MS,
   } = input;
   const expectation = input.expectation ?? STAGING_EXPECTATION;
-  const { journalSha256, entries } = readExpectedLedger(root);
+  const journal = readExpectedLedger(root);
+  const { journalSha256 } = journal;
+  let entries = journal.entries;
+  let prefixInvalid = false;
+  if (input.expandManifest !== undefined) {
+    try {
+      entries = expectedExpandPrefix(journal, input.expandManifest, {
+        expectedSha,
+        runId: input.runId,
+      });
+    } catch {
+      prefixInvalid = true;
+    }
+  }
   const challenge = (input.randomBytesImpl ?? randomBytes)(32).toString('base64url');
   const context = {
     expectationSha256: createHash('sha256').update(JSON.stringify(expectation)).digest('hex'),
@@ -233,6 +246,7 @@ export async function collect(input) {
   const receipt = (failureCodes, observation = null) =>
     buildReceipt({ mode, failureCodes, context, observation });
 
+  if (prefixInvalid) return receipt(['COLLECTOR_INPUT_INVALID']);
   if (!isAllowedDeploymentHost(hostname)) return receipt(['COLLECTOR_INPUT_INVALID']);
   if (!SHA.test(expectedSha ?? '')) return receipt(['COLLECTOR_INPUT_INVALID']);
   if (!credentials?.email || !credentials?.password)
@@ -281,6 +295,7 @@ async function main() {
       email: env.RUNTIME_ATTESTATION_OBSERVER_EMAIL,
       password: env.RUNTIME_ATTESTATION_OBSERVER_PASSWORD,
     },
+    expandManifest: env.RUNTIME_ATTESTATION_EXPAND_MANIFEST,
     runId: env.GITHUB_RUN_ID,
     runAttempt: env.GITHUB_RUN_ATTEMPT,
   });
