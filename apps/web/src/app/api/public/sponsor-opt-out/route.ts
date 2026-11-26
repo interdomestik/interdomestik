@@ -39,7 +39,7 @@ export async function POST(request: Request): Promise<Response> {
     }
     const parsed = inputSchema.safeParse(await request.json().catch(() => null));
     if (!parsed.success) return result(false, 400);
-    const outcome = await optOutByToken(parsed.data.token, new Date());
+    const outcome = await optOutByToken(parsed.data.token);
     // Never return counts, identities, or distinguish unknown, expired and cleared tokens.
     return result(outcome.ok, outcome.ok ? 200 : 400);
   } catch {

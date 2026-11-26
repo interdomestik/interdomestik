@@ -103,9 +103,8 @@ export async function resolveSharePackTenant(
 /**
  * ACQ-3b §3.8: resolves the tenant and roster entry of one sponsor opt-out link. The caller passes
  * the hash of the presented token (the token is derived, never stored). A hash present on more
- * than one row never resolves; the opt-out itself re-reads the entry and acts only on its own
- * person and sponsor inside the tenant transaction. A cleared hash (revoked, or 30 days after the
- * term ended) cannot match.
+ * than one row never resolves. The opt-out re-reads the origin and checks expiry, revocation,
+ * consumption and identity inside the tenant transaction before acting on its person and sponsor.
  */
 export async function resolveSponsorOptOutTenant(
   tokenHash: string

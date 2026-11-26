@@ -64,7 +64,7 @@
     "./entity-migration-readiness": "./src/entity-migration-readiness/index.ts"
   },
   "scripts": {
-    "test:rls": "BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts src/port/individual-sale-age-boundary.rls.test.ts src/port/individual-sale-weekly-rate.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test --test-concurrency=1 test/exchange-rates-port.test.ts",
+    "test:rls": "BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts src/port/individual-sale-age-boundary.rls.test.ts src/port/individual-sale-weekly-rate.rls.test.ts src/sponsors/sponsor-privacy.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test --test-concurrency=1 test/exchange-rates-port.test.ts",
     "test:unit": "vitest run",
     "test:watch": "vitest",
     "type-check": "tsc --noEmit"
