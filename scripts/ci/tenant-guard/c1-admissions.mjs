@@ -130,46 +130,84 @@ const TX_LIFETIME_STAFF_DRAFT = successor(TX_LIFETIME_TRANSITION, {
   ],
 });
 
-export const C1_ADMISSIONS = deepFreeze([
-  DOCUMENTS_READ_RESTRICTION,
-  TX_LIFETIME_TRANSITION,
-  successor(DOCUMENTS_READ_RESTRICTION, {
-    id: 'documents-staff-draft-denial-2026-11',
+const DOCUMENTS_STAFF_DRAFT = successor(DOCUMENTS_READ_RESTRICTION, {
+  id: 'documents-staff-draft-denial-2026-11',
+  reason:
+    `${STAFF_DRAFT} The reviewed document-read restriction plus the staff draft denial: staff ` +
+    'are denied every document of a member draft or a claim without a lifecycle, after the ' +
+    'claimant-owner check and before the uploader, scope and grant paths, including the ' +
+    'polymorphic uploader entry. Tenant transactions, the case-grant fallback, storage and ' +
+    'audit boundaries are unchanged.',
+  rebind: {
+    [`${DOCUMENTS}/claim-document-access.ts`]: {
+      sha256: 'b51256fd3d404f08c550684d218d28eabbc4f9b6c9d550e1b62b6b5c82a8c0ef',
+    },
+    // Unchanged from the trusted comparator: bound for the bundle, admitted as no unit.
+    [`${DOCUMENTS}/agent-document-scope.ts`]: { units: [] },
+    [`${DOCUMENTS}/access-policy.ts`]: {
+      sha256: 'e3dbde4be395247019c12fe7410fee2c2a84c1eabd8b2a5e6106fe33c9114c68',
+      units: ['hasScopedClaimReadAccess', 'isStaffBlockedFromClaim'],
+    },
+    [`${DOCUMENTS}/document-access-reads.ts`]: {
+      sha256: 'adb7578ca3b0b8c8917502cce1bf9d129f100fe9a8a0b90f501bbff1f0644f36',
+    },
+  },
+  add: [
+    {
+      file: `${DOCUMENTS}/polymorphic-document-access.ts`,
+      sha256: '5e7c160ae08689a3dbff11721e351ebe4e6bd9c88b261893bcbf6c9641a4ba8c',
+      units: ['canReadPolymorphicDocument'],
+    },
+  ],
+  sinkEdges: [
+    {
+      file: `${DOCUMENTS}/polymorphic-document-access.ts`,
+      unit: 'canReadPolymorphicDocument',
+      sink: `${DOCUMENTS}/claim-document-access.ts#canReadPolymorphicClaimDocument`,
+    },
+  ],
+});
+
+const STORAGE_READ_AND_RECEIPT = {
+  ...successor(DOCUMENTS_STAFF_DRAFT, {
+    id: 'storage-read-and-inbound-receipt',
     reason:
-      `${STAFF_DRAFT} The reviewed document-read restriction plus the staff draft denial: staff ` +
-      'are denied every document of a member draft or a claim without a lifecycle, after the ' +
-      'claimant-owner check and before the uploader, scope and grant paths, including the ' +
-      'polymorphic uploader entry. Tenant transactions, the case-grant fallback, storage and ' +
-      'audit boundaries are unchanged.',
+      'Owner authorization 2026-11-26 and Astra combined Path-C design r2. Local and durable-grant ' +
+      'document reads validate the stored coordinates against the authorized home tenant and row family.',
     rebind: {
-      [`${DOCUMENTS}/claim-document-access.ts`]: {
-        sha256: 'b51256fd3d404f08c550684d218d28eabbc4f9b6c9d550e1b62b6b5c82a8c0ef',
-      },
-      // Unchanged from the trusted comparator: bound for the bundle, admitted as no unit.
-      [`${DOCUMENTS}/agent-document-scope.ts`]: { units: [] },
-      [`${DOCUMENTS}/access-policy.ts`]: {
-        sha256: 'e3dbde4be395247019c12fe7410fee2c2a84c1eabd8b2a5e6106fe33c9114c68',
-        units: ['hasScopedClaimReadAccess', 'isStaffBlockedFromClaim'],
-      },
       [`${DOCUMENTS}/document-access-reads.ts`]: {
-        sha256: 'adb7578ca3b0b8c8917502cce1bf9d129f100fe9a8a0b90f501bbff1f0644f36',
+        sha256: '352edfe724962a8ae816973a288134be74ff7723cba9f40e548c38ba3cc5fb6d',
+        units: ['readLocalDocumentAccess', 'readCrossGrantDocumentAccess', 'checkedDocumentAccess'],
       },
     },
     add: [
       {
-        file: `${DOCUMENTS}/polymorphic-document-access.ts`,
-        sha256: '5e7c160ae08689a3dbff11721e351ebe4e6bd9c88b261893bcbf6c9641a4ba8c',
-        units: ['canReadPolymorphicDocument'],
+        file: 'apps/web/src/lib/storage/tenant-prefix.ts',
+        sha256: '7ae75528a34da81729a028f52603a8b4e8e4d3b6de9b564615465d50408341ae',
+        units: ['assertTenantStoragePath', 'splitCanonicalStoragePath'],
+      },
+      {
+        file: `${DOCUMENTS}/document-access-model.ts`,
+        sha256: '35ead871895e34c3adcf85a462866f3229759125c3ec8824ab5ceaf26254364d',
+        units: ['getPolymorphicStorageFamily', 'getPolymorphicDocumentBucket'],
       },
     ],
     sinkEdges: [
       {
-        file: `${DOCUMENTS}/polymorphic-document-access.ts`,
-        unit: 'canReadPolymorphicDocument',
-        sink: `${DOCUMENTS}/claim-document-access.ts#canReadPolymorphicClaimDocument`,
+        file: `${DOCUMENTS}/document-access-reads.ts`,
+        unit: 'readCrossGrantDocumentAccess',
+        sink: `${DOCUMENTS}/cross-tenant-document-lookup.ts#lookupCrossGrantDoc`,
       },
     ],
   }),
+  requiresStorageReceiptBase: true,
+};
+
+export const C1_ADMISSIONS = deepFreeze([
+  DOCUMENTS_READ_RESTRICTION,
+  TX_LIFETIME_TRANSITION,
+  DOCUMENTS_STAFF_DRAFT,
+  STORAGE_READ_AND_RECEIPT,
   TX_LIFETIME_STAFF_DRAFT,
   successor(TX_LIFETIME_STAFF_DRAFT, {
     id: 'tx-lifetime-branch-manager-content-denial-2026-11',

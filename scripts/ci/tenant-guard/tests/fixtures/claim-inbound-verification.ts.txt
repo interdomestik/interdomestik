@@ -1,0 +1,35 @@
+import { sql } from 'drizzle-orm';
+
+import { dbAdmin } from './db';
+import { bindTenantTransactionPrincipal } from './free-start-drafts/context';
+import { readTenantAuthority, type TenantAuthority } from './tenant-authority';
+
+export async function recordClaimInboundObjectVerification(
+  authority: TenantAuthority,
+  observed: { decisionId: string; bucket: string; path: string; fileSize: number; sha256: string }
+): Promise<boolean> {
+  const { tenantId, accessTenantId, principal, purpose } = readTenantAuthority(authority);
+  if (purpose !== 'session' || tenantId !== accessTenantId || principal?.role !== 'staff') {
+    return false;
+  }
+
+  return dbAdmin.transaction(async tx => {
+    await tx.execute(sql`set local role interdomestik_wp12_verifier`);
+    await tx.execute(sql`set local row_security = on`);
+    await tx.execute(sql`select set_config('app.current_tenant_id', ${tenantId}, true)`);
+    await tx.execute(
+      sql`select set_config('app.current_access_tenant_id', ${accessTenantId}, true)`
+    );
+    await bindTenantTransactionPrincipal(tx, principal);
+    const rows = await tx.execute<{ recorded: boolean }>(sql`
+      select public.record_claim_inbound_object_verification(
+        ${observed.decisionId}::uuid, ${observed.bucket}::text, ${observed.path}::text,
+        ${observed.fileSize}::integer, ${observed.sha256}::text
+      ) as recorded
+    `);
+    if (rows.length !== 1 || typeof rows[0]?.recorded !== 'boolean') {
+      throw new Error('Unexpected inbound verification result');
+    }
+    return rows[0].recorded;
+  });
+}
