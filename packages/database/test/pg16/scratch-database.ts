@@ -25,7 +25,15 @@ export function scratchServerMissing(requiredBy: string): string | undefined {
 export async function withScratchDatabase<T>(
   prefix: string,
   work: (client: ScratchClient, maintenance: ScratchClient) => Promise<T>,
-  { maxConnections, loopbackOnly }: { maxConnections?: number; loopbackOnly?: boolean } = {}
+  {
+    maxConnections,
+    loopbackOnly,
+    requirePg16,
+  }: {
+    maxConnections?: number;
+    loopbackOnly?: boolean;
+    requirePg16?: boolean;
+  } = {}
 ): Promise<T> {
   const adminUrl = process.env.DATABASE_URL ?? '';
   if (loopbackOnly) {
@@ -35,6 +43,10 @@ export async function withScratchDatabase<T>(
   }
   const name = `${prefix}_${randomBytes(6).toString('hex')}`;
   return withDisposableClient(adminUrl, { applicationName: 'wp04_scratch_admin' }, async admin => {
+    if (requirePg16) {
+      const [{ server_version_num: version }] = await admin`SHOW server_version_num`;
+      if (!/^16\d{4}$/u.test(version)) throw new Error('Scratch test requires PostgreSQL 16');
+    }
     const scratchUrl = new URL(adminUrl);
     scratchUrl.pathname = `/${name}`;
     return withCreatedScratchDatabase(admin, name, () =>
