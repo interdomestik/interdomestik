@@ -86,8 +86,8 @@ async function proveInboundOccupancy(
 
   const polymorphicId = randomUUID();
   const encoded = assignedPath(claim, reservedId.replace('w', '%77'));
-  await admin`insert into documents (id, tenant_id, entity_type, entity_id, file_name, storage_path, uploaded_by, deleted_at)
-    values (${polymorphicId}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', ${encoded}, ${claim.user}, now())`;
+  await admin`insert into documents (id, tenant_id, entity_type, entity_id, file_name, mime_type, file_size, storage_path, uploaded_by, deleted_at)
+    values (${polymorphicId}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', 'application/pdf', 120, ${encoded}, ${claim.user}, now())`;
   await checkOccupancy();
   await admin`delete from documents where id = ${polymorphicId}`;
 }

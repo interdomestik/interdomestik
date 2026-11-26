@@ -188,8 +188,8 @@ GRANT UPDATE ("updatedAt") ON public."user" TO interdomestik_wp12_guard;
 GRANT SELECT (tenant_id, claim_id, id, bucket, file_path)
   ON public.claim_documents TO interdomestik_wp12_guard;
 --> statement-breakpoint
--- The public enrollment policy checks the visible case's access tenant.
-GRANT SELECT (tenant_id, id, access_tenant_id, branch_id) ON public.claim TO interdomestik_wp12_guard;
+-- The public enrollment policy checks the case's access tenant. The home guard also checks self-supply.
+GRANT SELECT (tenant_id, id, access_tenant_id, branch_id, "userId") ON public.claim TO interdomestik_wp12_guard;
 --> statement-breakpoint
 CREATE POLICY claim_inbound_pilot_cases_guard ON public.claim_inbound_pilot_cases
   FOR SELECT TO interdomestik_wp12_guard USING (true);
@@ -434,10 +434,15 @@ CREATE FUNCTION public.claim_inbound_document_home_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
   home_tenant text;
+  ordinary_document constant boolean := NEW.id NOT LIKE 'wp12-inbound-%'
+    AND NOT public.claim_inbound_reserved_path(NEW.file_path);
+  actor text := nullif(current_setting('app.current_actor_id', true), '');
+  actor_role text := nullif(current_setting('app.current_actor_role', true), '');
+  access_tenant text := current_setting('app.current_access_tenant_id', true);
 BEGIN
   -- Ordinary keys must take the lock even when the snapshot predates the enrollment row.
   -- The reserved publication path obtains its own update lock before it can succeed.
-  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NOT public.claim_inbound_reserved_path(NEW.file_path) THEN
+  IF ordinary_document THEN
     PERFORM c.id FROM public.claim AS c WHERE c.id = NEW.claim_id FOR SHARE;
   END IF;
   SELECT e.tenant_id INTO home_tenant
@@ -446,11 +451,15 @@ BEGIN
   IF home_tenant IS DISTINCT FROM NEW.tenant_id THEN
     RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot case document refused';
   END IF;
-  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NOT public.claim_inbound_reserved_path(NEW.file_path) AND (
-    current_setting('app.current_actor_role', true) IS NULL
-    OR current_setting('app.current_actor_role', true) NOT IN ('member', 'user', 'agent')
-    OR NEW.uploaded_by IS DISTINCT FROM current_setting('app.current_actor_id', true)
-    OR home_tenant IS DISTINCT FROM current_setting('app.current_access_tenant_id', true)
+  IF ordinary_document AND (
+    actor_role IS NULL OR actor_role NOT IN ('member', 'user', 'agent')
+    OR NEW.uploaded_by IS DISTINCT FROM actor
+    OR home_tenant IS DISTINCT FROM access_tenant
+    OR NOT EXISTS (
+      SELECT 1 FROM public.claim AS c
+      WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id
+        AND coalesce(c.access_tenant_id, c.tenant_id) = access_tenant AND c."userId" = actor
+    )
   ) THEN
     RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot case document refused';
   END IF;
@@ -506,16 +515,8 @@ DECLARE
   actor text := nullif(current_setting('app.current_actor_id', true), '');
   actor_role text := nullif(current_setting('app.current_actor_role', true), '');
 BEGIN
+  -- The home guard handles ordinary documents without requiring the writer to read enrollment.
   IF NEW.id NOT LIKE 'wp12-inbound-%' AND NOT public.claim_inbound_reserved_path(NEW.file_path) THEN
-    IF EXISTS (
-      SELECT 1 FROM public.claim_inbound_pilot_cases
-      WHERE tenant_id = NEW.tenant_id AND claim_id = NEW.claim_id AND enrolled_at IS NOT NULL
-    ) AND NOT EXISTS (
-      SELECT 1 FROM public.claim WHERE tenant_id = NEW.tenant_id AND id = NEW.claim_id
-        AND "userId" = actor
-    ) THEN
-      RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot case document refused';
-    END IF;
     RETURN NULL;
   END IF;
 

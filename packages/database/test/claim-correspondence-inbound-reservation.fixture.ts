@@ -227,6 +227,13 @@ export async function proveReservation(connections: Connection) {
   const [refused] = await admin`select count(*)::int as count from claim_documents
     where claim_id = ${claim.id} and tenant_id = ${foreignTenant}`;
   assert.equal(refused.count, 0);
+  await assert.rejects(
+    restricted(runtime, async tx => {
+      await setActor(tx, ownerB, 'member');
+      await insertDocument(tx, { ...documentInput(claim), uploaded_by: ownerB });
+    }),
+    wrongCase
+  );
   const own = { ...documentInput(claim), uploaded_by: ownerA };
   await restricted(runtime, async tx => {
     await setActor(tx, ownerA, 'member');
@@ -251,8 +258,8 @@ export async function proveReservation(connections: Connection) {
   await restricted(runtime, tx => insertDocument(tx, documentInput(other)));
 
   const alias = (tx: postgres.TransactionSql, id: string, path: string) => tx`insert into documents
-    (id, tenant_id, entity_type, entity_id, file_name, storage_path, uploaded_by)
-    values (${id}, ${homeTenant}, 'claim', ${other.id}, 'Fixture PDF', ${path}, ${homeActor})`;
+    (id, tenant_id, entity_type, entity_id, file_name, mime_type, file_size, storage_path, uploaded_by)
+    values (${id}, ${homeTenant}, 'claim', ${other.id}, 'Fixture PDF', 'application/pdf', 120, ${path}, ${homeActor})`;
 
   const unused = 'wp12-inbound-' + randomUUID().replaceAll('-', '');
   await assert.rejects(
@@ -333,8 +340,8 @@ export async function proveReservation(connections: Connection) {
     restricted(
       peer,
       tx => tx`insert into documents
-    (id, tenant_id, entity_type, entity_id, file_name, storage_path, uploaded_by)
-    values (${ordinaryId}, ${homeTenant}, 'claim', ${other.id}, 'Fixture PDF', ${assignedPath(other, ordinaryId)}, ${homeActor})
+    (id, tenant_id, entity_type, entity_id, file_name, mime_type, file_size, storage_path, uploaded_by)
+    values (${ordinaryId}, ${homeTenant}, 'claim', ${other.id}, 'Fixture PDF', 'application/pdf', 120, ${assignedPath(other, ordinaryId)}, ${homeActor})
     on conflict (id) do update set storage_path = ${document.file_path}, deleted_at = null`
     ),
     reserved
@@ -367,8 +374,8 @@ export async function provePolymorphicAliasMutation(
   // Both parent revisions accept the encoded basename, even before a pilot decision exists.
   const encoded = assignedPath(claim, '%77p12-inbound-' + 'a'.repeat(32));
   const insert = (tx: postgres.TransactionSql) => tx`insert into documents
-    (id, tenant_id, entity_type, entity_id, file_name, storage_path, uploaded_by)
-    values (${id}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', ${canonical}, ${homeActor})`;
+    (id, tenant_id, entity_type, entity_id, file_name, mime_type, file_size, storage_path, uploaded_by)
+    values (${id}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', 'application/pdf', 120, ${canonical}, ${homeActor})`;
   await restricted(runtime, async tx => {
     await insert(tx);
     if (mutation !== 'rekey') await tx`update documents set deleted_at = now() where id = ${id}`;
@@ -381,8 +388,8 @@ export async function provePolymorphicAliasMutation(
         return tx`update documents set deleted_at = null, storage_path = ${path} where id = ${id} returning id`;
       case 'upsert':
         // The insert arm uses an ordinary key. Only the conflict update introduces the alias.
-        return tx`insert into documents (id, tenant_id, entity_type, entity_id, file_name, storage_path, uploaded_by)
-          values (${id}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', ${canonical}, ${homeActor})
+        return tx`insert into documents (id, tenant_id, entity_type, entity_id, file_name, mime_type, file_size, storage_path, uploaded_by)
+          values (${id}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', 'application/pdf', 120, ${canonical}, ${homeActor})
           on conflict (id) do update set storage_path = ${path}, deleted_at = null returning id`;
     }
   };
@@ -407,7 +414,7 @@ export async function proveOrdinaryPathSegment({ admin, runtime }: Connection) {
   const document = documentInput(claim);
   await restricted(runtime, async tx => {
     await insertDocument(tx, document);
-    await tx`insert into documents (id, tenant_id, entity_type, entity_id, file_name, storage_path, uploaded_by)
-      values (${randomUUID()}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', ${document.file_path}, ${homeActor})`;
+    await tx`insert into documents (id, tenant_id, entity_type, entity_id, file_name, mime_type, file_size, storage_path, uploaded_by)
+      values (${randomUUID()}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', 'application/pdf', 120, ${document.file_path}, ${homeActor})`;
   });
 }

@@ -218,12 +218,12 @@
     },
     {
       "key": "function [\"public\",\"claim_inbound_document_home_guard_fn()\"]",
-      "value": "822c3f7b5407d7a2a1e71923dd22f356",
+      "value": "9ff535afbf383417b0e09dd018bb1df6",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
       "key": "function [\"public\",\"claim_inbound_document_publication_guard_fn()\"]",
-      "value": "581e90aa944f5d57c4b55995aad3fc3d",
+      "value": "4c4fec5c960408b8f012facab8f449e1",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {

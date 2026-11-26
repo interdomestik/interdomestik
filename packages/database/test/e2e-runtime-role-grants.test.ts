@@ -83,7 +83,7 @@ test('the E2E runtime role keeps the narrowed grants of the case register tables
 test('late E2E role provisioning preserves the WP-12.1 column grants and trigger isolation', async t => {
   const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
   if (missing) return t.skip(missing);
-  const role = `interdomestik_e2e_runtime_inbound_${suffix}`;
+  const role = `interdomestik_e2e_runtime_inbound${suffix}`;
   const expectedInserts = {
     claim_inbound_pilot_cases: [],
     claim_inbound_object_verifications: [],

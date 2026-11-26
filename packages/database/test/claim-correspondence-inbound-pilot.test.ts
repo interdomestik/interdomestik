@@ -142,11 +142,11 @@ async function proveReceivedSet(connections: Connection) {
   assert.ok(created.ok);
   assert.deepEqual(duplicate, created);
   assert.deepEqual(await write([second.id]), { ok: false, code: 'conflict' });
-  const rows =
-    await admin`select claim_document_id, created_at from claim_correspondence_received_documents
+  const rows = await admin`select claim_document_id, isfinite(created_at) as has_timestamp
+    from claim_correspondence_received_documents
     where correspondence_id = ${created.correspondenceId}`;
   assert.deepEqual(rows.map(row => row.claim_document_id).sort(), [...ids].sort());
-  assert.ok(rows.every(row => row.created_at instanceof Date));
+  assert.ok(rows.every(row => row.has_timestamp === true));
 }
 
 async function proveUnenrolledSeals({ admin, runtime }: Connection) {

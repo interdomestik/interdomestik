@@ -64,6 +64,7 @@ async function proveCitations(t: TestContext, connections: Connection) {
           ['claim_inbound_document_home_guard', 'O', true, true, true, false],
           ['claim_inbound_document_publication_guard', 'O', true, true, true, false],
           ['claim_inbound_document_scope_guard', 'O', true, true, false, true],
+          ['claim_inbound_staff_scope_guard', 'O', true, true, true, false],
         ]
       );
     }
