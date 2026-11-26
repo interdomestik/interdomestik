@@ -58,7 +58,12 @@ export async function withRuntime(
     const [{ present }] =
       await admin`select to_regclass('public.claim_inbound_object_verifications') is not null as present`;
     if (present) {
-      await admin.unsafe(`grant select on claim_inbound_object_verifications to ${roleSql}`);
+      await admin.unsafe(`grant select on claim_inbound_object_verifications to ${roleSql};
+        grant select (tenant_id, id, role, branch_id) on public."user" to ${roleSql};
+        grant execute on function public.claim_inbound_reserved_path(text),
+          public.claim_inbound_staff_branch_allowed(text, text),
+          public.claim_inbound_decision_visible(text, text, text, text, text, text, varchar, varchar),
+          public.claim_inbound_decision_deadline(timestamptz) to ${roleSql}`);
     }
     await withDisposableClient(
       runtimeUrl.toString(),

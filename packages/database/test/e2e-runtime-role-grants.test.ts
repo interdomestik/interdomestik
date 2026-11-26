@@ -4,7 +4,13 @@ import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import { provisionE2eRuntimeRole } from './e2e-runtime-role.fixture';
-import { migrateJournal, scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
+import { migrateJournalThrough } from './journal-prefix.support';
+import {
+  migrateJournal,
+  scratchServerMissing,
+  type ScratchClient,
+  withScratchDatabase,
+} from './pg16/scratch-database';
 
 const suffix = randomBytes(6).toString('hex');
 
@@ -80,7 +86,50 @@ test('the E2E runtime role keeps the narrowed grants of the case register tables
   });
 });
 
-test('late E2E role provisioning preserves the WP-12.1 column grants and trigger isolation', async t => {
+async function assertInboundFunctionGrants(admin: ScratchClient, role: string) {
+  const guard = 'interdomestik_wp12_guard';
+  const receiptWriter = 'interdomestik_wp12_receipt_writer';
+  const verifier = 'interdomestik_wp12_verifier';
+  const appRole = 'interdomestik_runtime_rls';
+  const [app] = await admin`select 1 from pg_roles where rolname = ${appRole}`;
+  const runtimeRoles = app ? [role, appRole] : [role];
+  const expectedGrants = {
+    'claim_inbound_reserved_path(text)': [...runtimeRoles, guard],
+    'claim_inbound_staff_branch_allowed(text,text)': runtimeRoles,
+    'claim_inbound_lock_staff_branch(text,text)': [receiptWriter],
+    'claim_inbound_decision_visible(text,text,text,text,text,text,varchar,varchar)': [
+      ...runtimeRoles,
+      guard,
+      receiptWriter,
+    ],
+    'claim_inbound_decision_deadline(timestamptz)': [...runtimeRoles, receiptWriter],
+    'record_claim_inbound_object_verification(uuid,text,text,integer,text)': [verifier],
+    'claim_inbound_enrollment_guard_fn()': [],
+    'claim_inbound_document_home_guard_fn()': [],
+    'claim_inbound_decision_guard_fn()': [],
+    'claim_inbound_document_publication_guard_fn()': [],
+    'claim_inbound_staff_scope_guard_fn()': [],
+    'claim_inbound_document_scope_guard_fn()': [],
+    'claim_inbound_polymorphic_guard_fn()': [],
+    'claim_inbound_owner_guard_fn()': [],
+    'claim_received_seal_guard_fn()': [],
+    'claim_received_document_guard_fn()': [],
+    'claim_received_set_count_fn()': [],
+  };
+  for (const [signature, grantees] of Object.entries(expectedGrants)) {
+    const [posture] = await admin<{ runtime_execute: boolean; grantees: string[] }[]>`select
+      has_function_privilege(${role}, p.oid, 'EXECUTE') as runtime_execute,
+      array(select coalesce(r.rolname::text, 'PUBLIC') || case when acl.is_grantable then '*' else '' end
+        from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) as acl
+        left join pg_roles as r on r.oid = acl.grantee
+        where acl.grantee <> p.proowner and acl.privilege_type = 'EXECUTE') as grantees
+      from pg_proc as p where p.oid = ${`public.${signature}`}::regprocedure`;
+    assert.deepEqual(posture.grantees.sort(), [...grantees].sort(), signature);
+    assert.equal(posture.runtime_execute, grantees.includes(role), signature);
+  }
+}
+
+test('late E2E role provisioning preserves the WP-12.1 function and column grants', async t => {
   const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
   if (missing) return t.skip(missing);
   const role = `interdomestik_e2e_runtime_inbound${suffix}`;
@@ -119,12 +168,17 @@ test('late E2E role provisioning preserves the WP-12.1 column grants and trigger
     ],
   };
   await withScratchDatabase('e2e_inbound_grants', async admin => {
-    await migrateJournal(admin, fileURLToPath(new URL('../drizzle', import.meta.url)));
+    const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
+    await migrateJournalThrough(admin, migrations, '0109_wp19_claim_documents_access_claim_id');
+    // Exercise installation-specific direct grants alongside PostgreSQL's PUBLIC default.
+    await admin`alter default privileges in schema public grant execute on functions to pg_read_all_data`;
+    await migrateJournal(admin, migrations);
     const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
     const scratchUrl = new URL(process.env.DATABASE_URL!);
     scratchUrl.pathname = `/${name}`;
     try {
       await provisionE2eRuntimeRole({ adminUrl: scratchUrl.toString(), env: {}, role });
+      await assertInboundFunctionGrants(admin, role);
       for (const [table, expected] of Object.entries(expectedInserts)) {
         const qualified = `public.${table}`;
         const [posture] = await admin`select relrowsecurity as rls, relforcerowsecurity as forced,

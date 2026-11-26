@@ -16,6 +16,15 @@ export function quoteIdentifier(identifier: string): string {
 
 export const quoteSqlLiteral = (value: string): string => `'${value.replaceAll("'", "''")}'`;
 
+/** Document writers on either side of migration 0110 use the same restricted test login. */
+export const grantInboundDocumentPathCheck = `do $$
+begin
+  if to_regprocedure('public.claim_inbound_reserved_path(text)') is not null then
+    grant execute on function public.claim_inbound_reserved_path(text) to ${quoteIdentifier(TEST_DB_ROLE)};
+  end if;
+end;
+$$`;
+
 function isPoolerConnection(databaseUrl: string): boolean {
   return /\.pooler\.supabase\.com$/iu.test(new URL(databaseUrl).hostname);
 }

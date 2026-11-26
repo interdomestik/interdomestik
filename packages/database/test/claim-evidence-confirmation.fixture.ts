@@ -19,7 +19,11 @@ import {
   user,
 } from '../src/schema';
 import { mintTestTenantAuthority } from '../src/testing/tenant-authority';
-import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
+import {
+  grantInboundDocumentPathCheck,
+  quoteIdentifier,
+  TEST_DB_ROLE,
+} from './rls-test-connection';
 import { grantRlsTestRole } from './rls-test-grants';
 import {
   KS_TENANT_ID,
@@ -101,6 +105,7 @@ export async function openEvidenceConfirmationFixture(t: TestContext) {
 
   await grantRlsTestRole(adminDb, [...evidenceTables, 'ai_runs']);
   await adminDb.execute(sql.raw(`grant insert on ${evidenceTables.join(', ')} to ${testRole}`));
+  await adminDb.execute(sql.raw(grantInboundDocumentPathCheck));
   await adminDb.execute(sql.raw(`grant update on claim_information_requests to ${testRole}`));
   const [login] = await dbRls.execute<{ role: string; login: string }>(
     sql`select current_user as role, session_user as login`

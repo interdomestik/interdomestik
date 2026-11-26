@@ -78,6 +78,14 @@ export async function grantE2eRuntimePrivileges(tx, role) {
     })
   );
 
+  if (tables.includes('public.claim_inbound_upload_decisions')) {
+    // Match 0110's runtime grants for the invoker policies, write guards and expiry query.
+    await tx.unsafe(`GRANT EXECUTE ON FUNCTION public.claim_inbound_reserved_path(text),
+      public.claim_inbound_staff_branch_allowed(text, text),
+      public.claim_inbound_decision_visible(text, text, text, text, text, text, varchar, varchar),
+      public.claim_inbound_decision_deadline(timestamptz) TO ${role}`);
+  }
+
   // In order on the one transaction connection: each REVOKE runs before its table's GRANT.
   const narrowed = Object.entries(NARROWED_TABLE_GRANTS)
     .filter(([table]) => tables.includes(`public.${table}`))

@@ -9,6 +9,7 @@ import {
 } from './claim-information-request-fulfilment.proof';
 import {
   applyRlsTestConnectionEnv,
+  grantInboundDocumentPathCheck,
   quoteIdentifier,
   quoteSqlLiteral,
   TEST_DB_PASSWORD,
@@ -41,6 +42,7 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
     await admin.unsafe(
       `grant select, insert, update, delete on "claim_information_requests", "claim_information_request_evidence", "claim_documents", "audit_log", "claim" to ${quoteIdentifier(TEST_DB_ROLE)}`
     );
+    await admin.unsafe(grantInboundDocumentPathCheck);
     await admin`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
       select value, 'tenant_ks', 'S4 fixture', value || '@example.test', true, 'staff', now(), now() from unnest(${ids}::text[]) as value`;
     for (const [id, tenantId, owner] of [

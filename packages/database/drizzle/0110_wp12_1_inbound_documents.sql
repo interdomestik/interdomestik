@@ -214,7 +214,7 @@ CREATE POLICY claim_inbound_guard_case_no_update ON public.claim
   AS RESTRICTIVE FOR UPDATE TO interdomestik_wp12_guard USING (true) WITH CHECK (false);
 --> statement-breakpoint
 CREATE FUNCTION public.claim_inbound_staff_branch_allowed(p_tenant text, p_branch text) RETURNS boolean
-LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
   SELECT p_tenant = current_setting('app.current_tenant_id', true)
     AND p_tenant = current_setting('app.current_access_tenant_id', true)
     AND current_setting('app.current_actor_role', true) = 'staff'
@@ -246,8 +246,6 @@ BEGIN
   RETURN FOUND;
 END;
 $$;
---> statement-breakpoint
-REVOKE ALL ON FUNCTION public.claim_inbound_lock_staff_branch(text, text) FROM PUBLIC;
 --> statement-breakpoint
 CREATE FUNCTION public.claim_inbound_decision_visible(
   p_tenant text, p_case text, p_decider text, p_uploader text, p_recipient text,
@@ -315,9 +313,6 @@ CREATE POLICY claim_inbound_receipt_writer_no_case_update ON public.claim
 GRANT SELECT (tenant_id, claim_id, enrolled_at, paused) ON public.claim_inbound_pilot_cases
   TO interdomestik_wp12_receipt_writer;
 --> statement-breakpoint
-GRANT EXECUTE ON FUNCTION public.claim_inbound_lock_staff_branch(text, text)
-  TO interdomestik_wp12_receipt_writer;
---> statement-breakpoint
 GRANT INSERT (decision_id) ON public.claim_inbound_object_verifications TO interdomestik_wp12_receipt_writer;
 --> statement-breakpoint
 CREATE POLICY claim_inbound_object_verifications_record ON public.claim_inbound_object_verifications
@@ -365,8 +360,6 @@ BEGIN
 END;
 $$;
 --> statement-breakpoint
-REVOKE ALL ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text) FROM PUBLIC;
---> statement-breakpoint
 REVOKE ALL ON public.claim_inbound_object_verifications FROM PUBLIC;
 --> statement-breakpoint
 DO $$
@@ -375,15 +368,11 @@ DECLARE
 BEGIN
   FOR api_role IN SELECT rolname FROM pg_catalog.pg_roles WHERE rolname IN ('anon', 'authenticated', 'service_role') LOOP
     EXECUTE format('REVOKE ALL ON public.claim_inbound_object_verifications FROM %I', api_role);
-    EXECUTE format('REVOKE ALL ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text) FROM %I', api_role);
   END LOOP;
 END;
 $$;
 --> statement-breakpoint
 GRANT USAGE ON SCHEMA public TO interdomestik_wp12_verifier;
---> statement-breakpoint
-GRANT EXECUTE ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text)
-  TO interdomestik_wp12_verifier;
 --> statement-breakpoint
 -- The direct pool uses the database admin login. Require an explicit SET ROLE for attestation.
 DO $$
@@ -469,8 +458,6 @@ $$;
 --> statement-breakpoint
 CREATE TRIGGER claim_inbound_document_home_guard AFTER INSERT ON public.claim_documents
   FOR EACH ROW EXECUTE FUNCTION public.claim_inbound_document_home_guard_fn();
---> statement-breakpoint
-REVOKE ALL ON FUNCTION public.claim_inbound_document_home_guard_fn() FROM PUBLIC;
 --> statement-breakpoint
 CREATE FUNCTION public.claim_inbound_decision_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
@@ -594,20 +581,6 @@ CREATE TRIGGER claim_inbound_staff_scope_guard AFTER INSERT ON public.claim_docu
   FOR EACH ROW WHEN (NEW.id LIKE 'wp12-inbound-%' OR public.claim_inbound_reserved_path(NEW.file_path))
   EXECUTE FUNCTION public.claim_inbound_staff_scope_guard_fn();
 --> statement-breakpoint
-REVOKE ALL ON FUNCTION public.claim_inbound_staff_scope_guard_fn() FROM PUBLIC;
---> statement-breakpoint
-DO $$
-DECLARE
-  runtime_role name;
-BEGIN
-  FOR runtime_role IN SELECT rolname FROM pg_catalog.pg_roles
-    WHERE rolname IN ('anon', 'authenticated', 'service_role', 'interdomestik_runtime_rls') LOOP
-    EXECUTE format('REVOKE ALL ON FUNCTION public.claim_inbound_lock_staff_branch(text, text),
-      public.claim_inbound_staff_scope_guard_fn() FROM %I', runtime_role);
-  END LOOP;
-END;
-$$;
---> statement-breakpoint
 CREATE FUNCTION public.claim_inbound_document_scope_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
@@ -656,8 +629,6 @@ $$;
 --> statement-breakpoint
 CREATE TRIGGER claim_inbound_owner_guard AFTER UPDATE ON public.claim
   FOR EACH ROW EXECUTE FUNCTION public.claim_inbound_owner_guard_fn();
---> statement-breakpoint
-REVOKE ALL ON FUNCTION public.claim_inbound_owner_guard_fn() FROM PUBLIC;
 --> statement-breakpoint
 CREATE FUNCTION public.claim_received_seal_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
@@ -745,16 +716,72 @@ CREATE TRIGGER claim_received_seals_immutable BEFORE UPDATE OR DELETE ON public.
 CREATE TRIGGER claim_received_documents_immutable BEFORE UPDATE OR DELETE ON public.claim_correspondence_received_documents
   FOR EACH ROW EXECUTE FUNCTION public.claim_register_reject_mutation_fn();
 --> statement-breakpoint
+-- Trigger bindings use the creator's EXECUTE privilege. The function owner retains its privilege.
+-- Remove PUBLIC and any installation-specific default grants before granting caller access.
+DO $$
+DECLARE
+  inbound_function regprocedure;
+  grantee name;
+BEGIN
+  FOREACH inbound_function IN ARRAY ARRAY[
+    'public.claim_inbound_reserved_path(text)',
+    'public.claim_inbound_staff_branch_allowed(text, text)',
+    'public.claim_inbound_lock_staff_branch(text, text)',
+    'public.claim_inbound_decision_visible(text, text, text, text, text, text, varchar, varchar)',
+    'public.claim_inbound_decision_deadline(timestamptz)',
+    'public.record_claim_inbound_object_verification(uuid, text, text, integer, text)',
+    'public.claim_inbound_enrollment_guard_fn()',
+    'public.claim_inbound_document_home_guard_fn()',
+    'public.claim_inbound_decision_guard_fn()',
+    'public.claim_inbound_document_publication_guard_fn()',
+    'public.claim_inbound_staff_scope_guard_fn()',
+    'public.claim_inbound_document_scope_guard_fn()',
+    'public.claim_inbound_polymorphic_guard_fn()',
+    'public.claim_inbound_owner_guard_fn()',
+    'public.claim_received_seal_guard_fn()',
+    'public.claim_received_document_guard_fn()',
+    'public.claim_received_set_count_fn()'
+  ]::regprocedure[] LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION %s FROM PUBLIC', inbound_function);
+    FOR grantee IN
+      SELECT r.rolname FROM pg_catalog.pg_proc AS p
+      CROSS JOIN LATERAL pg_catalog.aclexplode(p.proacl) AS acl
+      JOIN pg_catalog.pg_roles AS r ON r.oid = acl.grantee
+      WHERE p.oid = inbound_function AND acl.grantee <> p.proowner
+    LOOP
+      EXECUTE format('REVOKE ALL ON FUNCTION %s FROM %I', inbound_function, grantee);
+    END LOOP;
+  END LOOP;
+END;
+$$;
+--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION public.claim_inbound_reserved_path(text),
+  public.claim_inbound_decision_visible(text, text, text, text, text, text, varchar, varchar)
+  TO interdomestik_wp12_guard;
+--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION public.claim_inbound_lock_staff_branch(text, text),
+  public.claim_inbound_decision_visible(text, text, text, text, text, text, varchar, varchar),
+  public.claim_inbound_decision_deadline(timestamptz)
+  TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text)
+  TO interdomestik_wp12_verifier;
+--> statement-breakpoint
 REVOKE ALL ON public.claim_inbound_pilot_cases, public.claim_inbound_upload_decisions,
   public.claim_correspondence_received_seals, public.claim_correspondence_received_documents FROM PUBLIC;
 --> statement-breakpoint
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'interdomestik_runtime_rls') THEN
+    -- Invoker helpers run in the runtime's row policies, write guards and upload expiry query.
+    -- The branch check reads the live user row through the runtime's existing tenant RLS.
+    GRANT EXECUTE ON FUNCTION public.claim_inbound_reserved_path(text),
+      public.claim_inbound_staff_branch_allowed(text, text),
+      public.claim_inbound_decision_visible(text, text, text, text, text, text, varchar, varchar),
+      public.claim_inbound_decision_deadline(timestamptz)
+      TO interdomestik_runtime_rls;
     REVOKE ALL ON public.claim_inbound_object_verifications FROM interdomestik_runtime_rls;
     GRANT SELECT ON public.claim_inbound_object_verifications TO interdomestik_runtime_rls;
-    REVOKE ALL ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text)
-      FROM interdomestik_runtime_rls;
     REVOKE ALL ON public.claim_inbound_pilot_cases, public.claim_inbound_upload_decisions,
       public.claim_correspondence_received_seals, public.claim_correspondence_received_documents
       FROM interdomestik_runtime_rls;
@@ -789,7 +816,6 @@ BEGIN
     EXECUTE 'GRANT interdomestik_wp12_receipt_writer TO CURRENT_USER' || grant_options;
   END IF;
 
-  ALTER FUNCTION public.claim_inbound_staff_branch_allowed(text, text) OWNER TO interdomestik_wp12_guard;
   ALTER FUNCTION public.claim_inbound_lock_staff_branch(text, text) OWNER TO interdomestik_wp12_guard;
   ALTER FUNCTION public.claim_inbound_document_home_guard_fn() OWNER TO interdomestik_wp12_guard;
   ALTER FUNCTION public.claim_inbound_staff_scope_guard_fn() OWNER TO interdomestik_wp12_guard;

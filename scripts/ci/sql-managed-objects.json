@@ -258,7 +258,7 @@
     },
     {
       "key": "function [\"public\",\"claim_inbound_staff_branch_allowed(p_tenant text, p_branch text)\"]",
-      "value": "8a63ba548759375dfa73cd33db0aa8c0",
+      "value": "3b84e62c4ba91be518a191abb3492465",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
