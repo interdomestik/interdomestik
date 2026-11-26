@@ -15,11 +15,16 @@ export function rowsChain(rows: unknown[]) {
 export function orderedRowsChain(rows: unknown[]) {
   const orderBy = vi.fn().mockResolvedValue(rows);
   const where = vi.fn((_condition: unknown) => ({ orderBy }));
-  return { from: vi.fn(() => ({ where })), orderBy, where };
+  const innerJoin = vi.fn(() => ({ where }));
+  return { from: vi.fn(() => ({ where, innerJoin })), innerJoin, orderBy, where };
 }
 
 export const baseTenantId = 'tenant-mk';
-export const baseAuthority = mintTestTenantAuthority(baseTenantId);
+export const baseAuthority = mintTestTenantAuthority(baseTenantId, {
+  userId: 'member-1',
+  role: 'member',
+  branchId: null,
+});
 
 export const baseParams = {
   memberId: 'member-1',

@@ -44,14 +44,24 @@ describe('correspondence replies, follow-ups and reads', () => {
       [],
       [{ id: ids.outbound }],
       now,
+      [], // seal insert
       [{ id: ids.inbound }],
       admitted,
       [{ ...recorded, id: ids.inbound, direction: 'inbound', inReplyToId: ids.outbound }],
     ];
+    db.results.push([]); // exact-set replay lookup
     const success = { ok: true, correspondenceId: ids.inbound };
     expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
     expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
-    expect(db.statements.filter(item => item.kind === 'insert')).toHaveLength(1);
+    const writes = db.statements.filter(item => item.kind === 'insert');
+    expect(writes).toHaveLength(2);
+    expect(writes[0]?.values).toMatchObject({
+      documentCount: 0,
+      correspondenceId: expect.any(String),
+    });
+    expect(writes[1]?.values).toMatchObject({
+      id: (writes[0]?.values as { correspondenceId: string }).correspondenceId,
+    });
   });
 
   it('lower-cases UUID inputs so an identical upper-case retry replays', async () => {
@@ -68,6 +78,7 @@ describe('correspondence replies, follow-ups and reads', () => {
       [],
       [{ id: outbound }],
       now,
+      [], // seal insert
       [{ id: ids.inbound }],
       admitted,
       [
@@ -80,10 +91,19 @@ describe('correspondence replies, follow-ups and reads', () => {
         },
       ],
     ];
+    db.results.push([]); // exact-set replay lookup
     const success = { ok: true, correspondenceId: ids.inbound };
     expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
     expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
-    expect(db.statements.filter(item => item.kind === 'insert')).toHaveLength(1);
+    const writes = db.statements.filter(item => item.kind === 'insert');
+    expect(writes).toHaveLength(2);
+    expect(writes[0]?.values).toMatchObject({
+      documentCount: 0,
+      correspondenceId: expect.any(String),
+    });
+    expect(writes[1]?.values).toMatchObject({
+      id: (writes[0]?.values as { correspondenceId: string }).correspondenceId,
+    });
   });
 
   it('refuses a cross-case follow-up and detects a stale follow-up compare-and-set', async () => {

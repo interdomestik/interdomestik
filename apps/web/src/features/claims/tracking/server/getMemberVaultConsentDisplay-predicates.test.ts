@@ -21,6 +21,7 @@ import {
 
 const schema = vi.hoisted(() => ({
   tenants: { id: 'tenants.id', code: 'tenants.code', countryCode: 'tenants.countryCode' },
+  claims: { tenantId: 'claim.tenantId', id: 'claim.id', userId: 'claim.userId' },
   claimDocuments: {
     id: 'documents.id',
     tenantId: 'documents.tenantId',
@@ -99,6 +100,14 @@ describe('getMemberVaultConsentDisplay predicates', () => {
       items: [],
     });
     expect(hoisted.withTenantContext).toHaveBeenCalledWith(baseAuthority, expect.any(Function));
+    expect(documents.innerJoin).toHaveBeenCalledWith(schema.claims, {
+      op: 'and',
+      args: [
+        { op: 'eq', left: 'claim.tenantId', right: 'documents.tenantId' },
+        { op: 'eq', left: 'claim.id', right: 'documents.claimId' },
+        { op: 'eq', left: 'claim.userId', right: 'member-1' },
+      ],
+    });
     expect(documents.where).toHaveBeenCalledWith({
       op: 'and',
       args: [

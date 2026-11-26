@@ -1,9 +1,4 @@
-import {
-  and,
-  claimCorrespondence,
-  claimCorrespondenceDocuments,
-  eq,
-} from '@interdomestik/database';
+import { and, claimCorrespondenceDocuments, eq } from '@interdomestik/database';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
@@ -11,18 +6,23 @@ import { z } from 'zod';
 import {
   lockCaseForRegister,
   lockRegisterDocuments,
-  registerClaimInput,
+  normalizeRegisterInput,
   registerDecisionTime,
   registerFailure,
   registerForbidden,
-  registerText,
-  registerTimestamp,
   resolveRegisterWrite,
-  type LockedRegister,
-  registerUuid,
   retryRegisterDeadlock,
-  normalizeRegisterInput,
+  type LockedRegister,
 } from './case-register-access';
+import {
+  correspondenceInput,
+  entryFields,
+  findCorrelation,
+  insertEntry,
+  matchesEntry,
+  occurredTooLate,
+  type Entry,
+} from './correspondence-entry';
 import {
   lockOutboundAuthorities,
   outboundAuthorityFields,
@@ -35,17 +35,10 @@ export {
   setCorrespondenceFollowUp,
   setCorrespondenceFollowUpInputSchema,
 } from './correspondence-follow-up';
-
-const correspondenceInput = registerClaimInput.extend({
-  correlationId: registerUuid,
-  partyKind: z.enum(['insurer', 'bureau', 'other']),
-  partyOrganisation: registerText(200),
-  partyReference: registerText(200).nullish(),
-  partyContactName: registerText(200).nullish(),
-  channel: z.enum(['email', 'post', 'phone', 'portal', 'other']),
-  occurredAt: registerTimestamp,
-  body: registerText(4000),
-});
+export {
+  recordInboundCorrespondence,
+  recordInboundCorrespondenceInputSchema,
+} from './correspondence-inbound';
 
 export const recordOutboundCorrespondenceInputSchema = correspondenceInput.extend(
   outboundAuthorityFields.shape
@@ -53,42 +46,7 @@ export const recordOutboundCorrespondenceInputSchema = correspondenceInput.exten
 const outboundDecisionSchema =
   recordOutboundCorrespondenceInputSchema.refine(outboundSharingIsAttested);
 
-export const recordInboundCorrespondenceInputSchema = correspondenceInput.extend({
-  inReplyToId: registerUuid.nullish(),
-});
-
-type Inbound = z.infer<typeof recordInboundCorrespondenceInputSchema>;
 type Outbound = z.infer<typeof recordOutboundCorrespondenceInputSchema>;
-type Entry = typeof claimCorrespondence.$inferSelect;
-type EntryInsert = typeof claimCorrespondence.$inferInsert;
-
-function entryFields(input: Inbound | Outbound) {
-  return {
-    claimId: input.claimId,
-    correlationId: input.correlationId,
-    partyKind: input.partyKind,
-    partyOrganisation: input.partyOrganisation,
-    partyReference: input.partyReference ?? null,
-    partyContactName: input.partyContactName ?? null,
-    channel: input.channel,
-    occurredAt: new Date(input.occurredAt),
-    body: input.body,
-  };
-}
-
-function matchesEntry(row: Entry, input: Inbound | Outbound, actorId: string) {
-  const fields = entryFields(input);
-  return (
-    row.recordedByStaffId === actorId &&
-    row.partyKind === fields.partyKind &&
-    row.partyOrganisation === fields.partyOrganisation &&
-    row.partyReference === fields.partyReference &&
-    row.partyContactName === fields.partyContactName &&
-    row.channel === fields.channel &&
-    row.occurredAt.getTime() === fields.occurredAt.getTime() &&
-    row.body === fields.body
-  );
-}
 
 function matchesOutbound(row: Entry, input: Outbound) {
   return (
@@ -102,17 +60,12 @@ function matchesOutbound(row: Entry, input: Outbound) {
 
 async function replayEntry(
   { tx, tenantId, actorId }: LockedRegister,
-  input: Inbound | Outbound,
+  input: Outbound,
   row?: Entry
 ) {
   const conflict = { ok: false, code: 'conflict' } as const;
   if (!row || !matchesEntry(row, input, actorId)) return conflict;
   const success = { ok: true, correspondenceId: row.id } as const;
-  if (!('recoveryAuthorityId' in input)) {
-    return row.direction === 'inbound' && row.inReplyToId === (input.inReplyToId ?? null)
-      ? success
-      : conflict;
-  }
   if (!matchesOutbound(row, input)) return conflict;
   if (!input.sharedDocumentIds?.length) return success;
   const links = await tx
@@ -132,38 +85,6 @@ async function replayEntry(
   return links.length === requested.size && links.every(link => requested.has(link.documentId))
     ? success
     : conflict;
-}
-
-async function findCorrelation({ tx, tenantId }: LockedRegister, input: Inbound | Outbound) {
-  const [existing] = await tx
-    .select()
-    .from(claimCorrespondence)
-    .where(
-      withTenant(
-        tenantId,
-        claimCorrespondence.tenantId,
-        and(
-          eq(claimCorrespondence.claimId, input.claimId),
-          eq(claimCorrespondence.correlationId, input.correlationId)
-        )
-      )
-    );
-  return existing;
-}
-
-async function insertEntry({ tx }: LockedRegister, fields: EntryInsert) {
-  const [created] = await tx
-    .insert(claimCorrespondence)
-    .values(fields)
-    .onConflictDoNothing({
-      target: [claimCorrespondence.tenantId, claimCorrespondence.correlationId],
-    })
-    .returning({ id: claimCorrespondence.id });
-  return created;
-}
-
-function occurredTooLate(occurredAt: string, decisionAt: Date) {
-  return Date.parse(occurredAt) > decisionAt.getTime() + 5 * 60_000;
 }
 
 async function recordOutbound(context: LockedRegister, input: Outbound) {
@@ -232,66 +153,5 @@ export async function recordOutboundCorrespondence(
     } catch (error) {
       if (!retryRegisterDeadlock(error, attempt)) return registerFailure(error);
     }
-  }
-}
-
-async function canReply({ tx, tenantId }: LockedRegister, input: Inbound) {
-  if (!input.inReplyToId) return true;
-  const [parent] = await tx
-    .select({ id: claimCorrespondence.id })
-    .from(claimCorrespondence)
-    .where(
-      withTenant(
-        tenantId,
-        claimCorrespondence.tenantId,
-        and(
-          eq(claimCorrespondence.claimId, input.claimId),
-          eq(claimCorrespondence.id, input.inReplyToId),
-          eq(claimCorrespondence.direction, 'outbound')
-        )
-      )
-    )
-    .for('share');
-  return Boolean(parent);
-}
-
-async function recordInbound(context: LockedRegister, input: Inbound) {
-  const existing = await findCorrelation(context, input);
-  if (existing) return replayEntry(context, input, existing);
-  if (!(await canReply(context, input))) return { ok: false, code: 'invalid' } as const;
-  const decisionAt = await registerDecisionTime(context.tx);
-  if (occurredTooLate(input.occurredAt, decisionAt)) return { ok: false, code: 'invalid' } as const;
-  const created = await insertEntry(context, {
-    ...entryFields(input),
-    direction: 'inbound',
-    inReplyToId: input.inReplyToId ?? null,
-    recordedByStaffId: context.actorId,
-    tenantId: context.tenantId,
-  });
-  if (!created) return replayEntry(context, input, await findCorrelation(context, input));
-  return { ok: true, correspondenceId: created.id } as const;
-}
-
-export async function recordInboundCorrespondence(
-  session: ClaimsSession | null,
-  authority: TenantAuthority | null,
-  input: unknown
-) {
-  const access = resolveRegisterWrite(
-    session,
-    authority,
-    input,
-    recordInboundCorrespondenceInputSchema
-  );
-  if (!access.ok) return access;
-  const { tenantId, actor } = access;
-  const data = normalizeRegisterInput(access.data);
-  try {
-    return await withTenantAuthority(access.authority, async tx => {
-      if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor))) return registerForbidden;
-      return recordInbound({ tx, tenantId, actorId: actor.userId }, data);
-    });
-  } catch (error) {
-    return registerFailure(error);
   }
 }

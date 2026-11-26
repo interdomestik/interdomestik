@@ -26,6 +26,8 @@ import {
   type SelectedDocument,
 } from './ClaimCorrespondenceOutboundFields';
 
+import { ClaimReceivedDocumentPicker } from './ClaimReceivedDocumentPicker';
+
 const parties = ['insurer', 'bureau', 'other'] as const;
 const channels = ['email', 'post', 'phone', 'portal', 'other'] as const;
 
@@ -35,18 +37,21 @@ export function ClaimCorrespondenceForm({
   documents,
   entries,
   maxSharedDocuments,
+  inboundPilot = false,
 }: Readonly<{
   claimId: string;
   authorities: readonly CaseAuthorityEntry[];
   documents: readonly RegisterDocument[];
   entries: readonly ClaimCorrespondenceEntry[];
   maxSharedDocuments: number;
+  inboundPilot?: boolean;
 }>) {
   const t = useTranslations('staff-correspondence');
   const title = useId();
   const locale = useLocale();
   const [direction, setDirection] = useState('inbound');
   const [selectedDocuments, setSelectedDocuments] = useState<SelectedDocument[]>([]);
+  const [receivedDocuments, setReceivedDocuments] = useState<RegisterDocument[]>([]);
   const mutation = useRegisterMutation();
   const correlation = useRegisterCorrelation();
   const outbound = entries.filter(entry => entry.direction === 'outbound');
@@ -72,7 +77,12 @@ export function ClaimCorrespondenceForm({
         body: formText(data, 'body'),
       };
       if (direction === 'inbound') {
-        const input = { ...common, inReplyToId: formText(data, 'inReplyToId') || null };
+        const receivedDocumentIds = receivedDocuments.map(document => document.id).sort();
+        const input = {
+          ...common,
+          inReplyToId: formText(data, 'inReplyToId') || null,
+          ...(receivedDocumentIds.length ? { receivedDocumentIds } : {}),
+        };
         return recordInboundCorrespondence({
           ...input,
           correlationId: correlation.forInput(input),
@@ -97,6 +107,7 @@ export function ClaimCorrespondenceForm({
       correlation.clear();
       form.reset();
       setSelectedDocuments([]);
+      setReceivedDocuments([]);
     });
   }
 
@@ -165,6 +176,13 @@ export function ClaimCorrespondenceForm({
             {t('entry.body')}
             <Textarea name="body" rows={4} maxLength={4000} required />
           </label>
+          {direction === 'inbound' && inboundPilot && (
+            <ClaimReceivedDocumentPicker
+              claimId={claimId}
+              selection={receivedDocuments}
+              onSelectionChange={setReceivedDocuments}
+            />
+          )}
           {direction === 'outbound' && (
             <ClaimCorrespondenceOutboundFields
               authorities={authorities}

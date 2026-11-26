@@ -1,5 +1,7 @@
 'use server';
 
+import { isClaimUploadPaused } from '@/features/claims/upload/server/claim-upload-cutover';
+import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { actionFailure, defineAction } from '@/lib/safe-action';
 import {
   recordInboundCorrespondence as recordInbound,
@@ -9,6 +11,10 @@ import {
   setCorrespondenceFollowUp as setFollowUp,
   setCorrespondenceFollowUpInputSchema,
 } from '@interdomestik/domain-claims/claims/correspondence';
+import {
+  listReceivedDocumentOptions,
+  receivedPickerInput,
+} from '@interdomestik/domain-claims/claims/received-document-picker';
 import { ROLES } from '@interdomestik/shared-auth';
 import { withoutParameters } from './register-failure';
 
@@ -36,6 +42,13 @@ export const recordInboundCorrespondence = defineAction({
   subject: { type: 'claim', from: 'claimId' },
   input: recordInboundCorrespondenceInputSchema,
   async handler(input, { authority, session }) {
+    const { tenantId } = readTenantAuthority(authority);
+    if (
+      input.receivedDocumentIds?.length &&
+      (await isClaimUploadPaused(authority, tenantId, input.claimId))
+    ) {
+      return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });
+    }
     const result = await withoutParameters(
       recordInbound(session, authority, input),
       'correspondence insert'
@@ -63,5 +76,20 @@ export const setCorrespondenceFollowUp = defineAction({
       return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });
     }
     return actionFailure(result.code);
+  },
+});
+
+export const readReceivedDocumentOptions = defineAction({
+  name: 'staffClaims.readReceivedDocumentOptions',
+  basis: { kind: 'role', roles: [ROLES.staff] },
+  subject: { type: 'claim', from: 'claimId' },
+  input: receivedPickerInput,
+  async handler(input, { authority, session }) {
+    const result = await withoutParameters(
+      listReceivedDocumentOptions(session, authority, input),
+      'received document picker'
+    );
+    if (!result.ok) return actionFailure('FORBIDDEN', undefined, { conceal: 'NOT_FOUND' });
+    return { documents: result.documents, nextCursor: result.nextCursor };
   },
 });

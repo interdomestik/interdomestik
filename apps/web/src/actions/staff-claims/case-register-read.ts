@@ -45,7 +45,10 @@ export async function readStaffCaseRegister(
     ...new Set([
       ...(authorities.ok ? authorities.authorities.map(entry => entry.evidenceDocumentId) : []),
       ...(correspondence.ok
-        ? correspondence.entries.flatMap(entry => entry.sharedDocumentIds)
+        ? correspondence.entries.flatMap(entry => [
+            ...entry.sharedDocumentIds,
+            ...(entry.receivedDocumentIds ?? []),
+          ])
         : []),
     ]),
   ];
