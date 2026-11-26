@@ -109,7 +109,6 @@ describe.runIf(process.env.REQUIRE_PUBLIC_INTAKE_CONTRACT === '1')(
       const ownerUserId = randomUUID();
       const draftId = randomUUID();
       const email = `pilot-intake-${ownerUserId}@example.test`;
-      const acceptanceMembers = [{ id: ownerUserId, tenantId, email }];
       const leadEmail = `pilot-intake-lead-${ownerUserId}@example.test`;
       const password = 'Fixture-Password-Only1!';
       const reservations = inArray(commercialActionIdempotency.idempotencyKey, [
@@ -183,7 +182,7 @@ describe.runIf(process.env.REQUIRE_PUBLIC_INTAKE_CONTRACT === '1')(
           createdAt: now,
           updatedAt: now,
         });
-        await fixtureLegalAcceptance('seed', acceptanceMembers);
+        await fixtureLegalAcceptance('seed', [{ id: ownerUserId, tenantId, email }]);
         await dbAdmin.insert(account).values({
           id: randomUUID(),
           accountId: email,
@@ -276,7 +275,7 @@ describe.runIf(process.env.REQUIRE_PUBLIC_INTAKE_CONTRACT === '1')(
             await dbAdmin.delete(freeStartDrafts).where(ownedDrafts);
             await dbAdmin.delete(session).where(eq(session.userId, ownerUserId));
             await dbAdmin.delete(account).where(eq(account.userId, ownerUserId));
-            await fixtureLegalAcceptance('clean', acceptanceMembers);
+            await fixtureLegalAcceptance('clean', [{ id: ownerUserId, tenantId, email }]);
             await dbAdmin.delete(user).where(eq(user.id, ownerUserId));
             await dbAdmin.delete(tenantSettings).where(
               inArray(
