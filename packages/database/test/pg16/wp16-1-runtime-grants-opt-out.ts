@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import type postgres from 'postgres';
+import { optOutTokenHash } from '../../../domain-membership-billing/src/sponsors/roster-crypto';
 import { withDisposableClient } from '../../src/disposable-client';
 import { sponsorRuntimeRole } from '../../src/release-sponsor-checkpoint';
 import { insert, MID, row, uid, type Scope } from '../sponsor-seed.test-support';
@@ -28,7 +29,8 @@ export async function proveSponsorOptOut(
   owner: ScratchClient,
   database: string,
   a: Scope,
-  b: Scope
+  b: Scope,
+  token: string
 ) {
   const url = new URL(process.env.DATABASE_URL!);
   url.pathname = `/${database}`;
@@ -59,24 +61,17 @@ export async function proveSponsorOptOut(
           process.env.DB_RLS_ROLE = sponsorRuntimeRole;
           process.env.REQUIRE_RLS_INTEGRATION = '1';
           try {
-            const { optOutTokenHash } =
-              await import('../../../domain-membership-billing/src/sponsors/roster-crypto');
             const { optOutByToken } =
               await import('../../../domain-membership-billing/src/sponsors/opt-out');
             await proveSponsorJourneys(owner, a);
             await admin`select current_user`;
-            const token = uid();
             const hash = optOutTokenHash(token);
-            await owner`update sponsor_roster_entries set optout_token_hash = ${hash}
-          where id = ${a.sponsor_roster_entries}`;
             const [posture] = await runtime`select current_user as role,
           nullif(current_setting('app.current_access_tenant_id', true), '') as tenant`;
             assert.deepEqual(posture, { role: sponsorRuntimeRole, tenant: null });
-            assert.deepEqual(
-              await runtime`select id from sponsor_roster_entries
-          where optout_token_hash = ${hash}`,
-              []
-            );
+            const visible = await runtime`select id from sponsor_roster_entries
+          where optout_token_hash = ${hash}`;
+            assert.equal(visible.length, 0);
             const otherBefore = await targetSnapshot(owner, b.tenant);
 
             // Observe the actual write transaction in PostgreSQL, independently of the query trace.
@@ -137,15 +132,13 @@ export async function proveSponsorOptOut(
             const [origin] = await owner`select revoked_reason, opted_out_at is not null as consumed
           from sponsor_roster_entries where id = ${a.sponsor_roster_entries}`;
             assert.deepEqual(origin, { revoked_reason: 'opted_out', consumed: true });
-            assert.deepEqual(
-              await owner`select kind from sponsor_mail_outbox
-          where roster_entry_id = ${a.sponsor_roster_entries} and kind = 'opt_out_confirmation'`,
-              [{ kind: 'opt_out_confirmation' }]
-            );
+            const confirmations = await owner`select kind from sponsor_mail_outbox
+          where roster_entry_id = ${a.sponsor_roster_entries} and kind = 'opt_out_confirmation'`;
+            assert.deepEqual([...confirmations], [{ kind: 'opt_out_confirmation' }]);
             assert.deepEqual(await targetSnapshot(owner, b.tenant), otherBefore);
             assert.deepEqual(await optOutByToken(token, new Date(MID)), { ok: false });
 
-            // Change the token after the command resolves it and reads the binding, while the
+            // Clear the token after the command resolves it and reads the binding, while the
             // production transaction waits for the same identity lock. Only the locked reread
             // can detect this change.
             const changedToken = uid();
@@ -173,20 +166,20 @@ export async function proveSponsorOptOut(
                   throw new Error('Opt-out completed before the identity lock');
                 }),
               ]);
-              await tx`update sponsor_roster_entries set optout_token_hash = ${optOutTokenHash(uid())}
+              await tx`update sponsor_roster_entries set optout_token_hash = null
             where id = ${newEntry.id}`;
             });
             assert.deepEqual(await attempt, { ok: false });
+            const unchanged =
+              await owner`select opted_out_at, revoked_at, optout_token_hash from sponsor_roster_entries
+          where id = ${newEntry.id}`;
             assert.deepEqual(
-              await owner`select opted_out_at, revoked_at from sponsor_roster_entries
-          where id = ${newEntry.id}`,
-              [{ opted_out_at: null, revoked_at: null }]
+              [...unchanged],
+              [{ opted_out_at: null, revoked_at: null, optout_token_hash: null }]
             );
-            assert.deepEqual(
-              await owner`select id from sponsor_mail_outbox
-          where roster_entry_id = ${newEntry.id}`,
-              []
-            );
+            const queued =
+              await owner`select id from sponsor_mail_outbox where roster_entry_id = ${newEntry.id}`;
+            assert.equal(queued.length, 0);
           } finally {
             delete clients.queryClientAdmin;
             delete clients.queryClientRls;

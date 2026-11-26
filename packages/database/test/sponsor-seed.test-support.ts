@@ -122,7 +122,11 @@ export function row(s: Scope, table: Table, fresh = false): Row {
   };
   return rows[table];
 }
-export async function seedSponsorRows(admin: postgres.Sql, s: Scope): Promise<void> {
+export async function seedSponsorRows(
+  admin: postgres.Sql,
+  s: Scope,
+  rosterTokenHash?: string
+): Promise<void> {
   const entity = { legal_name: 'Test', country_code: 'XK' };
   await insert(admin, 'tenants', { ...entity, id: s.tenant, name: s.tenant });
   const tenant = { tenant_id: s.tenant };
@@ -173,7 +177,13 @@ export async function seedSponsorRows(admin: postgres.Sql, s: Scope): Promise<vo
     plan_id: 'standard',
     provider: 'paddle',
   });
-  await serial(TABLES, table => insert(admin, table, row(s, table)));
+  await serial(TABLES, table => {
+    const values = row(s, table);
+    if (table === 'sponsor_roster_entries' && rosterTokenHash !== undefined) {
+      values.optout_token_hash = rosterTokenHash;
+    }
+    return insert(admin, table, values);
+  });
   await insert(admin, 'sponsor_term_revisions', {
     ...row(s, 'sponsor_term_revisions'),
     id: s.pendingRevision,
@@ -182,8 +192,12 @@ export async function seedSponsorRows(admin: postgres.Sql, s: Scope): Promise<vo
 }
 
 /** Seeds one synthetic tenant in a caller-owned disposable database. */
-export async function seedSponsorScope(admin: postgres.Sql, tenantId?: string): Promise<Scope> {
+export async function seedSponsorScope(
+  admin: postgres.Sql,
+  tenantId?: string,
+  rosterTokenHash?: string
+): Promise<Scope> {
   const s = createSponsorScope(tenantId);
-  await seedSponsorRows(admin, s);
+  await seedSponsorRows(admin, s, rosterTokenHash);
   return s;
 }

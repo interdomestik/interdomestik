@@ -24,7 +24,7 @@ A later migration cannot satisfy the unchanged 0105 privilege predicate. This ch
 ## Migration notes and evidence
 
 - The WP-15 release step supplies its session-pinned owner connection, a Drizzle session on that connection, closed-target evidence, the approved effective ACL baseline and runtime verification to `runSponsorReleaseMigrations`. Keep the application and jobs closed until it returns with the full verified ledger and successful attestation. The runner supports a fresh target and an already-migrated target with a verified post-0105 ledger. Review and reconcile any prior missed or additional privileges against the WP-15 baseline.
-- Preserve the verified target identity, ledger hashes and timestamps, owner and role posture, database and schema access, membership and creator defaults. Store the before-checkpoint and before-trailing ACL reports, the ten checkpoint results, the after-trailing report and any retry or reversal under the release target's evidence. Include direct table and column ACLs with grantors and grant options, effective privileges and grant options, and trigger definitions.
+- Preserve the verified target identity, ledger hashes and timestamps, owner and role posture, database and schema access, membership and creator defaults. Store the before-checkpoint ACL report, the ten checkpoint results with their transaction ID, and any retry or reversal under the release target's evidence. Store the ACL reports at the verified journal boundaries immediately before and after 0110. Preserve this preimage across retries. Include direct table and column ACLs with grantors and grant options, effective privileges and grant options, and trigger definitions.
 - Record the actual additions and removals for each phase. For each removed legacy `UPDATE(id)`, record the role, grantor and previous grant option and mark the replacement as added or already present. Record each guard separately. Report the live evidence for the relevant PostgreSQL 16 lane, its exit status, denied SQLSTATEs and runtime current-user and tenant results. Attach the exact implementation review after those checks.
 - The PG16 proof uses the checked-in journal and isolated fixture dependencies. WP-15's approved ACL artifact and live deployment binding are required for release attestation. The fixture grants confer no release authority. PG16 and target evidence are pending.
 
@@ -34,7 +34,7 @@ A later migration cannot satisfy the unchanged 0105 privilege predicate. This ch
 
 **Privilege rollback after 0105.** Close affected traffic and jobs. Apply a new forward migration that reverses only the target's recorded ACL delta. Preserve the 0105 prerequisites and previously approved grants. Restore each removed legacy privilege with its recorded grantor and grant option. Revoke a replacement only if the original migration added it. Keep a lock guard for as long as the corresponding runtime ID-update privilege is effective. Fresh-build rollback treats all ten checkpoint grants, including `sponsor_terms.terminated_at` and `sponsor_roster_entries.outcome`, as prior grants. Legacy rollback uses the applicable target preimage. Keep the target closed while rehearsing restored legacy access.
 
-**Abandonment at 0104.** Give `abandonSponsorCheckpoint` the before and checked evidence for the same attempt and target. It verifies the unchanged 0104 ledger and current ACL, reverses the attempt's recorded additions, and records the restored ACL. Keep the abandoned database closed.
+**Abandonment at 0104.** Give `abandonSponsorCheckpoint` the before and checked evidence for the same attempt and target. It verifies their shared transaction ID and committed status, the unchanged 0104 ledger, and the current ACL before reversing the attempt's recorded additions. PostgreSQL retains commit status for recent transactions. If status is unavailable, abandonment refuses. Keep the abandoned database closed and record the restored ACL.
 
 For each recovery path record the resulting ACL, guards, applied ledger and restricted-role outcomes. Require the serving application's approved ACL before reopening.
 
@@ -43,7 +43,7 @@ For each recovery path record the resulting ACL, guards, applied ledger and rest
 Use the isolated PostgreSQL 16 service configuration from the corresponding CI job. The advisory lane requires a separately fresh `interdomestik_test` database. Run these commands from the repository root.
 
 ```sh
-DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test \
+CI=true DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test \
   REQUIRE_JOURNAL_SCHEMA_PARITY=1 pnpm db:journal:parity
 
 CI=true DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test \

@@ -35,11 +35,12 @@ export function readReleaseJournal(migrationsFolder: string) {
 export async function verifiedReleaseLedger(sql: ReleaseSql, journal: readonly MigrationMeta[]) {
   const catalog = await inspectMigrationLedgerCatalog(sql);
   if (catalog === 'table_absent') throw new Error('Incomplete Drizzle ledger catalog');
+  // Preserve integer key order when returning text IDs for evidence.
   const rows =
     catalog === 'table_present'
       ? await sql<LedgerRow[]>`
-    select id::text, hash, created_at::text
-    from drizzle.__drizzle_migrations order by id limit ${journal.length + 1}
+    select ledger.id::text, ledger.hash, ledger.created_at::text
+    from drizzle.__drizzle_migrations as ledger order by ledger.id limit ${journal.length + 1}
   `
       : [];
   for (const [index, row] of rows.entries()) {
@@ -52,7 +53,7 @@ export async function verifiedReleaseLedger(sql: ReleaseSql, journal: readonly M
       throw new Error(`Drizzle ledger differs from the journal at position ${index}`);
     }
   }
-  return rows;
+  return [...rows];
 }
 
 export async function applyReleaseJournal(

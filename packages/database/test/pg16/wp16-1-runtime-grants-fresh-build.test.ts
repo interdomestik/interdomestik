@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { fileURLToPath } from 'node:url';
 import test from 'node:test';
 import { drizzle } from 'drizzle-orm/postgres-js';
+import { optOutTokenHash } from '../../../domain-membership-billing/src/sponsors/roster-crypto';
 import { withDisposableClient, withDisposableCleanup } from '../../src/disposable-client';
 import {
   applyReleaseJournal,
@@ -21,7 +22,7 @@ import {
   abandonSponsorCheckpoint,
   runSponsorReleaseMigrations,
 } from '../../src/release-sponsor-migrations';
-import { seedSponsorScope } from '../sponsor-seed.test-support';
+import { seedSponsorScope, uid } from '../sponsor-seed.test-support';
 import { scratchServerMissing, withScratchDatabase, type ScratchClient } from './scratch-database';
 import { proveForwardAclRollback } from './wp16-1-runtime-grants-rollback';
 import { proveSponsorOptOut } from './wp16-1-runtime-grants-opt-out';
@@ -167,19 +168,34 @@ test('WP-16.1 release builds and reconciles the PG16 runtime grant journal', asy
                 await client`drop table public.notification_deliveries`;
                 const [before, verified] = checkpoint;
                 assert.equal(before.checks.filter(row => row.direct.length > 0).length, 0);
-                const finished = await runSponsorReleaseMigrations(client, options);
+                await assert.rejects(
+                  runSponsorReleaseMigrations(client, {
+                    ...options,
+                    async recordAcl({ phase, target }) {
+                      if (phase === 'before-trailing') {
+                        assert.equal(target.ledger.length, journal.length - 1);
+                        throw new Error('pre-0110 recording failed');
+                      }
+                    },
+                  }),
+                  /pre-0110 recording failed/u
+                );
                 const [, , retryBefore, retryVerified] = checkpoint;
+                assert.notEqual(retryBefore.attemptId, before.attemptId);
                 assert.deepEqual(retryBefore.checks, verified.checks);
                 assert.deepEqual(retryVerified.checks, verified.checks);
+                const finished = await runSponsorReleaseMigrations(client, options);
+                assert.equal(checkpoint.length, 4);
                 assert.deepEqual(finished.ledger.slice(0, prefix), before.target.ledger);
                 assert.equal(finished.ledger.length, journal.length);
                 const final = acl.find(entry => entry.phase === 'after-trailing');
                 assert.ok(final);
                 freshAcl = withoutGrantor(final.acl);
-                const a = await seedSponsorScope(client);
+                const token = uid();
+                const a = await seedSponsorScope(client, undefined, optOutTokenHash(token));
                 const b = await seedSponsorScope(client);
                 await proveSponsorRuntimeDenials(client, a, b);
-                await proveSponsorOptOut(client, database, a, b);
+                await proveSponsorOptOut(client, database, a, b, token);
               });
             }
           );
@@ -192,22 +208,68 @@ test('WP-16.1 release builds and reconciles the PG16 runtime grant journal', asy
                 await assert.rejects(
                   runSponsorReleaseMigrations(client, {
                     ...options,
-                    async recordAcl(evidence) {
-                      if (evidence.phase === 'before-trailing')
-                        throw new Error('abandonment rehearsal');
+                    async recordCheckpoint(evidence) {
+                      await options.recordCheckpoint(evidence);
+                      if (evidence.phase === 'checkpoint-checked')
+                        throw new Error('abort checkpoint after recording');
                     },
                   }),
-                  /abandonment rehearsal/u
+                  /abort checkpoint after recording/u
                 );
-                const [before, verified] = checkpoint;
+                await client`grant update ("updatedAt") on public.claim to ${client(sponsorRuntimeRole)}`;
+                await client`create table public.notification_deliveries (test_blocker int)`;
+                for (let attempt = 0; attempt < 2; attempt += 1) {
+                  await assert.rejects(
+                    runSponsorReleaseMigrations(client, options),
+                    (error: unknown) => migrationCause(error)?.code === '42P07'
+                  );
+                }
+                const [abortedBefore, abortedChecked, before, verified, retryBefore, retryChecked] =
+                  checkpoint;
+                assert.equal(before.attemptId, verified.attemptId);
+                assert.notEqual(verified.attemptId, retryChecked.attemptId);
+                assert.deepEqual(retryBefore.checks, verified.checks);
+                assert.deepEqual(retryChecked.checks, verified.checks);
+                assert.deepEqual(abortedChecked.checks, verified.checks);
+                assert.deepEqual(
+                  before.checks.filter(row => row.direct.length),
+                  [before.checks[0]]
+                );
+                assert.equal(before.checks[0].relation, 'claim');
+                await assert.rejects(
+                  abandonSponsorCheckpoint(client, options, {
+                    before: abortedBefore,
+                    verified: abortedChecked,
+                  }),
+                  /requires a committed checkpoint attempt/u
+                );
+                await assert.rejects(
+                  abandonSponsorCheckpoint(client, options, { before, verified: retryChecked }),
+                  /requires the recorded attempt and its verified 0104 ledger/u
+                );
                 await abandonSponsorCheckpoint(client, options, { before, verified });
-                const reversed = checkpoint[2];
+                const reversed = checkpoint.at(-1);
+                assert.ok(reversed);
                 assert.equal(reversed.phase, 'checkpoint-reversed');
+                assert.equal(reversed.attemptId, before.attemptId);
                 assert.deepEqual(reversed.checks, before.checks);
                 assert.deepEqual(reversed.target.ledger, before.target.ledger);
               });
             }
           );
+
+          await t.test('fresh rollback preserves the 0106 guard and ACL', async () => {
+            await withGrantsScratch(async (client, database) => {
+              const { options, acl } = scratchOptions(database);
+              const finished = await runSponsorReleaseMigrations(client, options);
+              const [, before, after] = acl;
+              assert.equal(before.phase, 'before-trailing');
+              assert.equal(after.phase, 'after-trailing');
+              assert.deepEqual(before.target.ledger, finished.ledger.slice(0, -1));
+              assert.deepEqual(after.target.ledger, finished.ledger);
+              await proveForwardAclRollback(client, migrationsFolder, before.acl, after.acl);
+            });
+          });
 
           await t.test(
             'verified legacy prefix converges on all checkpoint and sponsor relations',

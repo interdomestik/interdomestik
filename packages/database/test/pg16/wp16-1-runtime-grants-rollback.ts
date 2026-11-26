@@ -35,7 +35,7 @@ export async function proveForwardAclRollback(
         statements.push(`REVOKE ${addition} (${name}) ON ${quoted} FROM ${runtime} RESTRICT`);
       }
       for (const removal of column.effective.filter(p => !effective.includes(p))) {
-        // This synthetic legacy fixture recorded only direct owner grants with no grant option.
+        // The scratch preimage records only direct owner grants with no grant option.
         assert.equal(removal, 'UPDATE');
         assert.match(column.acl ?? '', /interdomestik_runtime_rls=w\//u);
         statements.push(`GRANT UPDATE (${name}) ON ${quoted} TO ${runtime}`);
@@ -69,6 +69,17 @@ export async function proveForwardAclRollback(
     assert.deepEqual(ledger.slice(0, -1), priorLedger);
     assert.equal(ledger.length, priorLedger.length + 1);
     const restored = await inspectReleaseSponsorAcl(sql);
+    const claimGuard = before
+      .find(table => table.relation === 'claim')
+      ?.triggers.find(trigger => trigger.name === 'claim_intake_category_guard');
+    assert.ok(claimGuard);
+    assert.equal(claimGuard.enabled, 'O');
+    assert.deepEqual(
+      restored
+        .find(table => table.relation === 'claim')
+        ?.triggers.find(t => t.name === claimGuard.name),
+      claimGuard
+    );
     for (const [index, table] of restored.entries()) {
       const expected = before[index];
       assert.equal(table.relation, expected.relation);

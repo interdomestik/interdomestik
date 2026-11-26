@@ -93,12 +93,11 @@ async function asRuntime(
 export async function proveSponsorRuntimeDenials(client: ScratchClient, a: Scope, b: Scope) {
   for (const tenant of [null, b.tenant]) {
     await asRuntime(client, tenant, async tx => {
-      assert.deepEqual(await tx`select id from sponsors where id = ${a.sponsors} for update`, []);
-      assert.deepEqual(
-        await tx`update sponsor_mail_outbox set attempts = 1
-        where id = ${a.sponsor_mail_outbox} returning id`,
-        []
-      );
+      const locked = await tx`select id from sponsors where id = ${a.sponsors} for update`;
+      assert.equal(locked.length, 0);
+      const updated = await tx`update sponsor_mail_outbox set attempts = 1
+        where id = ${a.sponsor_mail_outbox} returning id`;
+      assert.equal(updated.length, 0);
       await assert.rejects(
         tx.savepoint(sp => insert(sp, 'sponsors', row(a, 'sponsors', true))),
         state('42501')

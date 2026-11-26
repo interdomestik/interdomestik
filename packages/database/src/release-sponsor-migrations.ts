@@ -28,6 +28,7 @@ type Target = {
 };
 type CheckpointEvidence = {
   phase: 'before-checkpoint' | 'checkpoint-checked' | 'checkpoint-reversed';
+  attemptId: string;
   target: Target;
   checks: CheckpointCheck[];
 };
@@ -111,6 +112,9 @@ async function withReleaseLock<T>(
 export async function runSponsorReleaseMigrations(client: OwnerClient, options: Options) {
   const journal = readReleaseJournal(options.migrationsFolder);
   const checkpoint = checkpointPosition(journal);
+  const trailing = journal.findIndex(entry => entry.tag === '0110_wp16_1_sponsor_runtime_grants');
+  if (trailing <= checkpoint)
+    throw new Error('Sponsor grants migration is missing or out of order');
   return withReleaseLock(client, async sql => {
     let target = await inspectTarget(sql, options.database, journal);
     await options.assertClosedTargetAndBaseline(sql, target);
@@ -134,33 +138,57 @@ export async function runSponsorReleaseMigrations(client: OwnerClient, options: 
         target,
         acl: await inspectReleaseSponsorAcl(sql),
       });
-      const before = await inspectSponsorCheckpoint(sql);
-      await options.recordCheckpoint({ phase: 'before-checkpoint', target, checks: before });
       await inReleaseTransaction(sql, async tx => {
+        const [{ attemptId }] = await tx<{ attemptId: string }[]>`
+          select pg_catalog.pg_current_xact_id()::text as "attemptId"
+        `;
+        const before = await inspectSponsorCheckpoint(tx);
+        await options.recordCheckpoint({
+          phase: 'before-checkpoint',
+          attemptId,
+          target,
+          checks: before,
+        });
         for (const [table, column] of sponsorCheckpointGrants) {
           await tx`grant update (${tx(column)}) on public.${tx(table)} to ${tx(sponsorRuntimeRole)}`;
         }
         const checks = await inspectSponsorCheckpoint(tx);
-        await options.recordCheckpoint({ phase: 'checkpoint-checked', target, checks });
+        await options.recordCheckpoint({ phase: 'checkpoint-checked', attemptId, target, checks });
         verifySponsorCheckpoint(checks, target.owner);
       });
     }
 
-    await options.recordAcl({
-      phase: 'before-trailing',
-      target,
-      acl: await inspectReleaseSponsorAcl(sql),
-    });
-    await applyReleaseJournal(session, options.migrationsFolder, journal);
-    const finished = await inspectTarget(sql, options.database, journal);
-    if (finished.ledger.length !== journal.length) throw new Error('Release journal is incomplete');
-    await options.recordAcl({
-      phase: 'after-trailing',
-      target: finished,
-      acl: await inspectReleaseSponsorAcl(sql),
-    });
-    await options.attestFinal(sql, finished);
-    return finished;
+    if (target.ledger.length <= trailing) {
+      if (target.ledger.length < trailing) {
+        await applyReleaseJournal(session, options.migrationsFolder, journal.slice(0, trailing));
+        target = await inspectTarget(sql, options.database, journal);
+      }
+      if (target.ledger.length !== trailing)
+        throw new Error('Release ledger is incomplete before sponsor grants');
+      await options.recordAcl({
+        phase: 'before-trailing',
+        target,
+        acl: await inspectReleaseSponsorAcl(sql),
+      });
+      await applyReleaseJournal(session, options.migrationsFolder, journal.slice(0, trailing + 1));
+      target = await inspectTarget(sql, options.database, journal);
+      if (target.ledger.length !== trailing + 1)
+        throw new Error('Sponsor grants migration did not apply');
+    }
+    if (target.ledger.length === trailing + 1) {
+      await options.recordAcl({
+        phase: 'after-trailing',
+        target,
+        acl: await inspectReleaseSponsorAcl(sql),
+      });
+    }
+    if (target.ledger.length < journal.length) {
+      await applyReleaseJournal(session, options.migrationsFolder, journal);
+      target = await inspectTarget(sql, options.database, journal);
+    }
+    if (target.ledger.length !== journal.length) throw new Error('Release journal is incomplete');
+    await options.attestFinal(sql, target);
+    return target;
   });
 }
 
@@ -183,6 +211,9 @@ export async function abandonSponsorCheckpoint(
       target.ledger.length !== checkpoint ||
       before.phase !== 'before-checkpoint' ||
       verified.phase !== 'checkpoint-checked' ||
+      typeof before.attemptId !== 'string' ||
+      !/^[1-9]\d{0,19}$/u.test(before.attemptId) ||
+      before.attemptId !== verified.attemptId ||
       [before, verified].some(
         e =>
           e.target.databaseOid !== target.databaseOid ||
@@ -192,6 +223,13 @@ export async function abandonSponsorCheckpoint(
       )
     )
       throw new Error('Abandonment requires the recorded attempt and its verified 0104 ledger');
+    // The evidence sink can retain records even if the grant transaction rolled back.
+    const [transaction] = await sql<{ status: string | null }[]>`
+      select pg_catalog.pg_xact_status(${before.attemptId}::text::pg_catalog.xid8) as status
+    `;
+    if (transaction?.status !== 'committed') {
+      throw new Error('Abandonment requires a committed checkpoint attempt');
+    }
     verifySponsorCheckpoint(verified.checks, target.owner);
     await inReleaseTransaction(sql, async tx => {
       const live = await inspectSponsorCheckpoint(tx);
@@ -218,7 +256,12 @@ export async function abandonSponsorCheckpoint(
       if (JSON.stringify(checks) !== JSON.stringify(before.checks)) {
         throw new Error('Abandonment did not restore the recorded checkpoint ACL');
       }
-      await options.recordCheckpoint({ phase: 'checkpoint-reversed', target, checks });
+      await options.recordCheckpoint({
+        phase: 'checkpoint-reversed',
+        attemptId: before.attemptId,
+        target,
+        checks,
+      });
     });
   });
 }
