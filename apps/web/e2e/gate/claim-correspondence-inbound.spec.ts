@@ -38,10 +38,10 @@ import {
 } from './claim-correspondence-inbound-member.fixture';
 import { isMkGateProject } from './gate-project-identity';
 
-test.describe('WP-12.1 MK pre-check', () => {
-  // Signed capabilities stay in process memory. Keep request and storage traces off here.
-  test.use({ secureDoor: true, trace: 'off', video: 'off', screenshot: 'off' });
+// Signed capabilities stay in process memory. Keep request and storage traces off here.
+test.use({ secureDoor: true, trace: 'off', video: 'off', screenshot: 'off' });
 
+test.describe('WP-12.1 MK pre-check', () => {
   test('publishes the approved PDF before receipt and binds it to the approved member', async ({
     browser,
     door,

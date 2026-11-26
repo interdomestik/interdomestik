@@ -1,8 +1,9 @@
 import { test } from '../fixtures/one-door.fixture';
 import { proveLegacyCredentialCutover } from './claim-correspondence-cutover.fixture';
 
+test.use({ trace: 'off', video: 'off', screenshot: 'off' });
+
 test.describe('WP-12.1 MK provider cutover', () => {
-  test.use({ trace: 'off', video: 'off', screenshot: 'off' });
   test('storage refuses the legacy upload credential after the verified provider expiry', async ({
     browser,
     door,
