@@ -1,5 +1,14 @@
 import { execFileSync } from 'node:child_process';
-import { lstatSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  closeSync,
+  constants,
+  lstatSync,
+  mkdirSync,
+  mkdtempSync,
+  openSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { readTrustedBytes } from '../verify-machine-trust.mjs';
@@ -9,6 +18,43 @@ import { assertEvidence, isSha256 } from './ticket.mjs';
 
 const SUPPORT = '/Library/Application Support/Interdomestik';
 const NAMESPACE = 'interdomestik-gate-v1';
+// Darwin's ACL_EXTENDED_ALLOW and ACL_EXTENDED_DENY tags from sys/acl.h.
+const ACL_ALLOW = 1;
+const ACL_DENY = 2;
+// ls can omit the ACL when its read fails. Use the native API on the opened directory.
+const READ_MAC_ACL = `
+require 'fiddle/import'
+require 'json'
+
+module ACL
+  extend Fiddle::Importer
+  dlload '/usr/lib/libSystem.B.dylib'
+  extern 'void *acl_get_fd(int)'
+  extern 'int acl_get_entry(void *, int, void *)'
+  extern 'int acl_get_tag_type(void *, void *)'
+  extern 'int acl_free(void *)'
+end
+
+tags = []
+acl = ACL.acl_get_fd(3)
+if acl.null?
+  # ENOENT on an open descriptor means it has no ACL.
+  abort unless Fiddle.last_error == Errno::ENOENT::Errno
+else
+  entry = [0].pack('J')
+  tag = [0].pack('I!')
+  position = 0 # ACL_FIRST_ENTRY
+  while ACL.acl_get_entry(acl, position, entry) == 0
+    abort unless ACL.acl_get_tag_type(entry.unpack1('J'), tag) == 0
+    tags << tag.unpack1('I!')
+    position = -1 # ACL_NEXT_ENTRY
+  end
+  # Darwin uses EINVAL to signal the end of this iterator.
+  abort unless Fiddle.last_error == Errno::EINVAL::Errno
+  ACL.acl_free(acl)
+end
+puts JSON.generate(tags)
+`;
 const APPROVAL_FIELDS = [
   'rulesSha256',
   'm4MarkerSha256',
@@ -68,11 +114,40 @@ export function checkJobDirectory(directory) {
   checkOwnedDirectory(directory, 0o077, 'job-directory');
 }
 
-export function createSignatureDirectory(home) {
-  checkOwnedDirectory(home, 0o022, 'signature-home');
+function readMacDirectoryAcl(directory) {
+  assertEvidence(process.platform === 'darwin', 'signature-acl-platform');
+  const fd = openSync(directory, constants.O_RDONLY | constants.O_DIRECTORY | constants.O_NOFOLLOW);
+  try {
+    return hostCommand('/usr/bin/ruby', ['--disable=gems', '-e', READ_MAC_ACL], {
+      encoding: 'utf8',
+      stdio: ['ignore', 'pipe', 'pipe', fd],
+    });
+  } finally {
+    closeSync(fd);
+  }
+}
+
+function checkSignatureDirectory(directory, forbiddenMode, code, readAcl) {
+  checkOwnedDirectory(directory, forbiddenMode, code);
+  const unreadable = `${code}-acl-unreadable`;
+  let tags;
+  try {
+    tags = JSON.parse(readAcl(directory));
+  } catch {
+    throw new Error(unreadable);
+  }
+  assertEvidence(
+    Array.isArray(tags) && tags.every(tag => tag === ACL_ALLOW || tag === ACL_DENY),
+    unreadable
+  );
+  assertEvidence(!tags.includes(ACL_ALLOW), `${code}-acl-grant`);
+}
+
+export function createSignatureDirectory(home, readAcl = readMacDirectoryAcl) {
+  checkSignatureDirectory(home, 0o022, 'signature-home', readAcl);
   const base = path.join(home, '.interdomestik-gate-signatures');
   mkdirSync(base, { recursive: true, mode: 0o700 });
-  checkOwnedDirectory(base, 0o077, 'signature-directory');
+  checkSignatureDirectory(base, 0o077, 'signature-directory', readAcl);
   return mkdtempSync(path.join(base, 'signature-'));
 }
 
