@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import { describe, test } from 'vitest';
+
+describe.runIf(
+  process.env.REQUIRE_PILOT_SALES_CONTRACT === '1' &&
+    process.env.REQUIRE_PUBLIC_INTAKE_CONTRACT === '1' &&
+    process.env.REQUIRE_PILOT_IDENTITY_CONTRACT === '1'
+)('pilot contract', () => {
+  test('uses separate owner and restricted logins on the same disposable database', () => {
+    const owner = process.env.DATABASE_URL;
+    const runtime = new URL(owner);
+    runtime.username = 'interdomestik_e2e_runtime';
+    assert.equal(process.env.DATABASE_URL_RLS, runtime.href);
+    assert.equal(process.env.BETTER_AUTH_CONTRACT_DATABASE_URL, owner);
+    assert.equal(process.env.DIFFERENT_EMAIL_RECOVERY_DATABASE_URL, owner);
+    assert.equal(process.env.PILOT_SALES_CONTRACT_DATABASE_URL, owner);
+    assert.equal(process.env.PILOT_SALES_CONTRACT_DATABASE_URL_RLS, runtime.href);
+    assert.equal(process.env.PILOT_INTAKE_CONTRACT_DATABASE_URL, owner);
+    assert.equal(process.env.PILOT_INTAKE_CONTRACT_DATABASE_URL_RLS, runtime.href);
+    assert.equal(process.env.S8_STAFF_DETAIL_DB_PROOF, undefined);
+  });
+});

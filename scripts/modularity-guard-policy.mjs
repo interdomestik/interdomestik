@@ -50,6 +50,7 @@ const STRUCTURED_OWNERS = [
   [/^\.github\/actions\/pr-feedback-setup\/action\.yml$/u, 'pr-feedback-refresh-contract'],
   [/^\.github\/actions\/setup\/action\.yml$/u, 'private-node-cache-contract'],
   [/^scripts\/ci\/reviewer-no-tools\.toml$/u, 'reviewer-tool-denial-contract'],
+  [/^scripts\/ci\/db-lanes\/exclusions\.json$/u, 'database-lane-inventory-contract'],
   [/^\.github\/actions\/validation-surface\/action\.yml$/u, 'main-e2e-reuse-workflow-contract'],
   [/^\.github\/reviewer-routing\.json$/u, 'reviewer-routing-contract'],
   [/^docs\/delivery-contract\.yml$/u, 'track-audit-contract'],

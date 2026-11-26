@@ -1,0 +1,9 @@
+import assert from 'node:assert/strict';
+import { test } from 'vitest';
+test('does not receive the staff or pilot fixture', () => {
+  assert.equal(process.env.E2E_DATABASE_URL, undefined);
+  assert.equal(process.env.DATABASE_URL_RLS, undefined);
+  assert.equal(process.env.REQUIRE_PILOT_SALES_CONTRACT, undefined);
+  assert.equal(process.env.REQUIRE_PUBLIC_INTAKE_CONTRACT, undefined);
+  assert.equal(process.env.REQUIRE_PILOT_IDENTITY_CONTRACT, undefined);
+});
