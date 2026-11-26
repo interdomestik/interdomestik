@@ -103,7 +103,7 @@ export async function runEvidence(input, checkout, output, signal) {
 
   const runId = randomUUID();
   const start = await probeSlot(checkout, ticket, approved, 'start');
-  const invocation = [ticket.id, checkout, start.toolPath];
+  const invocation = [ticket.id, checkout, start.toolPath, start.executables.bash];
   auditWorker(worker, invocation, 'start', start);
   const { packageManager } = JSON.parse(readFileSync(path.join(checkout, 'package.json'), 'utf8'));
   assertEvidence(packageManager === `pnpm@${start.pnpm}`, 'package-manager');
@@ -132,8 +132,9 @@ export async function runEvidence(input, checkout, output, signal) {
     const installLogSha256 = await step('install', [
       'pnpm', 'install', '--frozen-lockfile', '--store-dir', path.join(checkout, 'tmp/m5-pnpm-store'),
     ], INSTALL_LOG);
-    auditWorker(worker, invocation, 'installed', start);
     for (const [, id, command, report] of DELEGATED) {
+      signal?.throwIfAborted();
+      auditWorker(worker, invocation, 'installed', start);
       const startedAt = Date.now();
       if (report) assertEvidence(!existsSync(path.join(checkout, report)), 'report-already-present');
       const transcript = `${id}.log`;

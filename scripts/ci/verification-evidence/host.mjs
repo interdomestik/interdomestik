@@ -11,7 +11,7 @@ const SUPPORT = '/Library/Application Support/Interdomestik';
 const NAMESPACE = 'interdomestik-gate-v1';
 const APPROVAL_FIELDS = [
   'rulesSha256', 'm4MarkerSha256', 'm5MarkerSha256', 'm5RunnerSha256', 'manifestSha256',
-  'allowedSignersSha256', 'm4ResolverSha256', 'm5WorkerSha256',
+  'allowedSignersSha256', 'm4ResolverSha256', 'm4LauncherSha256', 'm5WorkerSha256',
 ];
 
 export const cleanHostEnv = Object.freeze({

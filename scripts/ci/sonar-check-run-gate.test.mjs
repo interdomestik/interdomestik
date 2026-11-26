@@ -6,11 +6,12 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
 const gateScriptPath = path.join(rootDir, 'scripts/sonar-check-run-gate.sh');
-const bashBinaryPath = '/bin/bash';
+const bashBinaryPath = contractBash();
 
 function sanitizeEndpoint(endpoint) {
   return endpoint.replaceAll(/[^A-Za-z0-9._-]+/g, '_');

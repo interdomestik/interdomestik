@@ -52,6 +52,20 @@ export function checkLiveAuthority(snapshot, { repo, subject, attempt }) {
   return current;
 }
 
+export function checkQueueJob(job) {
+  const { repo, subject, attempt, ticketId } = job ?? {};
+  assertEvidence(typeof repo === 'string' && REPO.test(repo) &&
+    typeof subject === 'string' && SUBJECT.test(subject) && isRunId(attempt) && isRunId(ticketId),
+  'queued-job');
+  return { repo, subject, attempt, ticketId };
+}
+
+export function checkQueuedTicket(ticket, job) {
+  const expected = checkQueueJob(job);
+  const { repo, subject, attempt } = ticket?.identity ?? {};
+  assertEvidence(same(expected, { repo, subject, attempt, ticketId: ticket?.id }), 'queued-ticket');
+}
+
 export function issueTicket(identity, approved, lockfileSha256, now) {
   return {
     class: TICKET_CLASS,

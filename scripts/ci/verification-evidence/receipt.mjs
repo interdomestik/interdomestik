@@ -1,9 +1,11 @@
 import path from 'node:path';
-import { isSupportedBash, MACHINE_ROLES, sha256Hex } from '../verify-machine-marker.mjs';
+import {
+  isSupportedBash, MACHINE_ROLES, REQUIRED_FORBIDDEN_PORTS, sha256Hex,
+} from '../verify-machine-marker.mjs';
 import { readBytes } from './bytes.mjs';
 import { checkJobDirectory, signedDocument } from './host.mjs';
 import { DELEGATED, MANIFEST_SHA256 } from './manifest.mjs';
-import { assertEvidence, checkTicket, isRunId, isSha256, same } from './ticket.mjs';
+import { assertEvidence, checkQueuedTicket, checkTicket, isRunId, isSha256, same } from './ticket.mjs';
 
 export const RECEIPT_CLASS = 'interdomestik.m5-delegated-evidence/1';
 export const INSTALL_LOG = 'install.log';
@@ -23,20 +25,31 @@ export function checkPurity(bytes, startedAt, finishedAt) {
   );
 }
 
+const text = value => typeof value === 'string' && value.trim().length > 0;
+const absolute = value => typeof value === 'string' && /^\/[^\r\n\0:]+$/u.test(value);
+const port = value => Number.isInteger(value) && value > 0 && value < 65536 &&
+  !REQUIRED_FORBIDDEN_PORTS.includes(value);
+
 function checkProbe(probe, ticket, approved) {
   const { head, tree, main } = ticket.identity;
+  const { machine, os, node, pnpm, bash, toolPath, executables, container, appPort } = probe ?? {};
   assertEvidence(
     probe?.markerSha256 === approved.m5MarkerSha256 && probe.slot === 'A' &&
       same(probe.git, { head, tree, main, lockfileSha256: ticket.lockfileSha256 }) &&
-      isSha256(probe.machine?.hardware_uuid_sha256) && typeof probe.os?.build === 'string' &&
-      typeof probe.node === 'string' && typeof probe.pnpm === 'string' &&
-      isSupportedBash(probe.bash) &&
-      probe.executables?.bash?.startsWith('/') && probe.container?.socket?.startsWith('unix:///') &&
-      typeof probe.container.engine === 'string' && probe.container.ready === true &&
-      probe.container.databaseHost === '127.0.0.1' &&
-      /@sha256:[0-9a-f]{64}$/u.test(probe.container.image ?? '') &&
-      Number.isInteger(probe.container.databasePort) && Number.isInteger(probe.appPort) &&
-      probe.container.databasePort !== probe.appPort,
+      isSha256(machine?.hardware_uuid_sha256) && ['arm64', 'x64'].includes(machine.arch) &&
+      text(os?.version) && text(os.build) &&
+      typeof node === 'string' && /^v\d+\.\d+\.\d+$/u.test(node) &&
+      typeof pnpm === 'string' && /^\d+\.\d+\.\d+$/u.test(pnpm) && typeof bash === 'string' &&
+      /^\d+\.\d+\.\d+/u.test(bash) && isSupportedBash(bash) &&
+      text(toolPath) && toolPath.split(':').every(absolute) &&
+      ['node', 'pnpm', 'bash'].every(tool => absolute(executables?.[tool])) &&
+      text(container?.context) && text(container.engine) && container.ready === true &&
+      typeof container.socket === 'string' && /^unix:\/\/\/[^\r\n\0]+$/u.test(container.socket) &&
+      isSha256(container.id) && typeof container.imageId === 'string' &&
+      /^sha256:[0-9a-f]{64}$/u.test(container.imageId) &&
+      typeof container.image === 'string' && /@sha256:[0-9a-f]{64}$/u.test(container.image) &&
+      container.databaseHost === '127.0.0.1' && port(container.databasePort) &&
+      port(appPort) && container.databasePort !== appPort,
     'm5-probe'
   );
 }
@@ -71,10 +84,11 @@ function checkLanes(directory, receipt) {
   }
 }
 
-export function checkReceipt(directory, approved, now, current, verify) {
+export function checkReceipt(directory, approved, now, current, verify, job) {
   checkJobDirectory(directory);
   const issued = signedDocument(directory, 'ticket', 'm4', approved, verify);
   const ticket = issued.value;
+  if (job !== undefined) checkQueuedTicket(ticket, job);
   checkTicket(ticket, approved, now, current);
   const collected = signedDocument(directory, 'receipt', 'm5', approved, verify);
   const receipt = collected.value;

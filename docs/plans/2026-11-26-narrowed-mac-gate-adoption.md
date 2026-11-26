@@ -15,15 +15,20 @@ Add this paragraph to `docs/engineering/RULES.md`, R-04, after **Mac use**.
 > M4 verification chain for a reviewed final head. The owner enrolls one M5 slot with its own
 > root-owned external marker. Its authority is limited to the M5 lanes in
 > `scripts/ci/verification-evidence/manifest.mjs`. The lead obtains an M4-issued ticket after all
-> required exact-head reviews and independently resolves the repository, pull request or train,
-> head, tree, current main and tested merge at queue, dispatch and acceptance. The head tree
+> required exact-head reviews. The M4 queue records the ticket ID, repository, pull request or
+> train and attempt. Dispatch, both stamps and publication use that queued identity. The lead
+> independently resolves the head, tree, current main and tested merge at queue, dispatch and
+> acceptance. The head tree
 > must equal the tested merge tree. A head, main, review, policy or configuration change,
 > cancellation, superseding attempt or ticket expiry voids the ticket and its evidence. M4
 > accepts only one complete authenticated M5 receipt for that ticket with matching log and report
-> digests. M4 runs all retained lanes in the manifest, including its own migration, seed and
+> digests and a successful dispatcher finish for the same receipt. M4 runs all retained lanes
+> in the manifest, including its own migration, seed and
 > standalone build for full E2E, and produces separate passed PR and security stamps. The PR stamp
-> binds the digest of the M5 receipt. The lead verifies both records and the current ticket scope
-> at merge. With unusable M5 evidence, run the full `pnpm pr:verify` and separate
+> binds the digest of the M5 receipt. The M4 dispatcher captures both run IDs and record hashes
+> from the invocation whose successful exit it observes. Publication and merge acceptance require
+> that captured pair and the successful M4 dispatcher finish on the current ticket scope.
+> With unusable M5 evidence, run the full `pnpm pr:verify` and separate
 > `pnpm security:guard` on marked M4, retaining actual failures for triage. Trial evidence and
 > pre-checks have no merge authority. The existing single-E2E-flake, train and clean-main-update
 > provisions apply only under their existing proofs.
@@ -36,7 +41,9 @@ approved text in its binding locations only after the adoption decision.
 1. Independently review the exact implementation head. Install the trusted copies from that
    head at a root-owned, local path on M4 and M5. Use a checkout or staged bundle containing
    `package.json`, the evidence module and its verifier imports. Every path to the bundle and
-   enrolled tools must be protected against the execution accounts. Invoke the installed copy
+   enrolled tools must be protected against the execution accounts. Use root-owned M5 tools
+   in protected directories so package command contracts also admit the installation.
+   Invoke the installed copy
    for lead-side acceptance, ticket signing and M5 supervision.
 2. Give M5 supervision its own standard macOS account. Provision a dedicated non-login worker
    named `_interdomestik_gate_worker` with a private group. Allow the supervision account to use
@@ -89,26 +96,42 @@ approved text in its binding locations only after the adoption decision.
    NODE
    ```
 
-4. The owner reviews the draft on M5 and installs the marker and bridge. Inspect the existing
-   directory and marker first if either is present. Check the entire ancestor chain with
+4. The owner stages and reviews the marker in a directory under root control on M5. Inspect the
+   existing directory and marker first if either is present. Check the entire ancestor chain with
    `ls -lde`, including `/Library/Application Support`. It must be root-owned, non-writable to
    group, others and the supervisor, with no granting ACL. The files must be regular, single-link
-   files. Run the marker readback as the non-root supervisor with the reviewed bundle.
+   files. Stage the bytes first, then review the staged file and retain its full digest in the
+   owner's enrollment record.
 
    ```sh
    support='/Library/Application Support/Interdomestik'
    sudo install -d -o root -g wheel -m 0755 "$support"
-   sudo install -o root -g wheel -m 0644 "$draft/verify-machine.json" "$support/verify-machine.json"
+   owner_stage="$(sudo mktemp -d "$support/.enrollment.XXXXXX")"
+   sudo install -o root -g wheel -m 0600 "$draft/verify-machine.json" "$owner_stage/verify-machine.json"
+   sudo cat "$owner_stage/verify-machine.json"
+   sudo /usr/bin/shasum -a 256 "$owner_stage/verify-machine.json"
+   ```
+
+   Set `reviewed_sha256` from the digest retained by the owner after review. Compare the staged bytes
+   before installing and compare the installed bytes again using the trusted marker reader as
+   the non-root supervisor.
+
+   ```sh
+   staged="$(sudo /usr/bin/shasum -a 256 "$owner_stage/verify-machine.json")" &&
+     test "${staged%% *}" = "$reviewed_sha256" &&
+     sudo install -o root -g wheel -m 0644 \
+       "$owner_stage/verify-machine.json" "$support/verify-machine.json" || exit 1
    sudo install -o root -g wheel -m 0644 \
-     "$bundle/scripts/ci/verification-evidence/worker.mjs" "$support/gate-m5-worker.mjs"
-   env -i PATH="$m5_path" LANG=C node --input-type=module -e '
+     "$bundle/scripts/ci/verification-evidence/worker.mjs" "$support/gate-m5-worker.mjs" || exit 1
+   installed="$(env -i PATH="$m5_path" LANG=C node --input-type=module -e '
      import { pathToFileURL } from "node:url";
      const { readTrustedMarker } = await import(pathToFileURL(process.argv[1]));
      const result = readTrustedMarker();
      if (result.status !== "trusted" || result.marker.role !== "m5-delegated" ||
          result.marker.slot !== "A") process.exit(1);
      console.log(result.sha256);
-   ' "$bundle/scripts/ci/verify-machine-trust.mjs"
+   ' "$bundle/scripts/ci/verify-machine-trust.mjs")" &&
+     test "$installed" = "$reviewed_sha256" || exit 1
    ```
 
 5. Provision two dedicated Ed25519 host signing keys under their separate authority accounts,
@@ -117,8 +140,15 @@ approved text in its binding locations only after the adoption decision.
    signing leave the key passphrase empty at the prompts. Restrict the private key and authority
    account directories to their owners. Create a root-owned single-link file
    `gate-evidence-allowed-signers` in `$support` on each host containing the two public key lines in
-   the following format. Install the reviewed lead resolver as root-owned executable
-   `$support/gate-m4-context` on M4.
+   the following format. Install the reviewed lead resolver and launcher as root-owned
+   executables `$support/gate-m4-context` and `$support/gate-m4-runner` on M4. Run M4 authority
+   and M4 verification under separate accounts. Keep the M4 signing key, queue state,
+   collection and captured output private to the authority account. The verification
+   account can read the signed grant through a supervisor-owned directory and write its own
+   verifier records. Give the authority account read access to those records for capture,
+   with fresh run IDs for every invocation and no write access from the verification account
+   to the authority's paths. The verification account runs the reviewed head using the
+   marked M4 setup and its isolated database, with no authority or GitHub credentials.
 
    ```text
    interdomestik-gate-m4 namespaces="interdomestik-gate-v1" ssh-ed25519 <M4 public key body>
@@ -128,7 +158,10 @@ approved text in its binding locations only after the adoption decision.
 6. Once the rule wording is approved, prepare identical `gate-evidence-approval.json` bytes for
    both hosts in trial mode. Install the file as root with owner `root:wheel` and mode `0644`.
    Use full SHA-256 from `shasum -a 256` on each installed file and on the exact approved rule
-   text. Get the two generated digests by running
+   text. `rulesSha256` is the owner's attestation to that text. The code validates the
+   digest format and binds the whole approval file to tickets and dispatch grants.
+   The owner compares the attested digest with the effective rule text before activation.
+   Get the two generated digests by running
    `node "$bundle/scripts/ci/verification-evidence/m4.mjs" digests` on both installed copies.
    Verify that the M4 and M5 marker digests come from their respective hosts.
 
@@ -144,12 +177,14 @@ approved text in its binding locations only after the adoption decision.
      "manifestSha256": "<digests manifestSha256>",
      "allowedSignersSha256": "<gate-evidence-allowed-signers>",
      "m4ResolverSha256": "<gate-m4-context>",
+     "m4LauncherSha256": "<gate-m4-runner>",
      "m5WorkerSha256": "<gate-m5-worker.mjs>"
    }
    ```
 
 7. Verify enrollment with a trial ticket, a complete signed result from the Mac dispatcher and
-   `m4.mjs trial-verify` on M4. This exercises the actual worker PATH and the start and finish
+   `m4.mjs trial-verify <authority-checkout> <queued-job.json> <collected-dir>` on M4. This
+   exercises the actual worker PATH and the start and finish
    hardware, macOS, runtime, readiness and Git probes. Verify the M4 composed trial yields two
    `TRIAL-EVIDENCE` stamps and that `m4.mjs publish` refuses them. After review of the replay and
    the timing pilot, apply the approved rule text and switch both approval files to `"mode":"gate"`
@@ -158,65 +193,113 @@ approved text in its binding locations only after the adoption decision.
 
 ## Lead tooling changes
 
-**M4 authority**. Install a small trusted resolver at the pinned path above. Its positional
-interface is `<queue|dispatch|accept> <trial|gate> <checkout> <owner/repo> <pr:number|train:id>
-<attempt-uuid>`. At queue, dispatch and acceptance independently refresh the PR head, current
-main, reviewed exact-head verdicts, tested Git merge graph and active gate attempt from their
-authoritative sources. For live gates require the open eligible PR or existing R-04 train proof.
-For trial use private frozen historical sources reconstructed from the merge evidence. Cancel or
-retire earlier attempts in an authoritative lead-side ledger. Invalidate the live attempt on
-every bound change and keep that invalidation even if the previous value returns. Resolve all required identities
-and check the actual checkout and Git objects locally. Emit only `{"state":"eligible","identity":…}`
-on success. The identity fields are `repo`, `subject`, `attempt`, `head`, `tree`, `main`, `merge`
-(`commit`, `parents`, `tree`), `reviewSha256` and `configurationSha256`. The review digest covers
-verdicts, reviewers and review state on the final head. The configuration digest covers the
-effective gate and dispatch configuration and protected tool/configuration identities, with
-secret values excluded. Abort on refresh failure, cancellation, supersession, policy change,
-missing exact-head approval or an ineligible merge graph. An authority failure is nonzero.
+The repository supplies the ticket issuer, authenticated collector, dispatch decision and stamp
+capture, publisher, and merge-time verifier. The lead deploys the host adapters below in its own
+tooling. Verify them through the real Mac queues before activation.
 
-**`lead-gate/precheck.sh` and `mac-job`**. Add a distinct delegated entry that accepts a ticket
-directory and the exact Git objects. Send it through `mac-job` on M5 under one exclusive lock with
-the usual cancellation and drain behavior. Keep ordinary arbitrary-command pre-checks in their
-existing class. Provision a fresh detached clone owned by the supervisor with `origin/main` at
-the ticket base, all ticket objects present and no Git alternates. Use a real `.git` directory with a read-only
-index, HEAD, objects, config and refs for the worker. A fresh ignored `.git/worktrees` registry can
-be writeable by the worker for the two QA contracts that create temporary linked worktrees.
-Grant group write access only to that registry and fresh ignored scratch and dependency directories.
-Install in the worker with a fresh local store and a frozen lockfile. Skip its Husky prepare
-hook because the worker's Git configuration is protected.
-Create empty root and workspace `node_modules` and `tmp/m5-tmp` directories. In the fresh
-`tmp/m5-home`, seed only a `.gitconfig` with the exact clone path as `safe.directory`. Create job
-inputs, worker scratch, and the supervisor output in distinct locations. Keep the output
-directory outside worker-readable paths. Deliver the ticket and immutable Git objects without
-sharing the slot's remote-tracking refs or dependency store. Resolve staleness again at the
-dispatch boundary and cancel expired jobs. Run the fixed
-`pnpm --dir "$bundle" pr:verify:m5-evidence "$ticket_dir" "$checkout" "$new_m5_outbox"` through
-`mac-job`. The bridge drains the worker UID after each command. The dispatcher holds its lock on
-cancellation until the bridge, worker and children are gone. Require a successful dispatcher
-finish and complete transfer to a new M4 directory of mode `0700`. A copy, signature, hash,
-report, job-status or receipt failure returns nonzero. Keep the failed run and raw transcripts
-privately for triage. Publish only after strict verification with the installed `m4.mjs verify`
-or `trial-verify` for the pilot. Never combine artifacts from different attempts.
+**M4 authority.** Install the protected resolver with this positional interface.
 
-**`lead-gate/gate-corrected.sh`**. Issue via the trusted M4 authority account after review
-using `m4.mjs issue <checkout> <owner/repo> <scope> <attempt-uuid> <new-ticket-dir>`. Under the
-M4 `mac-job` lock, re-resolve dispatch scope and run the existing isolated setup. Select
-`INTERDOMESTIK_M4_EVIDENCE_DIR=<collected-dir> pnpm pr:verify:composed` only after the installed
-`m4.mjs verify` passes. The existing gatekeeper migrates, seeds and builds for full E2E.
-Composed verification runs the separately stamped `pnpm security:guard` internally. Require the
-composed command's successful exit and two stamps from this invocation. Run the installed
-`m4.mjs publish <checkout> <collected-dir> <pr-record> <security-record> <new-publish-dir>`.
-The publication index binds both final records to their run IDs, head, base, tree, mode, marker
-and record hashes, plus the M5 run ID and receipt digest. At merge, recheck the published pair,
-hashes, scope, latest reviews, attempt and main against fresh authority. A stale queued attempt
-is discarded. Absent or unusable M5 evidence selects the unchanged full `pnpm pr:verify` plus a
-separate `pnpm security:guard` on marked M4. If evidence becomes unusable after dispatch, void
-the composed attempt and dispatch the full gate on the current reviewed scope. Preserve a failed
-test and its own artifacts for
-triage. Use the existing R-04 flake proof only with all of its conditions and the retained failed
-run. Record actual dispatcher and child exits. Mark attempts superseded or cancelled on the
-authority side before releasing their result for consideration. Hosted checks keep their
-existing path.
+```text
+gate-m4-context <queue|record|collect|dispatch|accept|finish> <trial|gate> <authority-checkout> <owner/repo> <pr:number|train:id> <attempt-uuid> [ticket-id]
+```
+
+- At every stage independently resolve the PR head, current main, exact-head reviews, tested
+  merge graph and active attempt from authoritative sources. Require an open eligible PR or
+  existing R-04 train proof. For trial use frozen historical sources reconstructed from the
+  merge evidence. Invalidate a live attempt on every bound change and retain that invalidation
+  if the old value returns. Refresh failures and ineligible attempts return nonzero.
+- `queue` admits a new attempt. `record` atomically records the newly issued ticket ID against
+  that attempt while the scope is still current, then returns the independent queue row. Refuse
+  an attempt with a previously recorded ticket. The lead retains the issuer's JSON stdout as
+  `queued-job.json` in the M4 authority's private directory. All later stages retrieve their
+  `ticketId` from that protected queue row. The final argument is a lookup assertion.
+- Every successful reply has shape `{"state":"eligible","identity":{…}}`. The identity contains
+  `repo`, `subject`, `attempt`, `head`, `tree`, `main`, `merge` (`commit`, `parents`, `tree`),
+  `reviewSha256` and `configurationSha256`. The review digest covers verdicts, reviewers and
+  review state. The configuration digest covers effective gate and dispatch configuration and
+  protected tool identities, with secret values excluded. Responses from `record`, `collect`,
+  `dispatch`, `accept` and `finish` include the stored `ticketId`. After successful M5 transfer,
+  include the protected M5 outcome as `m5: {dispatcherExit, runId, receiptSha256}`.
+- For `dispatch` and `accept`, require the caller to belong to the current M4 `mac-job` running
+  under the exclusive lock for this attempt. Bind the queue row to its unique `macJobId`.
+  At `finish`, require the same job's terminal ledger event to be `finish` with status zero.
+  Include `macJobId` at all three stages and `dispatcherExit` at `finish`. The lead records
+  cancellation, failed drain, and supersession in the protected queue before considering the
+  result. A cancelled, stale or incomplete result cannot authorize publication.
+
+**`lead-gate/precheck.sh` and M5 `mac-job`.** Add a delegated entry for a ticket directory and
+exact Git objects. Route it through the one exclusive M5 lock with the existing cancellation
+and drain behavior. Keep ordinary pre-checks on their existing path and serialize any use
+of the enrolled slot or worker UID with that lock. On an eligible dispatch, provision a fresh
+supervisor-owned detached clone with all bound Git objects, pinned historical objects used by
+the contracts, `origin/main` at the ticket base, the canonical GitHub origin URL and no alternates.
+Give the worker read-only tracked inputs, HEAD, index, objects, config and
+refs. The empty ignored `.git/worktrees` registry is writable for the linked-worktree contract.
+Grant the worker write access to fresh ignored scratch, root and workspace `node_modules`,
+`tmp/m5-home` and `tmp/m5-tmp`. The bridge installs the exact `safe.directory` entry only in
+the child Git environment. Keep the supervisor output outside the worker's readable paths.
+
+Run the fixed command below through M5 `mac-job`. The bridge uses the enrolled Bash and exact
+Git profile and drains the worker UID. Keep the dispatch lock until those children exit.
+
+```sh
+pnpm --dir "$bundle" pr:verify:m5-evidence "$ticket_dir" "$checkout" "$new_m5_outbox"
+```
+
+Require a matching successful dispatcher finish, then copy the complete M5 outbox to a new M4
+authority directory of mode `0700`. Record the observed finish and the transferred receipt's
+run ID and SHA-256 in the protected queue row. Call the installed
+`m4.mjs verify <authority-checkout> <queued-job.json> <collected-dir>` for gate mode, or
+`trial-verify` with the same arguments for the pilot. A failed dispatcher status, cancelled
+attempt, transfer, signature, hash, report or receipt fails the delegated entry with nonzero
+status. Clear its M5 outcome and retain the transcript and artifacts privately for triage.
+The next eligible M4 dispatch selects the full path. Never reuse output from an earlier attempt.
+
+**`lead-gate/gate-corrected.sh` and the protected M4 launcher.** Issue through the trusted
+M4 authority account with `m4.mjs issue <authority-checkout> <owner/repo> <scope> <attempt-uuid>
+<new-ticket-dir>`. Keep the authority's clean checkout private and use a separate checkout of the
+same reviewed head for the M4 verifier account. Enqueue the installed dispatcher as the
+command of the ordinary M4 gate job. Use the attempt UUID in the unique `m4-<attempt-uuid>`
+label and bind it to the `mac-job` row in the protected resolver.
+
+```sh
+"$mac_job" run gate lead "$authority_checkout" "$head" --label "m4-$attempt" -- \
+  "$node" "$bundle/scripts/ci/verification-evidence/m4.mjs" dispatch \
+  "$authority_checkout" "$queued_job" "$collected_dir" "$m4_checkout" \
+  "$new_grant_dir" "$m4_verifier_record_dir" "$new_capture_dir"
+```
+
+The dispatcher selects under that lock. The grant directory is a fresh child of a
+supervisor-owned absolute path whose parents permit traversal by the verifier. Keep the
+capture path within a private authority directory. The protected `gate-m4-runner` accepts
+`composed <checkout> <grant-dir> <queued-job-json>` or
+`full <checkout> <head> <main> <tree>`. It drops to the verifier account, uses the existing
+isolated setup, launches the fixed package commands, reports the actual status, and drains
+the account's children before returning. The composed invocation sets only the checked gate
+environment plus `INTERDOMESTIK_M4_DISPATCH_DIR` and `INTERDOMESTIK_M4_QUEUE_SCOPE` from those
+arguments, then runs `pnpm pr:verify:composed`. The full invocation checks the exact Git scope
+and runs `pnpm pr:verify` and separate `pnpm security:guard`, requiring both standard passed M4
+stamps. Keep the existing full launcher for hosts without delegated enrollment.
+
+Publish only after both the command and M4 dispatcher finish successfully and a composed
+capture exists. Use the trusted scripts through merge.
+
+```sh
+"$node" "$bundle/scripts/ci/verification-evidence/m4.mjs" publish \
+  "$authority_checkout" "$queued_job" "$collected_dir" "$new_capture_dir" "$new_publish_dir"
+"$node" "$bundle/scripts/ci/verification-evidence/m4.mjs" merge-check \
+  "$authority_checkout" "$queued_job" "$collected_dir" "$new_publish_dir"
+```
+
+The signed publication binds each passed record's run ID and hash to the observed invocation,
+queue ticket, M4 `mac-job` ID, exact Git scope, and M5 receipt. With missing or unusable M5
+evidence, use the full path under the lock while the queue is eligible. Discard an ineligible
+queue entry. Preserve a composed lane failure and its own artifacts for triage. Apply an R-04
+flake proof only with all its existing conditions and the retained failed run. Before
+activation exercise the real dispatchers with a clean narrowed run, wrong same-head ticket,
+absent M5 output, cancelled M5 and M4 runs, and a composed test failure. Check the ledger
+outcome, M4 selection, and refusal to publish incomplete or cancelled captures. Hosted checks
+keep their existing path.
 
 ## R-10 replay and timing pilot
 
@@ -235,7 +318,8 @@ base and approved machine**. Use PR #2157 as a negative replay fixture. Its M5 p
 3. For eligible historical heads without M5 evidence, issue trial tickets and run on the
    reconstructed Git objects with the matching full-chain manifest. Use `trial-verify` to
    record whether M4 would accept the ticket and collected lanes. Record any historical command
-   difference or unrecoverable data explicitly. Seed missing, empty, unparseable and
+   difference or unrecoverable data explicitly. A historical checkout that cannot execute
+   the enrolled profile counts as a coverage gap for the replay. Seed missing, empty, unparseable and
    valid-but-empty inputs, replacement of both receipt and log, wrong markers and runtime,
    skipped or failed lanes, a zero-exit pre-check, missing coverage, same-tree different head,
    moving main, cancellation and superseding attempts.

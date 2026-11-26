@@ -9,7 +9,7 @@ const WORKER = '_interdomestik_gate_worker';
 const BASE_ENV = { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', LANG: 'C', NODE_V8_COVERAGE: undefined };
 const VERIFIED_TOOLS = ['node', 'pnpm', 'bash'];
 const sudo = ['-n', '-u', WORKER, '--'];
-const [action, ticketId, root, toolPath, ...rest] = process.argv.slice(2);
+const [action, ticketId, root, toolPath, bashPath, ...rest] = process.argv.slice(2);
 
 function requireThat(condition) {
   if (!condition) throw new Error('worker isolation');
@@ -47,7 +47,9 @@ function workerEnvironment() {
   return [
     ...sudo, '/usr/bin/env', '-i',
     `PATH=${toolPath}`, 'LANG=C', `HOME=${root}/tmp/m5-home`, `TMPDIR=${root}/tmp/m5-tmp`,
+    `INTERDOMESTIK_M5_CHECKOUT=${root}`, `INTERDOMESTIK_M5_BASH=${bashPath}`,
     'GIT_CONFIG_COUNT=1', 'GIT_CONFIG_KEY_0=safe.directory', `GIT_CONFIG_VALUE_0=${root}`,
+    'GIT_CONFIG_NOSYSTEM=1', 'GIT_CONFIG_GLOBAL=/dev/null',
     'GIT_OPTIONAL_LOCKS=0', 'GIT_NO_REPLACE_OBJECTS=1',
   ];
 }
@@ -115,13 +117,10 @@ function inspectWorker(stage) {
     requireThat(!existsSync(path.join(root, 'tmp/m5-pnpm-store')));
     for (const name of ['m5-home', 'm5-tmp']) {
       const dir = path.join(root, 'tmp', name);
-      const entries = name === 'm5-home' ? ['.gitconfig'] : [];
       requireThat(realpathSync(dir) === dir &&
-        JSON.stringify(readdirSync(dir)) === JSON.stringify(entries) &&
+        readdirSync(dir).length === 0 &&
         accessible(dir, constants.W_OK));
     }
-    requireThat(output('/usr/bin/git', ['config', '--file', path.join(root, 'tmp/m5-home/.gitconfig'),
-      '--get-all', 'safe.directory']) === root);
   }
   const directories = toolPath.split(':');
   for (const directory of directories) {
@@ -135,8 +134,11 @@ function inspectWorker(stage) {
     requireThat(protectedToolPath(resolved));
     return [name, resolved];
   }));
-  requireThat(['true', 'undefined'].includes(output(executables.pnpm, ['config', 'get', 'bail'],
-    process.env)) && !existsSync(path.join(root, 'node_modules/.hooks')));
+  requireThat(executables.bash === bashPath &&
+    output('/usr/bin/git', ['rev-parse', '--show-toplevel'], process.env) === root &&
+    output('/usr/bin/git', ['config', '--get-all', 'safe.directory'], process.env) === root &&
+    ['true', 'undefined'].includes(output(executables.pnpm, ['config', 'get', 'bail'],
+      process.env)) && !existsSync(path.join(root, 'node_modules/.hooks')));
   return {
     isolated: true, processesDrained: true, gitReadOnly: true, trackedReadOnly: true,
     freshDependencies: stage === 'start', executables,
@@ -177,7 +179,7 @@ try {
     await drain();
   } else if (action === 'audit' && ['start', 'installed', 'finish'].includes(rest[0])) {
     requireThat(noWorkerProcesses());
-    const argv = ['inspect', ticketId, root, toolPath, rest[0]];
+    const argv = ['inspect', ticketId, root, toolPath, bashPath, rest[0]];
     const data = output('/usr/bin/sudo', [...workerEnvironment(), process.execPath, process.argv[1], ...argv]);
     requireThat(noWorkerProcesses());
     console.log(data);

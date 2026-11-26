@@ -14,6 +14,7 @@ export const main = 'd'.repeat(40);
 export const tree = 'e'.repeat(40);
 export const lockfile = sha256Hex('fixture lockfile\n');
 export const approved = {
+  mode: 'gate',
   sha256: '1'.repeat(64), m4MarkerSha256: '2'.repeat(64),
   m5MarkerSha256: '3'.repeat(64), m5RunnerSha256: '4'.repeat(64),
 };
@@ -26,21 +27,22 @@ export function authorityFixture() {
   };
 }
 
-export function evidenceFixture(t) {
+export function evidenceFixture(t, { current = authorityFixture(), keys = {
+  m4: generateKeyPairSync('ed25519'), m5: generateKeyPairSync('ed25519'),
+} } = {}) {
   const dir = mkdtempSync(path.join(os.tmpdir(), 'composed-evidence-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
-  const keys = { m4: generateKeyPairSync('ed25519'), m5: generateKeyPairSync('ed25519') };
   const write = (name, bytes) => {
     writeFileSync(path.join(dir, name), bytes);
     return sha256Hex(bytes);
   };
+  const signAs = (bytes, role) => sign(null, Buffer.from(bytes), keys[role].privateKey);
   const signed = (name, bytes, role = name === 'ticket' ? 'm4' : 'm5') => {
-    write(`${name}.sig`, sign(null, Buffer.from(bytes), keys[role].privateKey));
+    write(`${name}.sig`, signAs(bytes, role));
     return write(`${name}.json`, bytes);
   };
   const authenticate = (bytes, signature, role) =>
     assert.ok(verify(null, bytes, keys[role].publicKey, signature), 'signature mismatch');
-  const current = authorityFixture();
   const ticket = issueTicket(current, approved, lockfile, now - 10000);
   const ticketSha256 = signed('ticket', JSON.stringify(ticket));
   const startedAt = now - 9000;
@@ -50,8 +52,11 @@ export function evidenceFixture(t) {
     git: { head, tree, main, lockfileSha256: lockfile },
     machine: { hardware_uuid_sha256: '7'.repeat(64), arch: 'arm64' },
     os: { build: 'fixture-build', version: '99.1' },
-    executables: { bash: '/fixture/bash' }, node: 'v24.99.0', pnpm: '10.99.0', bash: '5.2.1',
+    toolPath: '/fixture/bin:/usr/bin',
+    executables: { node: '/fixture/bin/node', pnpm: '/fixture/bin/pnpm', bash: '/fixture/bin/bash' },
+    node: 'v24.99.0', pnpm: '10.99.0', bash: '5.2.1',
     container: { context: 'orbstack', engine: '99.1', socket: 'unix:///fixture.sock', ready: true,
+      id: '8'.repeat(64), imageId: `sha256:${'9'.repeat(64)}`,
       image: `postgres:16@sha256:${'a'.repeat(64)}`, databasePort: 55438, databaseHost: '127.0.0.1' },
     appPort: 3310,
   };
@@ -78,8 +83,10 @@ export function evidenceFixture(t) {
   };
   const save = () => signed('receipt', JSON.stringify(receipt));
   save();
-  return { dir, current, receipt, write, signed, save,
-    verify: (identity = current, at = now, policy = approved) =>
-      checkReceipt(dir, policy, at, identity, authenticate),
+  const job = { repo: current.repo, subject: current.subject, attempt: current.attempt,
+    ticketId: ticket.id };
+  return { dir, current, job, keys, receipt, write, signed, save, signAs, authenticate,
+    verify: (identity = current, at = now, policy = approved, expectedJob) =>
+      checkReceipt(dir, policy, at, identity, authenticate, expectedJob),
   };
 }

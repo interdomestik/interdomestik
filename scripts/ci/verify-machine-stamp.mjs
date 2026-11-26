@@ -11,7 +11,6 @@ import {
   PREFIX,
 } from './verify-machine-output.mjs';
 import { gateRoleErrors, MODES, PENDING_VERSION } from './verify-machine-records.mjs';
-import { EVIDENCE_DIR_ENV } from './verification-evidence/m4.mjs';
 import { same } from './verification-evidence/ticket.mjs';
 
 export function probeLive(deps, repoRoot, marker) {
@@ -109,8 +108,8 @@ function finish(lane, deps, repoRoot, match, directory) {
   if (deps.composed) {
     if (problems.length > 0) return fail(deps, problems);
     try {
-      const scope = deps.verifyComposition(repoRoot, deps.env[EVIDENCE_DIR_ENV], 'accept');
-      if (!same(scope, pending.composition)) {
+      const { scope, runId } = deps.verifyComposition(repoRoot, deps.env, 'accept', lane);
+      if (runId !== pending.runId || !same(scope, pending.composition)) {
         return fail(deps, ['M4 composed evidence changed during the run']);
       }
     } catch {

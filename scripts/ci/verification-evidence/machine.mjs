@@ -7,7 +7,7 @@ import { MACHINE_ROLES, machineRole, sha256Hex } from '../verify-machine-marker.
 import { parsePlatformUuid, readCiPostgresDigest } from '../verify-machine-probe.mjs';
 import { readTrustedMarker } from '../verify-machine-trust.mjs';
 import { cleanHostEnv, hostCommand } from './host.mjs';
-import { assertEvidence, checkGitInputs, same } from './ticket.mjs';
+import { assertEvidence, checkGitInputs, isSha256, same } from './ticket.mjs';
 
 function resolveTool(command, toolPath) {
   for (const directory of toolPath.split(':')) {
@@ -50,7 +50,8 @@ export function checkDocker(root, marker, exec, readDigest = readCiPostgresDiges
   const evidence = docker.evidence;
   assertEvidence(
     docker.container.context === expected.context && docker.container.engine === expected.engine &&
-      evidence?.endpoint === expected.socket && /^sha256:[0-9a-f]{64}$/u.test(evidence.imageId ?? ''),
+      evidence?.endpoint === expected.socket && isSha256(evidence?.id) &&
+      /^sha256:[0-9a-f]{64}$/u.test(evidence.imageId ?? ''),
     'container-runtime'
   );
   assertEvidence(

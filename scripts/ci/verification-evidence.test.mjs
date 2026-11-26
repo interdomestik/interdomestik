@@ -1,18 +1,19 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { approved, authorityFixture, evidenceFixture, head, lockfile, now, tree }
   from './verification-evidence-test-fixture.mjs';
-import { EVIDENCE_DIR_ENV, checkRecordPair } from './verification-evidence/m4.mjs';
+import { DISPATCH_DIR_ENV, QUEUE_SCOPE_ENV } from './verification-evidence/m4-dispatch.mjs';
 import { checkDocker } from './verification-evidence/machine.mjs';
 import { checkManifest, DELEGATED, FULL_CHAIN, M4_SCRIPT, MANIFEST, SECURITY_CHAIN }
   from './verification-evidence/manifest.mjs';
 import { checkGitInputs, checkLiveAuthority, checkTicket, issueTicket }
   from './verification-evidence/ticket.mjs';
+import { contractBash, delegatedGitEnvironment } from './verification-evidence/worker-profile.mjs';
 import { fixtureMarker, FIXTURE_DIGEST } from './verify-machine-fixtures.mjs';
 import { harness, MARKER_SHA, packageJson, trusted } from './verify-machine-harness.mjs';
 import { DELEGATED_MARKER_SCHEMA, MACHINE_ROLES, validateMarker } from './verify-machine-marker.mjs';
@@ -139,6 +140,54 @@ test('signed partial, skipped, cancelled, failed and wrong-role receipts fail cl
   }
 });
 
+test('the signed probe needs every observed machine, tool, container and port field', async t => {
+  const fields = ['machine.hardware_uuid_sha256', 'machine.arch', 'os.version', 'os.build',
+    'toolPath', 'executables.node', 'executables.pnpm', 'executables.bash', 'node', 'pnpm', 'bash',
+    'container.context', 'container.engine', 'container.socket', 'container.id', 'container.imageId',
+    'container.image', 'container.ready', 'container.databaseHost', 'container.databasePort', 'appPort'];
+  for (const field of fields) {
+    await t.test(field, sub => {
+      const f = evidenceFixture(sub);
+      const [first, second] = field.split('.');
+      for (const probe of [f.receipt.start, f.receipt.finish]) {
+        if (second) delete probe[first][second];
+        else delete probe[first];
+      }
+      f.save();
+      assert.throws(() => f.verify(), /m5-probe/u);
+    });
+  }
+});
+
+test('the reserved M5 account retains only the exact Git admission and enrolled Bash', t => {
+  const worker = '_interdomestik_gate_worker';
+  const root = temporary(t);
+  const checkout = realpathSync(root);
+  const base = { PATH: '/usr/bin:/bin' };
+  const workerEnv = { INTERDOMESTIK_M5_CHECKOUT: checkout, INTERDOMESTIK_M5_BASH: '/tools/bash',
+    GIT_DIR: '/wrong', GIT_CONFIG_KEY_0: 'core.fsmonitor', GIT_CONFIG_VALUE_0: '/wrong' };
+  const env = delegatedGitEnvironment(base, workerEnv, worker);
+  const gitConfig = execFileSync('/usr/bin/git', ['config', '--get-all', 'safe.directory'], {
+    cwd: checkout, env, encoding: 'utf8',
+  });
+  assert.equal(gitConfig.trim(), checkout);
+  assert.equal(env.GIT_DIR, undefined);
+  assert.equal(env.GIT_OPTIONAL_LOCKS, '0');
+  assert.equal(env.GIT_NO_REPLACE_OBJECTS, '1');
+  assert.equal(env.GIT_CONFIG_GLOBAL, '/dev/null');
+  assert.equal(contractBash('/bin/bash', workerEnv, worker), '/tools/bash');
+  assert.equal(contractBash('/bin/bash', workerEnv, 'ordinary'), '/bin/bash');
+  assert.equal(delegatedGitEnvironment(base, workerEnv, 'ordinary'), base);
+  for (const bad of ['', '*', 'relative', `${checkout}/*`]) {
+    assert.throws(() => delegatedGitEnvironment(base, { INTERDOMESTIK_M5_CHECKOUT: bad }, worker),
+      /exact Git checkout/u);
+  }
+  for (const bad of [undefined, '', 'unresolved/bash']) {
+    assert.throws(() => contractBash('/bin/bash', { INTERDOMESTIK_M5_BASH: bad }, worker),
+      /enrolled Bash/u);
+  }
+});
+
 test('collected files and signatures must match, including simultaneous receipt and log replacement', async t => {
   for (const log of ['job.log', 'contracts.log', 'i18n-purity.json', 'install.log']) {
     await t.test(log, sub => {
@@ -237,28 +286,34 @@ test('the observed checkout and committed lockfile must agree at both ends', t =
 
 test('composed stamps require both marked M4 and the same receipt at begin and finish', t => {
   const h = harness({ marker: trusted(), env: { npm_lifecycle_event: M4_SCRIPT,
-    [EVIDENCE_DIR_ENV]: '/fixture' } });
+    [DISPATCH_DIR_ENV]: '/fixture', [QUEUE_SCOPE_ENV]: '{}' } });
   t.after(h.cleanup);
   const scope = { markerSha256: MARKER_SHA, head, tree, base: 'd'.repeat(40),
     m5ReceiptSha256: 'f'.repeat(64) };
-  h.deps.verifyComposition = () => scope;
+  const runId = 'run-fixture';
+  h.deps.verifyComposition = () => ({ scope, runId });
   assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 0);
-  h.deps.verifyComposition = () => ({ ...scope, m5ReceiptSha256: 'a'.repeat(64) });
+  h.deps.verifyComposition = () => ({ scope: { ...scope, m5ReceiptSha256: 'a'.repeat(64) }, runId });
+  assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 1);
+  h.deps.verifyComposition = () => ({ scope, runId: 'different-run' });
   assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 1);
   h.state.marker = { status: 'absent' };
   assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 1);
   h.state.marker = trusted();
-  h.deps.verifyComposition = () => scope;
+  h.deps.verifyComposition = () => ({ scope, runId });
   assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 0);
   assert.deepEqual(h.readFinal().composition, scope);
   assert.equal(h.readFinal().machineRole, 'm4');
+  assert.equal(h.readFinal().runId, runId);
 });
 
 test('composed verification refuses a missing collection and a zero-exit hosted shortcut', t => {
   const h = harness({ marker: trusted(), env: { npm_lifecycle_event: M4_SCRIPT } });
   t.after(h.cleanup);
   assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 1);
-  h.deps.env[EVIDENCE_DIR_ENV] = '/fixture';
+  h.deps.env[DISPATCH_DIR_ENV] = '/fixture';
+  assert.equal(runVerifyMachine(['begin', 'pr-verify'], h.deps), 1);
+  h.deps.env[QUEUE_SCOPE_ENV] = '{}';
   h.deps.env.GITHUB_ACTIONS = 'true';
   assert.equal(runVerifyMachine(['stamp', 'pr-verify'], h.deps), 1);
   assert.deepEqual(h.files(), []);
@@ -278,22 +333,5 @@ test('an M5 marker cannot issue full M4 stamps or use a second slot', t => {
     assert.equal(runVerifyMachine(['begin', lane], h.deps), 0);
     assert.equal(runVerifyMachine(['stamp', lane], h.deps), 0);
     assert.equal(h.readFinal().mode, 'PRE-CHECK');
-  }
-});
-
-test('final publication requires the distinct passed M4 pair for the same evidence', t => {
-  const f = evidenceFixture(t);
-  const scope = { head, markerSha256: MARKER_SHA, m5ReceiptSha256: f.verify().receiptSha256,
-    m5FinishedAt: f.receipt.finishedAt, expiresAt: f.receipt.ticket.expiresAt };
-  const record = { mode: 'GATE-EVIDENCE', machineRole: 'm4', result: 'passed', head,
-    markerSha256: MARKER_SHA, composition: scope, runId: f.receipt.runId,
-    startedAt: new Date(now).toISOString(), finishedAt: new Date(now + 100).toISOString() };
-  const pr = { ...record, lane: 'pr-verify' };
-  const sec = { ...record, lane: 'security-guard', runId: f.receipt.ticket.id };
-  checkRecordPair(pr, sec, scope);
-  for (const bad of [null, {}, { ...sec, mode: 'PRE-CHECK' }, { ...sec, mode: 'TRIAL-EVIDENCE' },
-    { ...sec, runId: pr.runId },
-    { ...sec, composition: { ...scope, m5ReceiptSha256: 'e'.repeat(64) } }]) {
-    assert.throws(() => checkRecordPair(pr, bad, scope), /m4-record|m4-run-pair/u);
   }
 });

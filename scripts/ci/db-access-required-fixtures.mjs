@@ -15,6 +15,7 @@ import {
 } from './db-access-required-git.mjs';
 import { officialArchive, verifiedCompiler } from './db-access-required-compiler.mjs';
 import { REPO, localScript } from './db-access-required-workflow.mjs';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 export const ambient = [
   'import { db } from "@interdomestik/database";',
@@ -142,7 +143,7 @@ export function route(pr, overrides = {}, extraEnv = {}) {
     ...extraEnv,
   };
   for (const key of Object.keys(env)) if (env[key] === undefined) delete env[key];
-  const result = spawnSync('/bin/bash', ['--noprofile', '--norc', '-c', localScript], {
+  const result = spawnSync(contractBash(), ['--noprofile', '--norc', '-c', localScript], {
     cwd: pr.ws,
     env,
     encoding: 'utf8',
