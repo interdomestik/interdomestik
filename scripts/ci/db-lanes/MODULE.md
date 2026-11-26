@@ -1,0 +1,15 @@
+# Database test lanes
+
+Run `node scripts/ci/db-lanes/inventory.mjs` from the repository to print the tracked file inventory. CI reads the same inventory before launching the advisory tests. Stage new tests before checking their selection locally.
+
+The inventory records the explicit RLS and journal parity selectors in `ci.yml` for broad validation. It follows literal package-script forwarding and reports unsupported selectors before falling back to advisory selection. Contract, release-gate, and coverage credit requires an unconditional job, test step, and prerequisite job chain. Contract credit also requires membership in both the full and product selections. Contract and release-gate files without credit use the advisory unit step, which uses the existing contract shards and runs release-gate tests from the repository root.
+
+Coverage credit also requires a Vitest configuration and suite whose registrations and cases can be proven unconditional, along with inclusion in Vitest's coverage listing. Unproven suites use the advisory Vitest lane if its project selects the file. A tracked, unexcluded suite with no matching lane is reported by path. On broad pull requests, the Database Lanes workflow reports execution. The database and release-gate runners count passing, failed, skipped, TODO, cancelled, and retried cases by file. The advisory contract reporter counts executed cases per file and names every selected file with zero. The orphan check and lane outcomes are advisory until admitted under R-10 with owner approval.
+
+The advisory job runs database-package TypeScript tests with Node. Top-level tests run without a database unless they use a live fixture or a database test suffix. Tests under `packages/database/test/pg16/` and `packages/database/test/rls/` without protected credit run on the job's loopback-only, journal-built PG16 service. Use `.rls.test.ts`, `.postgres.test.ts`, `.pg16.test.ts`, or `.integration.test.ts` for new database suites in `apps/web/src/` or `packages/domain-*/src/`. Discovery scans tracked test sources for database and environment markers. A manifest entry can also identify a tracked test that accesses the database only through a fixture. Use the existing fixture appropriate to the suite and assert the effective role where required. Each exclusion specifies the file, reason, owner, and removal condition.
+
+When protected RLS credit is unavailable, the legacy Node proofs that need PostgreSQL use `advisory/node-pg16`. The advisory runner reuses the staff RLS provisioner for the restricted login on the disposable PG16 service. Staff detail proofs receive staff fixture settings in `advisory/vitest-staff-rls`. The eight opt-in pilot sales, public intake, and identity contracts receive their fixture settings in a separate serial web invocation within `advisory/vitest-pg16`. The owner, restricted, and independent auth clients all use the same disposable database.
+
+## Follow-up (WP-16.2)
+
+Add an E2E lane-membership check that compares tracked browser specs with per-file results from actual workflow lanes and flags any missing spec without a reasoned exclusion.

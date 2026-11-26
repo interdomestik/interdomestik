@@ -3,7 +3,7 @@ import type { MigrationExecutionSql } from './migration-execution-contracts';
 
 // Hash of prosrc, including its newlines, from the reviewed WP-07 contract SQL.
 const REQUIRE_CHECK_SOURCE = 'b8762e83121e8a162bc41908c03dd59bbd5c04050baf9bf966d2741a76589d6a';
-const WP07 = '0112_wp07_rate_check_contract';
+const WP07 = '0113_wp07_rate_check_contract';
 
 async function verifyWp07(sql: MigrationExecutionSql, contracted: boolean) {
   // 0101 creates the primary key and the three original unique constraints. The

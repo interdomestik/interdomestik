@@ -1,0 +1,8 @@
+import assert from 'node:assert/strict';
+import test from 'node:test';
+test('receives mandatory PostgreSQL setup', () => {
+  assert.equal(new URL(process.env.DATABASE_URL).pathname, '/interdomestik_test');
+  assert.equal(process.env.REQUIRE_RLS_INTEGRATION, '1');
+  assert.equal(process.env.REQUIRE_RLS_COVERAGE, '1');
+  assert.equal(process.env.REQUIRE_DOMAIN_EVENT_RELAY_SQL_PROOF, '1');
+});
