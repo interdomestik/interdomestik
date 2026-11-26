@@ -6,6 +6,7 @@ import {
   readReleaseJournal,
   runReleaseMigrations,
 } from '../../../packages/database/src/release-migrations.ts';
+import safeCodes from './safe-codes.json' with { type: 'json' };
 import { reserveAttempt } from './attempt.mjs';
 import { verifyDeployment } from './deployment.mjs';
 import {
@@ -25,79 +26,7 @@ import {
 const POLICY = fileURLToPath(
   new URL('../../../packages/database/drizzle/contract-phases.json', import.meta.url)
 );
-const SAFE_CODES = new Set([
-  'RELEASE_USAGE_INVALID',
-  'OWNER_CONFIG_INVALID',
-  'CONFIG_MISSING_OR_SIZE',
-  'CONFIG_JSON_INVALID',
-  'CONFIG_SHAPE_INVALID',
-  'CANDIDATE_PIN_MISMATCH',
-  'MANIFEST_MISSING_OR_SIZE',
-  'MANIFEST_JSON_INVALID',
-  'MANIFEST_SHAPE_INVALID',
-  'MANIFEST_PLAN_MISMATCH',
-  'KEY_MISSING_OR_SIZE',
-  'KEY_PIN_MISMATCH',
-  'RECEIPT_MISSING_OR_SIZE',
-  'RECEIPT_JSON_INVALID',
-  'RECEIPT_SHAPE_INVALID',
-  'RECEIPT_SIGNATURE_INVALID',
-  'RECEIPT_VERIFIER_UNAVAILABLE',
-  'RECEIPT_BINDING_MISMATCH',
-  'RECEIPT_DEPLOYMENT_INVALID',
-  'RECEIPT_DRAIN_INVALID',
-  'RECEIPT_EXPIRED',
-  'RECEIPT_REPLAYED',
-  'ATTEMPT_INVALID',
-  'ATTEMPT_STORE_REJECTED',
-  'BACKEND_MISMATCH',
-  'BACKEND_CATALOG_REJECTED',
-  'ATTEMPT_CATALOG_REJECTED',
-  'LEDGER_DIVERGENT',
-  'LEDGER_WRITE_MISMATCH',
-  'EXPAND_PREFIX_MISMATCH',
-  'RECOVERY_AT_EXPAND',
-  'RECOVERY_LEDGER_MISMATCH',
-  'RELEASE_TRANSACTION_OUTCOME_UNKNOWN',
-  'MIGRATION_TRANSACTION_CONTROL',
-  'MIGRATION_REPLICATION_MODE_REJECTED',
-  'MIGRATION_SQL_INVALID',
-  'MIGRATION_SQL_FAILED',
-  'MIGRATION_SESSION_CONTROL',
-  'REGISTRY_INVALID',
-  'REGISTRY_TAG_INVALID',
-  'REGISTRY_POSITIONS_INVALID',
-  'DORMANT_PAIR_HAS_SQL',
-  'REGISTERED_PAIR_MISMATCH',
-  'REGISTERED_PHASE_SQL_MISMATCH',
-  'UNREGISTERED_PHASE',
-  'JOURNAL_INVALID',
-  'JOURNAL_ENTRY_INVALID',
-  'JOURNAL_SQL_INVALID',
-  'JOURNAL_INPUT_UNAVAILABLE',
-  'PHASE_SCHEMA_DIVERGENT',
-  'PHASE_SHAPE_POLICY_MISSING',
-  'PREPARED_TRANSACTIONS_PRESENT',
-  'CANONICAL_ALIAS_MISMATCH',
-  'IMMUTABLE_DEPLOYMENT_MISMATCH',
-  'DEPLOYMENT_ATTESTATION_MISMATCH',
-  'DEPLOYMENT_AUTHORITY_MISSING',
-  'DEPLOYMENT_PROVIDER_REFUSED',
-  'MIGRATION_EXECUTION_PUBLIC_SCHEMA_REJECTED',
-  'MIGRATION_EXECUTION_BOOTSTRAP_FAILED',
-  'MIGRATION_LEDGER_OWNER_REJECTED',
-  'MIGRATION_LEDGER_ACL_REJECTED',
-  'MIGRATION_LEDGER_SHAPE_REJECTED',
-  'MIGRATION_LEDGER_CATALOG_REJECTED',
-  'ADMIN_DB_PREFLIGHT_CONFIG_REJECTED',
-  'ADMIN_DB_PREFLIGHT_AUTHORITY_REJECTED',
-  'ADMIN_DB_PREFLIGHT_CONNECT_FAILED',
-  'ADMIN_DB_PREFLIGHT_IDENTITY_REJECTED',
-  'ADMIN_DB_PREFLIGHT_ROLE_REJECTED',
-  'ADMIN_DB_PREFLIGHT_STATE_REJECTED',
-  'ADMIN_DB_PREFLIGHT_TRANSPORT_REJECTED',
-  'ADMIN_DB_PREFLIGHT_VERSION_REJECTED',
-]);
+const SAFE_CODES = new Set(safeCodes);
 
 function validateConfig(config, env) {
   const scratch = config.environment === 'scratch';
@@ -134,6 +63,58 @@ function journalFrom(folder, policy) {
       throw new Error('JOURNAL_INPUT_UNAVAILABLE');
     throw error;
   }
+}
+
+async function runWithAdminConnection(env, config, journal, request, scratch) {
+  if (scratch) assertDisposableUrl(env.RELEASE_MIGRATION_URL ?? '');
+  const authority = {
+    environmentClass: scratch ? 'local_scratch' : 'supabase_direct',
+    endpointSha256: digest(config.endpoint),
+    caSha256: config.caSha256,
+    expectedRolsuper: config.expectedRolsuper,
+    expectedRolbypassrls: config.expectedRolbypassrls,
+  };
+  let result;
+  let operationError;
+  let operationStarted = false;
+  const preflight = await withPreflightedAdminConnection(
+    {
+      DATABASE_URL: env.RELEASE_MIGRATION_URL,
+      DATABASE_ADMIN_CA_PEM_BASE64: env.RELEASE_DATABASE_CA_BASE64,
+      NODE_ENV: scratch ? 'test' : undefined,
+      ADMIN_DB_LOCAL_SCRATCH: scratch ? '1' : undefined,
+    },
+    Date.now(),
+    AbortSignal.timeout(12 * 60_000),
+    { ...authority, receiptSha256: digest(JSON.stringify(authority)) },
+    async sql => {
+      operationStarted = true;
+      try {
+        if (scratch) {
+          const [{ server_version_num }] = await sql`SHOW server_version_num`;
+          if (!/^16\d{4}$/u.test(server_version_num))
+            throw new Error('ADMIN_DB_PREFLIGHT_VERSION_REJECTED');
+        }
+        result = await runReleaseMigrations(
+          sql,
+          journal,
+          config.backendMarkerSha256,
+          request,
+          scratch
+        );
+      } catch (error) {
+        operationError = error;
+        throw error;
+      }
+    }
+  );
+  if (!preflight.ok) {
+    if (operationError) throw operationError;
+    if (operationStarted && request.mode !== 'recover')
+      throw new Error('RELEASE_TRANSACTION_OUTCOME_UNKNOWN');
+    throw new Error(preflight.error.code);
+  }
+  return result;
 }
 
 async function main() {
@@ -204,54 +185,7 @@ async function main() {
     }
   }
 
-  if (scratch) assertDisposableUrl(env.RELEASE_MIGRATION_URL ?? '');
-  const authority = {
-    environmentClass: scratch ? 'local_scratch' : 'supabase_direct',
-    endpointSha256: digest(config.endpoint),
-    caSha256: config.caSha256,
-    expectedRolsuper: config.expectedRolsuper,
-    expectedRolbypassrls: config.expectedRolbypassrls,
-  };
-  let result;
-  let operationError;
-  let operationStarted = false;
-  const preflight = await withPreflightedAdminConnection(
-    {
-      DATABASE_URL: env.RELEASE_MIGRATION_URL,
-      DATABASE_ADMIN_CA_PEM_BASE64: env.RELEASE_DATABASE_CA_BASE64,
-      NODE_ENV: scratch ? 'test' : undefined,
-      ADMIN_DB_LOCAL_SCRATCH: scratch ? '1' : undefined,
-    },
-    Date.now(),
-    AbortSignal.timeout(12 * 60_000),
-    { ...authority, receiptSha256: digest(JSON.stringify(authority)) },
-    async sql => {
-      operationStarted = true;
-      try {
-        if (scratch) {
-          const [{ server_version_num }] = await sql`SHOW server_version_num`;
-          if (!/^16\d{4}$/u.test(server_version_num))
-            throw new Error('ADMIN_DB_PREFLIGHT_VERSION_REJECTED');
-        }
-        result = await runReleaseMigrations(
-          sql,
-          journal,
-          config.backendMarkerSha256,
-          request,
-          scratch
-        );
-      } catch (error) {
-        operationError = error;
-        throw error;
-      }
-    }
-  );
-  if (!preflight.ok) {
-    if (operationError) throw operationError;
-    if (operationStarted && mode !== 'recover')
-      throw new Error('RELEASE_TRANSACTION_OUTCOME_UNKNOWN');
-    throw new Error(preflight.error.code);
-  }
+  const result = await runWithAdminConnection(env, config, journal, request, scratch);
   return { ...context, ...result };
 }
 

@@ -80,9 +80,8 @@ export async function withCreatedScratchDatabase<T>(
   }
 
   const identifier = quoteIdentifier(name);
-  await admin.unsafe(
-    `create database ${identifier}${owner ? ` owner ${quoteIdentifier(owner)}` : ''}`
-  );
+  const ownerClause = owner ? ` owner ${quoteIdentifier(owner)}` : '';
+  await admin.unsafe(`create database ${identifier}${ownerClause}`);
   const [created] = await admin.unsafe<DatabaseIdentity[]>(
     `select oid::text as oid, datname as name, datdba::text as owner
      from pg_catalog.pg_database where datname = $1`,

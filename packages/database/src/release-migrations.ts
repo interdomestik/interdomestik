@@ -36,7 +36,7 @@ type Request =
       approval: { nonce: string; expiresAt: number; verifyLive: () => Promise<void> };
     };
 
-function registeredContracts(folder: string, entries: JournalEntry[], registry: string) {
+function parseContractRegistry(registry: string) {
   const config = JSON.parse(registry);
   if (
     config?.version !== 1 ||
@@ -49,10 +49,16 @@ function registeredContracts(folder: string, entries: JournalEntry[], registry: 
   )
     throw new Error('REGISTRY_INVALID');
 
+  const pairs: Record<string, unknown> = config.pairs;
+  const sqlSha256: Record<string, unknown> = config.sqlSha256;
+  return { pairs, sqlSha256 };
+}
+
+function registerPairs(folder: string, entries: JournalEntry[], pairs: Record<string, unknown>) {
   const occupied = new Set<number>();
   const registered = new Set<string>();
   const contracts: number[] = [];
-  for (const [contract, expand] of Object.entries(config.pairs)) {
+  for (const [contract, expand] of Object.entries(pairs)) {
     const contractMatch = TAG.exec(contract);
     const expandMatch = typeof expand === 'string' ? TAG.exec(expand) : null;
     if (!contractMatch || !expandMatch) throw new Error('REGISTRY_TAG_INVALID');
@@ -76,21 +82,35 @@ function registeredContracts(folder: string, entries: JournalEntry[], registry: 
       throw new Error('REGISTERED_PAIR_MISMATCH');
     contracts.push(end);
   }
+  return { contracts, registered };
+}
+
+function validateRegisteredSql(
+  entries: JournalEntry[],
+  registered: Set<string>,
+  sqlSha256: Record<string, unknown>
+) {
   const hashes = new Set<string>();
-  if (Object.keys(config.sqlSha256).length !== registered.size) throw new Error('REGISTRY_INVALID');
+  if (Object.keys(sqlSha256).length !== registered.size) throw new Error('REGISTRY_INVALID');
   for (const tag of registered) {
-    const hash = config.sqlSha256[tag];
+    const hash = sqlSha256[tag];
     if (typeof hash !== 'string' || !HASH.test(hash) || hashes.has(hash))
       throw new Error('REGISTRY_INVALID');
     hashes.add(hash);
   }
   for (const { tag, hash } of entries) {
     if (registered.has(tag)) {
-      if (config.sqlSha256[tag] !== hash) throw new Error('REGISTERED_PHASE_SQL_MISMATCH');
+      if (sqlSha256[tag] !== hash) throw new Error('REGISTERED_PHASE_SQL_MISMATCH');
     } else if (hashes.has(hash) || /_(?:expand|contract)$/u.test(tag)) {
       throw new Error('UNREGISTERED_PHASE');
     }
   }
+}
+
+function registeredContracts(folder: string, entries: JournalEntry[], registry: string) {
+  const { pairs, sqlSha256 } = parseContractRegistry(registry);
+  const { contracts, registered } = registerPairs(folder, entries, pairs);
+  validateRegisteredSql(entries, registered, sqlSha256);
   return contracts.sort((a, b) => a - b);
 }
 
@@ -181,6 +201,12 @@ async function readLedger(tx: MigrationExecutionSql, entries: JournalEntry[], re
   return { catalog, count: rows.length };
 }
 
+// Each operation must finish before the next starts on the locked session. A rejection
+// skips all remaining operations and propagates to the transaction's rollback handler.
+function runSequentially<T>(items: readonly T[], run: (item: T) => Promise<void>) {
+  return items.reduce((previous, item) => previous.then(() => run(item)), Promise.resolve());
+}
+
 async function apply(
   tx: MigrationExecutionSql,
   journal: ReturnType<typeof readReleaseJournal>,
@@ -189,8 +215,8 @@ async function apply(
 ) {
   // PostgreSQL searches pg_catalog first implicitly and creates unqualified objects in public.
   await tx`SET LOCAL search_path = public, pg_temp`;
-  for (const migration of journal.migrations.slice(from, through)) {
-    for (const statement of migration.sql) {
+  await runSequentially(journal.migrations.slice(from, through), async migration => {
+    await runSequentially(migration.sql, async statement => {
       assertTransactionalMigration(statement);
       try {
         await tx.unsafe(statement);
@@ -199,10 +225,10 @@ async function apply(
       }
       if (/^\s*RESET\s+statement_timeout\s*;\s*$/iu.test(statement))
         await tx`SET LOCAL statement_timeout = '45s'`;
-    }
+    });
     await tx`INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
              VALUES (${migration.hash}, ${migration.folderMillis})`;
-  }
+  });
   await tx`SET LOCAL search_path = pg_catalog, pg_temp`;
 }
 
@@ -275,12 +301,11 @@ export async function runReleaseMigrations(
     await verifyAuthority();
     return readLedger(sql, journal.entries, readOnly);
   };
-  const checkShape = async (count: number) => {
-    for (const idx of journal.contracts) {
+  const checkShape = (count: number) =>
+    runSequentially(journal.contracts, async idx => {
       if (count >= idx)
         await verifyReleaseShape(sql, journal.entries[idx].tag, count > idx, scratch);
-    }
-  };
+    });
   if (request.mode === 'contract' && plan) {
     const { nonce, expiresAt, verifyLive } = request.approval;
     await transaction(sql, async () => {

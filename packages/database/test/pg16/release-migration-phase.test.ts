@@ -304,7 +304,7 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
   const commit =
     process.env.RELEASE_PHASE_WP07_COMMIT ??
     (candidate === folder
-      ? execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+      ? execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
       : '');
   assert.match(
     commit,
