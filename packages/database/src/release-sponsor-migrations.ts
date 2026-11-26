@@ -57,8 +57,9 @@ type AbandonOptions = Pick<
   Options,
   'migrationsFolder' | 'database' | 'assertClosedTargetAndBaseline' | 'recordCheckpoint'
 > & {
-  // Read the latest durable pending reversal ID for this target and grant attempt, or null if absent.
-  readReversalIntent: (target: Target, attemptId: string) => Promise<string | null>;
+  // Read every retained pending reversal ID for this target and grant attempt.
+  // Return an empty list only when no intents exist. Propagate read errors.
+  readReversalIntents: (target: Target, attemptId: string) => Promise<readonly string[]>;
 };
 
 async function inspectTarget(
@@ -240,11 +241,15 @@ export async function abandonSponsorCheckpoint(
     if ((await releaseTransactionStatus(sql, before.attemptId)) !== 'committed') {
       throw new Error('Abandonment requires a committed checkpoint attempt');
     }
-    const priorReversalId = await options.readReversalIntent(target, before.attemptId);
-    if (priorReversalId !== null) {
-      const status = await releaseTransactionStatus(sql, priorReversalId);
+    const priorReversalIds = await options.readReversalIntents(target, before.attemptId);
+    let allPriorReversalsAborted = true;
+    for (const reversalId of priorReversalIds) {
+      const status = await releaseTransactionStatus(sql, reversalId);
       if (status === 'committed') throw new Error('Checkpoint attempt was already reversed');
-      if (status !== 'aborted') throw new Error('Cannot verify prior checkpoint reversal rollback');
+      if (status !== 'aborted') allPriorReversalsAborted = false;
+    }
+    if (!allPriorReversalsAborted) {
+      throw new Error('Cannot verify prior checkpoint reversal rollback');
     }
     verifySponsorCheckpoint(verified.checks, target.owner);
     const receipt = await inReleaseTransaction(sql, async tx => {
@@ -278,7 +283,8 @@ export async function abandonSponsorCheckpoint(
       const receipt = { attemptId: before.attemptId, reversalId, target, checks };
       // A committed intent consumes the attempt even if publishing its receipt fails.
       await options.recordCheckpoint({ phase: 'checkpoint-reversal-pending', ...receipt });
-      if ((await options.readReversalIntent(target, before.attemptId)) !== reversalId) {
+      const reversalIds = await options.readReversalIntents(target, before.attemptId);
+      if (!reversalIds.includes(reversalId)) {
         throw new Error('Checkpoint reversal intent was not durably recorded');
       }
       return receipt;

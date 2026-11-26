@@ -8,7 +8,11 @@ Declares the schema (46 schema files, 99 `pgTable` calls — MEASURED, `rg -c 'p
 
 The seed runner uses the internal `src/seed-receipt.ts` module to build and print receipts. The module uses no database client.
 
-The WP-16.1 release journal path splits the owner migration run at `0104_wp07_rate_verification_age` to verify the ten direct column grants required by migration 0105. Abandonment verifies the original checkpoint transaction and reads the durable release evidence under the same target lock. A reversal's own committed transaction consumes the original attempt, and the runner publishes the reversal receipt after commit. The runner records the ACL and guards at the verified journal boundaries immediately before and after migration `0110`, which owns the sponsor runtime ACL, legacy ID-grant reconciliation, and the three runtime ID-update guards. Journal parity exercises the release path on a disposable PostgreSQL 16 database.
+The WP-16.1 release journal path splits the owner migration run at `0104_wp07_rate_verification_age` to verify the ten direct column grants required by migration 0105. Abandonment verifies the original checkpoint transaction and reads the reversal intents under the same target lock. It requires every prior reversal to be confirmed aborted. A committed reversal consumes the original attempt, and the runner publishes the reversal receipt after verifying the reversal's own commit.
+
+The WP-15 evidence store must durably append each pending intent before its reversal commits and retain all intents across retries, restarts and receipt publication. `readReversalIntents` must return all retained reversal IDs for the target and grant attempt, including delayed appends and intents retained after recorder errors. It must return an empty list only when no intents exist and propagate storage errors. The runner requires the current reversal ID in the returned list before committing.
+
+The runner records the ACL and guards at the verified journal boundaries immediately before and after migration `0110`, which owns the sponsor runtime ACL, legacy ID-grant reconciliation, and the three runtime ID-update guards. Journal parity exercises the release path on a disposable PostgreSQL 16 database.
 
 ## Public API
 

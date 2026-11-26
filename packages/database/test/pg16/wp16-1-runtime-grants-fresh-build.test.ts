@@ -52,16 +52,14 @@ function scratchOptions(database: string) {
     async recordCheckpoint(evidence) {
       checkpoint.push(evidence);
     },
-    async readReversalIntent(target, attemptId) {
-      const intent = [...checkpoint]
-        .reverse()
-        .find(
-          evidence =>
-            evidence.phase === 'checkpoint-reversal-pending' &&
-            evidence.target.databaseOid === target.databaseOid &&
-            evidence.attemptId === attemptId
-        );
-      return intent?.phase === 'checkpoint-reversal-pending' ? intent.reversalId : null;
+    async readReversalIntents(target, attemptId) {
+      return checkpoint.flatMap(evidence =>
+        evidence.phase === 'checkpoint-reversal-pending' &&
+        evidence.target.databaseOid === target.databaseOid &&
+        evidence.attemptId === attemptId
+          ? [evidence.reversalId]
+          : []
+      );
     },
     async recordAcl(evidence) {
       acl.push(evidence);
@@ -282,6 +280,28 @@ test('WP-16.1 release builds and reconciles the PG16 runtime grant journal', asy
                 assert.equal(aborted.status, 'aborted');
                 assert.deepEqual(await inspectSponsorCheckpoint(client), verified.checks);
 
+                const delayedEvidence: typeof checkpoint = [];
+                await assert.rejects(
+                  abandonSponsorCheckpoint(
+                    client,
+                    {
+                      ...options,
+                      async recordCheckpoint(evidence) {
+                        delayedEvidence.push(evidence);
+                        throw new Error('reversal intent append delayed');
+                      },
+                    },
+                    { before, verified }
+                  ),
+                  /reversal intent append delayed/u
+                );
+                const [delayedIntent] = delayedEvidence;
+                assert.ok(delayedIntent?.phase === 'checkpoint-reversal-pending');
+                const [delayedReversal] = await client<{ status: string }[]>`
+                  select pg_catalog.pg_xact_status(${delayedIntent.reversalId}::text::pg_catalog.xid8) as status
+                `;
+                assert.equal(delayedReversal.status, 'aborted');
+
                 await assert.rejects(
                   abandonSponsorCheckpoint(
                     client,
@@ -321,6 +341,14 @@ test('WP-16.1 release builds and reconciles the PG16 runtime grant journal', asy
                 assert.deepEqual(laterChecked.checks, verified.checks);
                 assert.equal(laterBefore.checks[1].relation, 'user');
                 assert.equal(laterBefore.checks[1].direct.length, 1);
+                await assert.rejects(
+                  abandonSponsorCheckpoint(client, options, { before, verified }),
+                  /Checkpoint attempt was already reversed/u
+                );
+                assert.deepEqual(await inspectSponsorCheckpoint(client), laterChecked.checks);
+
+                // The older aborted reversal's intent arrives after the committed reversal's intent.
+                await options.recordCheckpoint(delayedIntent);
                 await assert.rejects(
                   abandonSponsorCheckpoint(client, options, { before, verified }),
                   /Checkpoint attempt was already reversed/u
