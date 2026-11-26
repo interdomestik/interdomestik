@@ -147,7 +147,7 @@ test('WP-19 restricted reader enforces session scope and current document visibi
   claimFixture: { staff: _staff, ...fixture },
 }, info) => {
   test.setTimeout(120_000);
-  await runRestrictedClaimReader(info, fixture);
+  expect(await runRestrictedClaimReader(info, fixture)).toEqual({ restricted: true, misses: [] });
 });
 
 test('admin detail pages under RLS and rechecks the actor, branch and access tenant', async ({

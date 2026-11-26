@@ -130,6 +130,7 @@ export async function runRestrictedClaimReader(info: TestInfo, fixture: ClaimRea
   if (report.misses.length) {
     throw new Error(`WP-19 document query budget missed: ${report.misses.join(', ')}`);
   }
+  return { restricted: report.restricted as true, misses: report.misses as string[] };
 }
 
 export { DOCUMENT_BUDGET };
