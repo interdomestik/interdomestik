@@ -48,6 +48,9 @@ vi.mock('@/lib/db.server', () => ({ db: mocks.db }));
 vi.mock('@/lib/inngest/client', () => ({
   inngest: { createFunction: mocks.createFunction, send: vi.fn() },
 }));
+vi.mock('@/lib/notification-delivery-schedule', () => ({
+  runNotificationDeliverySchedule: vi.fn(),
+}));
 vi.mock('@/lib/ai/claim-storage-download', () => ({
   downloadClaimAiFileWithRetry: mocks.downloadClaimAiFileWithRetry,
 }));
