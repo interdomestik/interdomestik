@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 
 import type { TenantTransaction } from '@interdomestik/database';
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { sql } from 'drizzle-orm';
 
 import { role } from '../../../database/test/wp11-notification-deliveries-rls.fixture';
@@ -12,6 +13,15 @@ import {
 } from '../../../database/test/wp11-verified-recipient-rls.fixture';
 import { paymentPortTestScheduledAuthority } from '../../../database/test/exchange-rates.fixture';
 import type { ExpiryDeliveryKey, ExpiryDeliveryRecord, ExpiryDeliveryState } from './types';
+
+type FixtureAdmin = Parameters<Parameters<typeof withVerifiedRecipientDatabase>[1]>[0]['admin'];
+type ExpiryFixture = {
+  admin: FixtureAdmin;
+  email: string;
+  enqueue: (periodId: string, memberId?: string | null) => Promise<void>;
+  record: (periodId: string) => Promise<ExpiryDeliveryState>;
+  authority: TenantAuthority;
+};
 
 const queued: ExpiryDeliveryState = {
   state: 'queued',
@@ -41,9 +51,7 @@ export function withExpiryFixture(
   });
 }
 
-async function expiryFixture(
-  admin: Parameters<Parameters<typeof withVerifiedRecipientDatabase>[1]>[0]['admin']
-) {
+async function expiryFixture(admin: FixtureAdmin): Promise<ExpiryFixture> {
   const email = await seedRecipient(admin, tenantA, recipientId);
   await seedRecipient(admin, tenantA, staffId, { roleName: 'staff' });
   await seedRecipient(admin, tenantB, foreignId);

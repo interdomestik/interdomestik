@@ -6,6 +6,7 @@ import type postgres from 'postgres';
 import { withDisposableClient } from '../src/disposable-client';
 import { migrateJournalBeforeNotificationDeliveries } from './journal-prefix.support';
 import { scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
+import { runSequentially } from './in-order';
 import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
 import {
   grantNotificationDeliveryRowLocks,
@@ -73,7 +74,10 @@ export function withVerifiedRecipientDatabase(
           await admin.unsafe(`grant select on public."user" to ${role}`);
           await grantNotificationDeliveryRowLocks(admin);
           await admin.begin(async tx => {
-            for (const statement of migration.sql) await tx.unsafe(statement);
+            // Later statements depend on earlier ones, so apply them in order.
+            await runSequentially(migration.sql, async statement => {
+              await tx.unsafe(statement);
+            });
           });
 
           const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;

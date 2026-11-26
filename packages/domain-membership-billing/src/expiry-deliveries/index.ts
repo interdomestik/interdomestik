@@ -35,6 +35,15 @@ export type {
   ExpiryDeliveryState,
 } from './types';
 
+type SuccessfulClaim = {
+  readonly ok: true;
+  readonly claim: {
+    readonly periodId: ClaimedExpiryDelivery['periodId'];
+    readonly leaseToken: ReturnType<typeof randomUUID>;
+    readonly handle: ClaimedExpiryDelivery['handle'];
+  };
+};
+
 const LEASE_MS = 10 * 60_000;
 const MAX_ATTEMPTS = 8;
 const INITIAL_BACKOFF_MS = 15 * 60_000;
@@ -139,7 +148,11 @@ export function createExpiryDeliveryWorker(options: ExpiryDeliveryOptions) {
           code: null,
         });
         if (!changed) return refusal('lease_lost');
-        return { ok: true, claim: { periodId, leaseToken, handle: recipient.handle } } as const;
+        const result: SuccessfulClaim = {
+          ok: true,
+          claim: { periodId, leaseToken, handle: recipient.handle },
+        };
+        return result;
       });
     } catch {
       return refusal('expiry_operational_failure');
@@ -169,12 +182,8 @@ export function createExpiryDeliveryWorker(options: ExpiryDeliveryOptions) {
       if (!matchesKey(locked, key)) return refusal('lease_lost');
       const row = locked.metadata;
       const mark = now();
-      if (
-        row.state !== 'claimed' ||
-        !row.lease ||
-        row.lease.token !== claim.leaseToken ||
-        row.lease.expiresAt <= mark
-      ) {
+      if (row.state !== 'claimed' || !row.lease) return refusal('lease_lost');
+      if (row.lease.token !== claim.leaseToken || row.lease.expiresAt <= mark) {
         return refusal('lease_lost');
       }
       if (row.authorization !== null) return refusal('authorization_exists');
@@ -210,8 +219,7 @@ export function createExpiryDeliveryWorker(options: ExpiryDeliveryOptions) {
       if (
         row.state !== 'claimed' ||
         row.lease?.token !== expected.leaseToken ||
-        !row.authorization ||
-        row.authorization.leaseToken !== expected.leaseToken ||
+        row.authorization?.leaseToken !== expected.leaseToken ||
         row.authorization.authorizedAt !== expected.authorizedAt ||
         row.authorization.transportDeadline !== expected.transportDeadline
       ) {
@@ -219,11 +227,21 @@ export function createExpiryDeliveryWorker(options: ExpiryDeliveryOptions) {
       }
 
       const mark = now();
-      const next: ExpiryDeliveryState = outcome.ok
-        ? { ...row, state: 'sent', lease: null, authorization: null, terminalAt: mark, code: null }
-        : outcome.ambiguous
-          ? { ...row, code: outcome.code }
-          : failureState(row.attempts, mark, outcome.code, outcome.retryable);
+      let next: ExpiryDeliveryState;
+      if (outcome.ok) {
+        next = {
+          ...row,
+          state: 'sent',
+          lease: null,
+          authorization: null,
+          terminalAt: mark,
+          code: null,
+        };
+      } else if (outcome.ambiguous) {
+        next = { ...row, code: outcome.code };
+      } else {
+        next = failureState(row.attempts, mark, outcome.code, outcome.retryable);
+      }
       if (!(await saveDeliveryInTx(tx, locked, next))) return refusal('lease_lost');
       return outcome.ok ? ({ ok: true, state: 'sent' } as const) : refusal(outcome.code);
     });

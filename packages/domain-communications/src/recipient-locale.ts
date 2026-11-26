@@ -153,8 +153,7 @@ export async function authorizeVerifiedRecipientInTx(
   const captured = snapshots.get(handle);
   const current = result.snapshot;
   if (
-    !captured ||
-    captured.tenantId !== current.tenantId ||
+    captured?.tenantId !== current.tenantId ||
     captured.memberId !== current.memberId ||
     captured.leaseToken !== current.leaseToken ||
     !sameVersion(captured.account, current.account) ||
