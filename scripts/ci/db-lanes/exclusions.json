@@ -696,6 +696,12 @@
     "removeWhen": "A CI lane can execute the container lifecycle proof with its required isolation."
   },
   {
+    "file": "packages/domain-claims/src/support-handoffs/queue.detail.test.ts",
+    "reason": "CI's Coverage Gate executes the four mocked detail cases through the domain-claims unit runner. The suite also reports the deferred branchless-manager denial as a TODO, which the advisory PG16 lane rejects.",
+    "owner": "Branches",
+    "removeWhen": "The post-pilot Branches work implements and proves the detail reader's branchless-manager denial."
+  },
+  {
     "file": "packages/qa/src/tools/paddle.test.ts",
     "reason": "The QA tool test builds a temporary Git worktree and checks target refusal before access.",
     "owner": "QA Tooling",

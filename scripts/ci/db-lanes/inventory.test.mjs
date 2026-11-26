@@ -263,6 +263,7 @@ test('inventories the checked-out selectors', () => {
     'apps/web/src/lib/auth/different-email-recovery-store.contract.test.ts',
     'apps/web/e2e/gate/claim-correspondence.spec.ts',
     'apps/web/e2e/gate/member-legal-acceptance.spec.ts',
+    'packages/domain-claims/src/support-handoffs/queue.detail.test.ts',
     'scripts/pilot/admin-users-unread.test.ts',
   ]) {
     assert.equal(rows.get(file)?.exclusion?.file, file);

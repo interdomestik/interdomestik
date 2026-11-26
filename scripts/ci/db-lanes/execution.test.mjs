@@ -173,7 +173,7 @@ test('live database proofs without a database suffix use PG16 when protected cre
   ]);
 });
 
-test('advisory staff proofs receive the restricted fixture and report every passing case', t => {
+test('advisory staff and pilot proofs receive scoped restricted fixtures and report every case', t => {
   const root = scratch(t);
   copyProtectedSelectors(root);
   mkdirSync(join(root, 'scripts/ci'));
@@ -188,12 +188,24 @@ test('advisory staff proofs receive the restricted fixture and report every pass
     'apps/web/src/features/admin/branches/branch-dashboard-rls.integration.test.ts',
     'apps/web/src/lib/refusal-audit-rls.integration.test.ts',
   ];
+  const pilot = [
+    'apps/web/src/actions/leads/pilot-lead-sales.cash.contract.test.ts',
+    'apps/web/src/actions/leads/pilot-lead-sales.contract.test.ts',
+    'apps/web/src/actions/pilot-billing-test.contract.test.ts',
+    'apps/web/src/actions/public-intake.contract.test.ts',
+    'apps/web/src/features/sponsors/pilot-sponsor-sales.contract.test.ts',
+    'apps/web/src/lib/actions/agent-import-sales.contract.test.ts',
+    'apps/web/src/lib/auth/pilot-identity.contract.test.ts',
+    'apps/web/src/lib/auth/pilot-identity.races.contract.test.ts',
+  ];
   const ordinary = 'apps/web/src/lib/ordinary.integration.test.ts';
   const nodeProof = 'packages/database/test/claim-information-requests.test.ts';
   const exempt = 'scripts/exempt.rls.test.ts';
   const staffProof = fixtureSource('staff-vitest-proof');
+  const pilotProof = fixtureSource('pilot-vitest-proof');
   const fixtures = new Map([
     ...staff.map(file => [file, staffProof]),
+    ...pilot.map(file => [file, pilotProof]),
     [ordinary, fixtureSource('ordinary-vitest-proof')],
     [nodeProof, fixtureSource('pg16-node-proof')],
     ...protectedLanes(root, [], [], () => {}).flatMap(lane => lane.files.map(file => [file, ''])),
@@ -236,6 +248,13 @@ test('advisory staff proofs receive the restricted fixture and report every pass
   const report = reports.find(result => result.lane === 'advisory/vitest-staff-rls');
   assert.ok(report, run.stdout + run.stderr);
   assert.deepEqual(checkExecution(staff, report), []);
+  assert.deepEqual(
+    checkExecution(
+      [ordinary, ...pilot],
+      reports.find(result => result.lane === 'advisory/vitest-pg16')
+    ),
+    []
+  );
   assert.deepEqual(
     checkExecution(
       [nodeProof],

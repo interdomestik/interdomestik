@@ -5,6 +5,7 @@ import { createRequire } from 'node:module';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { runParallel } from '../contract-test-shards.mjs';
+import { vitestProjects } from './coverage-lane.mjs';
 import { checkExecution, nodeExecution, readExecution } from './execution.mjs';
 import { advisoryStaffRlsLane, repoRoot, repositoryInventory } from './inventory.mjs';
 
@@ -15,6 +16,16 @@ const integrationFlags = {
   'packages/domain-claims': { MESSAGE_RLS_INTEGRATION: '1' },
   'packages/domain-membership-billing': { BILLING_RLS_INTEGRATION: '1', RUN_DUNNING_POSTGRES: '1' },
 };
+const pilotContractFiles = new Set([
+  'apps/web/src/actions/leads/pilot-lead-sales.cash.contract.test.ts',
+  'apps/web/src/actions/leads/pilot-lead-sales.contract.test.ts',
+  'apps/web/src/actions/pilot-billing-test.contract.test.ts',
+  'apps/web/src/actions/public-intake.contract.test.ts',
+  'apps/web/src/features/sponsors/pilot-sponsor-sales.contract.test.ts',
+  'apps/web/src/lib/actions/agent-import-sales.contract.test.ts',
+  'apps/web/src/lib/auth/pilot-identity.contract.test.ts',
+  'apps/web/src/lib/auth/pilot-identity.races.contract.test.ts',
+]);
 
 function record(lane, files, report, started) {
   const errors = checkExecution(files, report);
@@ -47,17 +58,18 @@ async function runAdvisoryTooling() {
   }
 }
 
-function runVitest(lane, options = [], fixtureEnv = {}) {
+function runVitest(lane, batches) {
   const files = filesIn(lane);
   const started = Date.now();
-  const groups = Map.groupBy(files, file => file.split('/').slice(0, 2).join('/'));
-  const report = { complete: groups.size > 0, files: [] };
+  const report = { complete: batches.length > 0, files: [] };
   const temp = mkdtempSync(join(tmpdir(), 'db-lanes-vitest-'));
   try {
-    let index = 0;
-    for (const [project, selected] of groups) {
+    for (const [index, { project, selected, options = [], fixtureEnv = {} }] of batches.entries()) {
+      if (!fixtureEnv) {
+        report.complete = false;
+        continue;
+      }
       const filename = join(temp, `${index}.json`);
-      index += 1;
       const cwd = join(repoRoot, project);
       const result = spawnSync(
         'pnpm',
@@ -99,27 +111,61 @@ function runVitest(lane, options = [], fixtureEnv = {}) {
   record(lane, files, report, started);
 }
 
-async function runStaffRls(adminUrl) {
-  const files = filesIn(advisoryStaffRlsLane);
-  if (!files.length) return;
-  const started = Date.now();
+async function provisionRuntimeUrl(adminUrl) {
   const { describeRuntimeRoleFailure, provisionE2eRuntimeRole } =
     await import('../../e2e-runtime-role.mjs');
-  let runtimeUrl;
   try {
-    runtimeUrl = await provisionE2eRuntimeRole({ adminUrl });
+    return await provisionE2eRuntimeRole({ adminUrl });
   } catch (error) {
-    console.error(`Staff detail proof failed: ${describeRuntimeRoleFailure(error)}`);
-    record(advisoryStaffRlsLane, files, { complete: false, files: [] }, started);
-    return;
+    console.error(`Advisory restricted role setup failed: ${describeRuntimeRoleFailure(error)}`);
+    return null;
   }
-  runVitest(advisoryStaffRlsLane, ['--environment=node', '--maxWorkers=1', '--testTimeout=30000'], {
-    E2E_DATABASE_URL: adminUrl,
-    DATABASE_URL_RLS: runtimeUrl,
-    DB_MAX_CONNECTIONS: '1',
-    S8_STAFF_DETAIL_DB_PROOF: '1',
-    S8_STAFF_DETAIL_RUN_TOKEN: randomBytes(8).toString('hex'),
-  });
+}
+
+async function runPg16Vitest(adminUrl) {
+  const lane = 'advisory/vitest-pg16';
+  const files = filesIn(lane);
+  const ordinary = files.filter(file => !pilotContractFiles.has(file));
+  const pilot = files.filter(file => pilotContractFiles.has(file));
+  const staff = filesIn(advisoryStaffRlsLane);
+  const runtimeUrl = pilot.length || staff.length ? await provisionRuntimeUrl(adminUrl) : null;
+  const batches = Array.from(vitestProjects(ordinary), ([project, selected]) => ({
+    project,
+    selected,
+  }));
+  if (pilot.length) {
+    batches.push({
+      project: 'apps/web',
+      selected: pilot,
+      fixtureEnv: runtimeUrl && {
+        DATABASE_URL_RLS: runtimeUrl,
+        BETTER_AUTH_CONTRACT_DATABASE_URL: adminUrl,
+        DIFFERENT_EMAIL_RECOVERY_DATABASE_URL: adminUrl,
+        REQUIRE_PILOT_SALES_CONTRACT: '1',
+        PILOT_SALES_CONTRACT_DATABASE_URL: adminUrl,
+        PILOT_SALES_CONTRACT_DATABASE_URL_RLS: runtimeUrl,
+        REQUIRE_PUBLIC_INTAKE_CONTRACT: '1',
+        PILOT_INTAKE_CONTRACT_DATABASE_URL: adminUrl,
+        PILOT_INTAKE_CONTRACT_DATABASE_URL_RLS: runtimeUrl,
+        REQUIRE_PILOT_IDENTITY_CONTRACT: '1',
+      },
+    });
+  }
+  runVitest(lane, batches);
+  if (staff.length === 0) return;
+  const staffBatch = {
+    project: 'apps/web',
+    selected: staff,
+    options: ['--environment=node', '--maxWorkers=1', '--testTimeout=30000'],
+    fixtureEnv: runtimeUrl && {
+      E2E_DATABASE_URL: adminUrl,
+      DATABASE_URL_RLS: runtimeUrl,
+      DB_MAX_CONNECTIONS: '1',
+      S8_STAFF_DETAIL_DB_PROOF: '1',
+      S8_STAFF_DETAIL_RUN_TOKEN: randomBytes(8).toString('hex'),
+    },
+  };
+  runVitest(advisoryStaffRlsLane, [staffBatch]);
 }
 
 if (process.argv[2] === 'unit') {
@@ -146,8 +192,7 @@ if (process.argv[2] === 'unit') {
   process.env.REQUIRE_RLS_COVERAGE = '1';
   process.env.REQUIRE_DOMAIN_EVENT_RELAY_SQL_PROOF = '1';
   await runNode('advisory/node-pg16');
-  runVitest('advisory/vitest-pg16');
-  await runStaffRls(process.env.DATABASE_URL);
+  await runPg16Vitest(process.env.DATABASE_URL);
 } else {
   throw new Error('Expected database lane mode: unit or pg16');
 }
