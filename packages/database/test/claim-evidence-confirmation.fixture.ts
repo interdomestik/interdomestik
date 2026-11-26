@@ -217,16 +217,14 @@ export async function openEvidenceConfirmationFixture(t: TestContext) {
     };
   }
 
-  async function waitForWaiter(holderPid: number): Promise<number> {
-    const expiresAt = Date.now() + 3500;
-    do {
-      const [row] = await observer<{ pid: number }[]>`
-        select pid from pg_stat_activity
-        where datname = current_database() and ${holderPid}::int = any(pg_blocking_pids(pid))`;
-      if (row) return row.pid;
-      await delay(20);
-    } while (Date.now() < expiresAt);
-    assert.fail(`No PostgreSQL lock waiter for backend ${holderPid}`);
+  async function waitForWaiter(holderPid: number, expiresAt = Date.now() + 3500): Promise<number> {
+    const [row] = await observer<{ pid: number }[]>`
+      select pid from pg_stat_activity
+      where datname = current_database() and ${holderPid}::int = any(pg_blocking_pids(pid))`;
+    if (row) return row.pid;
+    if (Date.now() >= expiresAt) assert.fail(`No PostgreSQL lock waiter for backend ${holderPid}`);
+    await delay(20);
+    return waitForWaiter(holderPid, expiresAt);
   }
 
   async function visibleClaim(claimId: string, authority = home) {

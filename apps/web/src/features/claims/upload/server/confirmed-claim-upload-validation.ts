@@ -94,7 +94,7 @@ export async function validateConfirmedClaimUpload(params: {
   }
 
   const { principal, tenantId: authorityTenantId } = readTenantAuthority(params.authority);
-  if (!principal || principal.userId !== actorId || authorityTenantId !== tenantId) {
+  if (principal?.userId !== actorId || authorityTenantId !== tenantId) {
     return {
       success: false,
       error: 'Upload confirmation expired. Please retry upload.',

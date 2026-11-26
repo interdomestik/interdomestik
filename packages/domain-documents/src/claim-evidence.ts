@@ -152,8 +152,7 @@ export async function confirmClaimEvidence(
     .where(documentWhere(verifiedScope, fileId))
     .limit(1);
   if (
-    !row ||
-    row.name !== originalName ||
+    row?.name !== originalName ||
     row.filePath !== storagePath ||
     row.fileType !== mimeType ||
     row.fileSize !== fileSize ||
