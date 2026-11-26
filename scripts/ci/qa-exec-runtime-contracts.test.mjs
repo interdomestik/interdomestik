@@ -150,6 +150,64 @@ test('execAsync truncates oversized stdout without failing the command', () => {
   assert.equal(result.stderrTruncated, false);
 });
 
+test('execAsync preserves only the enrolled checkout admission for M5 Git children', () => {
+  const checkout = fs.realpathSync.native(repoRoot);
+  const result = runModuleExpression(
+    'packages/qa/src/utils/exec.ts',
+    `(async () => {
+      const cp = (await import('node:child_process')).default;
+      const os = (await import('node:os')).default;
+      const { syncBuiltinESMExports } = await import('node:module');
+      const { EventEmitter } = await import('node:events');
+      const checkout = ${JSON.stringify(checkout)};
+      process.env.INTERDOMESTIK_M5_CHECKOUT = checkout;
+      process.env.GIT_CONFIG_COUNT = '1';
+      process.env.GIT_CONFIG_KEY_0 = 'safe.directory';
+      process.env.GIT_CONFIG_VALUE_0 = checkout;
+      process.env.GIT_CONFIG_GLOBAL = '/untrusted';
+      process.env.GIT_DIR = '/wrong';
+      let username = '_interdomestik_gate_worker';
+      os.userInfo = () => ({ username });
+      const environments = [];
+      cp.spawn = (_file, _args, { env }) => {
+        environments.push(Object.fromEntries(Object.entries(env).filter(([key]) => key.startsWith('GIT_'))));
+        const child = new EventEmitter();
+        child.stdout = new EventEmitter();
+        child.stderr = new EventEmitter();
+        process.nextTick(() => child.emit('close', 0, null));
+        return child;
+      };
+      syncBuiltinESMExports();
+      const status = { file: 'git', args: ['status'] };
+      await mod.execAsync(status, { cwd: checkout });
+      await mod.execAsync(status, { cwd: os.tmpdir() });
+      await mod.execAsync({ file: 'pnpm' }, { cwd: checkout });
+      username = 'ordinary';
+      await mod.execAsync(status, { cwd: checkout });
+      username = '_interdomestik_gate_worker';
+      process.env.GIT_CONFIG_VALUE_0 = '*';
+      await mod.execAsync(status, { cwd: checkout });
+      return environments;
+    })()`
+  );
+
+  assert.deepEqual(result, [
+    {
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: 'safe.directory',
+      GIT_CONFIG_VALUE_0: checkout,
+      GIT_CONFIG_NOSYSTEM: '1',
+      GIT_CONFIG_GLOBAL: '/dev/null',
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_REPLACE_OBJECTS: '1',
+    },
+    {},
+    {},
+    {},
+    {},
+  ]);
+});
+
 for (const api of ['health', 'full']) {
   test(`${api} runs fallback E2E only when the verifier lacks successful evidence`, () => {
     const cases = [

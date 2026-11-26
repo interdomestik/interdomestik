@@ -27,7 +27,11 @@ import * as records from './verify-machine-records.mjs';
 import { probeLive, rootErrors, stampRun } from './verify-machine-stamp.mjs';
 import { readTrustedMarker } from './verify-machine-trust.mjs';
 import {
-  DISPATCH_DIR_ENV, QUEUE_SCOPE_ENV, verifyStampComposition,
+  DISPATCH_DIR_ENV,
+  ExpiredGrantError,
+  QUEUE_SCOPE_ENV,
+  stampRefusalLine,
+  verifyStampComposition,
 } from './verification-evidence/m4-dispatch.mjs';
 import { M4_SCRIPT } from './verification-evidence/manifest.mjs';
 
@@ -107,9 +111,10 @@ function begin(lane, deps, repoRoot, shell) {
   const pendingPath = deps.records.pendingRecordPath(directory, repoRoot, lane, shell.id);
   deps.records.pruneStalePending(directory, Date.parse(deps.now()));
   const context = { repoRoot, pendingPath, shell, startedAt: deps.now() };
-  const downgrade = (reason, problems = []) => deps.composed
-    ? fail(deps, [reason, ...problems])
-    : preCheck(lane, deps, context, reason, problems);
+  const downgrade = (reason, problems = []) =>
+    deps.composed
+      ? fail(deps, [reason, ...problems])
+      : preCheck(lane, deps, context, reason, problems);
   const markerResult = deps.readMarker();
   if (markerResult.status === 'absent') return downgrade('no verification-machine marker');
   if (deps.platform !== 'darwin') return downgrade('a marker is present on a non-macOS host');
@@ -130,11 +135,17 @@ function begin(lane, deps, repoRoot, shell) {
   let runId;
   if (deps.composed) {
     try {
-      ({ scope: composition, runId } = deps.verifyComposition(repoRoot, deps.env, 'dispatch', lane));
+      ({ scope: composition, runId } = deps.verifyComposition(
+        repoRoot,
+        deps.env,
+        'dispatch',
+        lane
+      ));
       if (composition.markerSha256 !== sha256 || composition.head !== live.git.head) {
         return fail(deps, ['the M4 stamp scope differs from the verified evidence']);
       }
-    } catch {
+    } catch (error) {
+      if (error instanceof ExpiredGrantError) deps.log(stampRefusalLine(lane, error.runIds[lane]));
       return fail(deps, ['M4 composed evidence was refused at begin']);
     }
   }
@@ -171,8 +182,10 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
   }
   const [command, lane] = argv;
   const unexpected = unexpectedEnvNames(deps.env);
-  const composed = deps.env.npm_lifecycle_event === M4_SCRIPT ||
-    Object.hasOwn(deps.env, DISPATCH_DIR_ENV) || Object.hasOwn(deps.env, QUEUE_SCOPE_ENV);
+  const composed =
+    deps.env.npm_lifecycle_event === M4_SCRIPT ||
+    Object.hasOwn(deps.env, DISPATCH_DIR_ENV) ||
+    Object.hasOwn(deps.env, QUEUE_SCOPE_ENV);
   if (command === 'describe') {
     if (unexpected.length === 0) return describeMachine(argv.slice(1), deps);
     return fail(deps, [

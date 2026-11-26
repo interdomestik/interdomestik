@@ -19,6 +19,13 @@ export const QUEUE_SCOPE_ENV = 'INTERDOMESTIK_M4_QUEUE_SCOPE';
 const GRANT_CLASS = 'interdomestik.m4-dispatch-grant/1';
 const RESULT_CLASS = 'interdomestik.m4-dispatch-result/1';
 
+export class ExpiredGrantError extends Error {
+  constructor(runIds) {
+    super('m4-grant');
+    this.runIds = runIds;
+  }
+}
+
 function isMacJobId(id) {
   return typeof id === 'string' && /^0-\d{19}-[1-9]\d*$/u.test(id);
 }
@@ -65,10 +72,10 @@ export function checkGrant(grant, job, approved, now) {
       grant.policySha256 === approved.sha256 &&
       Number.isSafeInteger(scope.m5FinishedAt) &&
       scope.m5FinishedAt <= now &&
-      Number.isSafeInteger(scope.expiresAt) &&
-      now < scope.expiresAt,
+      Number.isSafeInteger(scope.expiresAt),
     'm4-grant'
   );
+  if (now >= scope.expiresAt) throw new ExpiredGrantError(runIds);
   return grant;
 }
 
@@ -191,7 +198,8 @@ export function captureInvocation(directory, grant, { exit, stampRefusals, stamp
   assertEvidence(exit === 0, 'm4-launch-exit');
   const { records, index } = readRecordPair(directory, grant);
   assertEvidence(
-    stampRefusals === 0 && index.every(({ lane, recordSha256 }) => stamps.get(lane) === recordSha256),
+    stampRefusals === 0 &&
+      index.every(({ lane, recordSha256 }) => stamps.get(lane) === recordSha256),
     'm4-stamp-digest'
   );
   const bytes = Buffer.from(JSON.stringify({ class: RESULT_CLASS, grant, exit, records: index }));

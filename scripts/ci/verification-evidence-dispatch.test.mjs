@@ -347,6 +347,52 @@ test('locked selection falls back for unusable evidence and preserves real compo
   assert.deepEqual(calls, ['queue:dispatch', 'receipt:dispatch', 'composed']);
 });
 
+test('a grant that expires at begin records the refusal and runs full verification once', async t => {
+  const f = evidenceFixture(t);
+  const deps = verifier(f);
+  let at = now;
+  let fullRuns = 0;
+  let acceptChecks = 0;
+  let recollectionRefusal;
+  let refusalLine;
+  let output;
+  deps.now = () => at;
+
+  const exit = await dispatchM4({
+    signal: new AbortController().signal,
+    checkQueue(stage) {
+      if (stage === 'accept') acceptChecks += 1;
+    },
+    collect(stage) {
+      try {
+        return verifyComposition('/root', f.dir, f.job, stage, 'gate', deps);
+      } catch (error) {
+        recollectionRefusal = error.message;
+        throw error;
+      }
+    },
+    runComposed(scope) {
+      const h = stampFixture(t, f, scope);
+      at = scope.expiresAt;
+      const beginExit = h.run('begin', 'pr-verify', at);
+      assert.equal(beginExit, 1);
+      assert.match(h.output.error.at(-1), /composed evidence was refused at begin/u);
+      output = h.output.log;
+      refusalLine = `M4-STAMP-REFUSED lane=pr-verify run=${h.grant.runIds['pr-verify']}`;
+      return { grant: h.grant, outcome: observe(h.grant, output, beginExit) };
+    },
+    runFull() {
+      fullRuns += 1;
+      return 0;
+    },
+    capture: () => assert.fail('expired evidence cannot be captured'),
+  });
+
+  assert.equal(recollectionRefusal, 'ticket-expired');
+  assert.deepEqual({ exit, fullRuns, acceptChecks }, { exit: 0, fullRuns: 1, acceptChecks: 2 });
+  assert.deepEqual(output, [refusalLine]);
+});
+
 test('a grant that expires at stamp triggers the full gate only on an eligible queue', async t => {
   const f = evidenceFixture(t);
   const deps = verifier(f);

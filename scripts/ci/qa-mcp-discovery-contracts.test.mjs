@@ -15,7 +15,7 @@ async function createMcpClient() {
     cwd: rootDir,
     detached: true,
     stdio: ['pipe', 'pipe', 'inherit'],
-    env: { ...process.env, MCP_REPO_ROOT: rootDir },
+    env: { ...process.env, CI: 'true', MCP_REPO_ROOT: rootDir },
   });
 
   let stdout = '';
