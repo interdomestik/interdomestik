@@ -116,6 +116,7 @@ function legacyOrigin(edit = () => {}) {
 
 const epochFiles = [
   'scripts/check-db-access-guard.mjs',
+  'scripts/ci/verification-evidence/worker-profile.mjs',
   ...fs
     .readdirSync(path.join(rootDir, 'scripts/ci'))
     .filter(name => /^(db-access-|source-)[^/]*\.mjs$/u.test(name) && !/test/u.test(name))
