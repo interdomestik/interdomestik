@@ -55,7 +55,7 @@ describe('member case messages presentation', () => {
     expect(screen.queryByText('empty.title')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'member.refresh' })).toBeDisabled();
 
-    await act(async () => settle({ success: true, messages: [] }));
+    act(() => settle({ success: true, messages: [] }));
     const title = await screen.findByText('empty.title');
     expect(title).toHaveClass('font-semibold');
     expect(title.parentElement).toHaveClass('border-dashed');
