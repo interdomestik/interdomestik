@@ -11,6 +11,7 @@ import {
 } from '../fixtures/one-door-data.fixture';
 import { expect, requestFromDoor } from '../fixtures/one-door.fixture';
 import { pdf } from '../fixtures/one-door-upload.fixture';
+import { path as routePath } from '../fixtures/routes';
 import { gotoApp } from '../utils/navigation';
 import {
   documentPaths,
@@ -59,8 +60,13 @@ export async function openCleanContext(browser: Browser, origin: string) {
   return context;
 }
 
-export async function signInSecondMember(page: Page, origin: string, member: MemberFixture) {
-  await page.goto(`${origin}/mk/login`);
+export async function signInSecondMember(
+  page: Page,
+  origin: string,
+  member: MemberFixture,
+  info: TestInfo
+) {
+  await gotoApp(page, new URL(routePath(info, '/login')), info, { baseURL: origin });
   const login = await requestFromDoor(page, `${origin}/api/auth/sign-in/email`, {
     email: member.email,
     password: E2E_PASSWORD,

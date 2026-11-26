@@ -12,6 +12,7 @@ import {
 } from '@interdomestik/domain-claims/claims/inbound-upload';
 import { confirmClaimEvidence } from '@interdomestik/domain-documents/claim-evidence';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
+import { ROLES } from '@interdomestik/shared-auth';
 import { actionFailure, defineAction, defineFormAction } from '@/lib/safe-action';
 import { parameterFreeFailure } from '@/actions/staff-claims/register-failure';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
@@ -53,7 +54,7 @@ function fingerprint(decision: InboundUploadDecision) {
 
 const recordDecision = defineAction({
   name: 'claims.inboundEvidence.recordDecision',
-  basis: { kind: 'role', roles: ['staff', 'tenant_admin'] },
+  basis: { kind: 'role', roles: [ROLES.staff, ROLES.tenant_admin] },
   subject: { type: 'claim', from: 'claimId' },
   input: inboundUploadDecisionInput,
   async handler(input, { authority }) {
@@ -84,7 +85,7 @@ export async function recordInboundEvidenceDecision(input: unknown) {
 
 const issueIntent = defineAction({
   name: 'claims.inboundEvidence.issueIntent',
-  basis: { kind: 'role', roles: ['staff'] },
+  basis: { kind: 'role', roles: [ROLES.staff] },
   subject: { type: 'claim', from: 'claimId' },
   input: z.strictObject({ claimId: claimIdInput, decisionId: z.uuid() }),
   async handler({ claimId, decisionId }, { authority }) {
@@ -137,7 +138,7 @@ async function saveApprovedObject(decision: InboundUploadDecision, file: File) {
 
 const upload = defineFormAction({
   name: 'claims.inboundEvidence.upload',
-  basis: { kind: 'role', roles: ['staff'] },
+  basis: { kind: 'role', roles: [ROLES.staff] },
   subject: { type: 'claim', from: 'claimId' },
   input: z.strictObject({
     claimId: claimIdInput,

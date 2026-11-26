@@ -60,7 +60,7 @@ test.describe('WP-12.1 MK pre-check', () => {
       const next = await deniedContext.newPage();
       await loginAtDoor(staff, origin, locale, 'MK_STAFF', info);
       await loginAtDoor(former, origin, locale, 'MK_MEMBER', info);
-      await signInSecondMember(next, origin, successor);
+      await signInSecondMember(next, origin, successor, info);
 
       const form = await staffPilotForm(staff, origin, locale, claim, info);
       expect(await staff.evaluate(() => window.isSecureContext)).toBe(true);
