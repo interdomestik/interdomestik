@@ -61,6 +61,7 @@ const STRUCTURED_OWNERS = [
   ],
   [/(^|\/)package\.json$|^pnpm-workspace\.yaml$/u, 'package-manifest-contract'],
   [/(^|\/)tsconfig(?:\.[^.]+)?\.json$/u, 'typescript-config-contract'],
+  [/^scripts\/ci\/migration-phase\/safe-codes\.json$/u, 'release-migration-phase-contract'],
   [/^scripts\/(?:ci\/)?[^/]+\.json$/u, 'script-config-contract'],
   [/^(?:components|turbo|vercel)\.json$/u, 'repository-config-contract'],
   [/^\.codex\/config\.toml$/u, 'codex-config-contract'],

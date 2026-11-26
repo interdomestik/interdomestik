@@ -1,5 +1,5 @@
 {
-  "about": "CHK-13 (R-13): the reviewed inventory of script files that name a database client: a driver specifier in any form, a client command (psql, pg_dump, pg_dumpall, pg_restore, pgcli, createdb, dropdb), or DATABASE_URL. Each has a kind that scripts/ci/own-database-client.test.mjs enforces: launcher and contract construct no client and run no client command; read-only runs its statement through runReadOnlyReport; probe runs only its pinned select 1 body, as the condition of its pinned if or until construct; container-local uses docker exec on a local container for status only and runs no client command; pinned-read-probe is a reviewed read probe pinned byte for byte by its hash in the rules module; owner-operation is the one pinned owner operation, and only its pinned modules stand under another entry; guarded takes every client from the guarded factory (packages/database/src/disposable-client.ts, behind assertDisposableTarget); pinned-guarded has the same guarded checks after verifying the complete file hash and accounting for its reviewed driver type or adapter import; client-adapter uses a guarded client it is given and opens none, and is pinned byte for byte by its hash in the rules module.",
+  "about": "CHK-13 (R-13): the reviewed inventory of script files that name a database client: a driver specifier in any form, a client command (psql, pg_dump, pg_dumpall, pg_restore, pgcli, createdb, dropdb), or DATABASE_URL. Each has a kind that scripts/ci/own-database-client.test.mjs enforces: launcher and contract construct no client and run no client command; read-only runs its statement through runReadOnlyReport; probe runs only its pinned select 1 body, as the condition of its pinned if or until construct; container-local uses docker exec on a local container for status only and runs no client command; pinned-read-probe is a reviewed read probe pinned byte for byte by its hash in the rules module; owner-operation is the one pinned owner operation, and only its pinned modules stand under another entry; guarded takes every client from the guarded factory (packages/database/src/disposable-client.ts, behind assertDisposableTarget); pinned-guarded verifies the complete file hash and enforces the guarded checks, accounting for the reviewed driver type or adapter import; client-adapter uses a guarded client it is given and opens none, and is pinned byte for byte by its hash in the rules module; pinned-release-migration verifies the journaled release entry point's complete file hash and refuses driver imports and client commands.",
   "scripts": [
     {
       "path": "packages/database/drizzle.config.ts",
@@ -20,6 +20,11 @@
       "path": "packages/database/test/pg16/journal-migrator.ts",
       "kind": "client-adapter",
       "reason": "Applies a journal folder with the application's migrator to a guarded client it is given; it imports Drizzle's adapter and migrator only, calls the adapter only on that client, and cannot open a connection."
+    },
+    {
+      "path": "packages/database/test/pg16/release-migration-fixture.ts",
+      "kind": "guarded",
+      "reason": "Sets up the PG16 release rehearsal role and database using withDisposableClient and the guarded scratch fixture, and passes that loopback database to the release CLI in test mode."
     },
     {
       "path": "packages/database/test/pg16/scratch-database.ts",
@@ -90,6 +95,11 @@
       "path": "scripts/ci/main-e2e-reuse.mjs",
       "kind": "contract",
       "reason": "Contract check over workflow text for E2E reuse: compares DATABASE_URL wiring; reads no database."
+    },
+    {
+      "path": "scripts/ci/migration-phase/run.mjs",
+      "kind": "pinned-release-migration",
+      "reason": "Owner CLI for journaled release migrations. It passes the enrolled database target to withPreflightedAdminConnection, then hands its verified client to the phase runner."
     },
     {
       "path": "scripts/ci/pr-e2e-evidence-workflow-contracts.mjs",

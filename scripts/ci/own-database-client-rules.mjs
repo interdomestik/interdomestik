@@ -205,6 +205,11 @@ const PINNED_GUARDED = Object.freeze({
   'packages/database/test/pg16/wp16-1-runtime-grants.test-support.ts':
     'cad4b93a0e1390b8364756f7050baf18904c142d782455777630663f4dd803c6',
 });
+// The release entry point applies journaled migrations through admin connection preflight.
+const PINNED_RELEASE_MIGRATIONS = Object.freeze({
+  'scripts/ci/migration-phase/run.mjs':
+    '15b7ae4cb684dbc942124488b3b99efa848d5c280f29b2633cdca3944f887c5c',
+});
 
 const pinnedCheck = (pins, what) => (entry, source) => {
   assert.ok(Object.hasOwn(pins, entry.path), `${entry.path}: not a pinned ${what}`);
@@ -213,6 +218,7 @@ const pinnedCheck = (pins, what) => (entry, source) => {
 export const checkPinnedReadProbe = pinnedCheck(PINNED_READ_PROBES, 'probe');
 export const checkClientAdapter = pinnedCheck(PINNED_ADAPTERS, 'adapter');
 const checkGuardedPin = pinnedCheck(PINNED_GUARDED, 'guarded script');
+const checkReleaseMigration = pinnedCheck(PINNED_RELEASE_MIGRATIONS, 'release migration');
 
 function checkOwnerOperation(entry) {
   const pinned = OWNER_OPERATIONS.find(operation => operation.path === entry.path);
@@ -276,6 +282,9 @@ function checkKind(entry, source) {
       return checkPinnedGuarded(entry, source);
     case 'client-adapter':
       return checkClientAdapter(entry, source);
+    case 'pinned-release-migration':
+      checkNoClient(entry, source);
+      return checkReleaseMigration(entry, source);
     default:
       return assert.fail(`${entry.path}: kind ${entry.kind}`);
   }
