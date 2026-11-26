@@ -764,6 +764,13 @@
       "when": 1795567549590,
       "tag": "0108_wp13a_legal_acceptance",
       "breakpoints": true
+    },
+    {
+      "idx": 109,
+      "version": "7",
+      "when": 1795638166542,
+      "tag": "0109_wp09_import_assignment_capacity",
+      "breakpoints": true
     }
   ]
 }

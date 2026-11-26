@@ -195,6 +195,13 @@ async function seed(admin: postgres.Sql, s: Scope): Promise<void> {
     revision: 2,
   });
 }
+
+export async function seedSponsorFixture(admin: postgres.Sql): Promise<Scope> {
+  const sponsor = scope();
+  await seed(admin, sponsor);
+  return sponsor;
+}
+
 export async function restricted<T>(
   client: postgres.Sql,
   s: Scope,
@@ -277,11 +284,9 @@ export async function withFixture(
         await maintenance`select pg_advisory_unlock(192837465)`;
       }
 
-      const a = scope();
-      const b = scope();
       // These inserts commit before the test starts so both race transactions can see them.
-      await seed(admin, a);
-      await seed(admin, b);
+      const a = await seedSponsorFixture(admin);
+      const b = await seedSponsorFixture(admin);
       await fn({ admin, a, b });
     },
     { maxConnections: 3, loopbackOnly: true }

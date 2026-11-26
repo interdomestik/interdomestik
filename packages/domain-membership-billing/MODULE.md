@@ -22,6 +22,10 @@ Sponsor term approvals and new roster provisioning check `pilot/new_sales` in th
 
 ## Invariants
 
+WP-09 PR 1 adds dormant Billing-owned records for `membership_import_assignments`, `membership_import_lists`, `membership_import_rows`, `sponsor_contract_years`, `sponsor_contract_year_seats`, `sponsor_exit_events`, `membership_notice_obligations` and `membership_opt_out_tokens`. They record scoped assignments, exact upload and approval evidence, prior-paid proof and expiry, signed annual capacity, employer exits, and the notice and token subjects. Proof and recipient fields hold references for the existing protected evidence model. Each import row can claim a namespaced stable identity fingerprint, an approved alias fingerprint and a verified member ID. Billing's future commands validate the complete canonical row set under the list lock before applying a decision. The WP-07 period evidence interface and its foreign key are sequenced with WP-07.
+
+Annual capacity uses half-open agreement windows and `1 ≤ current_limit ≤ signed_ceiling ≤ 500`. Each row can take one seat and each slot can be taken once in its contract year. Changing the limit revalidates the occupied slots through the year-to-seat foreign key. Employer exit evidence keeps the reserved seat and its paid-through provenance available for later fulfillment and notice handling.
+
 - One subscription row per member, one per provider subscription — database uniques (`packages/database/src/schema/subscriptions.ts:78-79`; `A/modules/data-layer.md:126`).
 - Subscription status is one of six values — database enum (`schema/enums.ts:16-23`, `schema/subscriptions.ts:31`).
 - A subscription refers to an existing plan — **partly**: `plan_key` has a nullable FK, `plan_id` is NOT NULL free text with no FK (`schema/subscriptions.ts:32-33`).
