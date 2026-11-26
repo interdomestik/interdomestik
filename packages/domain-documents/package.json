@@ -7,6 +7,7 @@
   "exports": {
     ".": "./src/index.ts",
     "./storage": "./src/storage.ts",
+    "./claim-documents": "./src/claim-documents.ts",
     "./upload": "./src/upload.ts",
     "./audit": "./src/audit.ts",
     "./claim-evidence": "./src/claim-evidence.ts"
@@ -18,6 +19,9 @@
   },
   "dependencies": {
     "@interdomestik/database": "workspace:*",
+    "@interdomestik/domain-claims": "workspace:*",
+    "@interdomestik/domain-users": "workspace:*",
+    "@interdomestik/shared-auth": "workspace:*",
     "@supabase/supabase-js": "^2.110.9",
     "drizzle-orm": "^0.45.2",
     "nanoid": "^5.1.16"

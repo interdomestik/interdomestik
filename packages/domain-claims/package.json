@@ -32,6 +32,7 @@
     "./claims/lifecycle-read-sql": "./src/claims/lifecycle-read-sql.ts",
     "./claims/transition-guard": "./src/claims/transition-guard.ts",
     "./claims/draft": "./src/claims/draft.ts",
+    "./admin-claims/visible-ops-claim": "./src/admin-claims/visible-ops-claim.ts",
     "./staff-claims/assign": "./src/staff-claims/assign.ts",
     "./staff-claims/commercial-handling-scope": "./src/staff-claims/commercial-handling-scope.ts",
     "./staff-claims/scope": "./src/staff-claims/scope.ts",
