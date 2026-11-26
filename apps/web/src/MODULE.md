@@ -139,3 +139,7 @@ A domain package's deep path from a route handler or an action, rather than its 
 ## Open findings
 
 SEC-01 to SEC-13 (`A/modules/security.md:141-149`; SEC-10 to SEC-13 added in R2b; SEC-12 is S3 since R3), SCTX-01 to SCTX-17 as far as each has a record of its own (`A/modules/server-context-and-diagnosability.md:207-218`; SCTX-04, SCTX-08 and SCTX-12 are recorded as CASE-07, MAIN-11 and BIL-13), MAIN-06, MAIN-07, DATA-13. Work packages: WP-01 (the unvalidated body, the unguarded exported actions, the two nested transactions), WP-02 (the wrapper with a declared basis and a schema), WP-10 (the closed pilot and the entry registry).
+
+## WP-12.1 pilot evidence and member claim detail
+
+Pilot uploads use a committed visibility decision and a signed create-only form capped at 1 MiB. The staff register presents received citations through the ordinary audited download route. The mounted MK member detail rechecks the authenticated owner in the evidence statement. The unmounted older member claim detail `_core.ts` still splits its owner and document reads and needs the same current-owner binding before reuse.

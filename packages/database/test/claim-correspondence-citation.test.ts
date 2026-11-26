@@ -41,25 +41,33 @@ async function proveCitations(t: TestContext, connections: Connection) {
     await assert.rejects(runtime`set session_replication_role = replica`, { code: '42501' });
   });
 
-  await t.test('the freeze is an enabled AFTER UPDATE row trigger on claim_documents', async () => {
-    const triggers = await admin`
+  await t.test(
+    'claim document guards are enabled AFTER ROW triggers for the expected events',
+    async () => {
+      const triggers = await admin`
       select tgname, tgenabled, (tgtype & 2) = 0 as after_trigger, (tgtype & 1) = 1 as row_trigger,
-        (tgtype & 16) = 16 as on_update
+        (tgtype & 4) = 4 as on_insert, (tgtype & 16) = 16 as on_update
       from pg_trigger
-      where tgrelid = 'public.claim_documents'::regclass and not tgisinternal`;
-    assert.deepEqual(
-      [...triggers],
-      [
-        {
-          tgname: 'claim_documents_coordinates_frozen',
-          tgenabled: 'O',
-          after_trigger: true,
-          row_trigger: true,
-          on_update: true,
-        },
-      ]
-    );
-  });
+      where tgrelid = 'public.claim_documents'::regclass and not tgisinternal
+      order by tgname`;
+      assert.deepEqual(
+        triggers.map(row => [
+          row.tgname,
+          row.tgenabled,
+          row.after_trigger,
+          row.row_trigger,
+          row.on_insert,
+          row.on_update,
+        ]),
+        [
+          ['claim_documents_coordinates_frozen', 'O', true, true, false, true],
+          ['claim_inbound_document_home_guard', 'O', true, true, true, false],
+          ['claim_inbound_document_publication_guard', 'O', true, true, true, false],
+          ['claim_inbound_document_scope_guard', 'O', true, true, false, true],
+        ]
+      );
+    }
+  );
 
   await proveFreeze(t, connections);
   await proveRestrictedIdentity(t, connections);

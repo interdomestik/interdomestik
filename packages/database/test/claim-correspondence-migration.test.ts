@@ -81,10 +81,13 @@ async function proveJournal(t: TestContext, admin: ScratchClient) {
     documentInput(retail, undefined, randomPath()),
     documentInput(injury, nearLimitId()),
   ];
-  for (const document of documents) await admin`insert into claim_documents ${admin(document)}`;
+  const duplicateLegacyPath = documentInput(injury, undefined, documents[0].file_path);
+  for (const document of [...documents, duplicateLegacyPath]) {
+    await admin`insert into claim_documents ${admin(document)}`;
+  }
   assert.ok(documents[1].file_path.length > 3_000);
   assert.equal(documents[2].id.length, 2_650);
-  const documentIds = documents.map(document => document.id);
+  const documentIds = [...documents, duplicateLegacyPath].map(document => document.id);
   // Row values and row versions (xmin): the migration performs no DML on an existing table.
   const snapshot = async () => ({
     claims: [
@@ -98,7 +101,7 @@ async function proveJournal(t: TestContext, admin: ScratchClient) {
   });
   const before = await snapshot();
   assert.equal(before.claims.length, ids.length);
-  assert.equal(before.documents.length, documents.length);
+  assert.equal(before.documents.length, documentIds.length);
 
   await migrateJournal(admin, journalThrough(t, 'register'));
   assert.deepEqual(
@@ -106,6 +109,14 @@ async function proveJournal(t: TestContext, admin: ScratchClient) {
     before,
     'the migration leaves legacy claims and documents untouched'
   );
+  await migrateJournal(admin, migrations);
+  assert.deepEqual(
+    await snapshot(),
+    before,
+    'WP-12.1 keeps duplicate and long legacy paths intact'
+  );
+  const [pilot] = await admin`select count(*)::int as count from claim_inbound_pilot_cases`;
+  assert.equal(pilot.count, 0);
   return { retail, injury, draft, closedDrafts };
 }
 

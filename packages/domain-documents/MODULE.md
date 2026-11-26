@@ -23,3 +23,7 @@ transaction, a scope verified under the claim lock, and the verified upload meta
 `created`, `replayed`, or `conflict` by comparing the stored metadata and original consent.
 The caller verifies any information-request link in the same transaction. A replay-only caller
 may use `hasClaimEvidenceDocument` before taking locks to avoid reading stored bytes.
+
+## WP-12.1 pilot evidence
+
+Ordinary publication remains a domain-documents write inside the caller's case transaction. The committed visibility decision supplies the canonical evidence coordinates and approved uploader. Confirmation rechecks the case and returns the existing document ID on exact replay. Publication makes the PDF visible through the ordinary case read; inbound correspondence records the receipt separately.

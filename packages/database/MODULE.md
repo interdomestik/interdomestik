@@ -112,3 +112,7 @@ From `package.json:31-48`: `pnpm --filter @interdomestik/database test:unit`; `t
 ## Open findings
 
 DATA-02 to DATA-09, DATA-11, DATA-12 (`A/modules/data-layer.md:239-252`), DATA-13 and DATA-14 (`docs/engineering/DB-BASELINE.md:18,89`), TEN-01…TEN-05 (`A/modules/tenancy.md:215-221`), SEC-12 (S3 since R3) and SEC-13 (`docs/engineering/DB-BASELINE.md`, part 12). Work packages: WP-04 and WP-15 for the build path, the role settings and the seed guard (`docs/engineering/DB-BASELINE.md:210-220`); WP-17 for the rehearsal and storage.
+
+## WP-12.1 pilot evidence
+
+Migration `0110` adds release-controlled enrollment, immutable visibility decisions, exact-set seals and received links. Pilot decisions reserve their document ID and object key for both document tables before any storage write. Publication serializes with ownership changes and freezes the published row's authority-bearing fields. Pilot enrollment starts empty. Retain the reservations, guards and receipt records on application rollback.

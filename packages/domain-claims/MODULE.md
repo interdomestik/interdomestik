@@ -126,3 +126,16 @@ The register access module re-exports input validation and normalization from `c
 ## Open findings
 
 CASE-01…CASE-12 (`A/modules/case-handoff.md:252-265`), DATA-06, DATA-09. Work packages: WP-11 (claim rules and notifications in the shared command; a delivery record) and WP-12 (case fields for scope B; the correspondence register). WP-12 needs WP-02 (the wrapper) and WP-05 (the checks of the screen contract) first; the deletion of what the register stores about a contact person waits for WP-13.
+
+## WP-12.1 inbound received documents
+
+Design v4, Astra rounds 3–7, and the owner's November 26 authorization govern this pilot. A case-home visibility decision reserves the exact PDF, recipient, assigned uploader, document ID and object key before upload. Assigned staff can record intended-for-member; a home tenant administrator can record approved-to-show. Received links cite approved ordinary documents and use an immutable per-entry seal for the exact received set. They confer no sharing authority.
+
+**Activation preconditions.** Merge and deploy with pilot enrollment empty. Before activation, all four prerequisite PRs must land and pass their release proofs.
+
+1. Durable-grant authority and the case-tenant foreign key.
+2. Assignment and agent-link write integrity.
+3. The WP-19 documents boundary.
+4. Storage-path canonicalization, authorized separately by the owner on November 26 after Astra round 8. Stored object paths are compared exactly for WP-12.1 reservations.
+
+Each case also requires recorded legacy-credential disposition after the release-controlled issuance pause and drain. Keep uncertain, refused or oversize files in approved office custody. The assigned handler records the opaque receipt reference, received and hold times, and responsible role in the office record until approved release or disposition. During rollback retain reservations, publication guards, ordinary reads and legacy staff upload closure for enrolled cases.
