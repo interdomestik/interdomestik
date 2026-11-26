@@ -27,9 +27,13 @@ export async function withScratchDatabase<T>(
   work: (client: ScratchClient, maintenance: ScratchClient, scratchUrl: URL) => Promise<T>,
   {
     loopbackOnly,
+    maxConnections,
+    owner,
     requirePg16,
   }: {
     loopbackOnly?: boolean;
+    maxConnections?: number;
+    owner?: string;
     requirePg16?: boolean;
   } = {}
 ): Promise<T> {
@@ -47,10 +51,16 @@ export async function withScratchDatabase<T>(
     }
     const scratchUrl = new URL(adminUrl);
     scratchUrl.pathname = `/${name}`;
-    return withCreatedScratchDatabase(admin, name, () =>
-      withDisposableClient(scratchUrl.toString(), { applicationName: 'wp04_scratch' }, client =>
-        work(client, admin, scratchUrl)
-      )
+    return withCreatedScratchDatabase(
+      admin,
+      name,
+      () =>
+        withDisposableClient(
+          scratchUrl.toString(),
+          { applicationName: 'wp04_scratch', max: maxConnections },
+          client => work(client, admin, scratchUrl)
+        ),
+      owner
     );
   });
 }
@@ -60,7 +70,8 @@ type DatabaseIdentity = { oid: string; name: string; owner: string };
 export async function withCreatedScratchDatabase<T>(
   admin: Pick<ScratchClient, 'unsafe'>,
   name: string,
-  work: () => Promise<T>
+  work: () => Promise<T>,
+  owner?: string
 ): Promise<T> {
   if (name.length > 63 || !/^[a-z][a-z0-9_]*_[0-9a-f]{12}$/u.test(name)) {
     throw new Error(
@@ -69,7 +80,9 @@ export async function withCreatedScratchDatabase<T>(
   }
 
   const identifier = quoteIdentifier(name);
-  await admin.unsafe(`create database ${identifier}`);
+  await admin.unsafe(
+    `create database ${identifier}${owner ? ` owner ${quoteIdentifier(owner)}` : ''}`
+  );
   const [created] = await admin.unsafe<DatabaseIdentity[]>(
     `select oid::text as oid, datname as name, datdba::text as owner
      from pg_catalog.pg_database where datname = $1`,

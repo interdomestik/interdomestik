@@ -4,7 +4,7 @@ import { rmSync, writeFileSync } from 'node:fs';
 import test, { type TestContext } from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
 import { assertTransactionalMigration } from '../../src/release-migration-sql';
-import { readReleaseJournal } from '../../src/release-migrations';
+import { readReleaseJournal, sha256 } from '../../src/release-migrations';
 import {
   assertLedger,
   assertRefusal,
@@ -12,6 +12,8 @@ import {
   makeJournal,
   policy,
   releaseFixture,
+  scratchOptions,
+  withReleaseDatabase,
 } from './release-migration-fixture';
 import {
   migrateJournal,
@@ -20,7 +22,6 @@ import {
   withScratchDatabase,
 } from './scratch-database';
 
-const scratchOptions = { loopbackOnly: true, requirePg16: true };
 const requireDatabase = 'REQUIRE_JOURNAL_SCHEMA_PARITY';
 
 test('validates the pinned registry and every base migration split', () => {
@@ -78,6 +79,25 @@ test('refuses top-level transaction and session control in a split', () => {
 });
 
 type Fixture = Awaited<ReturnType<typeof releaseFixture>>;
+
+test('CLI spends an authenticated approval even if the manifest is missing', async t => {
+  const { dir, registry } = makeJournal(t);
+  const unusedUrl = new URL(
+    'postgres://unused:unused@127.0.0.1:5432/interdomestik_admin_config_unused'
+  );
+  const fixture = releaseFixture(t, unusedUrl, dir, registry);
+  const manifest = JSON.stringify({
+    version: 1,
+    environment: fixture.config.environment,
+    commitSha: fixture.config.commitSha,
+    plan: {},
+  });
+  const approval = fixture.approval({ ...fixture.receipt(), manifestSha256: sha256(manifest) });
+  assertRefusal(await fixture.run('contract', approval), 'MANIFEST_MISSING_OR_SIZE');
+  writeFileSync(fixture.files('manifest.json'), manifest);
+  assertRefusal(await fixture.run('contract', approval), 'RECEIPT_REPLAYED');
+});
+
 async function exerciseRefusals(
   t: TestContext,
   fixture: Fixture,
@@ -166,10 +186,10 @@ test('PG16 synthetic CLI stops at expand, refuses bad approvals and verifies rec
   const missing = scratchServerMissing(requireDatabase);
   if (missing) return t.skip(missing);
   const { dir, registry } = makeJournal(t);
-  await withScratchDatabase(
+  await withReleaseDatabase(
     'interdomestik_admin_config_phase',
-    async (client, _admin, url) => {
-      const fixture = await releaseFixture(t, client, url, dir, registry);
+    { t, dir, registry },
+    async (client, fixture) => {
       const plan = await fixture.expand();
       assert.equal(plan.expand.tag, '0001_writer_expand');
       assert.equal(plan.contract?.tag, '0002_writer_contract');
@@ -208,8 +228,7 @@ test('PG16 synthetic CLI stops at expand, refuses bad approvals and verifies rec
       await fixture.expand();
       await assertLedger(client, fixture.journal, 4);
       await client`INSERT INTO writer (replacement, suffix) VALUES (1, 2)`;
-    },
-    scratchOptions
+    }
   );
 });
 
@@ -220,10 +239,10 @@ test('PG16 CLI rolls back a failed contract and refuses divergent ordered histor
     contract:
       'ALTER TABLE writer DROP COLUMN legacy;--> statement-breakpoint\nSELECT missing_column FROM writer',
   });
-  await withScratchDatabase(
+  await withReleaseDatabase(
     'interdomestik_admin_config_atomic',
-    async (client, _admin, url) => {
-      const fixture = await releaseFixture(t, client, url, dir, registry);
+    { t, dir, registry },
+    async (client, fixture) => {
       writeFileSync(
         fixture.files('config.json'),
         JSON.stringify({ ...fixture.config, backendMarkerSha256: '0'.repeat(64) })
@@ -236,19 +255,19 @@ test('PG16 CLI rolls back a failed contract and refuses divergent ordered histor
       assertRefusal(await fixture.run('contract', divergentAttempt), 'LEDGER_DIVERGENT');
       await client`UPDATE drizzle.__drizzle_migrations SET created_at = 20 WHERE id = 1`;
       assertRefusal(await fixture.run('contract', divergentAttempt), 'RECEIPT_REPLAYED');
+      const aclAttempt = fixture.approval();
       await client`GRANT INSERT ON drizzle.__drizzle_migrations TO PUBLIC`;
-      assertRefusal(
-        await fixture.run('contract', fixture.approval()),
-        'MIGRATION_LEDGER_ACL_REJECTED'
-      );
+      assertRefusal(await fixture.run('contract', aclAttempt), 'MIGRATION_LEDGER_ACL_REJECTED');
       await client`REVOKE INSERT ON drizzle.__drizzle_migrations FROM PUBLIC`;
+      assertRefusal(await fixture.run('contract', aclAttempt), 'RECEIPT_REPLAYED');
+      await assertLedger(client, fixture.journal, 2);
+      await assertOldWriter(client);
       const approval = fixture.approval();
       assertRefusal(await fixture.run('contract', approval), 'MIGRATION_SQL_FAILED');
       assertRefusal(await fixture.run('contract', approval), 'RECEIPT_REPLAYED');
       await assertLedger(client, fixture.journal, 2);
       await assertOldWriter(client);
-    },
-    scratchOptions
+    }
   );
 });
 
@@ -293,18 +312,17 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
     'Supply the exact reviewed candidate commit for an exported journal'
   );
 
-  await withScratchDatabase(
+  await withReleaseDatabase(
     'interdomestik_admin_config_wp07',
-    async (client, _admin, url) => {
-      const fixture = await releaseFixture(t, client, url, candidate, policy, commit);
+    { t, dir: candidate, registry: policy, commitSha: commit },
+    async (client, fixture) => {
       const plan = await fixture.expand();
       assert.deepEqual(
         [plan.expand.tag, plan.contract?.tag, plan.expandCount, plan.finalCount],
         ['0111_wp07_rate_check_expand', '0112_wp07_rate_check_contract', 112, 113]
       );
-      await client`INSERT INTO tenants (id, name, legal_name, country_code)
-      VALUES ('release-phase', 'Release phase', 'Release phase', 'MK')`;
       let bookIndex = 0;
+      let lastTenant = '';
       let lastBook = '';
       let oldRate = '';
       await exerciseRefusals(t, fixture, async () => {
@@ -326,20 +344,55 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
           predecessor_guard: true,
         });
         lastBook = `release-book-${++bookIndex}`;
+        lastTenant = `release-phase-${bookIndex}`;
         oldRate = `old-rate-${bookIndex}`;
+        await client`INSERT INTO tenants (id, name, legal_name, country_code)
+        VALUES (${lastTenant}, 'Release phase', 'Release phase', 'MK')`;
         await client`INSERT INTO exchange_rate_books (id, tenant_id, base, quote)
-        VALUES (${lastBook}, 'release-phase', 'EUR', 'MKD')`;
+        VALUES (${lastBook}, ${lastTenant}, 'EUR', 'MKD')`;
         const [old] = await client`INSERT INTO exchange_rates
         (id, tenant_id, book_id, base, quote, rate, effective_on, revision, source, caller_kind)
-        VALUES (${oldRate}, 'release-phase', ${lastBook}, 'EUR', 'MKD', 61.5, '2026-11-23', 1, 'nbrm', 'inngest')
+        VALUES (${oldRate}, ${lastTenant}, ${lastBook}, 'EUR', 'MKD', 61.5, '2026-11-23', 1, 'nbrm', 'inngest')
         ON CONFLICT (tenant_id, book_id, week_starts_on, revision) DO NOTHING RETURNING id`;
         assert.equal(old.id, oldRate);
       });
       await proveContractOnce(fixture);
       await assertLedger(client, journal, 113);
+      await t.test(
+        'recovery rejects the same FK name and target with a different mapping',
+        async () => {
+          await client`ALTER TABLE exchange_rate_verifications
+          DROP CONSTRAINT exchange_rate_verifications_check_fk,
+          ADD CONSTRAINT exchange_rate_verifications_check_fk
+          FOREIGN KEY (tenant_id, book_id, verified_by, legal_entity_id, check_id, rate_id)
+          REFERENCES exchange_rate_check_events (tenant_id, book_id, id, legal_entity_id, actor_id, rate_id)`;
+          await assertLedger(client, journal, 113);
+          assertRefusal(await fixture.run('recover'), 'PHASE_SCHEMA_DIVERGENT');
+          await client`ALTER TABLE exchange_rate_verifications
+          DROP CONSTRAINT exchange_rate_verifications_check_fk,
+          ADD CONSTRAINT exchange_rate_verifications_check_fk
+          FOREIGN KEY (tenant_id, book_id, check_id, legal_entity_id, verified_by, rate_id)
+          REFERENCES exchange_rate_check_events (tenant_id, book_id, id, legal_entity_id, actor_id, rate_id)`;
+        }
+      );
+      await t.test(
+        'recovery rejects a renamed weekly key and a standalone weekly index',
+        async () => {
+          await client`ALTER TABLE exchange_rates ADD CONSTRAINT alternate_weekly_constraint
+          UNIQUE (tenant_id, book_id, week_starts_on, revision)`;
+          await assertLedger(client, journal, 113);
+          assertRefusal(await fixture.run('recover'), 'PHASE_SCHEMA_DIVERGENT');
+          await client`ALTER TABLE exchange_rates DROP CONSTRAINT alternate_weekly_constraint`;
+          await client`CREATE UNIQUE INDEX alternate_weekly_index
+          ON exchange_rates (week_starts_on, book_id, tenant_id) INCLUDE (revision)`;
+          await assertLedger(client, journal, 113);
+          assertRefusal(await fixture.run('recover'), 'PHASE_SCHEMA_DIVERGENT');
+          await client`DROP INDEX alternate_weekly_index`;
+        }
+      );
       await client`INSERT INTO exchange_rates
       (id, tenant_id, book_id, base, quote, rate, effective_on, revision, source, caller_kind)
-      VALUES ('new-rate', 'release-phase', ${lastBook}, 'EUR', 'MKD', 61.6, '2026-11-24', 1, 'nbrm', 'inngest')`;
+      VALUES ('new-rate', ${lastTenant}, ${lastBook}, 'EUR', 'MKD', 61.6, '2026-11-24', 1, 'nbrm', 'inngest')`;
       const rates = await client`SELECT id, week_starts_on::text FROM exchange_rates
       WHERE book_id = ${lastBook} ORDER BY effective_on`;
       assert.deepEqual(
@@ -351,7 +404,10 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
       );
       await assert.rejects(
         client`INSERT INTO exchange_rate_verifications (check_id) VALUES (NULL)`,
-        { code: '23514', constraint_name: 'exchange_rate_verifications_check_required' }
+        {
+          code: '23514',
+          constraint_name: 'exchange_rate_verifications_check_required',
+        }
       );
       const recovered = await fixture.run('recover');
       assert.equal(recovered.code, 0, recovered.stderr);
@@ -359,8 +415,7 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
       await client`ALTER TABLE exchange_rate_verifications DISABLE TRIGGER exchange_rate_verifications_check_required`;
       await assertLedger(client, journal, 113);
       assertRefusal(await fixture.run('recover'), 'PHASE_SCHEMA_DIVERGENT');
-    },
-    scratchOptions
+    }
   );
 
   await withScratchDatabase(

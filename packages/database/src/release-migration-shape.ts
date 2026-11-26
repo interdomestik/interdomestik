@@ -6,7 +6,7 @@ const REQUIRE_CHECK_SOURCE = 'b8762e83121e8a162bc41908c03dd59bbd5c04050baf9bf966
 const WP07 = '0112_wp07_rate_check_contract';
 
 async function verifyWp07(sql: MigrationExecutionSql, contracted: boolean) {
-  const [shape] = await sql<{ expanded: boolean; weekly: boolean; named_weekly: boolean }[]>`
+  const [shape] = await sql<{ expanded: boolean; weekly_count: number; named_weekly: boolean }[]>`
     WITH rates AS (
       SELECT pg_catalog.to_regclass('public.exchange_rates') AS oid
     ), verifications AS (
@@ -29,15 +29,28 @@ async function verifyWp07(sql: MigrationExecutionSql, contracted: boolean) {
           pg_catalog.to_regclass('public.exchange_rate_check_windows')))
       AND EXISTS (SELECT 1 FROM verifications v JOIN pg_catalog.pg_constraint c ON c.conrelid = v.oid
         WHERE c.conname = 'exchange_rate_verifications_check_fk' AND c.contype = 'f'
-          AND c.convalidated AND c.confrelid = pg_catalog.to_regclass('public.exchange_rate_check_events'))
+          AND c.convalidated AND NOT c.condeferrable
+          AND c.confmatchtype = 's' AND c.confdeltype = 'a' AND c.confupdtype = 'a'
+          AND c.confrelid = pg_catalog.to_regclass('public.exchange_rate_check_events')
+          AND ARRAY(
+            SELECT a.attname::text FROM pg_catalog.unnest(c.conkey) WITH ORDINALITY AS k(num, pos)
+            JOIN pg_catalog.pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = k.num
+            ORDER BY k.pos
+          ) = ARRAY['tenant_id', 'book_id', 'check_id', 'legal_entity_id', 'verified_by', 'rate_id']
+          AND ARRAY(
+            SELECT a.attname::text FROM pg_catalog.unnest(c.confkey) WITH ORDINALITY AS k(num, pos)
+            JOIN pg_catalog.pg_attribute a ON a.attrelid = c.confrelid AND a.attnum = k.num
+            ORDER BY k.pos
+          ) = ARRAY['tenant_id', 'book_id', 'id', 'legal_entity_id', 'actor_id', 'rate_id'])
       AND EXISTS (SELECT 1 FROM uniqueness WHERE conname = 'exchange_rates_tenant_book_date_revision_uq'
         AND key_names = ARRAY['tenant_id', 'book_id', 'effective_on', 'revision']
         AND convalidated AND indisvalid AND indisready AND indislive AND indpred IS NULL)
     ) AS expanded,
-    EXISTS (SELECT 1 FROM uniqueness
+    (SELECT count(*)::int FROM uniqueness
       WHERE conname = 'exchange_rates_tenant_book_week_revision_uq'
-        OR (indnkeyatts = 4 AND key_names @> ARRAY['tenant_id', 'book_id', 'week_starts_on', 'revision']))
-      AS weekly,
+        OR (cardinality(key_names) = indnkeyatts AND 'week_starts_on' = ANY(key_names)
+          AND key_names <@ ARRAY['tenant_id', 'book_id', 'week_starts_on', 'revision']))
+      AS weekly_count,
     EXISTS (SELECT 1 FROM uniqueness WHERE conname = 'exchange_rates_tenant_book_week_revision_uq'
       AND key_names = ARRAY['tenant_id', 'book_id', 'week_starts_on', 'revision']
       AND convalidated AND indisvalid AND indisready AND indislive AND indpred IS NULL) AS named_weekly
@@ -69,7 +82,9 @@ async function verifyWp07(sql: MigrationExecutionSql, contracted: boolean) {
     );
   if (
     !shape?.expanded ||
-    (contracted ? shape.weekly || !guard : !shape.named_weekly || fn || trigger)
+    (contracted
+      ? shape.weekly_count !== 0 || !guard
+      : shape.weekly_count !== 1 || !shape.named_weekly || fn || trigger)
   )
     throw new Error('PHASE_SCHEMA_DIVERGENT');
 }

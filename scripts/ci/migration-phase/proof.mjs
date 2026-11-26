@@ -1,5 +1,8 @@
-import { createHash, createPublicKey, verify } from 'node:crypto';
-import { readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 
 export const HEX = /^[a-f0-9]{64}$/u;
 export const COMMIT = /^[a-f0-9]{40}$/u;
@@ -8,6 +11,8 @@ export const ID = /^[a-zA-Z0-9][a-zA-Z0-9_.:-]{0,127}$/u;
 const DEPLOY_HOST = /^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.vercel\.app$/u;
 const DEPLOY_ID = /^dpl_[a-zA-Z0-9]{1,64}$/u;
 const MAX_AGE_MS = 10 * 60_000;
+const NAMESPACE = 'release-phase@interdomestik.com';
+const SIGNER = 'release-owner';
 
 export const digest = bytes => createHash('sha256').update(bytes).digest('hex');
 export const matches = (expression, value) => typeof value === 'string' && expression.test(value);
@@ -39,31 +44,43 @@ export function readObject(raw, label) {
 
 export function verificationKey(file, expectedDigest) {
   const raw = readBytes(file, 'KEY', 4096);
-  if (
-    digest(raw) !== expectedDigest ||
-    !/^-----BEGIN PUBLIC KEY-----\r?\n[A-Za-z0-9+/=\r\n]+-----END PUBLIC KEY-----\s*$/u.test(
-      raw.toString('utf8')
-    )
-  )
-    throw new Error('KEY_PIN_MISMATCH');
-  const key = createPublicKey(raw);
-  if (key.asymmetricKeyType !== 'ed25519') throw new Error('KEY_PIN_MISMATCH');
-  return key;
+  const key = /^sk-ssh-ed25519@openssh\.com ([A-Za-z0-9+/=]+)(?: [\x20-\x7e]*)?\r?\n?$/u.exec(
+    raw.toString('utf8')
+  );
+  if (digest(raw) !== expectedDigest || !key) throw new Error('KEY_PIN_MISMATCH');
+  return `sk-ssh-ed25519@openssh.com ${key[1]}`;
 }
 
-export function verifyDrainReceipt(raw, signature, key, binding, now = Date.now()) {
+export function authenticateDrainReceipt(raw, signature, key) {
+  const dir = mkdtempSync(join(tmpdir(), 'release-phase-sshsig-'));
+  try {
+    const signers = join(dir, 'signers');
+    const sig = join(dir, 'receipt.sig');
+    writeFileSync(signers, `${SIGNER} namespaces="${NAMESPACE}" ${key}\n`, { mode: 0o600 });
+    writeFileSync(sig, signature, { mode: 0o600 });
+    const result = spawnSync(
+      '/usr/bin/ssh-keygen',
+      ['-Y', 'verify', '-f', signers, '-I', SIGNER, '-n', NAMESPACE, '-s', sig],
+      { input: raw, env: { LANG: 'C' }, stdio: ['pipe', 'ignore', 'ignore'], timeout: 5000 }
+    );
+    if (result.error) throw new Error('RECEIPT_VERIFIER_UNAVAILABLE');
+    if (result.status !== 0) throw new Error('RECEIPT_SIGNATURE_INVALID');
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
   const receipt = readObject(raw, 'RECEIPT');
+  if (!matches(HEX, receipt.attempt)) throw new Error('RECEIPT_SHAPE_INVALID');
+  return receipt;
+}
+
+export function verifyDrainReceipt(receipt, binding, now = Date.now()) {
   if (
     receipt.version !== 1 ||
     !matches(HEX, receipt.manifestSha256) ||
-    !matches(HEX, receipt.attempt) ||
     !object(receipt.deployment) ||
     !object(receipt.drain)
   )
     throw new Error('RECEIPT_SHAPE_INVALID');
-  if (signature.length !== 64 || !verify(null, raw, key, signature))
-    throw new Error('RECEIPT_SIGNATURE_INVALID');
-
   if (
     receipt.environment !== binding.environment ||
     receipt.manifestSha256 !== binding.manifestSha256 ||

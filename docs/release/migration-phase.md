@@ -6,7 +6,7 @@ The DATA-03 pilot uses this CLI for all staging and production schema migrations
 
 1. In an owner-controlled directory, make a detached checkout at the full independently reviewed runner commit. Verify the commit against the review record and verify a clean tree. Install the checkout's frozen dependencies in that trusted directory with migration and deployment credentials absent. Run the commands below from this checkout, using its Node, pnpm, tsx, verifier and `packages/database/drizzle/contract-phases.json`. Keep the checkout and its dependencies under owner control.
 2. Verify the exact reviewed release candidate commit independently. Use `git archive "$candidate_commit" packages/database/drizzle | tar -x -C "$candidate_export"` from the candidate repository to export the reviewed journal and SQL to a private directory. Supply `"$candidate_export/packages/database/drizzle"` as `candidate_drizzle` below. Run only the pinned runner with credentials. Its `inspect` command reads the export as data and reports the journal hash, hash of the ordered journal entries and their SQL hashes, owner registry hash, and phase entry identities.
-3. Put the following values in an owner-controlled JSON config outside both checkouts and set `RELEASE_PHASE_CONFIG` to its path. Use `version` 1, `environment` (`staging` or `production`), `commitSha` (the reviewed candidate SHA), and `journalSha256`, `ledgerSha256` and `registrySha256` from `inspect`. Set `endpoint` to the enrolled direct `db.<project-ref>.supabase.co:5432` host and port, and pin `caSha256` (decoded CA PEM bytes), `backendMarkerSha256` (exact enrolled marker text without a trailing newline), `publicKeySha256` (exact public PEM bytes), `expectedRolsuper` (false), `expectedRolbypassrls` (the reviewed migration role setting), and the Vercel `teamId` and `projectId`. Maintain separate config and enrollment for each environment.
+3. Put the following values in an owner-controlled JSON config outside both checkouts and set `RELEASE_PHASE_CONFIG` to its path. Use `version` 1, `environment` (`staging` or `production`), `commitSha` (the reviewed candidate SHA), and `journalSha256`, `ledgerSha256` and `registrySha256` from `inspect`. Set `endpoint` to the enrolled direct `db.<project-ref>.supabase.co:5432` host and port, and pin `caSha256` (decoded CA PEM bytes), `backendMarkerSha256` (exact enrolled marker text without a trailing newline), `publicKeySha256` (exact OpenSSH public key file bytes), `expectedRolsuper` (false), `expectedRolbypassrls` (the reviewed migration role setting), and the Vercel `teamId` and `projectId`. Maintain separate config and enrollment for each environment. Set `attemptDirectory` to the absolute path of a persistent owner-owned directory outside the checkouts on the owner runner. Create it once with `mkdir -m 700 "$attempt_directory"` and use the same store for every candidate and invocation for that environment. Preserve the current store across runner moves and leave all active receipts retired if the store is lost.
 4. Provision the database through the existing owner enrollment process. The CLI expects the enrolled `runtime_attestation.backend_marker` and its schema to be owner-controlled. The migration role must own the database, `public` and its objects, and any existing Drizzle ledger and sequence. Restrict schema creation and ledger mutation to the migration authority. Supply the direct TLS URL as `RELEASE_MIGRATION_URL` and its CA PEM in `RELEASE_DATABASE_CA_BASE64` through the owner credential mechanism. Supply deployment-read `VERCEL_TOKEN` for contract and `VERCEL_AUTOMATION_BYPASS_SECRET` if the immutable deployment requires it. Keep credentials out of candidate checkouts, arguments, evidence and logs.
 
 From the pinned runner checkout:
@@ -20,13 +20,13 @@ The second command defaults to expand. Keep its stdout manifest as exact bytes i
 
 ## Sign a contract attempt under the deployment and writer fence
 
-Generate a dedicated Ed25519 key as the owner on the signing system. Use OpenSSL 3. Keep the private key encrypted with owner-only access outside the checkout and the release runner. Transfer only the public key and detached signatures to the runner. Pin the printed public-key fingerprint in the owner config and set `RELEASE_PHASE_PUBLIC_KEY` to the independently installed public key path.
+Generate a dedicated Ed25519 key inside a FIDO2 token that supports Ed25519 and PIN verification. The macOS commands below use Homebrew OpenSSH with libfido2. Generate the key outside both checkouts on the owner signing system. The private key remains in the token. OpenSSH writes a token handle in `phase-token` and the public key in `phase-token.pub`. Keep the handle owner-only on the signing system. Transfer the public key and detached signatures to the runner. Pin the SHA-256 of the exact public key file and set `RELEASE_PHASE_PUBLIC_KEY` to its independently installed path. The runner uses `/usr/bin/ssh-keygen` for SSHSIG verification. [OpenSSH signing and FIDO2 options](https://man.openbsd.org/ssh-keygen.1) · [Homebrew OpenSSH](https://formulae.brew.sh/formula/openssh)
 
 ```sh
 umask 077
-openssl genpkey -algorithm ED25519 -aes-256-cbc -out "$owner_signing_dir/phase-private.pem"
-openssl pkey -in "$owner_signing_dir/phase-private.pem" -pubout -out "$owner_signing_dir/phase-public.pem"
-shasum -a 256 "$owner_signing_dir/phase-public.pem"
+signing_ssh_keygen="$(brew --prefix openssh)/bin/ssh-keygen"
+"$signing_ssh_keygen" -t ed25519-sk -O verify-required -f "$owner_signing_dir/phase-token"
+shasum -a 256 "$owner_signing_dir/phase-token.pub"
 ```
 
 Deploy the reviewed, expand-compatible build and check its immutable Vercel deployment and canonical alias. Before collecting evidence, establish exclusive control over deploys, rollbacks and alias changes. Wait for any that could restore a predecessor to finish. Fence predecessor writes from direct endpoints, worker processes, schedulers and queued or retried work. Drain in-flight transactions and resolve any prepared transactions. Keep the deploy and writer fence through a confirmed contract commit or verified recovery. A fresh production system can use a verified empty writer inventory. The staging hold supplies no drain evidence.
@@ -44,15 +44,24 @@ Prepare a fresh receipt for one invocation, with these fields.
 
 Inspect the provider's alias history or deployment audit as part of the evidence. Any redeployment or alias assignment after observation invalidates the receipt, including a move away and back. The CLI compares the live alias UID, update time and destination immediately before applying contract, along with the immutable deployment and build attestation. If the provider omits the alias revision or the operator cannot establish that the fence held, obtain fresh evidence before proceeding. [Vercel alias API](https://vercel.com/docs/rest-api/aliases/get-an-alias)
 
-Set `RELEASE_PHASE_RECEIPT` and `RELEASE_PHASE_SIGNATURE` to the exact receipt and binary signature files. Sign on the owner system over the approved bytes, including whitespace. Then invoke contract from the pinned checkout.
+Set `RELEASE_PHASE_RECEIPT` and `RELEASE_PHASE_SIGNATURE` to the exact receipt and armored SSHSIG files. Sign on the owner system over the approved bytes, including whitespace, using the `release-phase@interdomestik.com` namespace. Enter the token PIN when prompted and touch the token to complete the signature.
 
 ```sh
-openssl pkeyutl -sign -rawin -inkey "$owner_signing_dir/phase-private.pem" \
-  -in "$RELEASE_PHASE_RECEIPT" -out "$RELEASE_PHASE_SIGNATURE"
+"$signing_ssh_keygen" -Y sign -f "$owner_signing_dir/phase-token" -n release-phase@interdomestik.com \
+  < "$RELEASE_PHASE_RECEIPT" > "$RELEASE_PHASE_SIGNATURE"
+```
+
+On the runner, verify the signature format and signer before invoking contract.
+
+```sh
+printf 'release-owner namespaces="release-phase@interdomestik.com" %s\n' \
+  "$(cat "$RELEASE_PHASE_PUBLIC_KEY")" > "$owner_config_dir/release-allowed-signers"
+/usr/bin/ssh-keygen -Y verify -f "$owner_config_dir/release-allowed-signers" -I release-owner \
+  -n release-phase@interdomestik.com -s "$RELEASE_PHASE_SIGNATURE" < "$RELEASE_PHASE_RECEIPT"
 pnpm exec tsx scripts/ci/migration-phase/run.mjs "$candidate_drizzle" contract
 ```
 
-The runner reserves the nonce in `drizzle.__release_contract_attempts` before contract SQL, under the same session lock. A failed execution after reservation consumes the approval. Keep the nonce records with the shared ledger. Retire the receipt even if the invocation fails before it can reach the database. A retry at expand requires a new nonce and signed receipt after the owner rechecks the writer and deployment fence.
+After authenticating the receipt, the runner durably reserves its signed nonce in `attemptDirectory` before checking the candidate, manifest or database. It also records attempts that reach the locked database in `drizzle.__release_contract_attempts` before contract SQL. The approval stays spent after a connection, ledger or ACL refusal. Keep the owner store and the database nonce records. Retire the receipt if authentication or reservation could not complete. A retry at expand requires a new nonce and signed receipt after the owner rechecks the writer and deployment fence.
 
 ## Recovery and predecessor builds
 

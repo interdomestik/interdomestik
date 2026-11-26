@@ -1,13 +1,16 @@
 import assert from 'node:assert/strict';
 import { execFile } from 'node:child_process';
-import { generateKeyPairSync, randomBytes, sign } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import type { TestContext } from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { makeTestSigner } from '../../../../scripts/ci/migration-phase-test-key.mjs';
+import { withDisposableCleanup, withDisposableClient } from '../../src/disposable-client';
 import { readReleaseJournal, sha256 } from '../../src/release-migrations';
-import type { ScratchClient } from './scratch-database';
+import { quoteIdentifier } from '../rls-test-connection';
+import { type ScratchClient, withScratchDatabase } from './scratch-database';
 
 const cli = fileURLToPath(
   new URL('../../../../scripts/ci/migration-phase/run.mjs', import.meta.url)
@@ -25,6 +28,59 @@ const statements = [
 const pairs = { '0002_writer_contract': '0001_writer_expand' };
 const marker = 'scratch-release-phase';
 const aliasHostname = 'staging.interdomestik.com';
+export const scratchOptions = { loopbackOnly: true, requirePg16: true };
+
+export async function withReleaseDatabase<T>(
+  prefix: string,
+  inputs: { t: TestContext; dir: string; registry: string; commitSha?: string },
+  work: (client: ScratchClient, fixture: ReturnType<typeof releaseFixture>) => Promise<T>
+): Promise<T> {
+  const adminUrl = new URL(process.env.DATABASE_URL ?? '');
+  if (adminUrl.hostname !== '127.0.0.1' || !adminUrl.port || adminUrl.search || adminUrl.hash)
+    throw new Error('Release fixture requires an explicit loopback PostgreSQL endpoint');
+  const owner = `release_phase_${randomBytes(6).toString('hex')}`;
+  const role = quoteIdentifier(owner);
+  const password = randomBytes(24).toString('hex');
+  return withDisposableClient(
+    adminUrl.toString(),
+    { applicationName: 'release_phase_setup' },
+    async admin => {
+      // The real journal installs btree_gist. Its public objects must also belong to the runner.
+      await admin.unsafe(
+        `CREATE ROLE ${role} LOGIN SUPERUSER NOBYPASSRLS NOREPLICATION PASSWORD '${password}'`
+      );
+      return withDisposableCleanup(
+        () =>
+          withScratchDatabase(
+            prefix,
+            async (client, _admin, scratchUrl) => {
+              const runnerUrl = new URL(scratchUrl);
+              runnerUrl.username = owner;
+              runnerUrl.password = password;
+              await withDisposableClient(
+                runnerUrl.toString(),
+                { applicationName: 'release_phase_enrollment' },
+                async runner => {
+                  await runner`ALTER SCHEMA public OWNER TO CURRENT_USER`;
+                  await runner`REVOKE CREATE ON SCHEMA public FROM PUBLIC`;
+                  await runner`CREATE SCHEMA runtime_attestation`;
+                  await runner`CREATE TABLE runtime_attestation.backend_marker (marker text PRIMARY KEY)`;
+                  await runner`INSERT INTO runtime_attestation.backend_marker VALUES (${marker})`;
+                }
+              );
+              const { t, dir, registry, commitSha } = inputs;
+              return work(client, releaseFixture(t, runnerUrl, dir, registry, commitSha));
+            },
+            { ...scratchOptions, owner }
+          ),
+        async () => {
+          await admin.unsafe(`DROP ROLE ${role}`);
+        },
+        'Release scratch database work and role teardown both failed'
+      );
+    }
+  );
+}
 
 function workspace(t: TestContext) {
   const dir = mkdtempSync(path.join(tmpdir(), 'release-phase-'));
@@ -82,28 +138,19 @@ export async function assertLedger(
   );
 }
 
-export async function releaseFixture(
+export function releaseFixture(
   t: TestContext,
-  client: ScratchClient,
   url: URL,
   dir: string,
   registry: string,
   commitSha = 'a'.repeat(40)
 ) {
-  await client`ALTER SCHEMA public OWNER TO CURRENT_USER`;
-  await client`REVOKE CREATE ON SCHEMA public FROM PUBLIC`;
-  await client`CREATE SCHEMA runtime_attestation`;
-  await client`CREATE TABLE runtime_attestation.backend_marker (marker text PRIMARY KEY)`;
-  await client`INSERT INTO runtime_attestation.backend_marker VALUES (${marker})`;
-  const [{ rolsuper, rolbypassrls }] = await client`
-    SELECT rolsuper, rolbypassrls FROM pg_catalog.pg_roles WHERE rolname = current_user
-  `;
-
   const temp = workspace(t);
   const files = (file: string) => path.join(temp, file);
-  const { publicKey, privateKey } = generateKeyPairSync('ed25519');
-  const key = publicKey.export({ type: 'spki', format: 'pem' });
-  writeFileSync(files('owner.pem'), key);
+  const signer = makeTestSigner();
+  writeFileSync(files('owner.pub'), signer.key);
+  const attemptDirectory = files('attempts');
+  mkdirSync(attemptDirectory, { mode: 0o700 });
   const journal = readReleaseJournal(dir, registry);
   const config = {
     version: 1,
@@ -113,11 +160,12 @@ export async function releaseFixture(
     ledgerSha256: journal.ledgerSha256,
     registrySha256: journal.registrySha256,
     backendMarkerSha256: sha256(marker),
-    publicKeySha256: sha256(key),
+    publicKeySha256: sha256(signer.key),
+    attemptDirectory,
     caSha256: sha256(''),
     endpoint: url.host,
-    expectedRolsuper: rolsuper,
-    expectedRolbypassrls: rolbypassrls,
+    expectedRolsuper: true,
+    expectedRolbypassrls: false,
     teamId: 'team_fixture',
     projectId: 'prj_fixture',
   };
@@ -170,7 +218,7 @@ export async function releaseFixture(
             RELEASE_MIGRATION_URL: url.toString(),
             RELEASE_PHASE_CONFIG: files('config.json'),
             RELEASE_PHASE_MANIFEST: files('manifest.json'),
-            RELEASE_PHASE_PUBLIC_KEY: files('owner.pem'),
+            RELEASE_PHASE_PUBLIC_KEY: files('owner.pub'),
             RELEASE_PHASE_TEST_DEPLOYMENT: livePath,
             ...(registry === policy ? {} : { RELEASE_PHASE_TEST_POLICY: registry }),
             ...overrides,
@@ -230,10 +278,7 @@ export async function releaseFixture(
     const sigPath = files(`${document.attempt}.sig`);
     if (raw !== null) {
       writeFileSync(receiptPath, raw);
-      writeFileSync(
-        sigPath,
-        sign(null, raw, options.forged ? generateKeyPairSync('ed25519').privateKey : privateKey)
-      );
+      writeFileSync(sigPath, (options.forged ? makeTestSigner() : signer).sign(raw));
     }
     return {
       RELEASE_PHASE_ATTEMPT: document.attempt,

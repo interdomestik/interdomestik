@@ -8,7 +8,7 @@ Declares the schema (46 schema files, 99 `pgTable` calls — MEASURED, `rg -c 'p
 
 The seed runner uses the internal `src/seed-receipt.ts` module to build and print receipts. The module uses no database client.
 
-For the DATA-03 pilot, staging and production schema migrations run only through the owner-operated [release migration CLI](../../docs/release/migration-phase.md). Reserve the shared migration credential for that entry point. Run it from an independently pinned, reviewed checkout with its verifier, registry and trusted dependencies. Supply the reviewed candidate journal and SQL as data. The runner owns `drizzle.__release_contract_attempts` alongside the migration ledger and uses it to reserve one signed attempt before executing contract SQL. Disposable migration uses `src/migrate.ts`. The PG16 journal-parity lane exercises the owner CLI against disposable databases.
+For the DATA-03 pilot, staging and production schema migrations run only through the owner-operated [release migration CLI](../../docs/release/migration-phase.md). Reserve the shared migration credential for that entry point. Run it from an independently pinned, reviewed checkout with its verifier, registry and trusted dependencies. Supply the reviewed candidate journal and SQL as data. The owner runner durably reserves the authenticated nonce before checking the candidate, manifest or database. It also records attempts reaching the locked database in `drizzle.__release_contract_attempts` alongside the migration ledger. Disposable migration uses `src/migrate.ts`. The PG16 journal-parity lane exercises the owner CLI against disposable databases.
 
 ## Public API
 

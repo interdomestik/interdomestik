@@ -6,11 +6,13 @@ import {
   readReleaseJournal,
   runReleaseMigrations,
 } from '../../../packages/database/src/release-migrations.ts';
+import { reserveAttempt } from './attempt.mjs';
 import { verifyDeployment } from './deployment.mjs';
 import {
   COMMIT,
   HEX,
   ID,
+  authenticateDrainReceipt,
   digest,
   matches,
   object,
@@ -40,12 +42,14 @@ const SAFE_CODES = new Set([
   'RECEIPT_JSON_INVALID',
   'RECEIPT_SHAPE_INVALID',
   'RECEIPT_SIGNATURE_INVALID',
+  'RECEIPT_VERIFIER_UNAVAILABLE',
   'RECEIPT_BINDING_MISMATCH',
   'RECEIPT_DEPLOYMENT_INVALID',
   'RECEIPT_DRAIN_INVALID',
   'RECEIPT_EXPIRED',
   'RECEIPT_REPLAYED',
   'ATTEMPT_INVALID',
+  'ATTEMPT_STORE_REJECTED',
   'BACKEND_MISMATCH',
   'BACKEND_CATALOG_REJECTED',
   'ATTEMPT_CATALOG_REJECTED',
@@ -95,9 +99,7 @@ const SAFE_CODES = new Set([
   'ADMIN_DB_PREFLIGHT_VERSION_REJECTED',
 ]);
 
-function readConfig() {
-  const env = process.env;
-  const config = readObject(readBytes(env.RELEASE_PHASE_CONFIG, 'CONFIG'), 'CONFIG');
+function validateConfig(config, env) {
   const scratch = config.environment === 'scratch';
   if (
     config.version !== 1 ||
@@ -121,7 +123,7 @@ function readConfig() {
         !matches(/^db\.[a-z0-9]{20}\.supabase\.co:5432$/u, config.endpoint))
   )
     throw new Error('OWNER_CONFIG_INVALID');
-  return { config, scratch };
+  return scratch;
 }
 
 function journalFrom(folder, policy) {
@@ -137,6 +139,17 @@ function journalFrom(folder, policy) {
 async function main() {
   const env = process.env;
   const [folder, mode = 'expand', ...extra] = process.argv.slice(2);
+  let config;
+  let receipt;
+  if (mode === 'contract') {
+    config = readObject(readBytes(env.RELEASE_PHASE_CONFIG, 'CONFIG'), 'CONFIG');
+    const raw = readBytes(env.RELEASE_PHASE_RECEIPT, 'RECEIPT');
+    const key = verificationKey(env.RELEASE_PHASE_PUBLIC_KEY, config.publicKeySha256);
+    const signature = readBytes(env.RELEASE_PHASE_SIGNATURE, 'RECEIPT', 4096);
+    receipt = authenticateDrainReceipt(raw, signature, key);
+    // Use the signed nonce even if the invocation names a different attempt or cannot connect.
+    reserveAttempt(config.attemptDirectory, receipt.attempt);
+  }
   if (!folder || extra.length || !['inspect', 'expand', 'contract', 'recover'].includes(mode))
     throw new Error('RELEASE_USAGE_INVALID');
   if (mode === 'inspect') {
@@ -152,7 +165,8 @@ async function main() {
     };
   }
 
-  const { config, scratch } = readConfig();
+  config ??= readObject(readBytes(env.RELEASE_PHASE_CONFIG, 'CONFIG'), 'CONFIG');
+  const scratch = validateConfig(config, env);
   const journal = journalFrom(folder, (scratch && env.RELEASE_PHASE_TEST_POLICY) || POLICY);
   if (['journalSha256', 'ledgerSha256', 'registrySha256'].some(key => journal[key] !== config[key]))
     throw new Error('CANDIDATE_PIN_MISMATCH');
@@ -170,10 +184,7 @@ async function main() {
     request.plan = manifest.plan;
     if (mode === 'contract') {
       if (!matches(HEX, env.RELEASE_PHASE_ATTEMPT)) throw new Error('ATTEMPT_INVALID');
-      const raw = readBytes(env.RELEASE_PHASE_RECEIPT, 'RECEIPT');
-      const key = verificationKey(env.RELEASE_PHASE_PUBLIC_KEY, config.publicKeySha256);
-      const signature = readBytes(env.RELEASE_PHASE_SIGNATURE, 'RECEIPT', 64);
-      const approval = verifyDrainReceipt(raw, signature, key, {
+      const approval = verifyDrainReceipt(receipt, {
         environment: config.environment,
         manifestSha256: digest(manifestBytes),
         attempt: env.RELEASE_PHASE_ATTEMPT,

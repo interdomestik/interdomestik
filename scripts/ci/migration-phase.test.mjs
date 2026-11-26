@@ -1,9 +1,18 @@
 import assert from 'node:assert/strict';
-import { generateKeyPairSync, sign } from 'node:crypto';
+import { chmodSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import test from 'node:test';
-import { digest, verifyDrainReceipt } from './migration-phase/proof.mjs';
+import { makeTestSigner } from './migration-phase-test-key.mjs';
+import { reserveAttempt } from './migration-phase/attempt.mjs';
+import {
+  authenticateDrainReceipt,
+  digest,
+  verificationKey,
+  verifyDrainReceipt,
+} from './migration-phase/proof.mjs';
 
-const { publicKey, privateKey } = generateKeyPairSync('ed25519');
+const signer = makeTestSigner();
 const now = 2_000_000;
 const binding = {
   environment: 'staging',
@@ -36,25 +45,45 @@ const receipt = {
   expiresAt: now + 5000,
 };
 const bytes = value => Buffer.from(JSON.stringify(value));
-const verify = (value, expected = binding) => {
-  const raw = bytes(value);
-  return verifyDrainReceipt(raw, sign(null, raw, privateKey), publicKey, expected, now);
-};
+const verify = (value, expected = binding) => verifyDrainReceipt(value, expected, now);
 
-test('verifies Ed25519 over the exact bytes and refuses an edit or unrelated signer', () => {
-  assert.equal(verify(receipt).nonce, binding.attempt);
+function workspace(t) {
+  const dir = mkdtempSync(join(tmpdir(), 'release-phase-unit-'));
+  t.after(() => rmSync(dir, { recursive: true, force: true }));
+  return dir;
+}
+
+test('verifies a FIDO2 SSHSIG over the exact bytes with the pinned key and namespace', t => {
+  const publicKeyPath = join(workspace(t), 'owner.pub');
+  writeFileSync(publicKeyPath, signer.key);
+  const publicKey = verificationKey(publicKeyPath, digest(signer.key));
   const raw = bytes(receipt);
-  const signed = sign(null, raw, privateKey);
+  const signed = signer.sign(raw);
+  assert.equal(verify(authenticateDrainReceipt(raw, signed, publicKey)).nonce, binding.attempt);
   const edited = Buffer.concat([raw, Buffer.from('\n')]);
-  const forged = sign(null, raw, generateKeyPairSync('ed25519').privateKey);
   for (const [document, signature] of [
     [edited, signed],
-    [raw, forged],
+    [raw, makeTestSigner().sign(raw)],
+    [raw, signer.sign(raw, 'file')],
   ])
     assert.throws(
-      () => verifyDrainReceipt(document, signature, publicKey, binding, now),
+      () => authenticateDrainReceipt(document, signature, publicKey),
       /RECEIPT_SIGNATURE_INVALID/u
     );
+  assert.throws(() => verificationKey(publicKeyPath, digest('different key')), /KEY_PIN_MISMATCH/u);
+});
+
+test('reserves each nonce once and refuses an unavailable or shared attempt store', t => {
+  const dir = workspace(t);
+  assert.throws(
+    () => reserveAttempt(join(dir, 'missing'), binding.attempt),
+    /ATTEMPT_STORE_REJECTED/u
+  );
+  chmodSync(dir, 0o755);
+  assert.throws(() => reserveAttempt(dir, binding.attempt), /ATTEMPT_STORE_REJECTED/u);
+  chmodSync(dir, 0o700);
+  reserveAttempt(dir, binding.attempt);
+  assert.throws(() => reserveAttempt(dir, binding.attempt), /RECEIPT_REPLAYED/u);
 });
 
 test('requires the approved environment, exact manifest and invocation nonce', () => {
