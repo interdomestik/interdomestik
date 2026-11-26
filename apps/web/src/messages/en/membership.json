@@ -3,7 +3,7 @@
     "CLOSED": "Payment and subscription management are currently unavailable.",
     "page": {
       "title": "Membership",
-      "description": "Manage your subscription and plan details."
+      "description": "Your membership status, current period and what the membership covers."
     },
     "scope": {
       "eyebrow": "Plan scope",
@@ -96,17 +96,19 @@
       "title": "Subscriptions",
       "empty_list": "No subscriptions",
       "no_membership_title": "Finish your membership",
-      "no_membership_body": "You do not have an active paid membership yet. Choose a plan to continue into checkout and unlock claim access.",
+      "no_membership_body": "You do not have an active membership yet. You can see the plans and what each one covers.",
       "membership_not_active_title": "This membership is inactive",
-      "membership_not_active_body": "This membership is not active yet. Complete checkout to restore protection and claim access.",
+      "membership_not_active_body": "This membership is not active. It does not give access to new cases while it is inactive.",
       "complete_membership": "Complete membership",
-      "choose_plan": "Choose a plan",
+      "choose_plan": "See the plans",
       "select_subscription": "Select a subscription",
       "back_to_list": "Back to list",
       "about_title": "About your membership",
       "sponsor_coverage_label": "Company program",
       "renewal_label": "Renewal",
-      "renewal_stops": "Does not renew after the current period"
+      "renewal_stops": "Does not renew after the current period",
+      "selection_unavailable": "This membership record is no longer available. Your current membership may have changed.",
+      "open_current": "Open your current membership"
     },
     "actions": {
       "confirm_cancel": "Are you sure you want to cancel? Cancellation only changes future renewal and your current access remains active until the current billing period ends.",
@@ -119,7 +121,8 @@
       "payment_update_preparing": "Preparing your secure payment update link…",
       "payment_update_opening": "Opening the secure payment page…",
       "renew": "Renew",
-      "cancel": "Request cancellation"
+      "cancel": "Request cancellation",
+      "cancel_pending": "Requesting cancellation…"
     },
     "errors": {
       "action_failed": "We could not complete that membership action. Please try again.",

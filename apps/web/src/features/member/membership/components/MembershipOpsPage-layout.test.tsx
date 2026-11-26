@@ -107,4 +107,45 @@ describe('MembershipOpsPage concept A layout', () => {
     );
     expect(screen.queryByTestId('membership-renewal')).not.toBeInTheDocument();
   });
+
+  it('never opens another record for a stale selection, and offers the current one deliberately', () => {
+    actionMocks.getMembershipActions.mockReturnValue({
+      primary: undefined,
+      secondary: [{ id: 'cancel', label: 'Cancel membership' }],
+    });
+    selectionMocks.selectedId = 'old';
+    render(
+      <MembershipOpsPage
+        subscriptions={[subscription({ id: 'new', plan: { name: 'New plan' } })]}
+        documents={[]}
+      />
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('ops.selection_unavailable');
+    expect(screen.queryByRole('region', { name: 'New plan' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Cancel membership' })).not.toBeInTheDocument();
+    expect(screen.queryByTestId('membership-empty')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'ops.open_current' }));
+    expect(selectionMocks.setSelectedId).toHaveBeenCalledWith(null);
+  });
+
+  it('puts the actions in one wrapping row so long labels stack on a narrow screen', () => {
+    actionMocks.getMembershipActions.mockReturnValue({
+      primary: { id: 'update_payment', label: 'Update payment' },
+      secondary: [{ id: 'cancel', label: 'Cancel membership' }],
+    });
+    render(
+      <MembershipOpsPage subscriptions={[subscription({ provider: 'paddle' })]} documents={[]} />
+    );
+
+    const row = screen.getByTestId('membership-actions');
+    expect(row).toHaveClass('flex-wrap');
+    const buttons = within(row).getAllByRole('button');
+    expect(buttons.map(button => button.textContent)).toEqual([
+      'Cancel membership',
+      'dunning.update_payment_button',
+    ]);
+    for (const button of buttons) expect(button).toHaveClass('whitespace-normal');
+  });
 });

@@ -172,6 +172,17 @@ describe('SettingsPage commercial billing terms', () => {
     consoleError.mockRestore();
   });
 
+  it('treats a missing member row as an unavailable read, not as no stored country', async () => {
+    hoisted.userFindFirstMock.mockResolvedValueOnce(undefined as never);
+
+    render(await SettingsPage({ params: Promise.resolve({ locale: 'en' }) }));
+
+    expect(screen.queryByTestId('residence-country-settings')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'dashboard.settings_page.residence_unavailable'
+    );
+  });
+
   it('opens the residence form empty when the member has no stored country', async () => {
     hoisted.userFindFirstMock.mockResolvedValueOnce({ residenceCountry: null } as never);
 

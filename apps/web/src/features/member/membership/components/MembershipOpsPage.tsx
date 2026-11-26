@@ -15,7 +15,7 @@ import type { DbDocument } from '@/components/ops/adapters/membership';
 import type { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
 import { LeaveCompanyProgramme } from './leave-company-programme';
 import { DetailView } from './membership-detail-view';
-import { PRIMARY_LINK } from '@/components/dashboard/member-portal-link-styles';
+import { OUTLINED_LINK, PRIMARY_LINK } from '@/components/dashboard/member-portal-link-styles';
 import { MEMBERSHIP_REGION } from './membership-region-styles';
 
 type MembershipOpsPageProps = Readonly<{
@@ -37,8 +37,15 @@ export function MembershipOpsPage({
   const tStatus = useTranslations('common.membershipStatus');
   const { selectedId, setSelectedId } = useOpsSelectionParam();
   const t = useTranslations('membership');
-  // The read returns at most one effective record today; a list still opens on its newest one.
-  const selectedSubscription = subscriptions.find(s => s.id === selectedId) ?? subscriptions[0];
+  // The read returns at most one effective record today; with no selection the newest one opens.
+  // A selection that names no returned record (an old link) never falls through to another record.
+  const isStaleSelection =
+    selectedId !== null &&
+    subscriptions.length > 0 &&
+    !subscriptions.some(s => s.id === selectedId);
+  const selectedSubscription = isStaleSelection
+    ? undefined
+    : (subscriptions.find(s => s.id === selectedId) ?? subscriptions[0]);
 
   return (
     <section
@@ -57,6 +64,27 @@ export function MembershipOpsPage({
         </p>
       </header>
 
+      {isStaleSelection ? (
+        <section
+          aria-labelledby="membership-stale-title"
+          className={MEMBERSHIP_REGION}
+          data-testid="membership-selection-unavailable"
+        >
+          <h2 id="membership-stale-title" className="text-lg font-semibold tracking-tight">
+            {t('ops.title')}
+          </h2>
+          <p className="max-w-prose text-sm leading-6 text-foreground/70" role="alert">
+            {t('ops.selection_unavailable')}
+          </p>
+          <button
+            type="button"
+            onClick={() => setSelectedId(null)}
+            className={`${OUTLINED_LINK} w-full sm:w-fit`}
+          >
+            {t('ops.open_current')}
+          </button>
+        </section>
+      ) : null}
       {selectedSubscription ? (
         <div className="grid min-w-0 gap-6">
           {subscriptions.length > 1 ? (
@@ -102,7 +130,8 @@ export function MembershipOpsPage({
             t={t}
           />
         </div>
-      ) : (
+      ) : null}
+      {subscriptions.length === 0 ? (
         <section
           aria-labelledby="membership-empty-title"
           className={MEMBERSHIP_REGION}
@@ -122,7 +151,7 @@ export function MembershipOpsPage({
           </Link>
           {leaveEntryId ? <LeaveCompanyProgramme entryId={leaveEntryId} t={t} /> : null}
         </section>
-      )}
+      ) : null}
 
       <section aria-labelledby="membership-about-title" className="min-w-0 space-y-6">
         <h2 id="membership-about-title" className="text-lg font-semibold tracking-tight">

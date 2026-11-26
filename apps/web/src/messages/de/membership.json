@@ -3,7 +3,7 @@
     "CLOSED": "Zahlungen und die Verwaltung von Abonnements sind derzeit nicht verfügbar.",
     "page": {
       "title": "Mitgliedschaft",
-      "description": "Verwalten Sie Ihr Abonnement und die Details Ihres Plans."
+      "description": "Status Ihrer Mitgliedschaft, der aktuelle Zeitraum und was die Mitgliedschaft umfasst."
     },
     "scope": {
       "eyebrow": "Umfang des Plans",
@@ -96,17 +96,19 @@
       "title": "Abonnements",
       "empty_list": "Keine Abonnements",
       "no_membership_title": "Schließen Sie Ihre Mitgliedschaft ab",
-      "no_membership_body": "Sie haben noch keine aktive bezahlte Mitgliedschaft. Wählen Sie einen Plan, um zur Kasse zu gelangen und den Zugang zu Schadensfällen freizuschalten.",
+      "no_membership_body": "Sie haben noch keine aktive Mitgliedschaft. Sie können die Pläne ansehen und was jeder umfasst.",
       "membership_not_active_title": "Diese Mitgliedschaft ist inaktiv",
-      "membership_not_active_body": "Diese Mitgliedschaft ist noch nicht aktiv. Schließen Sie den Bezahlvorgang ab, um Schutz und Zugang zu Schadensfällen wiederherzustellen.",
+      "membership_not_active_body": "Diese Mitgliedschaft ist nicht aktiv. Solange sie inaktiv ist, gibt sie keinen Zugang zu neuen Fällen.",
       "complete_membership": "Mitgliedschaft abschließen",
-      "choose_plan": "Plan wählen",
+      "choose_plan": "Pläne ansehen",
       "select_subscription": "Abonnement auswählen",
       "back_to_list": "Zurück zur Liste",
       "about_title": "Über Ihre Mitgliedschaft",
       "sponsor_coverage_label": "Firmenprogramm",
       "renewal_label": "Verlängerung",
-      "renewal_stops": "Wird nach dem aktuellen Zeitraum nicht verlängert"
+      "renewal_stops": "Wird nach dem aktuellen Zeitraum nicht verlängert",
+      "selection_unavailable": "Dieser Mitgliedschaftseintrag ist nicht mehr verfügbar. Ihre aktuelle Mitgliedschaft hat sich möglicherweise geändert.",
+      "open_current": "Aktuelle Mitgliedschaft öffnen"
     },
     "actions": {
       "confirm_cancel": "Möchten Sie wirklich kündigen? Die Kündigung betrifft nur die künftige Verlängerung, und Ihr aktueller Zugang bleibt bis zum Ende des laufenden Abrechnungszeitraums aktiv.",
@@ -119,7 +121,8 @@
       "payment_update_preparing": "Ihr sicherer Link zur Aktualisierung der Zahlung wird vorbereitet…",
       "payment_update_opening": "Die sichere Zahlungsseite wird geöffnet…",
       "renew": "Verlängern",
-      "cancel": "Kündigung beantragen"
+      "cancel": "Kündigung beantragen",
+      "cancel_pending": "Kündigung wird angefordert…"
     },
     "errors": {
       "action_failed": "Wir konnten diese Aktion zur Mitgliedschaft nicht abschließen. Bitte versuchen Sie es erneut.",

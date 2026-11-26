@@ -40,7 +40,9 @@ async function getResidenceCountry(): Promise<ResidenceCountryRead> {
         columns: { residenceCountry: true },
       })
     );
-    return { ok: true, value: row?.residenceCountry ?? null };
+    // No row for the signed-in member is not "no country stored": treat it as an unavailable read.
+    if (!row) return { ok: false };
+    return { ok: true, value: row.residenceCountry ?? null };
   } catch (error) {
     // A failed read is not an empty value: the form stays closed so it cannot save a blank.
     console.error('Failed to load residence country:', error);

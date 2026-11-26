@@ -4,7 +4,7 @@ import { membershipStatusKey } from '@/lib/utils/membership-status';
 
 import { LeaveCompanyProgramme } from './leave-company-programme';
 
-import { OpsActionBar, OpsDocumentsPanel, OpsStatusBadge, OpsTimeline } from '@/components/ops';
+import { OpsDocumentsPanel, OpsStatusBadge, OpsTimeline } from '@/components/ops';
 import {
   DbDocument,
   getMembershipActions,
@@ -23,6 +23,7 @@ import { buildCancellationFeedbackMessage } from '@/features/member/membership/c
 import { toast } from 'sonner';
 import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
 import { MembershipEntityDisclosureNotice } from './MembershipEntityDisclosureNotice';
+import { MembershipActions } from './membership-actions';
 import { MembershipPeriodGraceFacts } from './membership-period-grace-facts';
 import { MEMBERSHIP_REGION } from './membership-region-styles';
 
@@ -76,6 +77,8 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
   const isPaymentUpdatePendingRef = useRef(false);
   const [isPaymentUpdatePending, setIsPaymentUpdatePending] = useState(false);
   const [paymentUpdateStatus, setPaymentUpdateStatus] = useState<string | null>(null);
+  const isCancelPendingRef = useRef(false);
+  const [isCancelPending, setIsCancelPending] = useState(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -143,9 +146,15 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
       if (id === 'cancel') {
         if (!confirm(t('actions.confirm_cancel'))) return;
 
+        if (isCancelPendingRef.current) return;
+        isCancelPendingRef.current = true;
+        setIsCancelPending(true);
         const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
         cancellationKeyRef.current = idempotencyKey;
-        const result = await cancelSubscription(subscription.id, idempotencyKey);
+        const result = await cancelSubscription(subscription.id, idempotencyKey).finally(() => {
+          isCancelPendingRef.current = false;
+          if (isMountedRef.current) setIsCancelPending(false);
+        });
         if (result.error || !result.success) {
           cancellationKeyRef.current = null;
           toast.error(
@@ -168,10 +177,20 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
     }
   };
 
+  const actionLabel = (config: OpsActionConfig) => {
+    if (isPaymentUpdateAction(config.id)) return t('dunning.update_payment_button');
+    if (config.id === 'cancel' && isCancelPending) return t('actions.cancel_pending');
+    return config.label;
+  };
+  const actionDisabled = (config: OpsActionConfig) => {
+    if (isPaymentUpdateAction(config.id)) return isPaymentUpdatePending;
+    if (config.id === 'cancel') return isCancelPending || config.disabled;
+    return config.disabled;
+  };
   const mapAction = (config: OpsActionConfig) => ({
     ...config,
-    label: isPaymentUpdateAction(config.id) ? t('dunning.update_payment_button') : config.label,
-    disabled: isPaymentUpdateAction(config.id) ? isPaymentUpdatePending : config.disabled,
+    label: actionLabel(config),
+    disabled: actionDisabled(config),
     onClick: () => handleAction(config.id),
   });
 
@@ -214,7 +233,7 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
 
         {leaveEntryId ? <LeaveCompanyProgramme entryId={leaveEntryId} t={t} /> : null}
 
-        <OpsActionBar
+        <MembershipActions
           primary={primary ? mapAction(primary) : undefined}
           secondary={secondary.map(mapAction)}
         />
