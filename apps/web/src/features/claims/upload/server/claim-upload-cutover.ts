@@ -8,10 +8,11 @@ import * as Sentry from '@sentry/nextjs';
 export async function isClaimUploadPaused(
   authority: TenantAuthority,
   homeTenantId: string,
-  claimId: string
+  claimId: string,
+  mode: 'staff' | 'self-supply' = 'staff'
 ): Promise<boolean> {
   try {
-    return await readClaimUploadPaused(authority, homeTenantId, claimId);
+    return await readClaimUploadPaused(authority, homeTenantId, claimId, mode);
   } catch (error) {
     Sentry.captureException(parameterFreeFailure(error, 'claim upload cutover'));
     return true;

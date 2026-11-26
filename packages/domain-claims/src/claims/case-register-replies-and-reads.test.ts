@@ -44,7 +44,7 @@ describe('correspondence replies, follow-ups and reads', () => {
       [],
       [{ id: ids.outbound }],
       now,
-      [], // seal insert
+      [], // unenrolled case
       [{ id: ids.inbound }],
       admitted,
       [{ ...recorded, id: ids.inbound, direction: 'inbound', inReplyToId: ids.outbound }],
@@ -54,13 +54,10 @@ describe('correspondence replies, follow-ups and reads', () => {
     expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
     expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
     const writes = db.statements.filter(item => item.kind === 'insert');
-    expect(writes).toHaveLength(2);
+    expect(writes).toHaveLength(1);
     expect(writes[0]?.values).toMatchObject({
-      documentCount: 0,
-      correspondenceId: expect.any(String),
-    });
-    expect(writes[1]?.values).toMatchObject({
-      id: (writes[0]?.values as { correspondenceId: string }).correspondenceId,
+      direction: 'inbound',
+      inReplyToId: ids.outbound,
     });
   });
 
@@ -78,6 +75,7 @@ describe('correspondence replies, follow-ups and reads', () => {
       [],
       [{ id: outbound }],
       now,
+      [{ enrolledAt: new Date(now[0].now), paused: false }],
       [], // seal insert
       [{ id: ids.inbound }],
       admitted,

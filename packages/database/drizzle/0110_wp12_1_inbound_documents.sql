@@ -3,8 +3,7 @@ CREATE TABLE "claim_correspondence_received_documents" (
 	"claim_id" text NOT NULL,
 	"correspondence_id" uuid NOT NULL,
 	"claim_document_id" text NOT NULL,
-	"created_at" timestamp (3) with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "claim_received_documents_pk" PRIMARY KEY("correspondence_id","claim_document_id")
+	"created_at" timestamp (3) with time zone DEFAULT now() NOT NULL
 );
 --> statement-breakpoint
 ALTER TABLE "claim_correspondence_received_documents" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -64,6 +63,7 @@ ALTER TABLE "claim_correspondence_received_seals" ADD CONSTRAINT "claim_received
 ALTER TABLE "claim_inbound_pilot_cases" ADD CONSTRAINT "claim_inbound_pilot_cases_claim_fk" FOREIGN KEY ("tenant_id","claim_id") REFERENCES "public"."claim"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "claim_inbound_upload_decisions" ADD CONSTRAINT "claim_inbound_decisions_claim_fk" FOREIGN KEY ("tenant_id","claim_id") REFERENCES "public"."claim"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "claim_inbound_upload_decisions" ADD CONSTRAINT "claim_inbound_decisions_actor_fk" FOREIGN KEY ("tenant_id","decided_by") REFERENCES "public"."user"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "claim_received_documents_entry_document_uq" ON "claim_correspondence_received_documents" USING btree ("correspondence_id","claim_document_id");--> statement-breakpoint
 CREATE INDEX "claim_received_documents_case_idx" ON "claim_correspondence_received_documents" USING btree ("tenant_id","claim_id","correspondence_id");--> statement-breakpoint
 CREATE INDEX "claim_received_documents_document_idx" ON "claim_correspondence_received_documents" USING btree ("tenant_id","claim_id","claim_document_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "claim_inbound_decisions_correlation_uq" ON "claim_inbound_upload_decisions" USING btree ("tenant_id","correlation_id");--> statement-breakpoint
@@ -91,10 +91,10 @@ DO $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM public.claim_documents
-    WHERE id LIKE 'wp12-inbound-%' OR file_path ~ '(^|/)wp12-inbound-'
+    WHERE id LIKE 'wp12-inbound-%' OR file_path ~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$'
   ) OR EXISTS (
     SELECT 1 FROM public.documents
-    WHERE id LIKE 'wp12-inbound-%' OR storage_path ~ '(^|/)wp12-inbound-'
+    WHERE id LIKE 'wp12-inbound-%' OR storage_path ~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$'
   ) THEN
     RAISE EXCEPTION 'WP-12.1 document namespace is already occupied';
   END IF;
@@ -150,19 +150,95 @@ CREATE POLICY claim_inbound_decisions_guard ON public.claim_inbound_upload_decis
 CREATE POLICY claim_documents_inbound_guard_read ON public.claim_documents
   FOR SELECT TO interdomestik_wp12_guard USING (id LIKE 'wp12-inbound-%');
 --> statement-breakpoint
+-- Only the guard can lock an RLS-hidden parent. UPDATE privilege is required for a row lock,
+-- and the restrictive policy prevents this role from using that privilege to change rows.
+GRANT UPDATE (id) ON public.claim TO interdomestik_wp12_guard;
+--> statement-breakpoint
+CREATE POLICY claim_inbound_guard_case_read ON public.claim
+  FOR SELECT TO interdomestik_wp12_guard USING (true);
+--> statement-breakpoint
+CREATE POLICY claim_inbound_guard_case_lock ON public.claim
+  FOR UPDATE TO interdomestik_wp12_guard USING (true) WITH CHECK (false);
+--> statement-breakpoint
+CREATE POLICY claim_inbound_guard_case_no_update ON public.claim
+  AS RESTRICTIVE FOR UPDATE TO interdomestik_wp12_guard USING (true) WITH CHECK (false);
+--> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_decision_visible(
+  p_tenant text, p_case text, p_decider text, p_uploader text, p_recipient text,
+  p_document text, p_bucket varchar, p_path varchar
+) RETURNS boolean
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+  SELECT CASE
+    WHEN CURRENT_USER = 'interdomestik_wp12_guard' THEN true
+    WHEN current_setting('app.current_actor_role', true) = 'tenant_admin' THEN
+      p_decider = current_setting('app.current_actor_id', true)
+    WHEN current_setting('app.current_actor_role', true) = 'staff' THEN EXISTS (
+      SELECT 1 FROM public.claim AS c
+      WHERE c.tenant_id = p_tenant AND c.id = p_case
+        AND c."staffId" = current_setting('app.current_actor_id', true)
+        AND c.case_lifecycle_state <> 'draft'
+        AND (nullif(current_setting('app.current_actor_branch_id', true), '') IS NULL
+          OR c.branch_id = current_setting('app.current_actor_branch_id', true))
+        AND ((p_uploader = c."staffId" AND p_recipient = c."userId") OR EXISTS (
+          SELECT 1 FROM public.claim_documents AS d
+          WHERE d.tenant_id = p_tenant AND d.claim_id = p_case AND d.id = p_document
+            AND d.bucket = p_bucket AND d.file_path = p_path
+        ))
+    )
+    ELSE false
+  END;
+$$;
+--> statement-breakpoint
+CREATE POLICY claim_inbound_decisions_principal ON public.claim_inbound_upload_decisions
+  AS RESTRICTIVE FOR SELECT TO public USING (
+    public.claim_inbound_decision_visible(tenant_id, claim_id, decided_by, uploader_id,
+      recipient_id, document_id, bucket, file_path)
+  );
+--> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_decision_deadline(p_decided_at timestamptz) RETURNS timestamptz
+LANGUAGE sql IMMUTABLE STRICT SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+  SELECT p_decided_at + interval '15 minutes';
+$$;
+--> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_enrollment_guard_fn() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' AND (NEW.tenant_id, NEW.claim_id) IS DISTINCT FROM (OLD.tenant_id, OLD.claim_id) THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot enrollment cannot move cases';
+  END IF;
+
+  -- Force old repeatable-read snapshots to conflict on the parent even if they see no enrollment.
+  UPDATE public.claim AS c SET "userId" = c."userId"
+  WHERE c.id = CASE WHEN TG_OP = 'DELETE' THEN OLD.claim_id ELSE NEW.claim_id END
+    AND c.tenant_id = CASE WHEN TG_OP = 'DELETE' THEN OLD.tenant_id ELSE NEW.tenant_id END;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot enrollment requires a writable case';
+  END IF;
+  RETURN NULL;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER claim_inbound_enrollment_guard AFTER INSERT OR UPDATE OR DELETE ON public.claim_inbound_pilot_cases
+  FOR EACH ROW EXECUTE FUNCTION public.claim_inbound_enrollment_guard_fn();
+--> statement-breakpoint
 -- This is a trigger-only check; no runtime role can call it to discover enrollment.
 CREATE FUNCTION public.claim_inbound_document_home_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
   home_tenant text;
 BEGIN
+  -- Ordinary keys must take the lock even when the snapshot predates the enrollment row.
+  -- The reserved publication path obtains its own update lock before it can succeed.
+  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NEW.file_path !~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$' THEN
+    PERFORM c.id FROM public.claim AS c WHERE c.id = NEW.claim_id FOR SHARE;
+  END IF;
   SELECT e.tenant_id INTO home_tenant
     FROM public.claim_inbound_pilot_cases AS e WHERE e.claim_id = NEW.claim_id AND e.enrolled_at IS NOT NULL;
   IF NOT FOUND THEN RETURN NULL; END IF;
   IF home_tenant IS DISTINCT FROM NEW.tenant_id THEN
     RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot case document refused';
   END IF;
-  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NEW.file_path !~ '(^|/)wp12-inbound-' AND (
+  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NEW.file_path !~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$' AND (
     current_setting('app.current_actor_role', true) IS NULL
     OR current_setting('app.current_actor_role', true) NOT IN ('member', 'user', 'agent')
     OR NEW.uploaded_by IS DISTINCT FROM current_setting('app.current_actor_id', true)
@@ -188,11 +264,18 @@ DECLARE
   uploader text;
 BEGIN
   SELECT c."userId", c."staffId" INTO recipient, uploader FROM public.claim AS c
-    JOIN public.claim_inbound_pilot_cases AS e ON e.tenant_id = c.tenant_id AND e.claim_id = c.id
     WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id
-      AND c.case_lifecycle_state <> 'draft' AND e.enrolled_at IS NOT NULL AND NOT e.paused
+      AND c.case_lifecycle_state <> 'draft'
+      AND (current_setting('app.current_actor_role', true) <> 'staff'
+        OR nullif(current_setting('app.current_actor_branch_id', true), '') IS NULL
+        OR c.branch_id = current_setting('app.current_actor_branch_id', true))
     FOR UPDATE OF c;
   IF NOT FOUND OR recipient IS NULL OR uploader IS NULL
+    OR NOT EXISTS (
+      SELECT 1 FROM public.claim_inbound_pilot_cases AS e
+      WHERE e.tenant_id = NEW.tenant_id AND e.claim_id = NEW.claim_id
+        AND e.enrolled_at IS NOT NULL AND NOT e.paused
+    )
     OR NEW.recipient_id IS DISTINCT FROM recipient OR NEW.uploader_id IS DISTINCT FROM uploader
     OR NEW.decided_by IS DISTINCT FROM current_setting('app.current_actor_id', true)
     OR NEW.role_basis IS DISTINCT FROM current_setting('app.current_actor_role', true)
@@ -216,7 +299,7 @@ DECLARE
   actor text := nullif(current_setting('app.current_actor_id', true), '');
   actor_role text := nullif(current_setting('app.current_actor_role', true), '');
 BEGIN
-  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NEW.file_path !~ '(^|/)wp12-inbound-' THEN
+  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NEW.file_path !~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$' THEN
     IF EXISTS (
       SELECT 1 FROM public.claim_inbound_pilot_cases
       WHERE tenant_id = NEW.tenant_id AND claim_id = NEW.claim_id AND enrolled_at IS NOT NULL
@@ -241,11 +324,19 @@ BEGIN
   END IF;
 
   SELECT c."userId", c."staffId" INTO recipient, uploader FROM public.claim AS c
-    JOIN public.claim_inbound_pilot_cases AS e ON e.tenant_id = c.tenant_id AND e.claim_id = c.id
     WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id
-      AND c.case_lifecycle_state <> 'draft' AND e.enrolled_at IS NOT NULL AND NOT e.paused
+      AND c.case_lifecycle_state <> 'draft'
+      AND (current_setting('app.current_actor_role', true) <> 'staff'
+        OR nullif(current_setting('app.current_actor_branch_id', true), '') IS NULL
+        OR c.branch_id = current_setting('app.current_actor_branch_id', true))
     FOR UPDATE OF c;
-  IF NOT FOUND OR recipient IS DISTINCT FROM approval.recipient_id
+  IF NOT FOUND OR NOT EXISTS (
+      SELECT 1 FROM public.claim_inbound_pilot_cases AS e
+      WHERE e.tenant_id = NEW.tenant_id AND e.claim_id = NEW.claim_id
+        AND e.enrolled_at IS NOT NULL AND NOT e.paused
+    )
+    OR public.claim_inbound_decision_deadline(approval.decided_at) <= clock_timestamp()
+    OR recipient IS DISTINCT FROM approval.recipient_id
     OR uploader IS DISTINCT FROM approval.uploader_id THEN
     RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document refused';
   END IF;
@@ -262,7 +353,7 @@ CREATE TRIGGER claim_inbound_document_publication_guard AFTER INSERT ON public.c
 CREATE FUNCTION public.claim_inbound_document_scope_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
-  IF NEW.id LIKE 'wp12-inbound-%' OR NEW.file_path ~ '(^|/)wp12-inbound-' THEN
+  IF NEW.id LIKE 'wp12-inbound-%' OR NEW.file_path ~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$' THEN
     IF NEW.uploaded_by IS DISTINCT FROM OLD.uploaded_by
       OR NEW.access_tenant_id IS DISTINCT FROM OLD.access_tenant_id
       OR NEW.category IS DISTINCT FROM OLD.category THEN
@@ -279,7 +370,7 @@ CREATE TRIGGER claim_inbound_document_scope_guard AFTER UPDATE ON public.claim_d
 CREATE FUNCTION public.claim_inbound_polymorphic_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
-  IF NEW.id LIKE 'wp12-inbound-%' OR NEW.storage_path ~ '(^|/)wp12-inbound-' THEN
+  IF NEW.id LIKE 'wp12-inbound-%' OR NEW.storage_path ~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$' THEN
     RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document refused';
   END IF;
   RETURN NULL;
@@ -318,7 +409,10 @@ CREATE FUNCTION public.claim_received_seal_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
   PERFORM 1 FROM public.claim WHERE tenant_id = NEW.tenant_id AND id = NEW.claim_id FOR UPDATE;
-  IF NOT FOUND OR EXISTS (
+  IF NOT FOUND OR NOT EXISTS (
+    SELECT 1 FROM public.claim_inbound_pilot_cases AS e
+    WHERE e.tenant_id = NEW.tenant_id AND e.claim_id = NEW.claim_id AND e.enrolled_at IS NOT NULL
+  ) OR EXISTS (
     SELECT 1 FROM public.claim_correspondence WHERE id = NEW.correspondence_id
   ) THEN
     RAISE EXCEPTION USING ERRCODE = 'P1205', MESSAGE = 'Received set must precede the inbound record';
@@ -333,7 +427,13 @@ CREATE TRIGGER claim_received_seal_guard BEFORE INSERT ON public.claim_correspon
 CREATE FUNCTION public.claim_received_document_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
-  IF NOT EXISTS (
+  PERFORM c.id FROM public.claim AS c
+    WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id FOR UPDATE;
+  IF NOT FOUND OR NOT EXISTS (
+      SELECT 1 FROM public.claim_inbound_pilot_cases AS e
+      WHERE e.tenant_id = NEW.tenant_id AND e.claim_id = NEW.claim_id
+        AND e.enrolled_at IS NOT NULL AND NOT e.paused
+    ) OR NOT EXISTS (
     SELECT 1 FROM public.claim_inbound_upload_decisions AS a
     JOIN public.claim_documents AS d ON d.tenant_id = a.tenant_id AND d.claim_id = a.claim_id
       AND d.id = a.document_id AND d.bucket = a.bucket AND d.file_path = a.file_path

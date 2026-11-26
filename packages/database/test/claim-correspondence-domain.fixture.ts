@@ -29,10 +29,13 @@ export function actor(
 
 export type Actor = ReturnType<typeof actor>;
 
-/** Loads a domain-claims entry through the web app's resolution, as the runtime does. */
-export function importDomain<T>(name: string): Promise<T> {
-  const web = createRequire(new URL('../../../apps/web/package.json', import.meta.url));
-  return import(pathToFileURL(web.resolve(`@interdomestik/domain-claims${name}`)).href);
+/** Resolves the domain package's own export without importing application files. */
+export function importDomain<T>(
+  name: string,
+  packageName: 'domain-claims' | 'domain-documents' = 'domain-claims'
+): Promise<T> {
+  const workspace = createRequire(new URL(`../../${packageName}/package.json`, import.meta.url));
+  return import(pathToFileURL(workspace.resolve(`@interdomestik/${packageName}${name}`)).href);
 }
 
 /**

@@ -6,6 +6,7 @@ import {
   dbAdmin,
   E2E_USER_IDS,
   eq,
+  sql,
 } from '@interdomestik/database';
 import {
   claimCorrespondenceReceivedDocuments,
@@ -42,6 +43,7 @@ import {
   mkCopy,
   openCleanContext,
   placeApprovedPdf,
+  proveMemberUploadDuringRollback,
   publishPdf,
   recordReceivedPdf,
   requireLocalPilotProof,
@@ -92,6 +94,16 @@ test.describe('WP-12.1 MK pre-check', () => {
           .from(claimCorrespondence)
           .where(eq(claimCorrespondence.claimId, claim.id))
       ).toHaveLength(0);
+
+      const falsePdf = {
+        ...inboundPdf,
+        buffer: Buffer.from('Synthetic text without a PDF signature'),
+      };
+      await approvePdf(form, 'mk-receipt-invalid-pdf', falsePdf);
+      await form.getByRole('button', { name: mkCopy.inbound.upload }).click();
+      await expect(form.getByRole('alert')).toHaveText(mkCopy.feedback.documentInvalid);
+      expect(await listMkObjects(claim)).toHaveLength(0);
+      expect(await doorDocuments(claim.id)).toHaveLength(0);
 
       const held = await approvePdf(form, 'mk-receipt-owner-a');
       const [decision] = await dbAdmin
@@ -184,6 +196,59 @@ test.describe('WP-12.1 MK pre-check', () => {
       await memberContext.close();
       await deniedContext.close();
     }
+  });
+
+  test('preserves member signing and confirmation during enrolled rollback', async ({
+    door,
+  }, info) => {
+    test.skip(!isMkGateProject(info.project.name) || process.env.WP12_1_M5_PRECHECK !== '1');
+    test.setTimeout(90_000);
+    const { page, origin, locale } = door;
+    requireLocalPilotProof(origin);
+    const claim = await createMkCase();
+    await enrollMkCase(claim);
+    await loginAtDoor(page, origin, locale, 'MK_MEMBER', info);
+    await proveMemberUploadDuringRollback(page, origin, locale, claim, info);
+  });
+
+  test('requires a fresh decision after storage succeeds and the approval expires', async ({
+    door,
+  }, info) => {
+    test.skip(!isMkGateProject(info.project.name) || process.env.WP12_1_M5_PRECHECK !== '1');
+    test.setTimeout(90_000);
+    const { page, origin, locale } = door;
+    requireLocalPilotProof(origin);
+    const claim = await createMkCase();
+    await enrollMkCase(claim);
+    await loginAtDoor(page, origin, locale, 'MK_STAFF', info);
+    const form = await staffPilotForm(page, origin, locale, claim, info);
+    const stale = await approvePdf(form, 'mk-expired-approval');
+    const [decision] = await dbAdmin
+      .select()
+      .from(claimInboundUploadDecisions)
+      .where(eq(claimInboundUploadDecisions.id, stale));
+    await placeApprovedPdf(decision.bucket, decision.filePath);
+    await dbAdmin.transaction(async tx => {
+      await tx.execute(
+        sql`alter table claim_inbound_upload_decisions disable trigger claim_inbound_decisions_immutable`
+      );
+      await tx.execute(sql`update claim_inbound_upload_decisions set decided_at = clock_timestamp() - interval '16 minutes'
+        where id = ${stale}`);
+      await tx.execute(
+        sql`alter table claim_inbound_upload_decisions enable trigger claim_inbound_decisions_immutable`
+      );
+    });
+    await form.getByRole('button', { name: mkCopy.inbound.upload }).click();
+    await expect(form.getByRole('alert')).toHaveText(mkCopy.feedback.forbidden);
+    expect(await doorDocuments(claim.id)).toHaveLength(0);
+    expect(await listMkObjects(claim)).toHaveLength(1);
+
+    expect(await approvePdf(form, 'mk-expired-approval')).not.toBe(stale);
+    await publishPdf(form);
+    const [published, ...rest] = await doorDocuments(claim.id);
+    expect(rest).toHaveLength(0);
+    expect(published?.id).not.toBe(decision.documentId);
+    await assertStoredDoorDocument(published, inboundPdf.buffer);
   });
 
   test('storage refuses the legacy upload credential after the verified provider expiry', async ({

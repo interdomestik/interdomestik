@@ -27,3 +27,5 @@ may use `hasClaimEvidenceDocument` before taking locks to avoid reading stored b
 ## WP-12.1 pilot evidence
 
 Ordinary publication remains a domain-documents write inside the caller's case transaction. The committed visibility decision supplies the canonical evidence coordinates and approved uploader. Confirmation rechecks the case and returns the existing document ID on exact replay. Publication makes the PDF visible through the ordinary case read; inbound correspondence records the receipt separately.
+
+`./claim-evidence` exports `readCurrentMemberVaultEvidence`. Its evidence statement checks the exact home tenant, case and current member before returning MK vault document metadata in the caller's tenant transaction.

@@ -13,6 +13,7 @@ import {
 import { confirmClaimEvidence } from '@interdomestik/domain-documents/claim-evidence';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { actionFailure, defineAction, defineFormAction } from '@/lib/safe-action';
+import { parameterFreeFailure } from '@/actions/staff-claims/register-failure';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
 import { downloadTenantObject, uploadTenantObject } from '@/lib/storage/service-role';
 import { isClaimUploadPaused } from '@/features/claims/upload/server/claim-upload-cutover';
@@ -22,8 +23,12 @@ import {
 } from '@/features/claims/upload/server/claim-upload-intent';
 import { buildEvidenceStoragePath } from '@/features/claims/upload/server/storage-path';
 import { revalidatePathForAllLocales } from '@/features/claims/upload/server/shared-upload';
+import {
+  evidenceSignatureMatches,
+  resolveEvidenceFormat,
+} from '@/features/claims/upload/evidence-file-policy';
 
-const claimIdInput = z.string().trim().min(1).max(128);
+const claimIdInput = inboundUploadDecisionInput.shape.claimId;
 
 function fingerprint(decision: InboundUploadDecision) {
   return createHash('sha256')
@@ -88,12 +93,13 @@ const issueIntent = defineAction({
     const decision = await withPrincipalTenantContext(authority, tx =>
       loadInboundUploadDecision(tx, authority, claimId, decisionId)
     );
-    if (!decision) return actionFailure('FORBIDDEN');
+    if (!decision || Date.now() >= decision.expiresAt) return actionFailure('FORBIDDEN');
     return {
       intentToken: createInboundUploadIntent({
         claimId,
         decisionId,
         fingerprint: fingerprint(decision),
+        expiresAt: decision.expiresAt,
       }),
     };
   },
@@ -114,20 +120,19 @@ async function saveApprovedObject(decision: InboundUploadDecision, file: File) {
     path: decision.filePath,
     family: 'claims' as const,
   };
-  const { error } = await uploadTenantObject({
+  const { error: uploadError } = await uploadTenantObject({
     ...target,
     body: file,
     contentType: decision.mimeType,
     upsert: false,
   });
-  if (!error) return;
   const existing = await downloadTenantObject(target);
   if (
     existing.error ||
     existing.data?.size !== decision.fileSize ||
     sha256(await existing.data.arrayBuffer()) !== decision.sha256
   ) {
-    throw new Error('Could not establish the contents of the approved PDF object');
+    throw parameterFreeFailure(existing.error ?? uploadError, 'inbound PDF storage verification');
   }
 }
 
@@ -151,10 +156,14 @@ const upload = defineFormAction({
     );
     if (!decision || fingerprint(decision) !== intent.fingerprint)
       return actionFailure('FORBIDDEN');
+    const bytes = await file.arrayBuffer();
+    const format = resolveEvidenceFormat(file.name, file.type);
     if (
       file.name !== decision.fileName ||
       file.size !== decision.fileSize ||
-      sha256(await file.arrayBuffer()) !== decision.sha256
+      format?.signature !== 'pdf' ||
+      !evidenceSignatureMatches(format, new Uint8Array(bytes)) ||
+      sha256(bytes) !== decision.sha256
     ) {
       return actionFailure('document_invalid');
     }

@@ -1,7 +1,7 @@
 import { and, asc, eq, gt, sql } from 'drizzle-orm';
 import { claimDocuments, claimInboundUploadDecisions } from '@interdomestik/database/schema';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
+import { withPrincipalTenantContext } from '@interdomestik/database/free-start-drafts';
 
 import {
   lockCaseForRegister,
@@ -31,32 +31,30 @@ export async function listReceivedDocumentOptions(
   } = access;
   if (actor.role !== 'staff') return registerForbidden;
 
-  const d = claimDocuments;
-  const a = claimInboundUploadDecisions;
-  return withTenantAuthority(access.authority, async tx => {
+  return withPrincipalTenantContext(access.authority, async tx => {
     if (!(await lockCaseForRegister(tx, tenantId, claimId, actor))) return registerForbidden;
     const rows = await tx
-      .select({ id: d.id, name: d.name })
-      .from(d)
+      .select({ id: claimDocuments.id, name: claimDocuments.name })
+      .from(claimDocuments)
       .innerJoin(
-        a,
+        claimInboundUploadDecisions,
         and(
-          eq(d.id, a.documentId),
-          eq(d.tenantId, a.tenantId),
-          eq(d.claimId, a.claimId),
-          eq(d.bucket, a.bucket),
-          eq(d.filePath, a.filePath)
+          eq(claimDocuments.id, claimInboundUploadDecisions.documentId),
+          eq(claimDocuments.tenantId, claimInboundUploadDecisions.tenantId),
+          eq(claimDocuments.claimId, claimInboundUploadDecisions.claimId),
+          eq(claimDocuments.bucket, claimInboundUploadDecisions.bucket),
+          eq(claimDocuments.filePath, claimInboundUploadDecisions.filePath)
         )
       )
       .where(
         and(
-          eq(d.tenantId, tenantId),
-          eq(d.claimId, claimId),
-          after === undefined ? undefined : gt(d.id, after),
-          sql`public.claim_document_provenance_ok(${d.tenantId}, ${d.claimId}, ${d.id})`
+          eq(claimDocuments.tenantId, tenantId),
+          eq(claimDocuments.claimId, claimId),
+          after === undefined ? undefined : gt(claimDocuments.id, after),
+          sql`public.claim_document_provenance_ok(${claimDocuments.tenantId}, ${claimDocuments.claimId}, ${claimDocuments.id})`
         )
       )
-      .orderBy(asc(d.id))
+      .orderBy(asc(claimDocuments.id))
       .limit(PAGE_SIZE + 1);
     const documents = rows.slice(0, PAGE_SIZE);
     return {

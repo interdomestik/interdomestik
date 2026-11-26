@@ -1,14 +1,14 @@
 import { randomUUID } from 'node:crypto';
-import { sql } from 'drizzle-orm';
 import {
   and,
   claimCorrespondence,
-  claimCorrespondenceReceivedDocuments,
   claimCorrespondenceReceivedSeals,
   claimInboundUploadDecisions,
   eq,
   inArray,
 } from '@interdomestik/database';
+import { insertClaimReceivedLinks } from '@interdomestik/database/claim-evidence-object-lock';
+import { bindTenantTransactionPrincipal } from '@interdomestik/database/free-start-drafts';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
@@ -36,6 +36,7 @@ import {
   type Entry,
 } from './correspondence-entry';
 import { readReceivedDocumentLinks } from './correspondence-links';
+import { readInboundPilotCase } from './inbound-upload';
 import type { ClaimsSession } from './types';
 
 export const recordInboundCorrespondenceInputSchema = correspondenceInput.extend({
@@ -91,19 +92,18 @@ async function lockReceivedDocuments(context: LockedRegister, claimId: string, i
   const { tx, tenantId } = context;
   const documents = await lockRegisterDocuments(tx, tenantId, claimId, ids);
   if (!documents || documents.length === 0) return documents;
-  const decisions = claimInboundUploadDecisions;
   const approvals = await tx
     .select({
-      id: decisions.documentId,
-      bucket: decisions.bucket,
-      filePath: decisions.filePath,
+      id: claimInboundUploadDecisions.documentId,
+      bucket: claimInboundUploadDecisions.bucket,
+      filePath: claimInboundUploadDecisions.filePath,
     })
-    .from(decisions)
+    .from(claimInboundUploadDecisions)
     .where(
       and(
-        eq(decisions.tenantId, tenantId),
-        eq(decisions.claimId, claimId),
-        inArray(decisions.documentId, ids)
+        eq(claimInboundUploadDecisions.tenantId, tenantId),
+        eq(claimInboundUploadDecisions.claimId, claimId),
+        inArray(claimInboundUploadDecisions.documentId, ids)
       )
     );
   const byId = new Map(approvals.map(row => [row.id, row]));
@@ -122,6 +122,10 @@ async function recordInbound(context: LockedRegister, input: Inbound) {
   const decisionAt = await registerDecisionTime(context.tx);
   if (occurredTooLate(input.occurredAt, decisionAt)) return { ok: false, code: 'invalid' } as const;
   const { tx, tenantId } = context;
+  const pilot = await readInboundPilotCase(tx, tenantId, input.claimId);
+  if (input.receivedDocumentIds?.length && (!pilot?.enrolledAt || pilot.paused)) {
+    return { ok: false, code: 'document_invalid' } as const;
+  }
   const documents = await lockReceivedDocuments(
     context,
     input.claimId,
@@ -129,12 +133,14 @@ async function recordInbound(context: LockedRegister, input: Inbound) {
   );
   if (!documents) return { ok: false, code: 'document_invalid' } as const;
   const id = randomUUID();
-  await tx.insert(claimCorrespondenceReceivedSeals).values({
-    tenantId,
-    claimId: input.claimId,
-    correspondenceId: id,
-    documentCount: documents.length,
-  });
+  if (pilot?.enrolledAt) {
+    await tx.insert(claimCorrespondenceReceivedSeals).values({
+      tenantId,
+      claimId: input.claimId,
+      correspondenceId: id,
+      documentCount: documents.length,
+    });
+  }
   const created = await insertEntry(context, {
     ...entryFields(input),
     id,
@@ -145,7 +151,8 @@ async function recordInbound(context: LockedRegister, input: Inbound) {
   });
   if (!created) throw new ReceivedCorrelationConflict();
   if (documents.length) {
-    await tx.insert(claimCorrespondenceReceivedDocuments).values(
+    await insertClaimReceivedLinks(
+      tx,
       documents.map(document => ({
         tenantId,
         claimId: input.claimId,
@@ -178,8 +185,7 @@ export async function recordInboundCorrespondence(
         if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor)))
           return registerForbidden;
         if (data.receivedDocumentIds?.length) {
-          await tx.execute(sql`select set_config('app.current_actor_id', ${actor.userId}, true),
-            set_config('app.current_actor_role', 'staff', true)`);
+          await bindTenantTransactionPrincipal(tx, actor);
         }
         return recordInbound({ tx, tenantId, actorId: actor.userId }, data);
       });

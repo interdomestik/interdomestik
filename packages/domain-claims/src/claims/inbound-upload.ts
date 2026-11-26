@@ -1,7 +1,8 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, eq, isNotNull } from 'drizzle-orm';
+import { and, eq, getTableColumns, gt, isNotNull, sql } from 'drizzle-orm';
 import { type TenantTransaction } from '@interdomestik/database';
+import { insertClaimInboundDecision } from '@interdomestik/database/claim-evidence-object-lock';
 import { withPrincipalTenantContext } from '@interdomestik/database/free-start-drafts';
 import {
   claimInboundPilotCases,
@@ -37,6 +38,26 @@ export const inboundUploadDecisionInput = z.strictObject({
 type DecisionInput = z.infer<typeof inboundUploadDecisionInput>;
 export type InboundUploadDecision = typeof claimInboundUploadDecisions.$inferSelect;
 
+export async function readInboundPilotCase(
+  tx: TenantTransaction,
+  tenantId: string,
+  claimId: string
+) {
+  const [row] = await tx
+    .select({
+      paused: claimInboundPilotCases.paused,
+      enrolledAt: claimInboundPilotCases.enrolledAt,
+    })
+    .from(claimInboundPilotCases)
+    .where(
+      and(
+        eq(claimInboundPilotCases.tenantId, tenantId),
+        eq(claimInboundPilotCases.claimId, claimId)
+      )
+    );
+  return row;
+}
+
 export function isInboundPilotCase(authority: TenantAuthority, claimId: string) {
   const { tenantId } = readTenantAuthority(authority);
   return withTenantAuthority(authority, async tx => {
@@ -57,11 +78,15 @@ export function isInboundPilotCase(authority: TenantAuthority, claimId: string) 
 export function readClaimUploadPaused(
   authority: TenantAuthority,
   homeTenantId: string,
-  claimId: string
+  claimId: string,
+  mode: 'staff' | 'self-supply' = 'staff'
 ) {
   return withTenantAuthority(authority, async tx => {
     const [status] = await tx
-      .select({ paused: claimInboundPilotCases.paused })
+      .select({
+        paused: claimInboundPilotCases.paused,
+        enrolledAt: claimInboundPilotCases.enrolledAt,
+      })
       .from(claims)
       .leftJoin(
         claimInboundPilotCases,
@@ -71,7 +96,7 @@ export function readClaimUploadPaused(
         )
       )
       .where(and(eq(claims.tenantId, homeTenantId), eq(claims.id, claimId)));
-    return !status || status.paused === true;
+    return !status || (status.paused === true && (mode === 'staff' || !status.enrolledAt));
   });
 }
 
@@ -93,25 +118,18 @@ async function lockInboundPilotCase(
   const [row] = await tx
     .select({ recipientId: claims.userId, uploaderId: claims.staffId })
     .from(claims)
-    .innerJoin(
-      claimInboundPilotCases,
-      and(
-        eq(claimInboundPilotCases.tenantId, claims.tenantId),
-        eq(claimInboundPilotCases.claimId, claims.id)
-      )
-    )
     .where(
       and(
         eq(claims.tenantId, tenantId),
         eq(claims.id, claimId),
         claimLifecycleStatusNotIn(['draft']),
-        isNotNull(claimInboundPilotCases.enrolledAt),
-        eq(claimInboundPilotCases.paused, false),
         staffScope
       )
     )
-    .for('update', { of: claims });
+    .for('update');
   if (!row?.recipientId || !row.uploaderId) return null;
+  const enrollment = await readInboundPilotCase(tx, tenantId, claimId);
+  if (!enrollment?.enrolledAt || enrollment.paused) return null;
   return { recipientId: row.recipientId, uploaderId: row.uploaderId };
 }
 
@@ -155,30 +173,24 @@ export async function recordInboundUploadDecision(
     const [existing] = await tx.select().from(claimInboundUploadDecisions).where(correlation);
     if (existing) return decisionResult(existing, input, principal.userId, storage.bucket);
     const documentId = 'wp12-inbound-' + randomUUID().replaceAll('-', '');
-    const [created] = await tx
-      .insert(claimInboundUploadDecisions)
-      .values({
-        claimId: input.claimId,
-        correlationId: input.correlationId,
-        classification: input.classification,
-        officeReceiptRef: input.officeReceiptRef,
-        fileName: input.fileName,
-        fileSize: input.fileSize,
-        sha256: input.sha256,
-        recipientId: scope.recipientId,
-        uploaderId: scope.uploaderId,
-        tenantId,
-        decidedBy: principal.userId,
-        roleBasis: role,
-        bucket: storage.bucket,
-        filePath: storage.pathForDocument(documentId),
-        documentId,
-        mimeType: 'application/pdf',
-      })
-      .onConflictDoNothing({
-        target: [claimInboundUploadDecisions.tenantId, claimInboundUploadDecisions.correlationId],
-      })
-      .returning();
+    const created = await insertClaimInboundDecision(tx, {
+      tenantId,
+      claimId: input.claimId,
+      correlationId: input.correlationId,
+      classification: input.classification,
+      decidedBy: principal.userId,
+      roleBasis: role,
+      recipientId: scope.recipientId,
+      uploaderId: scope.uploaderId,
+      officeReceiptRef: input.officeReceiptRef,
+      documentId,
+      bucket: storage.bucket,
+      filePath: storage.pathForDocument(documentId),
+      fileName: input.fileName,
+      mimeType: 'application/pdf',
+      fileSize: input.fileSize,
+      sha256: input.sha256,
+    });
     if (created) return { ok: true, decisionId: created.id } as const;
     const [winner] = await tx.select().from(claimInboundUploadDecisions).where(correlation);
     return decisionResult(winner, input, principal.userId, storage.bucket);
@@ -206,8 +218,14 @@ export async function loadInboundUploadDecision(
   if (tenantId !== accessTenantId || principal?.role !== 'staff') return null;
   const scope = await lockInboundPilotCase(tx, tenantId, claimId, principal);
   if (scope?.uploaderId !== principal.userId) return null;
+  const deadline = sql`public.claim_inbound_decision_deadline(decided_at)`;
   const [decision] = await tx
-    .select()
+    .select({
+      ...getTableColumns(claimInboundUploadDecisions),
+      expiresAt: sql<number>`
+      floor(extract(epoch from ${deadline}) * 1000)::bigint
+    `.mapWith(Number),
+    })
     .from(claimInboundUploadDecisions)
     .where(
       and(
@@ -215,7 +233,8 @@ export async function loadInboundUploadDecision(
         eq(claimInboundUploadDecisions.claimId, claimId),
         eq(claimInboundUploadDecisions.id, decisionId),
         eq(claimInboundUploadDecisions.uploaderId, principal.userId),
-        eq(claimInboundUploadDecisions.recipientId, scope.recipientId)
+        eq(claimInboundUploadDecisions.recipientId, scope.recipientId),
+        gt(deadline, sql`clock_timestamp()`)
       )
     );
   return decision ?? null;

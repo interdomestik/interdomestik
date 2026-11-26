@@ -25,23 +25,22 @@ export async function readReceivedDocumentLinks(
   claimId: string,
   inboundEntryIds: string[]
 ) {
-  const received = claimCorrespondenceReceivedDocuments;
   return inboundEntryIds.length === 0
     ? []
     : await tx
         .select({
-          correspondenceId: received.correspondenceId,
-          documentId: received.claimDocumentId,
+          correspondenceId: claimCorrespondenceReceivedDocuments.correspondenceId,
+          documentId: claimCorrespondenceReceivedDocuments.claimDocumentId,
         })
-        .from(received)
+        .from(claimCorrespondenceReceivedDocuments)
         .where(
           and(
-            eq(received.tenantId, tenantId),
-            eq(received.claimId, claimId),
-            inArray(received.correspondenceId, inboundEntryIds)
+            eq(claimCorrespondenceReceivedDocuments.tenantId, tenantId),
+            eq(claimCorrespondenceReceivedDocuments.claimId, claimId),
+            inArray(claimCorrespondenceReceivedDocuments.correspondenceId, inboundEntryIds)
           )
         )
-        .orderBy(asc(received.claimDocumentId));
+        .orderBy(asc(claimCorrespondenceReceivedDocuments.claimDocumentId));
 }
 
 async function readSentDocumentLinks(

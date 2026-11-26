@@ -7,7 +7,7 @@ import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directo
 import { claimDocumentAiExtractionConsents } from '@interdomestik/database/schema';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import 'server-only';
-import { readCurrentMemberVaultEvidence } from './member-vault-evidence';
+import { readCurrentMemberVaultEvidence } from '@interdomestik/domain-documents/claim-evidence';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface GetMemberVaultConsentDisplayParams {

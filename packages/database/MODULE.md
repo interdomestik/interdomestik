@@ -116,3 +116,5 @@ DATA-02 to DATA-09, DATA-11, DATA-12 (`A/modules/data-layer.md:239-252`), DATA-1
 ## WP-12.1 pilot evidence
 
 Migration `0110` adds release-controlled enrollment, immutable visibility decisions, exact-set seals and received links. Pilot decisions reserve their document ID and object key for both document tables before any storage write. Publication serializes with ownership changes and freezes the published row's authority-bearing fields. Pilot enrollment starts empty. Retain the reservations, guards and receipt records on application rollback.
+
+`./claim-evidence-object-lock` exports the insert helpers for decisions and received links. They use only the runtime role's permitted columns. Call them inside the owning claims command's transaction after checking the case and the actor. `bindTenantTransactionPrincipal` applies the authenticated actor and branch to a transaction that already holds tenant authority.

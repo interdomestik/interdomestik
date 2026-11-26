@@ -137,6 +137,7 @@ type InboundIntentBinding = {
   decisionId: string;
   claimId: string;
   fingerprint: string;
+  expiresAt: number;
 };
 
 export function createInboundUploadIntent(binding: InboundIntentBinding): string {
@@ -144,7 +145,6 @@ export function createInboundUploadIntent(binding: InboundIntentBinding): string
     JSON.stringify({
       ...binding,
       purpose: 'inbound-received-pdf',
-      expiresAt: Date.now() + CLAIM_UPLOAD_INTENT_TTL_MS,
     })
   ).toString('base64url');
   return `${encoded}.${signUploadIntentPayload(encoded)}`;

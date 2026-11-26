@@ -1,4 +1,4 @@
-import { sql } from 'drizzle-orm';
+import { bindTenantTransactionPrincipal } from '@interdomestik/database/free-start-drafts';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -96,8 +96,7 @@ export async function persistClaimDocumentMetadata(
     }
 
     if (memberSurface && !replayOnly) {
-      await tx.execute(sql`select set_config('app.current_actor_id', ${principal.userId}, true),
-        set_config('app.current_actor_role', ${role}, true)`);
+      await bindTenantTransactionPrincipal(tx, principal);
     }
     const outcome = await confirmClaimEvidence(tx, {
       verifiedScope,

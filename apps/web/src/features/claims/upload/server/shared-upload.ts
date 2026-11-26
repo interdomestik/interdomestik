@@ -60,6 +60,7 @@ export async function createSignedUploadUrl(params: {
   informationRequestId?: string;
   logPrefix: string;
   mimeType: string;
+  selfSupply?: true;
   storageContentType?: string;
   tenantId: string;
 }): Promise<SharedGenerateUploadUrlResult> {
@@ -77,7 +78,14 @@ export async function createSignedUploadUrl(params: {
     tenantId,
   } = params;
 
-  if (await isClaimUploadPaused(authority, tenantId, claimId)) {
+  if (
+    await isClaimUploadPaused(
+      authority,
+      tenantId,
+      claimId,
+      params.selfSupply ? 'self-supply' : 'staff'
+    )
+  ) {
     return { success: false, error: 'Forbidden', status: 403 };
   }
   const refusal = refuseUnapprovedUpload({ fileName, fileSize, mimeType, storageContentType });

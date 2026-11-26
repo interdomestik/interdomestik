@@ -7,7 +7,6 @@ import {
   integer,
   pgPolicy,
   pgTable,
-  primaryKey,
   text,
   timestamp,
   uniqueIndex,
@@ -18,7 +17,6 @@ import {
 import { user } from './auth';
 import { claims } from './claim-core';
 import { claimCorrespondence } from './claim-correspondence';
-import { claimDocuments } from './claim-support-tables';
 
 export const claimInboundPilotCases = pgTable(
   'claim_inbound_pilot_cases',
@@ -148,10 +146,10 @@ export const claimCorrespondenceReceivedDocuments = pgTable(
     createdAt: timestamp('created_at', { withTimezone: true, precision: 3 }).defaultNow().notNull(),
   },
   t => [
-    primaryKey({
-      name: 'claim_received_documents_pk',
-      columns: [t.correspondenceId, t.claimDocumentId],
-    }),
+    uniqueIndex('claim_received_documents_entry_document_uq').on(
+      t.correspondenceId,
+      t.claimDocumentId
+    ),
     index('claim_received_documents_case_idx').on(t.tenantId, t.claimId, t.correspondenceId),
     index('claim_received_documents_document_idx').on(t.tenantId, t.claimId, t.claimDocumentId),
     foreignKey({
@@ -163,13 +161,7 @@ export const claimCorrespondenceReceivedDocuments = pgTable(
         claimCorrespondence.id,
       ],
     }),
-    foreignKey({
-      name: 'claim_received_documents_document_fk',
-      columns: [t.tenantId, t.claimId, t.claimDocumentId],
-      foreignColumns: [claimDocuments.tenantId, claimDocuments.claimId, claimDocuments.id],
-    })
-      .onDelete('restrict')
-      .onUpdate('restrict'),
+    // Migration 0110 manages the document foreign key with immediate RESTRICT.
     pgPolicy('claim_received_documents_tenant', {
       for: 'all',
       using: sql`${t.tenantId} = (select current_setting('app.current_tenant_id', true))::text

@@ -1,1 +1,4 @@
-export { withPrincipalTenantContext } from './free-start-drafts/context';
+export {
+  bindTenantTransactionPrincipal,
+  withPrincipalTenantContext,
+} from './free-start-drafts/context';

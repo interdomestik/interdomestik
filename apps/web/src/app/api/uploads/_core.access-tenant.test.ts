@@ -150,7 +150,12 @@ it.each([
           typeof createSignedUploadCore
         >[0]['session'],
       });
-      expect(hoisted.pause).toHaveBeenCalledWith(authority, 'tenant_home', 'claim-1');
+      expect(hoisted.pause).toHaveBeenCalledWith(
+        authority,
+        'tenant_home',
+        'claim-1',
+        'self-supply'
+      );
       expect(result).toEqual({ ok: false, status: 403, error: 'Forbidden' });
       expect(hoisted.createTenantSignedUploadUrl).not.toHaveBeenCalled();
     }

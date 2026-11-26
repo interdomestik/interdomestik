@@ -110,6 +110,7 @@ export async function generateUploadUrl(
     informationRequestId,
     logPrefix: '[member/claims]',
     mimeType: contentType,
+    selfSupply: true,
     storageContentType,
     tenantId,
   });
@@ -222,7 +223,7 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
   }
 
   try {
-    if (await isClaimUploadPaused(authority, tenantId, claimId)) {
+    if (await isClaimUploadPaused(authority, tenantId, claimId, 'self-supply')) {
       return { success: false, error: 'Forbidden', status: 403 };
     }
     if (uploadedBucket && uploadedBucket !== resolvedBucket) {

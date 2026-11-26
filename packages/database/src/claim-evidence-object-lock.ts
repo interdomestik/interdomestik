@@ -1,6 +1,8 @@
 import { sql } from 'drizzle-orm';
 import type { TenantTransaction } from './tenant';
 
+export { insertClaimInboundDecision, insertClaimReceivedLinks } from './claim-inbound-writes';
+
 export type ClaimEvidenceObject = { bucket: string; path: string };
 
 /** The advisory-lock key of one stored evidence object of a tenant. */

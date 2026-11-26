@@ -3,8 +3,6 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
 
-import { readCurrentMemberVaultEvidence } from '../../../apps/web/src/features/claims/tracking/server/member-vault-evidence';
-import { serializeMemberVaultConsentDisplay } from '../../../apps/web/src/features/claims/tracking/server/member-vault-consent-serialization';
 import * as schema from '../src/schema';
 import type { TenantTransaction } from '../src/tenant';
 import { importDomain } from './claim-correspondence-domain.fixture';
@@ -40,6 +38,9 @@ export async function proveVaultRace(connections: Connection) {
   const { admin, runtime, peer } = connections;
   const claim = await enrolledCase(admin);
   const stale = await approve(connections, claim, 'intended-for-member');
+  const { readCurrentMemberVaultEvidence } = await importDomain<
+    typeof import('@interdomestik/domain-documents/claim-evidence')
+  >('/claim-evidence', 'domain-documents');
   // Hold the former owner's real read transaction open after its first query.
   await readWithMemberScope(peer, ownerA, async former => {
     const [first] = await former.execute<{ id: string }>(sql`
@@ -53,20 +54,8 @@ export async function proveVaultRace(connections: Connection) {
     const fresh = await approve(connections, claim, 'intended-for-member');
     await restricted(runtime, tx => publish(tx, fresh));
 
-    const domain = await importDomain<typeof import('@interdomestik/domain-claims')>('');
-    const display = (documents: Awaited<ReturnType<typeof readCurrentMemberVaultEvidence>>) =>
-      serializeMemberVaultConsentDisplay(
-        domain.buildVaultConsentDisplay({
-          tenantCode: 'MK',
-          tenantCountryCode: 'MK',
-          claimCategory: 'vehicle',
-          piiStatus: 'available',
-          documents,
-          consents: [],
-        })
-      );
     const oldItems = await readCurrentMemberVaultEvidence(former, homeTenant, claim.id, ownerA);
-    assert.deepEqual(display(oldItems), { kind: 'ready', items: [] });
+    assert.deepEqual(oldItems, []);
 
     await readWithMemberScope(runtime, ownerB, async successor => {
       const newItems = await readCurrentMemberVaultEvidence(
@@ -79,8 +68,7 @@ export async function proveVaultRace(connections: Connection) {
         newItems.map(item => item.id),
         [fresh.id]
       );
-      const visible = display(newItems);
-      assert.ok(visible.kind === 'ready' && visible.items[0]?.updatedAt);
+      assert.ok(newItems[0]?.createdAt instanceof Date);
     });
   });
 }

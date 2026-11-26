@@ -1,5 +1,5 @@
 {
-  "id": "2bbb74a3-66c4-497d-8981-98beb9350c88",
+  "id": "dfb442cb-bb76-4d25-bead-6d4bfb8a6324",
   "prevId": "39ae5a2a-a9d2-4146-b965-d9c8468986b8",
   "version": "7",
   "dialect": "postgresql",
@@ -22182,6 +22182,27 @@
         }
       },
       "indexes": {
+        "claim_received_documents_entry_document_uq": {
+          "name": "claim_received_documents_entry_document_uq",
+          "columns": [
+            {
+              "expression": "correspondence_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "claim_document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "claim_received_documents_case_idx": {
           "name": "claim_received_documents_case_idx",
           "columns": [
@@ -22254,34 +22275,9 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-        },
-        "claim_received_documents_document_fk": {
-          "name": "claim_received_documents_document_fk",
-          "tableFrom": "claim_correspondence_received_documents",
-          "tableTo": "claim_documents",
-          "columnsFrom": [
-            "tenant_id",
-            "claim_id",
-            "claim_document_id"
-          ],
-          "columnsTo": [
-            "tenant_id",
-            "claim_id",
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "restrict"
         }
       },
-      "compositePrimaryKeys": {
-        "claim_received_documents_pk": {
-          "name": "claim_received_documents_pk",
-          "columns": [
-            "correspondence_id",
-            "claim_document_id"
-          ]
-        }
-      },
+      "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {
         "claim_received_documents_tenant": {

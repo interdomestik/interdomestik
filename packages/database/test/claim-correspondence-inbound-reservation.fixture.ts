@@ -5,6 +5,7 @@ import type postgres from 'postgres';
 import {
   approve,
   changeOwner,
+  enroll,
   enrolledCase,
   ownerA,
   ownerB,
@@ -23,6 +24,7 @@ import {
   restricted,
   type Connection,
 } from './claim-correspondence.fixture';
+import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
 
 const reserved = { code: 'P1211' };
 const wrongCase = { code: 'P1210' };
@@ -99,22 +101,27 @@ export async function provePublishedScope(connections: Connection) {
       }
     );
     await admin`delete from claim_inbound_pilot_cases where claim_id = ${claim.id}`;
-    await admin`update claim set access_tenant_id = ${foreignTenant} where id = ${claim.id}`;
-    await assert.rejects(
-      restricted(
-        runtime,
-        async tx => {
+    // Hide only the document. The home claim must still be writable by this restricted role.
+    await admin.unsafe(`create policy wp12_test_hidden_document on claim_documents as restrictive
+      for select to ${quoteIdentifier(role)} using (id <> ${quoteSqlLiteral(document.id)})`);
+    try {
+      await assert.rejects(
+        restricted(runtime, async tx => {
           assert.equal((await tx`select id from claim where id = ${claim.id}`).length, 1);
           assert.equal(
             (await tx`select id from claim_documents where id = ${document.id}`).length,
             0
           );
+          const control =
+            await tx`update claim set "userId" = "userId" where id = ${claim.id} returning id`;
+          assert.equal(control.length, 1);
           await changeOwner(tx, claim);
-        },
-        { access: foreignTenant }
-      ),
-      frozenOwner
-    );
+        }),
+        frozenOwner
+      );
+    } finally {
+      await admin`drop policy wp12_test_hidden_document on claim_documents`;
+    }
     const [stored] = await admin`select "userId" from claim where id = ${claim.id}`;
     assert.equal(stored.userId, ownerA);
   }
@@ -141,6 +148,46 @@ export async function provePublishedScope(connections: Connection) {
     has_column_privilege(${role}, 'public.claim_inbound_upload_decisions', 'decided_at', 'INSERT') as date,
     has_function_privilege(${role}, 'public.claim_inbound_owner_guard_fn()', 'EXECUTE') as lookup`;
   assert.deepEqual({ ...grants }, { enroll: false, edit: false, date: false, lookup: false });
+}
+
+export async function proveEnrollmentSnapshot({ admin, runtime, peer }: Connection) {
+  for (const staged of [false, true]) {
+    const claim = await insertClaim(admin);
+    const writer = staged ? { ...claim, tenant: foreignTenant, user: foreignActor } : claim;
+    if (staged) {
+      await admin`insert into claim_inbound_pilot_cases (tenant_id, claim_id, paused)
+        values (${claim.tenant}, ${claim.id}, true)`;
+    }
+    await restricted(
+      peer,
+      async tx => {
+        await setActor(tx, writer.user);
+        assert.equal(
+          (
+            await tx`select claim_id from claim_inbound_pilot_cases
+        where claim_id = ${claim.id} and enrolled_at is not null`
+          ).length,
+          0
+        );
+        await enroll(admin, claim);
+        await assert.rejects(
+          tx.savepoint(savepoint => insertDocument(savepoint, documentInput(writer))),
+          { code: '40001' }
+        );
+      },
+      { home: writer.tenant, isolation: 'repeatable read' }
+    );
+    await assert.rejects(
+      restricted(runtime, async tx => {
+        await setActor(tx);
+        await insertDocument(tx, documentInput(claim));
+      }),
+      wrongCase
+    );
+    const [row] =
+      await admin`select count(*)::int as count from claim_documents where claim_id = ${claim.id}`;
+    assert.equal(row.count, 0);
+  }
 }
 
 export async function proveReservation(connections: Connection) {
@@ -185,10 +232,18 @@ export async function proveReservation(connections: Connection) {
   await assert.rejects(
     restricted(
       runtime,
-      tx => tx`update claim_documents set tenant_id = ${foreignTenant}
+      tx => tx`update claim_documents set claim_id = ${other.id}
     where id = ${own.id}`
     ),
     { code: 'P1203' }
+  );
+  await assert.rejects(
+    restricted(
+      runtime,
+      tx => tx`update claim_documents set tenant_id = ${foreignTenant}
+    where id = ${own.id}`
+    ),
+    { code: '42501' }
   );
   await restricted(runtime, tx => insertDocument(tx, documentInput(other)));
 
@@ -240,6 +295,11 @@ export async function proveReservation(connections: Connection) {
   );
   const ordinaryId = randomUUID();
   await restricted(peer, tx => alias(tx, ordinaryId, assignedPath(other, ordinaryId)));
+  await restricted(peer, async tx => {
+    const updated =
+      await tx`update documents set deleted_at = now() where id = ${ordinaryId} returning id`;
+    assert.equal(updated.length, 1);
+  });
   await assert.rejects(
     restricted(
       peer,
@@ -248,9 +308,39 @@ export async function proveReservation(connections: Connection) {
     ),
     reserved
   );
+  await assert.rejects(
+    restricted(
+      peer,
+      tx => tx`insert into documents
+    (id, tenant_id, entity_type, entity_id, file_name, storage_path, uploaded_by)
+    values (${ordinaryId}, ${homeTenant}, 'claim', ${other.id}, 'Fixture PDF', ${document.file_path}, ${homeActor})
+    on conflict (id) do update set storage_path = excluded.storage_path, deleted_at = null`
+    ),
+    reserved
+  );
+  const [deleted] =
+    await admin`select deleted_at, storage_path from documents where id = ${ordinaryId}`;
+  assert.ok(deleted.deleted_at);
+  assert.equal(deleted.storage_path, assignedPath(other, ordinaryId));
+  await restricted(peer, async tx => {
+    const restored =
+      await tx`update documents set deleted_at = null where id = ${ordinaryId} returning id`;
+    assert.equal(restored.length, 1);
+  });
   await restricted(runtime, tx => publish(tx, document));
   const [count] = await admin`select
     (select count(*)::int from claim_documents where file_path = ${document.file_path}) as ordinary,
     (select count(*)::int from documents where storage_path = ${document.file_path} or id = ${document.id}) as aliases`;
   assert.deepEqual({ ...count }, { ordinary: 1, aliases: 0 });
+}
+
+export async function proveOrdinaryPathSegment({ admin, runtime }: Connection) {
+  // A case ID can resemble the pilot prefix. The reserved segment is the object file name.
+  const claim = await insertClaim(admin, { id: 'wp12-inbound-ordinary-case' });
+  const document = documentInput(claim);
+  await restricted(runtime, async tx => {
+    await insertDocument(tx, document);
+    await tx`insert into documents (id, tenant_id, entity_type, entity_id, file_name, storage_path, uploaded_by)
+      values (${randomUUID()}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', ${document.file_path}, ${homeActor})`;
+  });
 }

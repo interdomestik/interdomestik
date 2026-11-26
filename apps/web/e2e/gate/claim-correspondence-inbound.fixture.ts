@@ -16,6 +16,7 @@ import { readDisposableTargetClass } from '@interdomestik/database/seed-target-c
 import type { Browser, Locator, Page, TestInfo } from '@playwright/test';
 import { resolveEvidenceBucketName } from '../../src/lib/storage/evidence-bucket';
 import mk from '../../src/messages/mk/staff-correspondence.json';
+import mkClaims from '../../src/messages/mk/claims.json';
 import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 import { assertStoredDoorDocument, requireDoorActor } from '../fixtures/one-door-data.fixture';
 import { expect } from '../fixtures/one-door.fixture';
@@ -187,12 +188,61 @@ export async function staffPilotForm(
   return form;
 }
 
-export async function approvePdf(form: Locator, officeRef: string) {
-  await form.getByLabel(mkCopy.inbound.file).setInputFiles(inboundPdf);
+export async function approvePdf(form: Locator, officeRef: string, file = inboundPdf) {
+  const reference = form.getByLabel(mkCopy.inbound.decisionRef);
+  const previous = await reference.inputValue();
+  await form.getByLabel(mkCopy.inbound.file).setInputFiles(file);
   await form.getByLabel(mkCopy.inbound.officeRef).fill(officeRef);
   await form.getByRole('button', { name: mkCopy.inbound.intended }).click();
-  await expect(form.getByLabel(mkCopy.inbound.decisionRef)).toHaveValue(/^[0-9a-f-]{36}$/);
-  return form.getByLabel(mkCopy.inbound.decisionRef).inputValue();
+  await expect(reference).not.toHaveValue(previous);
+  await expect(reference).toHaveValue(/^[0-9a-f-]{36}$/);
+  return reference.inputValue();
+}
+
+export async function proveMemberUploadDuringRollback(
+  member: Page,
+  origin: string,
+  locale: string,
+  claim: MkCase,
+  info: TestInfo
+) {
+  const paused = await dbAdmin
+    .update(claimInboundPilotCases)
+    .set({ paused: true })
+    .where(
+      and(
+        eq(claimInboundPilotCases.tenantId, claim.tenantId),
+        eq(claimInboundPilotCases.claimId, claim.id)
+      )
+    )
+    .returning({ id: claimInboundPilotCases.claimId });
+  expect(paused).toEqual([{ id: claim.id }]);
+
+  const response = await member.request.post(origin + '/api/uploads', {
+    headers: { Origin: origin },
+    data: {
+      claimId: claim.id,
+      fileName,
+      fileType: inboundPdf.mimeType,
+      fileSize: inboundPdf.buffer.length,
+    },
+  });
+  expect(response.status()).toBe(200);
+
+  const title = mkClaims.claims.claimsPro.actions.uploadEvidence;
+  await gotoApp(member, `/${locale}/member/documents`, info, {
+    baseURL: origin,
+    marker: 'member-documents-page-ready',
+  });
+  await member.getByTestId(`member-documents-upload-${claim.id}`).click();
+  const dialog = member.getByRole('dialog', { name: title });
+  await dialog.getByLabel(mkClaims.claims.detail.evidenceUpload.file).setInputFiles(inboundPdf);
+  await dialog.getByRole('button', { name: title, exact: true }).click();
+  await expect(dialog).toBeHidden();
+  const [document, ...rest] = await doorDocuments(claim.id);
+  expect(rest).toHaveLength(0);
+  expect(document).toMatchObject({ name: fileName, uploadedBy: E2E_USER_IDS.MK_MEMBER });
+  await assertStoredDoorDocument(document, inboundPdf.buffer);
 }
 
 export async function publishPdf(form: Locator) {

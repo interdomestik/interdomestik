@@ -124,7 +124,12 @@ async function uploadEvidence(authorized: AuthorizedSession, request: Request) {
   }
 
   if (
-    (await isClaimUploadPaused(authority, tenantId, claimId)) ||
+    (await isClaimUploadPaused(
+      authority,
+      tenantId,
+      claimId,
+      claimAccess.isAdminSurface ? 'staff' : 'self-supply'
+    )) ||
     (claimAccess.isAdminSurface && (await isInboundPilotCase(authority, claimId)))
   ) {
     return jsonError('Forbidden', 403);

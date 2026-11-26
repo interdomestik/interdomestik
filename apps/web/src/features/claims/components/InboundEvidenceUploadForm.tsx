@@ -54,6 +54,7 @@ export function InboundEvidenceUploadForm({
       if (result.success && result.data) {
         setDecisionId(result.data.decisionId);
         setRecorded(true);
+        correlation.clear();
       }
       return result;
     });
