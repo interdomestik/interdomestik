@@ -98,9 +98,42 @@ export function verifyStampComposition(root, env, stage, lane) {
   return { scope, runId: runIds[lane] };
 }
 
+function composedMode(scope) {
+  return scope.method === 'composed-trial' ? MODES.trial : MODES.gate;
+}
+
+export function stampRefusalLine(lane, runId) {
+  return `M4-STAMP-REFUSED lane=${lane} run=${runId}`;
+}
+
+export function observeInvocation(grant) {
+  const { scope, runIds } = grant;
+  const stamps = new Map();
+  let stampRefusals = 0;
+  const expected = LANES.map(lane => ({
+    lane,
+    refusal: stampRefusalLine(lane, runIds[lane]),
+    prefix:
+      `${composedMode(scope)} lane=${lane} head=${scope.head} run=${runIds[lane]} ` +
+      `base=${scope.base} tree=${scope.tree} marker=${scope.markerSha256} record=`,
+  }));
+  return {
+    line(line) {
+      for (const { lane, refusal, prefix } of expected) {
+        if (line === refusal) stampRefusals += 1;
+        if (line.startsWith(prefix)) {
+          const digest = /^.+ record_sha256=([a-f0-9]{64})$/u.exec(line.slice(prefix.length))?.[1];
+          stamps.set(lane, stamps.has(lane) ? null : digest);
+        }
+      }
+    },
+    result: exit => ({ exit, stampRefusals, stamps: new Map(stamps) }),
+  };
+}
+
 function checkRecordPair(records, grant) {
   const { scope, runIds } = grant;
-  const mode = scope.method === 'composed-trial' ? MODES.trial : MODES.gate;
+  const mode = composedMode(scope);
   for (const [index, lane] of LANES.entries()) {
     const { record } = records[index];
     assertEvidence(
@@ -154,9 +187,13 @@ function readRecordPair(directory, grant) {
   return { records, index };
 }
 
-export function captureInvocation(directory, grant, exit, sign) {
+export function captureInvocation(directory, grant, { exit, stampRefusals, stamps }, sign) {
   assertEvidence(exit === 0, 'm4-launch-exit');
   const { records, index } = readRecordPair(directory, grant);
+  assertEvidence(
+    stampRefusals === 0 && index.every(({ lane, recordSha256 }) => stamps.get(lane) === recordSha256),
+    'm4-stamp-digest'
+  );
   const bytes = Buffer.from(JSON.stringify({ class: RESULT_CLASS, grant, exit, records: index }));
   return { records, bytes, signature: sign(bytes, 'm4') };
 }
@@ -194,14 +231,13 @@ export async function dispatchM4({ checkQueue, collect, runFull, runComposed, ca
   checkQueue('dispatch');
   const expected = collectOrFallback('dispatch');
   if (!expected) return runFull();
-  const { exit, grant } = await runComposed(expected);
+  const { grant, outcome } = await runComposed(expected);
+  const { exit, stampRefusals } = outcome;
   signal.throwIfAborted();
   checkQueue('accept');
   const latest = collectOrFallback('accept');
-  // Preserve a real test failure and its transcript. A success with now unusable evidence
-  // can take the full path, still within the same lock and only on the current scope.
-  if (exit !== 0) return exit;
-  if (!same(latest, expected)) return runFull();
-  capture(grant, exit);
+  // A genuine lane failure keeps its status even if the receipt expired during the run.
+  if ((exit === 0 || stampRefusals === 1) && !same(latest, expected)) return runFull();
+  if (exit === 0) capture(grant, outcome);
   return exit;
 }

@@ -1,6 +1,7 @@
 import { spawn } from 'node:child_process';
 import { chmodSync, mkdirSync } from 'node:fs';
 import path from 'node:path';
+import { createInterface } from 'node:readline';
 import { fileURLToPath } from 'node:url';
 import { MACHINE_ROLES, machineRole, sha256Hex } from '../verify-machine-marker.mjs';
 import { parsePlatformUuid } from '../verify-machine-probe.mjs';
@@ -20,6 +21,7 @@ import {
   checkMacJob,
   dispatchM4,
   makeGrant,
+  observeInvocation,
   readInvocation,
   writeInvocation,
 } from './m4-dispatch.mjs';
@@ -155,20 +157,30 @@ function queueJob(file) {
   return checkQueueJob(JSON.parse(readBytes(file, 16 * 1024)));
 }
 
-function launch(approval, args, signal) {
+function launch(approval, args, signal, observeLine) {
   signal.throwIfAborted();
   const file = protectedFile('gate-m4-runner', approval.m4LauncherSha256).file;
   return new Promise((resolve, reject) => {
     const child = spawn(file, args, {
       env: { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', LANG: 'C', NODE_V8_COVERAGE: undefined },
-      stdio: ['ignore', 'inherit', 'inherit'],
+      stdio: ['ignore', observeLine ? 'pipe' : 'inherit', 'inherit'],
     });
+    let transcriptError;
+    if (observeLine) {
+      const lines = createInterface({ input: child.stdout, crlfDelay: Infinity });
+      lines.on('line', observeLine);
+      lines.once('error', error => {
+        transcriptError = error;
+      });
+      child.stdout.pipe(process.stdout, { end: false });
+    }
     const cancel = () => child.kill('SIGTERM');
     signal.addEventListener('abort', cancel, { once: true });
     child.once('error', reject);
     child.once('close', (code, killed) => {
       signal.removeEventListener('abort', cancel);
       if (killed) reject(new Error('m4-launch-signal'));
+      else if (transcriptError) reject(transcriptError);
       else resolve(code ?? 1);
     });
   });
@@ -208,15 +220,17 @@ async function dispatch(root, jobFile, evidence, checkout, grantDir, records, ca
       writeArtifact(grantDir, 'grant.json', bytes);
       for (const file of ['grant.sig', 'grant.json']) chmodSync(path.join(grantDir, file), 0o644);
       chmodSync(grantDir, 0o755);
+      const observation = observeInvocation(grant);
       const exit = await launch(
         approved,
         ['composed', checkout, grantDir, JSON.stringify(job)],
-        signal
+        signal,
+        observation.line
       );
-      return { exit, grant };
+      return { grant, outcome: observation.result(exit) };
     },
-    capture: (grant, exit) =>
-      writeInvocation(captureDir, captureInvocation(records, grant, exit, sign)),
+    capture: (grant, outcome) =>
+      writeInvocation(captureDir, captureInvocation(records, grant, outcome, sign)),
     signal,
   });
 }

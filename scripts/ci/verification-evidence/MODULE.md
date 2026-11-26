@@ -11,8 +11,8 @@ machine and signer identities, current gate authority, and worker isolation.
 - `worker.mjs` provides the separate macOS worker account bridge for the enrolled slot.
 - `receipt.mjs` validates the complete collected attempt. `m4.mjs` issues tickets, binds them
   to the authority's queue, and implements collection, locked dispatch, publication and merge
-  recheck. `m4-dispatch.mjs` defines the signed invocation grant consumed by the verifier stamps
-  and the captured pair of record identities and hashes.
+  recheck. `m4-dispatch.mjs` defines the signed invocation grant consumed by the verifier stamps,
+  observes the stamp results from the launcher, and verifies the record bytes before capture.
 - `worker-profile.mjs` carries the enrolled worker's exact Git admission and Bash executable
   into commands that otherwise use a reduced environment or a fixed system Bash.
 

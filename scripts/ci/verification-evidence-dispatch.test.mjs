@@ -9,13 +9,17 @@ import {
   checkMacJob,
   dispatchM4,
   makeGrant,
+  observeInvocation,
   readInvocation,
   writeInvocation,
 } from './verification-evidence/m4-dispatch.mjs';
 import { verifyComposition } from './verification-evidence/m4.mjs';
+import { M4_SCRIPT } from './verification-evidence/manifest.mjs';
 import { checkReceipt } from './verification-evidence/receipt.mjs';
 import { assertEvidence } from './verification-evidence/ticket.mjs';
-import { finalRecordPath } from './verify-machine-records.mjs';
+import { harness, trusted } from './verify-machine-harness.mjs';
+import { finalRecordPath, LANES } from './verify-machine-records.mjs';
+import { runVerifyMachine } from './verify-machine.mjs';
 
 function verifier(...jobs) {
   return {
@@ -119,39 +123,57 @@ test('publication requires a successful terminal event for the bound M4 dispatch
   }
 });
 
-function stamps(f, scope) {
-  const grant = makeGrant(scope, f.job, approved.sha256, '/worker');
-  const mode = scope.method === 'composed' ? 'GATE-EVIDENCE' : 'TRIAL-EVIDENCE';
-  return {
-    grant,
-    files: ['pr-verify', 'security-guard'].map((lane, index) => {
-      const record = {
-        lane,
-        mode,
-        machineRole: 'm4',
-        result: 'passed',
-        head: scope.head,
-        markerSha256: scope.markerSha256,
-        composition: grant.scope,
-        runId: grant.runIds[lane],
-        startedAt: new Date(now + index).toISOString(),
-        finishedAt: new Date(now + 10 - index).toISOString(),
-      };
-      const file = finalRecordPath(f.dir, record);
-      writeFileSync(file, JSON.stringify(record));
-      return { file, record };
-    }),
+function stampFixture(t, f, scope) {
+  const h = harness({
+    marker: { ...trusted(), sha256: scope.markerSha256 },
+    env: { INTERDOMESTIK_M4_DISPATCH_DIR: '/grant', INTERDOMESTIK_M4_QUEUE_SCOPE: '{}' },
+  });
+  t.after(h.cleanup);
+  const grant = makeGrant(scope, f.job, approved.sha256, h.deps.cwd);
+  const policy = scope.method === 'composed-trial' ? { ...approved, mode: 'trial' } : approved;
+  let at = now;
+  h.deps.now = () => new Date(at).toISOString();
+  h.deps.verifyComposition = (_root, _env, _stage, lane) => {
+    checkGrant(grant, f.job, policy, at);
+    return { scope: grant.scope, runId: grant.runIds[lane] };
   };
+  function run(command, lane, time) {
+    at = time;
+    h.deps.env.npm_lifecycle_event = lane === 'pr-verify' ? M4_SCRIPT : 'security:guard';
+    return runVerifyMachine([command, lane], h.deps);
+  }
+  return { ...h, grant, run };
+}
+
+function observe(grant, lines, exit) {
+  const observation = observeInvocation(grant);
+  lines.forEach(observation.line);
+  return observation.result(exit);
+}
+
+function stamps(t, f, scope) {
+  const h = stampFixture(t, f, scope);
+  assert.equal(h.run('begin', 'pr-verify', now), 0);
+  assert.equal(h.run('begin', 'security-guard', now + 1), 0);
+  assert.equal(h.run('stamp', 'security-guard', now + 9), 0);
+  assert.equal(h.run('stamp', 'pr-verify', now + 10), 0);
+  const { grant, directory } = h;
+  const files = LANES.map(lane => {
+    const file = finalRecordPath(directory, { lane, head: scope.head, runId: grant.runIds[lane] });
+    return { file, record: JSON.parse(readFileSync(file)) };
+  });
+  return { ...h, files, outcome: observe(grant, h.output.log, 0) };
 }
 
 test('publication requires the exact pair captured after the observed invocation exit', t => {
   const f = evidenceFixture(t);
   const scope = verifyComposition('/root', f.dir, f.job, 'dispatch', 'gate', verifier(f));
-  const observed = stamps(f, scope);
-  const unrelated = stamps(f, scope);
+  const observed = stamps(t, f, scope);
+  const unrelated = stamps(t, f, scope);
   const { file, record } = observed.files[1];
-  const capture = () => captureInvocation(f.dir, observed.grant, 0, f.signAs);
-  assert.throws(() => captureInvocation(f.dir, observed.grant, 1, f.signAs), /m4-launch-exit/u);
+  const capture = (outcome = observed.outcome) =>
+    captureInvocation(observed.directory, observed.grant, outcome, f.signAs);
+  assert.throws(() => capture({ ...observed.outcome, exit: 1 }), /m4-launch-exit/u);
   const original = readFileSync(file);
   rmSync(file);
   assert.throws(capture, /ENOENT/u);
@@ -168,7 +190,13 @@ test('publication requires the exact pair captured after the observed invocation
   }
   writeFileSync(file, JSON.stringify({ ...record, finishedAt: new Date(now + 11).toISOString() }));
   assert.throws(capture, /m4-run-pair/u);
+  writeFileSync(file, JSON.stringify({ ...record, configuration: { node: 'changed after stamp' } }));
+  assert.throws(capture, /m4-stamp-digest/u);
   writeFileSync(file, original);
+  const lines = observed.output.log;
+  for (const bad of [[], unrelated.output.log, lines.slice(0, -1), [...lines, lines.at(-1)]]) {
+    assert.throws(() => capture(observe(observed.grant, bad, 0)), /m4-stamp-digest/u);
+  }
   const directory = path.join(f.dir, 'captured');
   writeInvocation(directory, capture());
   const read = () => readInvocation(directory, scope, f.job, approved, now, f.authenticate);
@@ -218,9 +246,9 @@ test('trial captures can be retained but never accepted for publication', t => {
   const f = evidenceFixture(t);
   const scope = verifyComposition('/root', f.dir, f.job, 'dispatch', 'gate', verifier(f));
   const trial = { ...scope, method: 'composed-trial' };
-  const { grant } = stamps(f, trial);
+  const { grant, directory: records, outcome } = stamps(t, f, trial);
   const directory = path.join(f.dir, 'trial-capture');
-  writeInvocation(directory, captureInvocation(f.dir, grant, 0, f.signAs));
+  writeInvocation(directory, captureInvocation(records, grant, outcome, f.signAs));
   assert.throws(
     () =>
       readInvocation(directory, trial, f.job, { ...approved, mode: 'trial' }, now, f.authenticate),
@@ -249,9 +277,9 @@ test('locked selection falls back for unusable evidence and preserves real compo
     runComposed: () => {
       calls.push('composed');
       afterLaunch();
-      return { exit, grant: 'grant' };
+      return { grant: 'grant', outcome: { exit, stampRefusals: 0 } };
     },
-    capture: (grant, status) => calls.push(`capture:${grant}:${status}`),
+    capture: (grant, outcome) => calls.push(`capture:${grant}:${outcome.exit}`),
   };
   assert.equal(await dispatchM4(options), 0);
   assert.deepEqual(calls.splice(0), [
@@ -285,7 +313,6 @@ test('locked selection falls back for unusable evidence and preserves real compo
     'full',
   ]);
   collected = true;
-  afterLaunch = () => {};
   exit = 21;
   assert.equal(await dispatchM4(options), 21);
   assert.deepEqual(calls.splice(0), [
@@ -294,7 +321,9 @@ test('locked selection falls back for unusable evidence and preserves real compo
     'composed',
     'queue:accept',
     'receipt:accept',
+    'queue:accept',
   ]);
+  collected = true;
   for (const refused of ['dispatch', 'accept']) {
     await assert.rejects(
       () =>
@@ -311,4 +340,48 @@ test('locked selection falls back for unusable evidence and preserves real compo
   afterLaunch = () => abort.abort();
   await assert.rejects(() => dispatchM4(options), { name: 'AbortError' });
   assert.deepEqual(calls, ['queue:dispatch', 'receipt:dispatch', 'composed']);
+});
+
+test('a grant that expires at stamp triggers the full gate only on an eligible queue', async t => {
+  const f = evidenceFixture(t);
+  const deps = verifier(f);
+  let at = now;
+  let fullRuns = 0;
+  deps.now = () => at;
+  const options = {
+    signal: new AbortController().signal,
+    checkQueue() {},
+    collect: stage => verifyComposition('/root', f.dir, f.job, stage, 'gate', deps),
+    runComposed(scope) {
+      const h = stampFixture(t, f, scope);
+      assert.equal(h.run('begin', 'pr-verify', now), 0);
+      assert.equal(h.run('begin', 'security-guard', now + 1), 0);
+      assert.equal(h.run('stamp', 'security-guard', now + 9), 0);
+      at = scope.expiresAt;
+      const exit = h.run('stamp', 'pr-verify', at);
+      assert.equal(exit, 1);
+      assert.match(h.output.error.at(-1), /composed evidence was refused at stamp/u);
+      return { grant: h.grant, outcome: observe(h.grant, h.output.log, exit) };
+    },
+    runFull() {
+      fullRuns += 1;
+      return 0;
+    },
+    capture: () => assert.fail('expired evidence cannot be captured'),
+  };
+  assert.equal(await dispatchM4(options), 0);
+  assert.equal(fullRuns, 1);
+
+  at = now;
+  await assert.rejects(
+    () =>
+      dispatchM4({
+        ...options,
+        checkQueue(stage) {
+          if (stage === 'accept') throw new Error('stale queue');
+        },
+      }),
+    /stale queue/u
+  );
+  assert.equal(fullRuns, 1);
 });

@@ -277,9 +277,12 @@ capture path within a private authority directory. The protected `gate-m4-runner
 isolated setup, launches the fixed package commands, reports the actual status, and drains
 the account's children before returning. The composed invocation sets only the checked gate
 environment plus `INTERDOMESTIK_M4_DISPATCH_DIR` and `INTERDOMESTIK_M4_QUEUE_SCOPE` from those
-arguments, then runs `pnpm pr:verify:composed`. The full invocation checks the exact Git scope
-and runs `pnpm pr:verify` and separate `pnpm security:guard`, requiring both standard passed M4
-stamps. Keep the existing full launcher for hosts without delegated enrollment.
+arguments, then runs `pnpm pr:verify:composed`. Forward its stdout unchanged to the dispatcher,
+which retains the two grant-bound stamp digests and compares them with the record bytes before
+signing. A grant-bound composition refusal at stamp can select the full path if the queue is still
+eligible and the dispatcher can no longer collect the same evidence. The full invocation checks
+the exact Git scope and runs `pnpm pr:verify` and separate `pnpm security:guard`, requiring both
+standard passed M4 stamps. Keep the existing full launcher for hosts without delegated enrollment.
 
 Publish only after both the command and M4 dispatcher finish successfully and a composed
 capture exists. Use the trusted scripts through merge.

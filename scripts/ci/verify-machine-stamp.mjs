@@ -11,6 +11,7 @@ import {
   PREFIX,
 } from './verify-machine-output.mjs';
 import { gateRoleErrors, MODES, PENDING_VERSION } from './verify-machine-records.mjs';
+import { stampRefusalLine } from './verification-evidence/m4-dispatch.mjs';
 import { same } from './verification-evidence/ticket.mjs';
 
 export function probeLive(deps, repoRoot, marker) {
@@ -93,6 +94,11 @@ function writeFinalRecord(lane, deps, pending, pendingPath, directory) {
   return 0;
 }
 
+function refuseComposition(lane, deps, runId, reason) {
+  deps.log(stampRefusalLine(lane, runId));
+  return fail(deps, [reason]);
+}
+
 function finish(lane, deps, repoRoot, match, directory) {
   const { record: pending, path: pendingPath } = match;
   const moved = headProblems(deps, repoRoot, pending);
@@ -107,13 +113,16 @@ function finish(lane, deps, repoRoot, match, directory) {
   const problems = gateProblems(lane, deps, repoRoot, pending, markerResult);
   if (deps.composed) {
     if (problems.length > 0) return fail(deps, problems);
+    let verified;
     try {
-      const { scope, runId } = deps.verifyComposition(repoRoot, deps.env, 'accept', lane);
-      if (runId !== pending.runId || !same(scope, pending.composition)) {
-        return fail(deps, ['M4 composed evidence changed during the run']);
-      }
+      verified = deps.verifyComposition(repoRoot, deps.env, 'accept', lane);
     } catch {
-      return fail(deps, ['M4 composed evidence was refused at stamp']);
+      return refuseComposition(lane, deps, pending.runId, 'M4 composed evidence was refused at stamp');
+    }
+    if (verified.runId !== pending.runId || !same(verified.scope, pending.composition)) {
+      return refuseComposition(
+        lane, deps, pending.runId, 'M4 composed evidence changed during the run'
+      );
     }
   }
   if (problems.length === 0) return writeFinalRecord(lane, deps, pending, pendingPath, directory);
