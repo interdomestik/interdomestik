@@ -48,13 +48,13 @@ function recipientTx(
   const localeWhere = vi.fn().mockReturnValue({ for: localeQuery });
   const select = vi
     .fn()
+    .mockReturnValueOnce({
+      from: async () => [{ home: tenantId, access: tenantId, isolation: 'read committed' }],
+    })
     .mockReturnValueOnce({ from: () => ({ where: userWhere }) })
     .mockReturnValueOnce({ from: () => ({ where: localeWhere }) });
-  const execute = vi
-    .fn()
-    .mockResolvedValue([{ home: tenantId, access: tenantId, isolation: 'read committed' }]);
   return {
-    tx: { execute, select } as unknown as TenantTransaction,
+    tx: { select } as unknown as TenantTransaction,
     select,
     userQuery,
     localeQuery,

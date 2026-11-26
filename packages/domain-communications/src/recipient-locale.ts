@@ -70,15 +70,13 @@ async function readLockedRecipient(
   if (purpose !== 'scheduled-work' || principal !== null || tenantId !== accessTenantId) {
     return { ok: false, code: 'recipient_missing' };
   }
-  const [settings] = await tx.execute<{
-    home: string | null;
-    access: string | null;
-    isolation: string;
-  }>(
-    sql`select current_setting('app.current_tenant_id', true) as home,
-               current_setting('app.current_access_tenant_id', true) as access,
-               current_setting('transaction_isolation') as isolation`
-  );
+  const [settings] = await tx
+    .select({
+      home: sql<string | null>`current_setting('app.current_tenant_id', true)`,
+      access: sql<string | null>`current_setting('app.current_access_tenant_id', true)`,
+      isolation: sql<string>`current_setting('transaction_isolation')`,
+    })
+    .from(sql`(values (1)) as transaction_context`);
   if (
     settings?.home !== tenantId ||
     settings.access !== tenantId ||
