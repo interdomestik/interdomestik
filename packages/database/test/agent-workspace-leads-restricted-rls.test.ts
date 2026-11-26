@@ -36,75 +36,84 @@ test('the agent leads read shows an agent only its own leads in its branch', asy
     leadB: fixture.newId('awlrls_lead_b'),
     leadMk: fixture.newId('awlrls_lead_mk'),
   };
-  const branchIds = [ids.branch1, ids.branch2, ids.branchMk];
-  const userIds = [ids.agentA, ids.agentB, ids.agentMk];
-  const leadIds = [ids.leadA, ids.leadA2, ids.leadB, ids.leadMk];
-  let revoke: (() => Promise<void>) | null = null;
-  // Registered before the first write, so a failure part-way through seeding still cleans up.
-  const cleanups: Cleanups = [
+  // The seed, one row per line: a branch belongs to a tenant, an agent to a branch, a lead to both.
+  const branchSeed = {
+    [ids.branch1]: KS_TENANT_ID,
+    [ids.branch2]: KS_TENANT_ID,
+    [ids.branchMk]: MK_TENANT_ID,
+  };
+  const agentSeed = {
+    [ids.agentA]: ids.branch1,
+    [ids.agentB]: ids.branch1,
+    [ids.agentMk]: ids.branchMk,
+  };
+  const leadSeed = {
+    [ids.leadA]: { branch: ids.branch1, agent: ids.agentA },
+    [ids.leadA2]: { branch: ids.branch2, agent: ids.agentA },
+    [ids.leadB]: { branch: ids.branch1, agent: ids.agentB },
+    [ids.leadMk]: { branch: ids.branchMk, agent: ids.agentMk },
+  };
+  const leadIds = Object.keys(leadSeed);
+  let revokeGrants = async () => {};
+  // Every delete is registered before the first write, so partial seeding still cleans up.
+  const removeSeed: Cleanups = [
     () => adminDb.delete(memberLeads).where(inArray(memberLeads.id, leadIds)),
-    () => adminDb.delete(user).where(inArray(user.id, userIds)),
-    () => adminDb.delete(branches).where(inArray(branches.id, branchIds)),
-    async () => revoke?.(),
+    () => adminDb.delete(user).where(inArray(user.id, Object.keys(agentSeed))),
+    () => adminDb.delete(branches).where(inArray(branches.id, Object.keys(branchSeed))),
+    () => revokeGrants(),
     () => session.close(),
   ];
 
   await withCleanup(
     t,
     async () => {
-      revoke = await grantTablePrivileges(adminDb, [
-        ['select', 'member_leads'],
+      revokeGrants = await grantTablePrivileges(adminDb, [
         ['select', 'branches'],
+        ['select', 'member_leads'],
       ]);
-      const now = new Date();
-      await adminDb.insert(branches).values(
-        [
-          [ids.branch1, KS_TENANT_ID],
-          [ids.branch2, KS_TENANT_ID],
-          [ids.branchMk, MK_TENANT_ID],
-        ].map(([id, tenantId]) => ({ id, tenantId, name: `name-${id}`, slug: id }))
-      );
-      await adminDb.insert(user).values(
-        [
-          [ids.agentA, KS_TENANT_ID, ids.branch1],
-          [ids.agentB, KS_TENANT_ID, ids.branch1],
-          [ids.agentMk, MK_TENANT_ID, ids.branchMk],
-        ].map(([id, tenantId, branchId]) => ({
-          id,
-          tenantId,
-          branchId,
-          role: 'agent',
-          name: id,
-          email: `${id}@example.test`,
-          emailVerified: true,
-          createdAt: now,
-          updatedAt: now,
-        }))
-      );
-      await adminDb.insert(memberLeads).values(
-        [
-          [ids.leadA, KS_TENANT_ID, ids.branch1, ids.agentA],
-          [ids.leadA2, KS_TENANT_ID, ids.branch2, ids.agentA],
-          [ids.leadB, KS_TENANT_ID, ids.branch1, ids.agentB],
-          [ids.leadMk, MK_TENANT_ID, ids.branchMk, ids.agentMk],
-        ].map(([id, tenantId, branchId, agentId]) => ({
-          id,
-          tenantId,
-          branchId,
-          agentId,
-          firstName: 'Lead',
-          lastName: id,
-          email: `${id}@example.test`.toLowerCase(),
-          phone: '+38344000000',
-          // Agent-assisted consent, as the agent portal captures it (the table's checks need it).
-          consentNoticeVersion: 'lead-notice-v1',
-          captureChannel: 'agent_assisted' as const,
-          consentCapturedAt: now,
-          consentCapturedBy: agentId,
-          createdAt: now,
-          updatedAt: now,
-        }))
-      );
+      const seededAt = new Date();
+      const branchRows = Object.entries(branchSeed).map(([id, tenantId]) => ({
+        id,
+        tenantId,
+        slug: id,
+        name: `name-${id}`,
+      }));
+      await adminDb.insert(branches).values(branchRows);
+      const tenantOfBranch = (branchId: string) => {
+        const tenantId = branchSeed[branchId];
+        assert.ok(tenantId, `unseeded branch ${branchId}`);
+        return tenantId;
+      };
+      const agentRows = Object.entries(agentSeed).map(([id, branchId]) => ({
+        id,
+        branchId,
+        tenantId: tenantOfBranch(branchId),
+        role: 'agent',
+        name: id,
+        email: `${id}@example.test`,
+        emailVerified: true,
+        createdAt: seededAt,
+        updatedAt: seededAt,
+      }));
+      await adminDb.insert(user).values(agentRows);
+      const leadRows = Object.entries(leadSeed).map(([id, owner]) => ({
+        id,
+        branchId: owner.branch,
+        agentId: owner.agent,
+        tenantId: tenantOfBranch(owner.branch),
+        firstName: 'Lead',
+        lastName: id,
+        email: `${id}@example.test`.toLowerCase(),
+        phone: '+38344000000',
+        // Agent-assisted consent, as the agent portal captures it (the table's checks need it).
+        consentNoticeVersion: 'lead-notice-v1',
+        captureChannel: 'agent_assisted' as const,
+        consentCapturedAt: seededAt,
+        consentCapturedBy: owner.agent,
+        createdAt: seededAt,
+        updatedAt: seededAt,
+      }));
+      await adminDb.insert(memberLeads).values(leadRows);
 
       const agentA = ksActor(ids.agentA, 'agent', ids.branch1);
       const agentB = ksActor(ids.agentB, 'agent', ids.branch1);
@@ -129,8 +138,11 @@ test('the agent leads read shows an agent only its own leads in its branch', asy
       // and branch) and agent A's own branch-2 lead are absent.
       const scopeA = { tenantId: KS_TENANT_ID, agentId: ids.agentA, branchId: ids.branch1 };
       assert.deepEqual(await seeded(agentA, scopeA), [ids.leadA], 'agent A, own branch');
-      // Only the branch name reaches the client.
-      const [ownLead] = (await read(agentA, scopeA)).filter(lead => lead.id === ids.leadA);
+      // Only the branch name reaches the client. The query's declared row type omits the
+      // relation, so the row is read as returned.
+      const ownLead: Record<string, unknown> | undefined = (await read(agentA, scopeA)).find(
+        lead => lead.id === ids.leadA
+      );
       assert.deepEqual(ownLead?.branch, { name: `name-${ids.branch1}` });
 
       // The denied leads are real: agent B reads its own lead, agent A its branch-2 lead.
@@ -149,6 +161,6 @@ test('the agent leads read shows an agent only its own leads in its branch', asy
       assert.deepEqual(await seeded(agentMk, scopeMk), [ids.leadMk], 'MK agent, MK authority');
       assert.deepEqual(await seeded(agentA, scopeMk), [], 'MK arguments under KS authority');
     },
-    () => cleanups
+    () => removeSeed
   );
 });
