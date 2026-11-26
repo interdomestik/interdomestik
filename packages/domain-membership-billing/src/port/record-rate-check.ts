@@ -93,8 +93,7 @@ export async function recordRateCheckInconclusive(
         } as const;
 
       const start = await readRateCheck(tx, scope, request.checkId);
-      if (!start || start.legalEntityId !== legalEntityId)
-        return { ok: false, code: 'not_found' } as const;
+      if (start?.legalEntityId !== legalEntityId) return { ok: false, code: 'not_found' } as const;
       const [outcome] = await tx
         .insert(exchangeRateCheckEvents)
         .values({

@@ -31,7 +31,7 @@ function requireLegacySource(source: string | undefined) {
   assert.ok(source, 'WP07_LEGACY_SOURCE must name the pinned old checkout');
   const root = realpathSync(source);
   const git = (...args: string[]) =>
-    execFileSync('git', ['-C', root, ...args], {
+    execFileSync('/usr/bin/git', ['-C', root, ...args], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore'],
     }).trim();

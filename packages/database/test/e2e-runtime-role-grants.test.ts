@@ -51,8 +51,9 @@ test('E2E provisioning and reprovisioning preserve the rate-book and case regist
       }
       for (const phase of ['provision', 'reprovision']) {
         if (phase === 'reprovision') {
+          const narrowedTables = narrowed.map(table => `public.${table}`).join(', ');
           await admin.unsafe(`grant insert, update, delete, truncate on table
-            ${narrowed.map(table => `public.${table}`).join(', ')} to ${quotedRole}`);
+            ${narrowedTables} to ${quotedRole}`);
         }
         await provisionE2eRuntimeRole({ adminUrl: scratchUrl.toString(), env: {}, role });
         for (const table of tables) {
@@ -85,7 +86,7 @@ test('E2E provisioning and reprovisioning preserve the rate-book and case regist
           const editable = table === ordinary ? ['claim_id', 'tenant_id'] : updatableColumns[table];
           assert.deepEqual(
             columns.map(row => row.column_name),
-            [...(editable ?? [])].sort(),
+            [...(editable ?? [])].sort((a, b) => Number(a > b) - Number(a < b)),
             label
           );
         }

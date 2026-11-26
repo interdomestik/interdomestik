@@ -8,6 +8,7 @@ import {
   insertRate,
   provisionRateWindow,
   restricted,
+  runSequentially,
   runtimeRole,
   type ExchangeRateFixture,
 } from './exchange-rates.fixture';
@@ -132,7 +133,7 @@ export async function proveOfficialCheckConstraints(f: ExchangeRateFixture) {
     { code: '23514', constraint_name: 'exchange_rate_check_pending' }
   );
   type VisibleRows = { windows: number; checks: number; rates: number };
-  for (const scope of [undefined, otherTenant]) {
+  await runSequentially([undefined, otherTenant], async scope => {
     const rows: VisibleRows[] = await restricted(
       peer,
       scope,
@@ -142,7 +143,7 @@ export async function proveOfficialCheckConstraints(f: ExchangeRateFixture) {
         (select count(*)::int from membership_sale_rate_at(${tenantId}, ${book.id})) as rates`
     );
     assert.deepEqual(rows[0], { windows: 0, checks: 0, rates: 0 });
-  }
+  });
 
   const positive = {
     id: randomUUID(),
@@ -160,19 +161,20 @@ export async function proveOfficialCheckConstraints(f: ExchangeRateFixture) {
     check_id: check.id,
     verified_at: injectedTimestamp,
   };
-  for (const [change, constraint_name] of [
+  const invalidVerifications = [
     [{ observed_rate: '61.52' }, 'exchange_rate_verifications_exact_rate_fk'],
     [{ rate_effective_on: '2000-01-01' }, 'exchange_rate_verifications_exact_rate_fk'],
     [{ verified_by: randomUUID() }, 'exchange_rate_verifications_check_fk'],
-  ] as const) {
-    await assert.rejects(
+  ] as const;
+  await runSequentially(invalidVerifications, ([change, constraint_name]) =>
+    assert.rejects(
       asTenant(
         tx => tx`
       insert into exchange_rate_verifications ${tx({ ...positive, ...change })}`
       ),
       { code: '23503', constraint_name }
-    );
-  }
+    )
+  );
   const [verified] = await asTenant(
     tx => tx`
     insert into exchange_rate_verifications ${tx(positive)}
@@ -201,7 +203,8 @@ export async function proveOfficialCheckConstraints(f: ExchangeRateFixture) {
       constraint_name: 'exchange_rate_check_terminal_guard',
     }
   );
-  for (const table of ['exchange_rate_check_windows', 'exchange_rate_check_events']) {
+  const appendOnlyTables = ['exchange_rate_check_windows', 'exchange_rate_check_events'];
+  await runSequentially(appendOnlyTables, async table => {
     const [posture] = await asTenant(
       tx => tx`
       select row_security_active(${table}) as rls,
@@ -222,7 +225,7 @@ export async function proveOfficialCheckConstraints(f: ExchangeRateFixture) {
         message: `${table} is append-only`,
       }
     );
-  }
+  });
   const insertWindow = (tx: postgres.TransactionSql) => tx`
     insert into exchange_rate_check_windows
       (id, tenant_id, book_id, effective_on, opens_at, deadline_at, approval_ref)

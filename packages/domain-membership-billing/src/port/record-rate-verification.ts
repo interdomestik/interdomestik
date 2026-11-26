@@ -76,7 +76,7 @@ export async function recordRateVerification(
 
       if (!request.checkId) return { ok: false, code: 'invalid' } as const;
       const start = await readRateCheck(tx, scope, request.checkId);
-      if (!start || start.actorId !== userId || start.legalEntityId !== legalEntityId) {
+      if (start?.actorId !== userId || start.legalEntityId !== legalEntityId) {
         return { ok: false, code: 'not_found' } as const;
       }
 

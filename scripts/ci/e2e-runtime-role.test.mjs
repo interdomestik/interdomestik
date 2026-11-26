@@ -8,23 +8,25 @@ import { grantE2eRuntimePrivileges } from '../e2e-runtime-role-grants.mjs';
 
 test('E2E provisioning gives Finance windows read-only access and check events append-only access', async () => {
   const statements = [];
-  const catalog = async () => [
-    { name: 'exchange_rate_check_windows', kind: 'r' },
-    { name: 'exchange_rate_check_events', kind: 'r' },
-    { name: 'unrestricted_fixture_table', kind: 'r' },
-  ];
-  catalog.unsafe = async statement => statements.push(statement);
+  const catalog = () =>
+    Promise.resolve([
+      { name: 'exchange_rate_check_windows', kind: 'r' },
+      { name: 'exchange_rate_check_events', kind: 'r' },
+      { name: 'unrestricted_fixture_table', kind: 'r' },
+    ]);
+  catalog.unsafe = statement => Promise.resolve(statements.push(statement));
   const role = '"interdomestik_runtime_rls"';
   await grantE2eRuntimePrivileges(catalog, role);
+  const compareCodeUnits = (left, right) => Number(left > right) - Number(left < right);
   assert.deepEqual(
-    statements.sort(),
+    statements.toSorted(compareCodeUnits),
     [
       `GRANT SELECT ON TABLE public.exchange_rate_check_windows TO ${role}`,
       `GRANT SELECT, INSERT ON TABLE public.exchange_rate_check_events TO ${role}`,
       `GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.unrestricted_fixture_table TO ${role}`,
       `REVOKE ALL ON TABLE public.exchange_rate_check_events FROM ${role}`,
       `REVOKE ALL ON TABLE public.exchange_rate_check_windows FROM ${role}`,
-    ].sort()
+    ].toSorted(compareCodeUnits)
   );
 });
 
