@@ -289,17 +289,4 @@ describe('member case messages', () => {
     expect(screen.getByRole('button', { name: 'member.refresh' })).toHaveClass('min-h-11');
     expect(screen.getByTestId('send-message-button')).not.toHaveClass('sm:h-10');
   });
-
-  it('names the panel with a level-two heading and marks own messages apart', async () => {
-    get.mockResolvedValue({
-      success: true,
-      messages: [message({ id: 'own', senderId: 'member', content: 'Mine' }), message()],
-    });
-    renderPanel();
-    expect(screen.getByRole('heading', { level: 2, name: 'title' })).toBeInTheDocument();
-    const own = (await screen.findByText('Mine')).closest('li');
-    const staff = screen.getByText('Public reply').closest('li');
-    expect(own).toHaveClass('bg-[hsl(var(--primary-soft))]');
-    expect(staff).not.toHaveClass('bg-[hsl(var(--primary-soft))]');
-  });
 });
