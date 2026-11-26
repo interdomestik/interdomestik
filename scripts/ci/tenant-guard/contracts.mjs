@@ -1,5 +1,6 @@
 // Source-bound operation contracts, filled from the measured inventory (see tenant-guard-contract.mjs).
 // A module, not JSON, so the protected required workflow loads it through its closed .mjs closure.
+import { RATE_CHECK_SCOPE_CONTRACT } from './rate-book-admissions.mjs';
 import { RATE_VERIFICATION_RELEASE_CONTRACT } from './rate-verification-release-admissions.mjs';
 
 const deepFreeze = value => {
@@ -246,9 +247,7 @@ const REVIEWED = [
   {
     file: 'packages/domain-claims/src/staff-claims/matter-allowance.ts',
     unit: 'countRecoveryMatterUsageInWindow',
-    kinds: {
-      execute: 1,
-    },
+    kinds: { execute: 1 },
     sha256: 'e9541dfa0debd0ffefbf1865211ca3c4a608ecab864e53196402bf3814f87d3e',
     reason:
       'Parameterized transaction-scoped advisory lock keyed by tenant and subscription to serialize matter allowance counting; no row data.',
@@ -277,14 +276,7 @@ const REVIEWED = [
     reason:
       "WP-07 PR-1b: parameterized call of public.membership_try_insert_individual_sale(jsonb) in the caller's tenant transaction; the server-built candidate takes tenant, seller and attribution from the principal and locked rows, and the function returns conflict, stale_offer or stale_rate instead of raising.",
   },
-  {
-    file: 'packages/domain-membership-billing/src/port/rate-check-context.ts',
-    unit: 'lockRateCheckScope',
-    kinds: { execute: 1 },
-    sha256: 'f4aec0a4a3cb4a95bbc7837d9b1b98b381c87639e084120fc09908a92ecab81b',
-    reason:
-      'WP-07 rate-book design r2 section 2 and Astra code r4: one read of transaction_isolation on the supplied tenant transaction. Refuse unless READ COMMITTED before the EUR/MKD book and active entity locks.',
-  },
+  RATE_CHECK_SCOPE_CONTRACT,
 ];
 
 // An open transition (one per unit, see rules-report.mjs): a reviewed entry re-bound to the exact

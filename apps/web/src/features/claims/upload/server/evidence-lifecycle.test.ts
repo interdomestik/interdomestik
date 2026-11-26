@@ -14,7 +14,7 @@ vi.mock('@/lib/storage/service-role', () => ({
   listTenantObjectsForSingleFile: m.list,
 }));
 const fake = getReplayFixture();
-const authority = mintTestTenantAuthority('tenant-1');
+const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
 const doc = {
   authority,
   actorRole: 'member',
@@ -73,6 +73,21 @@ it('confirms then replays without reading, deleting, or persisting the object ag
   expect(await validateConfirmedClaimUpload(args)).toMatchObject({ success: true, replayed: true });
   expect(m.prefix).toHaveBeenCalledOnce();
   expect(m.remove).not.toHaveBeenCalled();
+  expect(fake.state.committed.claim_documents).toHaveLength(1);
+});
+
+it('rechecks access after the metadata hint and refuses a signed replay after effective access moves', async () => {
+  await persistClaimDocumentMetadata(doc);
+  fake.state.committed.claims[0].accessTenantId = 'tenant-2';
+  const intent = { actorId: doc.userId, bucket: doc.resolvedBucket, ...doc };
+  await expect(
+    validateConfirmedClaimUpload({
+      ...intent,
+      confirmation: { ...doc, uploadIntentToken: createClaimUploadIntentToken(intent) },
+    })
+  ).rejects.toThrow('Document upload conflicts');
+  expect(m.list).not.toHaveBeenCalled();
+  expect(m.prefix).not.toHaveBeenCalled();
   expect(fake.state.committed.claim_documents).toHaveLength(1);
 });
 

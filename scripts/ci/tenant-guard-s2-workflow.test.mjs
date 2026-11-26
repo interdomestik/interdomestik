@@ -10,6 +10,7 @@ import {
   assertFailed,
   ATTACK,
   fixture,
+  HISTORICAL_SCHEMA_BASE,
   openPullRequest,
   route,
   skip,
@@ -62,10 +63,12 @@ function appendFixtureTable(repo) {
 
 test('a changed outside-root loader blocks a table append', { skip }, () => {
   const file = 'scripts/pilot/import-pilot-database.ts';
-  const result = route(openPullRequest(repo => {
-    appendFixtureTable(repo);
-    fs.appendFileSync(path.join(repo, file), ' ');
-  }));
+  const result = route(
+    openPullRequest(repo => {
+      appendFixtureTable(repo);
+      fs.appendFileSync(path.join(repo, file), ' ');
+    })
+  );
   assertFailed(result, /protected report is not a passing scan/u);
   assert.deepEqual(result.report.schemaAdmission, {
     version: 2,
@@ -74,19 +77,30 @@ test('a changed outside-root loader blocks a table append', { skip }, () => {
   });
 });
 
+test('an exact synthetic merge admits a new table with the historical consumers', { skip }, () => {
+  const pr = openPullRequest(appendFixtureTable, { base: HISTORICAL_SCHEMA_BASE });
+  const result = route(pr, { source: HISTORICAL_SCHEMA_BASE });
+  assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
+  assert.equal(result.report.schemaAdmission.ok, true);
+  assert.deepEqual(result.report.identity.anchor, KERNEL_ANCHOR);
+  assert.equal(result.report.identity.base.commit, pr.base);
+  assert.equal(result.report.identity.merge.commit, pr.merge);
+  assert.deepEqual(result.report.legacyDigests, Object.fromEntries(LEGACY_PINS));
+  assert.notDeepEqual(result.report.legacyExactDigests, result.report.legacyDigests);
+  assert.deepEqual(result.report.violations, []);
+});
+
 test(
-  'an exact synthetic merge admits a new table with the historical consumers',
+  'an exact synthetic merge refuses a new table after the rate-book transition',
   { skip },
   () => {
-    const pr = openPullRequest(appendFixtureTable);
-    const result = route(pr);
-    assert.equal(result.status, 0, `${result.stderr}\n${result.stdout}`);
-    assert.deepEqual(result.report.identity.anchor, KERNEL_ANCHOR);
-    assert.equal(result.report.identity.base.commit, pr.base);
-    assert.equal(result.report.identity.merge.commit, pr.merge);
-    assert.deepEqual(result.report.legacyDigests, Object.fromEntries(LEGACY_PINS));
-    assert.notDeepEqual(result.report.legacyExactDigests, result.report.legacyDigests);
-    assert.deepEqual(result.report.violations, []);
+    const result = route(openPullRequest(appendFixtureTable));
+    assertFailed(result, /protected report is not a passing scan/u);
+    assert.deepEqual(result.report.schemaAdmission, {
+      version: 2,
+      ok: false,
+      reason: 'next base: changed kernel module packages/database/src/schema/exchange-rates.ts',
+    });
   }
 );
 
