@@ -6,6 +6,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import yaml from 'js-yaml';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 const read = file => yaml.load(fs.readFileSync(file, 'utf8'));
 const ripgrep = read('.github/actions/setup/action.yml').runs.steps.find(
@@ -116,7 +117,7 @@ test('every supported gitleaks platform selects its official v8.30.0 archive, as
   assert.ok(prefix.includes('case '));
   for (const [platform, arch, suffix, assetId, sha256] of pins) {
     const script = `uname() { if [[ "$1" == '-s' ]]; then echo '${platform}'; else echo '${arch}'; fi; }\n${prefix}\nprintf '%s\\n' "$archive" "$asset_id" "$sha256"`;
-    const result = spawnSync('bash', ['-c', script], { encoding: 'utf8' });
+    const result = spawnSync(contractBash('bash'), ['-c', script], { encoding: 'utf8' });
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.stdout.trim().split('\n'), [
       `gitleaks_8.30.0_${suffix}.tar.gz`,
@@ -135,10 +136,18 @@ test('gitleaks rejects corrupted archives before extraction on every supported p
   fs.mkdirSync(bin);
   fs.writeFileSync(
     path.join(bin, 'curl'),
-    '#!/bin/bash\nwhile (($#)); do if [[ "$1" == --output ]]; then printf corrupt > "$2"; exit; fi; shift; done\nexit 1\n',
+    [
+      '#!/bin/sh',
+      'while [ "$#" -gt 0 ]; do',
+      '  if [ "$1" = --output ]; then printf corrupt > "$2"; exit; fi',
+      '  shift',
+      'done',
+      'exit 1',
+      '',
+    ].join('\n'),
     { mode: 0o755 }
   );
-  fs.writeFileSync(path.join(bin, 'tar'), '#!/bin/bash\necho EXTRACTION_REACHED >&2\nexit 99\n', {
+  fs.writeFileSync(path.join(bin, 'tar'), '#!/bin/sh\necho EXTRACTION_REACHED >&2\nexit 99\n', {
     mode: 0o755,
   });
   for (const [platform, arch] of pins) {
@@ -147,7 +156,7 @@ test('gitleaks rejects corrupted archives before extraction on every supported p
         ? 'command() { if [[ "$*" == "-v sha256sum" ]]; then return 1; else builtin command "$@"; fi; }\n'
         : '';
     const script = `${checksumFallback}uname() { if [[ "$1" == '-s' ]]; then echo '${platform}'; else echo '${arch}'; fi; }\n${gitleaks.run}`;
-    const result = spawnSync('bash', ['-c', script], {
+    const result = spawnSync(contractBash('bash'), ['-c', script], {
       encoding: 'utf8',
       env: {
         ...process.env,

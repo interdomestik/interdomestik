@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { delegatedGitEnvironment } from './verification-evidence/worker-profile.mjs';
 
 export const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const ADOPTION_COMMIT = '278e33ab0dd448547fa81d4b0ff122b4d69c901e';
@@ -56,7 +57,7 @@ const fixtureConfig = [
 ];
 function runHostGit(cwd, args, encoding) {
   return spawnSync(HOST_GIT, ['-C', cwd, ...fixtureConfig, ...args], {
-    env: gitEnv,
+    env: delegatedGitEnvironment(gitEnv),
     encoding,
     maxBuffer: 512 * 1024 * 1024,
   });
