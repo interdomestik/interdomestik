@@ -142,4 +142,6 @@ SEC-01 to SEC-13 (`A/modules/security.md:141-149`; SEC-10 to SEC-13 added in R2b
 
 ## WP-12.1 pilot evidence and member claim detail
 
+The `e2e/gate/claim-correspondence-inbound.spec.ts` pre-check covers PDF publication, member access and rollback. The `e2e/gate/claim-correspondence-cutover.spec.ts` gate covers provider credential expiry, with staff action capture and replay in `claim-correspondence-cutover-actions.fixture.ts`. The inbound member fixture holds member setup, access and rollback helpers for these gate specs.
+
 Pilot uploads use a committed visibility decision and a signed create-only form capped at 1 MiB. The staff register presents received citations through the ordinary audited download route. The mounted MK member detail rechecks the authenticated owner in the evidence statement. The unmounted older member claim detail `_core.ts` still splits its owner and document reads and needs the same current-owner binding before reuse.

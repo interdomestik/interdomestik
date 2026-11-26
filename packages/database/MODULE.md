@@ -115,6 +115,8 @@ DATA-02 to DATA-09, DATA-11, DATA-12 (`A/modules/data-layer.md:239-252`), DATA-1
 
 ## WP-12.1 pilot evidence
 
+`test/claim-correspondence-inbound-pilot.test.ts` runs the restricted-role proofs in `test:rls` with one shared fixture setup. Its fixtures cover decision, branch, storage verification, publication, reservation, vault and receipt scenarios. The S4 `test/claim-information-requests.test.ts` suite in the same lane runs its direct tenant-isolation assertions through `claim-information-request-rls.proof.ts`.
+
 Migration `0110` adds release-controlled enrollment, immutable visibility decisions, exact-set seals and received links. Pilot decisions reserve their document ID and object key for both document tables before any storage write. Publication serializes with ownership changes and freezes the published row's authority-bearing fields. Pilot enrollment starts empty. Retain the reservations, guards and receipt records on application rollback.
 
 The reservation covers IDs starting with `wp12-inbound-` and paths matched by `claim_inbound_reserved_path`, including alternate spellings of the reserved PDF basename. For a reserved `claim_documents` insert, the publication guard locks the home claim and requires active, unpaused enrollment for the same tenant and claim. It returns `P1211` without that enrollment, including for direct SQL writes. Claim-document coordinates remain frozen. Every `documents` insert or update rejects reserved IDs and paths, including the update arm of an upsert. The runtime writer has read-only access to enrollment.
