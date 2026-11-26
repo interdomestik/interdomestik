@@ -1,5 +1,5 @@
 import { mocks, renderPage } from './_core.entry.shared.test-support';
-import { fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyDefaultMocks, queueItem } from './_core.entry.test-support';
 
@@ -41,9 +41,10 @@ describe('StaffSupportHandoffsPage', () => {
     });
 
     await renderPage();
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+    const toggle = screen.getByTestId('staff-support-handoff-detail-toggle');
+    await act(async () => fireEvent.click(toggle));
 
-    expect(await screen.findByTestId('staff-support-handoff-public-response-form')).toBeVisible();
+    expect(screen.getByTestId('staff-support-handoff-public-response-form')).toBeVisible();
     expect(screen.getByTestId('staff-support-handoff-public-response-input')).toHaveValue(
       'Existing member-visible update'
     );
@@ -93,10 +94,11 @@ describe('StaffSupportHandoffsPage', () => {
     });
 
     await renderPage();
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+    const toggle = screen.getByTestId('staff-support-handoff-detail-toggle');
+    await act(async () => fireEvent.click(toggle));
 
     expect(
-      await screen.findByTestId('staff-support-handoff-public-response-acknowledged')
+      screen.getByTestId('staff-support-handoff-public-response-acknowledged')
     ).toHaveTextContent('detail.public_response_acknowledged_at');
   });
 
@@ -137,9 +139,10 @@ describe('StaffSupportHandoffsPage', () => {
     });
 
     await renderPage();
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+    const toggle = screen.getByTestId('staff-support-handoff-detail-toggle');
+    await act(async () => fireEvent.click(toggle));
 
-    expect(await screen.findByTestId('handoff-member-reply')).toHaveTextContent(
+    expect(screen.getByTestId('handoff-member-reply')).toHaveTextContent(
       'This resolves my request.'
     );
     expect(screen.getByTestId('handoff-member-reply')).toHaveTextContent('detail.member_reply_at');
