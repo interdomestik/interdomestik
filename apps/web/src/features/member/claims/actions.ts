@@ -1,5 +1,7 @@
 'use server';
 
+import { isClaimUploadPaused } from '@/features/claims/upload/server/claim-upload-cutover';
+
 import { ClaimDocumentUploadConflictError } from '@/features/claims/upload/server/claim-document-upload-conflict';
 
 import type { AuthorizedSession } from '@/lib/tenant-authority.server';
@@ -99,6 +101,7 @@ export async function generateUploadUrl(
   }
 
   return createSignedUploadUrl({
+    authority,
     actorId: session.user.id,
     bucket: evidenceBucket,
     claimId,
@@ -219,6 +222,9 @@ export async function confirmUpload(params: ConfirmUploadParams): Promise<Confir
   }
 
   try {
+    if (await isClaimUploadPaused(authority, tenantId, claimId)) {
+      return { success: false, error: 'Forbidden', status: 403 };
+    }
     if (uploadedBucket && uploadedBucket !== resolvedBucket) {
       console.error('[member/claims] confirmUpload bucket mismatch', {
         uploadedBucket,

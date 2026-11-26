@@ -1,3 +1,5 @@
+import { isClaimUploadPaused } from '@/features/claims/upload/server/claim-upload-cutover';
+import { isInboundPilotCase } from '@interdomestik/domain-claims/claims/inbound-upload';
 import {
   resolveStorageUploadContentType,
   resolveUploadMimeType,
@@ -119,6 +121,13 @@ async function uploadEvidence(authorized: AuthorizedSession, request: Request) {
       claimAccess.status === 404 ? 'Claim not found' : 'Unauthorized',
       claimAccess.status
     );
+  }
+
+  if (
+    (await isClaimUploadPaused(authority, tenantId, claimId)) ||
+    (claimAccess.isAdminSurface && (await isInboundPilotCase(authority, claimId)))
+  ) {
+    return jsonError('Forbidden', 403);
   }
 
   if (informationRequestId && claimAccess.isAdminSurface) {

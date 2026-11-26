@@ -2,6 +2,7 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  enrolled: vi.fn(),
   authGetSession: vi.fn(),
   headers: vi.fn(),
   resolveEvidenceBucketName: vi.fn(),
@@ -12,6 +13,10 @@ const hoisted = vi.hoisted(() => ({
   validateConfirmedClaimUpload: vi.fn(),
 }));
 
+vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
+  isInboundPilotCase: hoisted.enrolled,
+  readClaimUploadPaused: async () => false,
+}));
 vi.mock('@/lib/tenant-authority.server', () => ({
   authorizeSessionTenant: () =>
     hoisted
@@ -42,6 +47,7 @@ import { confirmAdminUpload, generateAdminUploadUrl } from './evidence-upload';
 describe('admin claim evidence upload actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.enrolled.mockReset().mockResolvedValue(false);
     hoisted.headers.mockResolvedValue(
       new Headers([
         ['host', 'mk.127.0.0.1.nip.io:3000'],
@@ -262,5 +268,12 @@ describe('admin claim evidence upload actions', () => {
     });
 
     expect(hoisted.persistClaimDocumentAndQueueWorkflows).not.toHaveBeenCalled();
+  });
+  it('refuses a legacy issuer for an enrolled case before signing', async () => {
+    hoisted.enrolled.mockResolvedValueOnce(true);
+    await expect(
+      generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 100)
+    ).resolves.toMatchObject({ success: false, status: 403 });
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 });

@@ -25,6 +25,10 @@ const protectedCalls = vi.hoisted(() => ({
   audit: vi.fn(),
 }));
 
+vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
+  isInboundPilotCase: async () => false,
+  readClaimUploadPaused: async () => false,
+}));
 vi.mock('@/features/claims/upload/server/access', () => ({
   findOwnedMemberUploadClaim: protectedCalls.evidence,
   findOwnedMemberInformationRequest: protectedCalls.informationRequest,

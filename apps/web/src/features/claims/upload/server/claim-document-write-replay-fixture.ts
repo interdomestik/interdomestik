@@ -72,6 +72,7 @@ const fake = vi.hoisted(() => {
         deferInsert(name, values).then(resolve, reject),
     });
     return {
+      execute: async () => [],
       select: () => {
         let source = '';
         let predicate: Predicate | undefined;

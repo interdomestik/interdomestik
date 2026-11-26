@@ -1,3 +1,5 @@
+import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import { isClaimUploadPaused } from './claim-upload-cutover';
 import { requestClaimUploadSignature } from './claim-upload-signature';
 export {
   validateConfirmedClaimUpload,
@@ -30,7 +32,7 @@ export type SharedGenerateUploadUrlResult =
       deterministicE2E?: true;
       intentToken: string;
     }
-  | { success: false; error: string; status: 400 | 413 | 500 };
+  | { success: false; error: string; status: 400 | 403 | 413 | 500 };
 
 export function revalidatePathForAllLocales(path: string): void {
   for (const locale of LOCALES) {
@@ -50,6 +52,7 @@ export function sanitizeClaimUploadExtension(fileName: string): string {
 
 export async function createSignedUploadUrl(params: {
   actorId: string;
+  authority: TenantAuthority;
   bucket: string;
   claimId: string;
   fileName: string;
@@ -62,6 +65,7 @@ export async function createSignedUploadUrl(params: {
 }): Promise<SharedGenerateUploadUrlResult> {
   const {
     actorId,
+    authority,
     bucket,
     claimId,
     fileName,
@@ -73,6 +77,9 @@ export async function createSignedUploadUrl(params: {
     tenantId,
   } = params;
 
+  if (await isClaimUploadPaused(authority, tenantId, claimId)) {
+    return { success: false, error: 'Forbidden', status: 403 };
+  }
   const refusal = refuseUnapprovedUpload({ fileName, fileSize, mimeType, storageContentType });
   if (refusal) return refusal;
 

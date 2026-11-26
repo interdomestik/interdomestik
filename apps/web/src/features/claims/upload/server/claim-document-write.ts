@@ -1,3 +1,4 @@
+import { sql } from 'drizzle-orm';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -94,6 +95,10 @@ export async function persistClaimDocumentMetadata(
         : new InformationRequestUploadConflictError();
     }
 
+    if (memberSurface && !replayOnly) {
+      await tx.execute(sql`select set_config('app.current_actor_id', ${principal.userId}, true),
+        set_config('app.current_actor_role', ${role}, true)`);
+    }
     const outcome = await confirmClaimEvidence(tx, {
       verifiedScope,
       verifiedUpload: {

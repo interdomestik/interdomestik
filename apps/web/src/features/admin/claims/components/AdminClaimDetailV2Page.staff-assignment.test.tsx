@@ -18,6 +18,10 @@ const mocks = vi.hoisted(() => ({
   messagingPanel: vi.fn<(props: { allowInternal?: boolean }) => void>(),
 }));
 
+vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
+  isInboundPilotCase: async () => false,
+  readClaimUploadPaused: async () => false,
+}));
 vi.mock('next-intl/server', () => ({ setRequestLocale: vi.fn() }));
 vi.mock('next/navigation', () => ({
   notFound: () => {

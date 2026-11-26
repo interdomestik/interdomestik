@@ -1,5 +1,8 @@
 'use server';
 
+import { isClaimUploadPaused } from '@/features/claims/upload/server/claim-upload-cutover';
+import { isInboundPilotCase } from '@interdomestik/domain-claims/claims/inbound-upload';
+
 import { ClaimDocumentUploadConflictError } from '@/features/claims/upload/server/claim-document-upload-conflict';
 import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
 
@@ -44,10 +47,10 @@ export type GenerateAdminUploadUrlResult =
       bucket: string;
       intentToken: string;
     }
-  | { success: false; error: string; status: 400 | 401 | 404 | 413 | 500 };
+  | { success: false; error: string; status: 400 | 401 | 403 | 404 | 413 | 500 };
 
 export type ConfirmAdminUploadResult =
-  { success: true } | { success: false; error: string; status: 401 | 404 | 409 | 500 };
+  { success: true } | { success: false; error: string; status: 401 | 403 | 404 | 409 | 500 };
 
 export type ConfirmAdminUploadParams = {
   claimId: string;
@@ -127,7 +130,12 @@ export async function generateAdminUploadUrl(
     return { success: false, error: 'Claim not found', status: 404 };
   }
 
+  if (await isInboundPilotCase(authority, claimId)) {
+    return { success: false, error: 'Forbidden', status: 403 };
+  }
+
   return createSignedUploadUrl({
+    authority,
     actorId: uploadContext.session.user.id,
     bucket: resolvedBucket,
     claimId,
@@ -176,6 +184,12 @@ export async function confirmAdminUpload(
   }
 
   try {
+    if (
+      (await isClaimUploadPaused(authority, tenantId, claimId)) ||
+      (await isInboundPilotCase(authority, claimId))
+    ) {
+      return { success: false, error: 'Forbidden', status: 403 };
+    }
     if (uploadedBucket && uploadedBucket !== resolvedBucket) {
       return {
         success: false,

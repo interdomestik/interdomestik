@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
   and: vi.fn(),
+  pause: vi.fn(),
   createTenantSignedUploadUrl: vi.fn(),
   eq: vi.fn(),
   findClaimFirst: vi.fn(),
@@ -18,6 +19,9 @@ const hoisted = vi.hoisted(() => ({
   ),
 }));
 
+vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
+  readClaimUploadPaused: hoisted.pause,
+}));
 vi.mock('@interdomestik/database', () => ({
   and: hoisted.and,
   claims: { id: 'id', tenantId: 'tenant_id' },
@@ -41,6 +45,7 @@ import { createSignedUploadCore } from './_core';
 describe('createSignedUploadCore access tenant isolation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.pause.mockReset().mockResolvedValue(false);
     vi.stubEnv('CLAIM_UPLOAD_INTENT_SECRET', 'test-upload-intent-secret-value-123456');
     hoisted.findClaimFirst.mockResolvedValue({
       id: 'claim-1',
@@ -123,4 +128,31 @@ it.each([
   if (!result.ok) throw new Error(result.error);
   expect(result.body.upload).toMatchObject({ mimeType: mime, storageContentType: mime });
   expect(result.body.maxFileSize).toBe(ext === 'mp4' ? 50 * 1024 * 1024 : 10 * 1024 * 1024);
+  it.each(['paused', 'unavailable'])(
+    'refuses before signing when the home pause is %s',
+    async state => {
+      const authority = mintTestTenantAuthority('tenant_access', {
+        userId: 'member-1',
+        role: 'member',
+      });
+      if (state === 'paused') hoisted.pause.mockResolvedValueOnce(true);
+      else hoisted.pause.mockRejectedValueOnce(new Error('Pause read unavailable'));
+      const result = await createSignedUploadCore({
+        authority,
+        bucket: 'claim-evidence',
+        input: {
+          claimId: 'claim-1',
+          fileName: 'evidence.pdf',
+          fileSize: 50,
+          fileType: 'application/pdf',
+        },
+        session: { user: { id: 'member-1', role: 'member' } } as Parameters<
+          typeof createSignedUploadCore
+        >[0]['session'],
+      });
+      expect(hoisted.pause).toHaveBeenCalledWith(authority, 'tenant_home', 'claim-1');
+      expect(result).toEqual({ ok: false, status: 403, error: 'Forbidden' });
+      expect(hoisted.createTenantSignedUploadUrl).not.toHaveBeenCalled();
+    }
+  );
 });

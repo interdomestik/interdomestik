@@ -7,6 +7,10 @@ const m = vi.hoisted(() => ({
   validate: vi.fn(),
   persist: vi.fn(),
 }));
+vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
+  isInboundPilotCase: async () => false,
+  readClaimUploadPaused: async () => false,
+}));
 vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: m.authorize }));
 vi.mock('next/headers', () => ({
   headers: () =>
