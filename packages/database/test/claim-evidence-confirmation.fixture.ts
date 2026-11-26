@@ -222,8 +222,8 @@ export async function openEvidenceConfirmationFixture(t: TestContext) {
       select pid from pg_stat_activity
       where datname = current_database() and ${holderPid}::int = any(pg_blocking_pids(pid))`;
     if (row) return row.pid;
-    if (Date.now() >= expiresAt) assert.fail(`No PostgreSQL lock waiter for backend ${holderPid}`);
     await delay(20);
+    if (Date.now() >= expiresAt) assert.fail(`No PostgreSQL lock waiter for backend ${holderPid}`);
     return waitForWaiter(holderPid, expiresAt);
   }
 
