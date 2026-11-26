@@ -24,6 +24,8 @@ const predecessor = '18cd1a73b12f589c69934cba862092d857434013';
 const formerMain = 'c266f094b5249903f75e5c4e1b29e52959d30370';
 // Main before the next 16.4.5 upgrade: same-size pair accepted by the previous snapshot.
 const beforeNextUpgrade = 'c775e2db6c3fc083cdd605c7d2047ab25dcc9562';
+// Main before the storybook 8.6.19 bump: same workspace, lockfile accepted by the previous snapshot.
+const beforeStorybookBump = '15d0a013ed5a17ddae2058d96408fabc33653d01';
 const pair = Object.keys(RESOLVER_SNAPSHOT.files);
 const current = new Map(pair.map(file => [file, fs.readFileSync(path.join(rootDir, file))]));
 const previous = new Map(
@@ -171,6 +173,28 @@ test('the pair before the next 16.4.5 upgrade and both mixed states are rejected
       message: `incomplete: resolver snapshot digest mismatch ${rejected}`,
     });
   }
+});
+
+test('the lockfile before the storybook 8.6.19 bump is rejected by its projection digest', t => {
+  const beforeLock = runGit(['-C', rootDir, 'show', `${beforeStorybookBump}:pnpm-lock.yaml`]);
+  const beforeWorkspace = runGit([
+    '-C',
+    rootDir,
+    'show',
+    `${beforeStorybookBump}:pnpm-workspace.yaml`,
+  ]);
+  assert.deepEqual(beforeWorkspace, current.get('pnpm-workspace.yaml'), 'workspace is unchanged');
+  assert.notDeepEqual(beforeLock, current.get('pnpm-lock.yaml'));
+  const root = fixture(
+    t,
+    new Map([
+      ['pnpm-workspace.yaml', current.get('pnpm-workspace.yaml')],
+      ['pnpm-lock.yaml', beforeLock],
+    ])
+  );
+  assert.throws(() => verifyCurrentResolverSnapshot(root, ADOPTION), {
+    message: 'incomplete: resolver snapshot digest mismatch pnpm-lock.yaml',
+  });
 });
 
 test('missing, symlinked, non-file and case-ambiguous metadata fail closed', t => {
