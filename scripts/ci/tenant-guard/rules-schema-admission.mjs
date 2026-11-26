@@ -11,11 +11,16 @@ import { kernelWalk } from './rules-trust.mjs';
 import { SCHEMA_DIR } from './schema-builder-imports.mjs';
 import { provenanceProblem } from './schema-builder-provenance.mjs';
 import {
+  INBOUND_TRANSITION,
+  inboundSequenceProblem,
   isRateBookImport,
+  parseInboundTransition,
   parseRateBookTransition,
   RATE_BOOK_TRANSITION,
   rateBookTransition,
+  schemaTransitionImage,
 } from './schema-rate-book-transition.mjs';
+import { hasReceiptMigration } from './storage-receipt-prerequisite.mjs';
 
 const BARREL = `${SCHEMA_DIR}index.ts`;
 const APPEND = /^export \* from '\.\/([A-Za-z0-9_-]+)';\n$/u;
@@ -196,7 +201,9 @@ function retainedKernelProblem(before, after, transition) {
 function compare(before, after, anchor, role, inventoryOf, record, rateBook) {
   const reject = reason => `${role}: ${reason}`;
   const accumulated = role === 'base' || role === 'next base';
-  const transition = rateBookTransition(before, after, accumulated, rateBook);
+  const sequence = inboundSequenceProblem(before.transition, after.transition, accumulated);
+  if (sequence) return reject(sequence);
+  const transition = rateBookTransition(before.transition, after.transition, accumulated, rateBook);
   const retained = retainedKernelProblem(before, after, transition);
   if (retained) return reject(retained);
   const { reason, added } = appendedTargets(before, after, accumulated);
@@ -236,14 +243,14 @@ function checkoutProblem(candidate, scanGraph, sources) {
   return null;
 }
 
-/** One proof result governs all three entries. Any failure leaves their exact digest in force. */
 export function proveSchemaAdmission(
   input,
   pins,
   scanGraph,
   sources,
   record,
-  transitionRecord = RATE_BOOK_TRANSITION
+  transitionRecord = RATE_BOOK_TRANSITION,
+  inboundRecord = INBOUND_TRANSITION
 ) {
   const fail = reason => ({ version: 2, ok: false, reason });
   if (input?.reason) return fail(input.reason);
@@ -251,6 +258,8 @@ export function proveSchemaAdmission(
   if (recordProblem) return fail(recordProblem);
   const rateBook = parseRateBookTransition(transitionRecord);
   if (rateBook.reason) return fail(rateBook.reason);
+  const inbound = parseInboundTransition(inboundRecord);
+  if (inbound.reason) return fail(inbound.reason);
   const anchor = image(input?.anchor, 'anchor');
   if (anchor.reason) return fail(anchor.reason);
   const base = image(input?.base, 'base');
@@ -262,6 +271,8 @@ export function proveSchemaAdmission(
     [...anchor.walks].some(([key, walk]) => pins.get(key) !== walk.versioned)
   )
     return fail('anchor: v2 kernel digest mismatch');
+  for (const tree of [base, candidate])
+    tree.transition = schemaTransitionImage(tree, rateBook, inbound);
   const inventories = new Map();
   const inventoryOf = (tree, role) => {
     if (!inventories.has(tree.allSources))
@@ -274,10 +285,15 @@ export function proveSchemaAdmission(
   const reason =
     compare(anchor, base, anchor, 'base', inventoryOf, record, rateBook) ??
     compare(base, candidate, anchor, 'candidate', inventoryOf, record, rateBook) ??
-    // Once the rate-book successor lands, the candidate must also pass the next base proof.
-    (rateBookTransition(anchor, base, true, rateBook) &&
+    (rateBookTransition(null, base.transition, true, rateBook) &&
       compare(anchor, candidate, anchor, 'next base', inventoryOf, record, rateBook)) ??
     checkoutProblem(candidate, scanGraph, sources);
   if (reason) return fail(reason);
-  return { version: 2, ok: true, reason: 'anchor and protected base verified' };
+  const storageReceiptBase = base.transition === 'inbound' && hasReceiptMigration(base);
+  return {
+    version: 2,
+    ok: true,
+    reason: 'anchor and protected base verified',
+    ...(storageReceiptBase && { storageReceiptBase }),
+  };
 }

@@ -12,6 +12,17 @@ export function installAdmission(ctx, admissions = C1_ADMISSIONS) {
   const active = [];
   for (const admission of admissions) {
     if (!bundleMatches(ctx.graph, admission)) continue;
+    if (admission.requiresStorageReceiptBase && !ctx.schemaAdmission?.storageReceiptBase) {
+      const { file } = admission.files[0];
+      ctx.violations.push({
+        file,
+        line: 1,
+        rule: 'C1',
+        unit: admission.id,
+        detail: 'storage reader requires exact WP-12.1 schema and 0114 on the protected base',
+      });
+      continue;
+    }
     active.push(admission.id);
     for (const { file, units: names } of admission.files) {
       for (const name of names) units.add(`${file}#${name}`);

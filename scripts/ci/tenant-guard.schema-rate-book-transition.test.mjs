@@ -5,6 +5,8 @@ import { KERNEL_ANCHOR, LEGACY_PINS } from './tenant-guard/manifest.mjs';
 import { kernelAnchorPins, proveSchemaAdmission } from './tenant-guard/rules-schema-admission.mjs';
 import { RATE_BOOK_TRANSITION } from './tenant-guard/schema-rate-book-transition.mjs';
 import { gitIdentity, readSchemaTree, schemaTreeFromBlobs } from './tenant-guard/sources.mjs';
+import './tenant-guard/tests/path-c-schema.test.mjs';
+import './tenant-guard/tests/path-c-storage.test.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const SCHEMA = 'packages/database/src/schema';

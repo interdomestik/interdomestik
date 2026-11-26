@@ -127,9 +127,15 @@ export function openPullRequest(mutate = () => {}, { base = 'main', force = [] }
 
 export function route(
   pr,
-  { source = fixture.main, anchorTree = null, overrides = {}, extraEnv = {} } = {}
+  {
+    source = fixture.main,
+    sourceTree = null,
+    anchorTree = null,
+    overrides = {},
+    extraEnv = {},
+  } = {}
 ) {
-  const tree = git(fixtureOrigin(), 'rev-parse', `${source}^{tree}`);
+  const tree = sourceTree ?? git(fixtureOrigin(), 'rev-parse', `${source}^{tree}`);
   const COMMIT_PIN = /^source_commit='[0-9a-f]{40}'$/mu;
   const TREE_PIN = /^source_tree='[0-9a-f]{40}'$/mu;
   const ANCHOR_TREE_PIN = /^anchor_tree='[0-9a-f]{40}'$/mu;
