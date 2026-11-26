@@ -145,4 +145,39 @@ describe('document upload helpers', () => {
     });
     expect(mocks.selectWhere).toHaveBeenCalledTimes(1);
   });
+
+  it('rejects metadata for a completed upload whose legacy key would be respelled', async () => {
+    await expect(
+      recordUpload({
+        authority: mintTestTenantAuthority('tenant-1'),
+        entityType: 'claim',
+        entityId: 'claim-1',
+        fileName: 'Invoice Final.pdf',
+        mimeType: 'application/pdf',
+        fileSize: 512,
+        uploadedBy: 'user-1',
+      })
+    ).rejects.toThrow('The existing upload key contains noncanonical characters.');
+    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+  });
+
+  it('preserves the display name when the legacy allocation is already canonical', async () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    await recordUpload({
+      authority: mintTestTenantAuthority('tenant-1'),
+      entityType: 'claim',
+      entityId: 'claim-1',
+      fileName: 'old\\invoice.pdf',
+      mimeType: 'application/pdf',
+      fileSize: 512,
+      uploadedBy: 'user-1',
+    });
+    expect(mocks.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({
+        storagePath: 'tenant-1/claim/claim-1/1700000000000_old_invoice.pdf',
+        fileName: 'old\\invoice.pdf',
+      })
+    );
+  });
 });

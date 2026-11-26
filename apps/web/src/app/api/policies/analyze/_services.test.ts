@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 
-import { queuePolicyAnalysisService } from './_services';
+import { queuePolicyAnalysisService, uploadPolicyFileService } from './_services';
 
 mocks.nanoid
   .mockReturnValueOnce('policy-1')
@@ -14,6 +14,59 @@ mocks.nanoid
   .mockReturnValueOnce('extraction-1');
 
 const authority = mintTestTenantAuthority('tenant-1', { userId: 'user-1', role: 'member' });
+
+describe('uploadPolicyFileService', () => {
+  it.each([
+    { safeName: 'Display name.pdf' },
+    { userId: 'user/extra' },
+    { tenantId: 'tenant%20id' },
+  ])(
+    'rejects noncanonical key components before creating a storage client: %o',
+    async overrides => {
+      mocks.createAdminClient.mockClear();
+      const file = new File(['%PDF-1.4'], 'Display name.pdf', { type: 'application/pdf' });
+      await expect(
+        uploadPolicyFileService({
+          userId: 'user-1',
+          tenantId: 'tenant-1',
+          file,
+          buffer: Buffer.from(await file.arrayBuffer()),
+          safeName: 'Display_name.pdf',
+          ...overrides,
+        })
+      ).rejects.toThrow(/noncanonical/);
+      expect(mocks.createAdminClient).not.toHaveBeenCalled();
+    }
+  );
+
+  it('uploads the canonical allocated key and returns it for persistence', async () => {
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    const upload = vi.fn().mockResolvedValue({ error: null });
+    const from = vi.fn().mockReturnValue({ upload });
+    mocks.createAdminClient.mockReturnValueOnce({ storage: { from } });
+    const buffer = Buffer.from('%PDF-1.4');
+    const file = new File([buffer], 'Display name.pdf', { type: 'application/pdf' });
+    try {
+      const filePath = 'pii/tenants/tenant-1/policies/user-1/1700000000000_Display_name.pdf';
+      await expect(
+        uploadPolicyFileService({
+          userId: 'user-1',
+          tenantId: 'tenant-1',
+          file,
+          buffer,
+          safeName: 'Display_name.pdf',
+        })
+      ).resolves.toEqual({ ok: true, filePath });
+      expect(from).toHaveBeenCalledExactlyOnceWith('policies');
+      expect(upload).toHaveBeenCalledExactlyOnceWith(filePath, buffer, {
+        contentType: 'application/pdf',
+        upsert: false,
+      });
+    } finally {
+      clock.mockRestore();
+    }
+  });
+});
 
 describe('queuePolicyAnalysisService', () => {
   beforeEach(() => {

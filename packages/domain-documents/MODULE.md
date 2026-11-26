@@ -23,3 +23,11 @@ transaction, a scope verified under the claim lock, and the verified upload meta
 `created`, `replayed`, or `conflict` by comparing the stored metadata and original consent.
 The caller verifies any information-request link in the same transaction. A replay-only caller
 may use `hasClaimEvidenceDocument` before taking locks to avoid reading stored bytes.
+
+## Storage metadata
+
+`./storage` allocates canonical relative keys with ASCII-safe filename labels.
+`./upload` retains the legacy key format for completed uploads and preserves the
+display name verbatim. It rejects inputs whose allocated key would change under
+the canonical formatter. PostgreSQL enforces canonical spelling on
+`documents.storage_path` and `claim_documents.file_path`.

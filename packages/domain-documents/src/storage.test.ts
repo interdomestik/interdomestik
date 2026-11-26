@@ -37,6 +37,18 @@ describe('document storage helpers', () => {
     expect(extractTenantFromPath('invalid/path')).toBeNull();
   });
 
+  it('allocates an ASCII-safe key for a display filename', () => {
+    vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    expect(
+      buildStoragePath({
+        tenantId: 'tenant-1',
+        entityType: 'claim',
+        entityId: 'claim-1',
+        fileName: 'Café 100%#?.pdf',
+      })
+    ).toBe('tenant-1/claim/claim-1/1700000000000_Caf__100___.pdf');
+  });
+
   it('builds storage URLs using configured bucket and base URL', () => {
     process.env.DOCUMENT_STORAGE_BUCKET = 'claim-evidence';
     process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co';

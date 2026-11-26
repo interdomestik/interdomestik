@@ -13,16 +13,33 @@
  * buildStoragePath({ tenantId: 'tenant_ks', entityType: 'claim', entityId: 'claim123', fileName: 'invoice.pdf' })
  * // => 'tenant_ks/claim/claim123/1705186800000_invoice.pdf'
  */
-export function buildStoragePath(params: {
-  tenantId: string;
-  entityType: string;
-  entityId: string;
-  fileName: string;
-}): string {
+export function buildStoragePath(
+  params: {
+    tenantId: string;
+    entityType: string;
+    entityId: string;
+    fileName: string;
+  },
+  { preserveLegacyKey = false }: { preserveLegacyKey?: boolean } = {}
+): string {
   const { tenantId, entityType, entityId, fileName } = params;
 
-  // Sanitize filename - remove path traversal attempts
-  const sanitizedFileName = fileName.replace(/[/\\]/g, '_').replace(/\.\./g, '_');
+  for (const component of [tenantId, entityType, entityId]) {
+    if (
+      !component ||
+      /[^A-Za-z0-9._-]/.test(component) ||
+      component === '.' ||
+      component.includes('..')
+    ) {
+      throw new Error('Document storage identifiers must each be a canonical path component.');
+    }
+  }
+
+  const legacyFileName = fileName.replace(/[/\\]/g, '_').replace(/\.\./g, '_');
+  const sanitizedFileName = legacyFileName.replace(/[^A-Za-z0-9._-]/g, '_');
+  if (preserveLegacyKey && sanitizedFileName !== legacyFileName) {
+    throw new Error('The existing upload key contains noncanonical characters.');
+  }
 
   // Unique timestamp prefix to prevent collisions
   const timestamp = Date.now();

@@ -62,13 +62,10 @@ export async function recordUpload(params: UploadParams): Promise<UploadResult> 
   } = params;
   const { tenantId } = readTenantAuthority(authority);
 
-  // Build tenant-isolated storage path
-  const storagePath = buildStoragePath({
-    tenantId,
-    entityType,
-    entityId,
-    fileName,
-  });
+  const storagePath = buildStoragePath(
+    { tenantId, entityType, entityId, fileName },
+    { preserveLegacyKey: true }
+  );
 
   // Defense-in-depth: verify path includes correct tenant
   if (!validateTenantOwnership(storagePath, tenantId)) {
