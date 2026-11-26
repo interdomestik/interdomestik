@@ -8,6 +8,8 @@ The HTTP and RSC surface of the product: route handlers under `app/api/`, export
 
 The Free Start draft lifecycle delegates write admission to its internal `actions/free-start-drafts/write-admission.core.ts` module.
 
+The admin claim detail `ClaimHeader` composes private breadcrumb and summary components. They render the claim data and links supplied to the header inside the existing client component tree.
+
 ## Public API
 
 Password sign-up and unknown-address door OTP send require `pilot/public_intake` for the ingress tenant. Better Auth disables public sign-up unless `IDENTITY_PUBLIC_SIGN_UP` is exactly `open`. Door OTP checks the request host and forwarded host, then requires exact door ingress and an explicit default tenant before applying the IP limit or parsing the body. The OTP host check accepts `staging.interdomestik.com` without a port only in the staging release class. Known accounts must belong to the door tenant and still have pending tenant classification. Door verify also requires a verified email and returns `INVALID_OTP` for an absent account before calling Better Auth, regardless of the intake phase. Tenant classification confirmation returns `EMAIL_NOT_PROVEN` until the account holder has proven their email.
@@ -66,6 +68,12 @@ None of its own: this layer writes the tables of `packages/database` through the
 
 ## Tenant boundary
 
+Admin claim detail resolves its verified session and authority once for the
+detail, document metadata and assignable staff reads. Its optional
+`documentsAfter`, `staffAfter` and `staffSearch` query parameters only steer
+pagination and search. Home details are looked up through the guarded caller
+for the exact claim selected by the restricted read.
+
 WP-10 public intake resolves the tenant from request headers using the release-specific ingress table. The server checks `pilot/public_intake` under the public site authority before action work starts and uses that authority for the effect. Pricing also requires `pilot/new_sales` and a matching checkout tenant. Draft create and update use the filing screen's active-membership check to admit verified owners under the same tenant authority. Other signed-in owners still need open `pilot/public_intake` and verified email to write drafts. Draft writes always require a session.
 
 The web build scripts check the release environment before Next inlines public settings. The Next production build phase verifies that the supplied manifest matches the refused public names resolved from the build environment. The Node server checks the manifest and runtime environment in `instrumentation.ts` at startup. Production refusal messages list variable names.
@@ -109,6 +117,8 @@ proxy-seen pathname is not exactly `/<locale>` writes the cookie: `.json`, segme
 ## Tests to run
 
 The staff claim page's `staff-claim-register` companion wires the existing register and evidence reads to their page links. `ClaimCorrespondenceOutboundFields` renders the outbound form fields. Verify these through the staff claim route and staff claim component unit suites.
+
+The `admin-claim-detail-paging.spec.ts` gate uses the restricted reader entry point. Its private helpers cover document pagination, concurrent access changes, and the optional EXPLAIN budget using the guarded fixture controller and restricted reader connection. The gate also checks the detail page's ready marker and document panel.
 
 The web app's unit suite (vitest) and the Playwright e2e suite under `apps/web/e2e/`. The unit suite runs in CI inside the coverage step: `.github/workflows/ci.yml:138` (`pnpm coverage:gate`, whose `test:coverage` runs the web suite, `shared-auth` and every `domain-*` package, `package.json:86-87`; the step is skipped when coverage is reused, `ci.yml:137`). The browser suites run at `ci.yml:184` (`e2e:guards`) and `ci.yml:202` (`e2e:gate`) and in `e2e-pr.yml` and `e2e-nightly.yml` (the unit's reading). Since WP-02 part 1, CHK-04 (the wrapper), CHK-05 (write provenance), CHK-05b (cast response bodies), CHK-26 (the public-entry registry, both directions) and UNAUTH-TEXT run as one script, `node scripts/ci/server-mutation-check.mjs --base <sha>`, in the advisory workflow `server-mutation-report.yml` against `scripts/ci/server-mutation-baseline.json`; every check is in `report` mode until its own flip PR. Their fixture tests are `scripts/ci/server-mutation-check.*.test.mjs`; the refusal row's row policy is tested by `packages/database/test/audit-log-refusal-rls.test.ts` (`test:rls`). CHK-08 (catch clauses) and CHK-20 (the result type) remain proposals.
 

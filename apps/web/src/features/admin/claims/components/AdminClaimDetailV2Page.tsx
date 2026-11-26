@@ -1,6 +1,5 @@
 import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
 import { ClaimMessageSummary } from '@/features/claims/communication/claim-message-summary';
-import { getStaff } from '@/actions/admin-users';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
 import { ClaimOpsTimelineSection } from '@/features/admin/claims/components/detail/ClaimOpsTimelineSection';
 import { getNextActions } from '@/features/admin/claims/components/detail/getNextActions';
@@ -9,60 +8,45 @@ import { ClaimHeader } from '@/features/admin/claims/components/ops/ClaimHeader'
 import { ClaimantInfoCard } from '@/features/admin/claims/components/ops/ClaimantInfoCard';
 import { EvidencePanel } from '@/features/admin/claims/components/ops/EvidencePanel';
 import { NextActionsCard } from '@/features/admin/claims/components/ops/NextActionsCard';
-import { getOpsClaimDetail } from '@/features/admin/claims/server/getOpsClaimDetail';
-import { isAdmin } from '@/lib/roles';
-import { authorizeSessionTenant } from '@/lib/tenant-authority.server';
+import {
+  getOpsClaimDetail,
+  type OpsClaimDetailSearch,
+} from '@/features/admin/claims/server/getOpsClaimDetail';
+import { ClaimDetailPageLinks, ClaimStaffSearch } from './detail/ClaimDetailReadControls';
 import { Card, CardContent } from '@interdomestik/ui/components/card';
 import { setRequestLocale } from 'next-intl/server';
-import { headers } from 'next/headers';
 import { notFound } from 'next/navigation';
 import { Suspense } from 'react';
-import { canViewAdminClaims, resolveClaimsVisibility } from '../server';
 import styles from './admin-claims-workspace.module.css';
 
 export async function AdminClaimDetailV2Page({
   id,
   locale,
+  search = {},
 }: {
   id: string;
   locale: string;
+  search?: OpsClaimDetailSearch;
 }): Promise<React.JSX.Element> {
   setRequestLocale(locale);
 
-  let authorized: Awaited<ReturnType<typeof authorizeSessionTenant>>;
-  try {
-    authorized = await authorizeSessionTenant(await headers());
-  } catch {
-    return notFound();
-  }
-  if (!authorized) return notFound();
-  const { authority, session } = authorized;
-  const visibility = await resolveClaimsVisibility(session);
-  if (!visibility || !canViewAdminClaims(visibility)) return notFound();
-  if (visibility.role === 'branch_manager' && !visibility.branchId) return notFound();
-  const result = await getOpsClaimDetail(id, authority);
+  const result = await getOpsClaimDetail(id, search);
   if (result.kind === 'not_found') return notFound();
 
-  const data = result.data;
-  const canAssign = isAdmin(session.user.role);
-  // Ops mutations (status, SLA, reminder, assignment) are admitted only for the exercised admin
-  // family on the server; every other viewer, including branch managers, gets a read-only card.
-  const opsReadOnly = !isAdmin(session.user.role) || visibility.role === 'branch_manager';
-  // The admin family already reads internal notes and may write them on the server; without the
-  // toggle every admin reply on this page went to the member as a public message.
-  const allowInternalNotes = isAdmin(session.user.role);
-  const staffResult = await getStaff();
-  if (canAssign && !staffResult.success) {
-    // A failed read is not "no eligible staff": surface it through the route error/retry boundary
-    // instead of rendering a silently disabled assignment control.
-    throw new Error('Failed to load assignable staff');
-  }
-  // Non-assigning viewers (branch managers) cannot read staff; they only lose header names.
-  const staff = staffResult.success ? (staffResult.data ?? []) : [];
-  const assignableStaff = staff.filter(member => member.role === 'staff');
-
-  // Compute Deterministic Next Actions
+  const {
+    data,
+    staffPage,
+    documentsNextCursor,
+    authorized: { session, authority },
+  } = result;
+  const canAssign = staffPage !== null;
+  const branchManager = session.user.role === 'branch_manager';
   const nextActions = getNextActions(data, session.user.id);
+  const showStaffSearch =
+    staffPage &&
+    [nextActions.primary, ...nextActions.secondary].some(
+      action => action?.type === 'assign' || action?.type === 'reassign'
+    );
 
   return (
     <div
@@ -70,7 +54,7 @@ export async function AdminClaimDetailV2Page({
       className={`flex min-w-0 flex-col gap-6 animate-in fade-in duration-500 ${styles.detail}`}
     >
       <div className={styles.header}>
-        <ClaimHeader claim={data} allStaff={staff} locale={locale} />
+        <ClaimHeader claim={data} showAssignee={canAssign} locale={locale} />
       </div>
 
       {/* 3-Pane Cockpit Layout: 3 | 6 | 3 */}
@@ -92,14 +76,21 @@ export async function AdminClaimDetailV2Page({
         <div className="col-span-1 md:col-span-12 lg:col-span-6 flex flex-col gap-6">
           {/* 1. Next Actions (Primary) */}
           <div data-admin-claim-handling="" data-workspace-controls="">
+            {showStaffSearch && (
+              <ClaimStaffSearch
+                claimId={data.id}
+                search={search}
+                nextCursor={staffPage.nextCursor}
+              />
+            )}
             <NextActionsCard
               claim={data}
               nextActions={nextActions}
               locale={locale}
               currentUserId={session.user.id}
-              allStaff={assignableStaff}
+              allStaff={staffPage?.items ?? []}
               canAssign={canAssign}
-              readOnly={opsReadOnly}
+              readOnly={!canAssign}
             />
           </div>
 
@@ -116,7 +107,7 @@ export async function AdminClaimDetailV2Page({
                 role: session.user.role || 'admin',
               }}
               isAgent={true}
-              allowInternal={allowInternalNotes}
+              allowInternal={canAssign}
             />
           )}
 
@@ -149,13 +140,21 @@ export async function AdminClaimDetailV2Page({
             claimId={data.id}
             viewerRole={session.user.role}
             documentSummary={data.documentSummary}
-            readOnly={visibility.role === 'branch_manager'}
+            readOnly={branchManager}
             docs={data.docs.map(d => ({
               id: d.id,
               url: d.url,
               name: d.name,
             }))}
           />
+          {!branchManager && (
+            <ClaimDetailPageLinks
+              claimId={data.id}
+              search={search}
+              nextCursor={documentsNextCursor}
+              cursorKey="documentsAfter"
+            />
+          )}
         </div>
       </div>
     </div>

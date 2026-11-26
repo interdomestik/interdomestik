@@ -3,6 +3,8 @@ import { claims } from '@interdomestik/database/schema';
 import { ensureTenantId } from '@interdomestik/shared-auth';
 import { eq, sql, type SQL } from 'drizzle-orm';
 
+export { canViewAdminClaims } from '@interdomestik/domain-claims/admin-claims/visible-ops-claim';
+
 /**
  * Resolved visibility context for claims queries.
  */
@@ -50,18 +52,6 @@ export async function resolveClaimsVisibility(
     role: user.role ?? null,
     branchId: user.branchId ?? null,
   };
-}
-
-/**
- * Checks if user has permission to view admin claims.
- */
-export function canViewAdminClaims(context: ClaimsVisibilityContext): boolean {
-  const allowedRoles = ['admin', 'tenant_admin', 'super_admin', 'branch_manager'];
-  if (context.role === null || !allowedRoles.includes(context.role)) {
-    return false;
-  }
-  // A branch manager without a branch has no scope; fail closed instead of widening to the tenant.
-  return context.role !== 'branch_manager' || Boolean(context.branchId);
 }
 
 /**

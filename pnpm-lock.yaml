@@ -212,6 +212,9 @@ importers:
       '@interdomestik/domain-crm':
         specifier: workspace:*
         version: link:../../packages/domain-crm
+      '@interdomestik/domain-documents':
+        specifier: workspace:*
+        version: link:../../packages/domain-documents
       '@interdomestik/domain-leads':
         specifier: workspace:*
         version: link:../../packages/domain-leads
@@ -741,6 +744,15 @@ importers:
       '@interdomestik/database':
         specifier: workspace:*
         version: link:../database
+      '@interdomestik/domain-claims':
+        specifier: workspace:*
+        version: link:../domain-claims
+      '@interdomestik/domain-users':
+        specifier: workspace:*
+        version: link:../domain-users
+      '@interdomestik/shared-auth':
+        specifier: workspace:*
+        version: link:../shared-auth
       '@supabase/supabase-js':
         specifier: ^2.110.9
         version: 2.110.9

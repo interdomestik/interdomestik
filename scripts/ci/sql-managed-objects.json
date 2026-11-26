@@ -372,6 +372,11 @@
       "migration": "0106_wp12_claim_correspondence"
     },
     {
+      "key": "index [\"public\",\"claim_documents\",\"claim_documents_access_claim_id_idx\"]",
+      "value": "btree (access_tenant_id, claim_id, id) WHERE (access_tenant_id IS NOT NULL)",
+      "migration": "0109_wp19_claim_documents_access_claim_id"
+    },
+    {
       "key": "index [\"public\",\"claim_documents\",\"idx_claim_documents_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
