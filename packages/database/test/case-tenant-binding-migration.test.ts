@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 
+import postgres from 'postgres';
+
 import {
   childRows,
   documentKey,
@@ -15,7 +17,6 @@ import {
 } from './case-tenant-binding.fixture';
 import {
   documentInput,
-  foreignKey,
   foreignTenant,
   insertClaim,
   insertDocument,
@@ -23,6 +24,15 @@ import {
 } from './claim-correspondence.fixture';
 import { migrateJournalThrough } from './journal-prefix.support';
 import { migrateJournal, scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
+
+function migrationForeignKeyViolation(constraintName: string) {
+  return (error: unknown) => {
+    assert.ok(error instanceof Error && error.cause instanceof postgres.PostgresError);
+    assert.equal(error.cause.code, '23503');
+    assert.equal(error.cause.constraint_name, constraintName);
+    return true;
+  };
+}
 
 test('case-tenant binding validates a populated upgrade atomically', async t => {
   const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
@@ -75,7 +85,10 @@ test('case-tenant binding validates a populated upgrade atomically', async t => 
         const wrong = childRows(driftedCase, legacyDocument.id)[table];
         await insertChild(admin, table, wrong);
         const original = await storedChild(admin, table, wrong.id);
-        await assert.rejects(migrateJournal(admin, migrations), foreignKey(homeKey(table)));
+        await assert.rejects(
+          migrateJournal(admin, migrations),
+          migrationForeignKeyViolation(homeKey(table))
+        );
         await assertRolledBack();
         assert.deepEqual(await storedChild(admin, table, wrong.id), original);
         await admin`delete from public.claim_document_ai_extraction_consents where id = ${wrong.id}`;
@@ -89,7 +102,10 @@ test('case-tenant binding validates a populated upgrade atomically', async t => 
         const wrong = withEvidenceDocument(otherHomeCase, document.id)[table];
         await insertChild(admin, table, wrong);
         const original = await storedChild(admin, table, wrong.id);
-        await assert.rejects(migrateJournal(admin, migrations), foreignKey(documentKey(table)));
+        await assert.rejects(
+          migrateJournal(admin, migrations),
+          migrationForeignKeyViolation(documentKey(table))
+        );
         await assertRolledBack();
         assert.deepEqual(await storedChild(admin, table, wrong.id), original);
         await admin`delete from public.${admin(table)} where id = ${wrong.id}`;
