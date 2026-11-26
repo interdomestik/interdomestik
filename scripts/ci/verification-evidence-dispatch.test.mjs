@@ -190,7 +190,10 @@ test('publication requires the exact pair captured after the observed invocation
   }
   writeFileSync(file, JSON.stringify({ ...record, finishedAt: new Date(now + 11).toISOString() }));
   assert.throws(capture, /m4-run-pair/u);
-  writeFileSync(file, JSON.stringify({ ...record, configuration: { node: 'changed after stamp' } }));
+  writeFileSync(
+    file,
+    JSON.stringify({ ...record, configuration: { node: 'changed after stamp' } })
+  );
   assert.throws(capture, /m4-stamp-digest/u);
   writeFileSync(file, original);
   const lines = observed.output.log;
@@ -337,6 +340,8 @@ test('locked selection falls back for unusable evidence and preserves real compo
     );
     assert.ok(calls.splice(0).every(call => !/capture|full/u.test(call)));
   }
+  // Restore the receipt invalidated by the stale-at-accept case.
+  collected = true;
   afterLaunch = () => abort.abort();
   await assert.rejects(() => dispatchM4(options), { name: 'AbortError' });
   assert.deepEqual(calls, ['queue:dispatch', 'receipt:dispatch', 'composed']);
