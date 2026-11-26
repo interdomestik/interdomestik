@@ -7,7 +7,12 @@ import { useEffect, useState } from 'react';
 type MembershipPeriodGraceFactsProps = Readonly<{
   subscription: Pick<
     SubscriptionRecord,
-    'status' | 'currentPeriodStart' | 'currentPeriodEnd' | 'gracePeriodEndsAt' | 'sponsorCoverage'
+    | 'status'
+    | 'cancelAtPeriodEnd'
+    | 'currentPeriodStart'
+    | 'currentPeriodEnd'
+    | 'gracePeriodEndsAt'
+    | 'sponsorCoverage'
   >;
   locale: string;
   t: (key: string, values?: Record<string, string | number>) => string;
@@ -39,42 +44,46 @@ export function MembershipPeriodGraceFacts({
   return (
     <>
       {subscription.sponsorCoverage ? (
-        <p data-testid="membership-sponsor-coverage">
-          {t('sponsorCoverage.covered_until', {
-            date: formatPilotDate(subscription.sponsorCoverage.coverageEnd, locale, t('plan.na')),
-          })}
-        </p>
+        <div className="min-w-0 space-y-1 sm:col-span-2">
+          <dt className="text-foreground/70">{t('ops.sponsor_coverage_label')}</dt>
+          <dd className="font-semibold" data-testid="membership-sponsor-coverage">
+            {t('sponsorCoverage.covered_until', {
+              date: formatPilotDate(subscription.sponsorCoverage.coverageEnd, locale, t('plan.na')),
+            })}
+          </dd>
+        </div>
       ) : null}
-      <div>
-        <h4 className="text-sm font-medium text-muted-foreground">
-          {t('plan.current_period_label')}
-        </h4>
-        <p data-testid="membership-current-period-end">
+      <div className="min-w-0 space-y-1">
+        <dt className="text-foreground/70">{t('plan.current_period_label')}</dt>
+        <dd className="font-semibold" data-testid="membership-current-period-end">
           {subscription.sponsorCoverage
             ? `${formatPilotDate(subscription.currentPeriodStart, locale, t('plan.na'))} – `
             : ''}
           {formatPilotDate(subscription.currentPeriodEnd, locale, t('plan.na'))}
-        </p>
+        </dd>
       </div>
 
+      {subscription.cancelAtPeriodEnd && !subscription.sponsorCoverage ? (
+        <div className="min-w-0 space-y-1" data-testid="membership-renewal">
+          <dt className="text-foreground/70">{t('ops.renewal_label')}</dt>
+          <dd className="font-semibold">{t('ops.renewal_stops')}</dd>
+        </div>
+      ) : null}
+
       {subscription.status === 'past_due' ? (
-        <div data-testid="membership-grace-deadline">
-          <h4 className="text-sm font-medium text-muted-foreground">
-            {t('dunning.grace_deadline_title')}
-          </h4>
+        <div className="min-w-0 space-y-1 sm:col-span-2" data-testid="membership-grace-deadline">
+          <dt className="text-foreground/70">{t('dunning.grace_deadline_title')}</dt>
           {hasGraceDeadline ? (
-            <p className={isGraceExpired ? 'text-sm text-red-600' : 'text-sm'}>
+            <dd className={isGraceExpired ? 'font-semibold text-red-600' : 'font-semibold'}>
               {t(
                 isGraceExpired
                   ? 'dunning.grace_deadline_passed_label'
                   : 'dunning.grace_deadline_future_label'
               )}
               : {formatPilotDate(gracePeriodEndsAt, locale, t('plan.na'))}
-            </p>
+            </dd>
           ) : (
-            <p className="text-sm text-muted-foreground">
-              {t('dunning.grace_deadline_unavailable')}
-            </p>
+            <dd className="text-foreground/70">{t('dunning.grace_deadline_unavailable')}</dd>
           )}
         </div>
       ) : null}

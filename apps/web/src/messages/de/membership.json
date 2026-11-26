@@ -102,7 +102,11 @@
       "complete_membership": "Mitgliedschaft abschließen",
       "choose_plan": "Plan wählen",
       "select_subscription": "Abonnement auswählen",
-      "back_to_list": "Zurück zur Liste"
+      "back_to_list": "Zurück zur Liste",
+      "about_title": "Über Ihre Mitgliedschaft",
+      "sponsor_coverage_label": "Firmenprogramm",
+      "renewal_label": "Verlängerung",
+      "renewal_stops": "Wird nach dem aktuellen Zeitraum nicht verlängert"
     },
     "actions": {
       "confirm_cancel": "Möchten Sie wirklich kündigen? Die Kündigung betrifft nur die künftige Verlängerung, und Ihr aktueller Zugang bleibt bis zum Ende des laufenden Abrechnungszeitraums aktiv.",

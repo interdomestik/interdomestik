@@ -102,7 +102,11 @@
       "complete_membership": "Përfundo anëtarësinë",
       "choose_plan": "Zgjidh një plan",
       "select_subscription": "Zgjidhni një abonim",
-      "back_to_list": "Kthehu te lista"
+      "back_to_list": "Kthehu te lista",
+      "about_title": "Rreth anëtarësimit tuaj",
+      "sponsor_coverage_label": "Programi i kompanisë",
+      "renewal_label": "Rinovimi",
+      "renewal_stops": "Nuk rinovohet pas periudhës aktuale"
     },
     "actions": {
       "confirm_cancel": "A jeni i sigurt që dëshironi ta anuloni? Anulimi ndryshon vetëm rinovimin e ardhshëm dhe qasja juaj aktuale mbetet aktive deri në fund të periudhës së tanishme të faturimit.",

@@ -102,7 +102,11 @@
       "complete_membership": "Complete membership",
       "choose_plan": "Choose a plan",
       "select_subscription": "Select a subscription",
-      "back_to_list": "Back to list"
+      "back_to_list": "Back to list",
+      "about_title": "About your membership",
+      "sponsor_coverage_label": "Company program",
+      "renewal_label": "Renewal",
+      "renewal_stops": "Does not renew after the current period"
     },
     "actions": {
       "confirm_cancel": "Are you sure you want to cancel? Cancellation only changes future renewal and your current access remains active until the current billing period ends.",

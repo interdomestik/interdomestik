@@ -9,5 +9,10 @@
   "apps/web/src/components/dashboard/member-portal-link-styles.ts",
   "apps/web/src/components/dashboard/member-portal-region-boundary.tsx",
   "apps/web/src/components/dashboard/member-portal-runtime-test-support.tsx",
-  "apps/web/src/components/dashboard/member-portal-runtime.tsx"
+  "apps/web/src/components/dashboard/member-portal-runtime.tsx",
+  "apps/web/src/components/settings/member-settings-frame.tsx",
+  "apps/web/src/features/member/membership/components/MembershipOpsPage.tsx",
+  "apps/web/src/features/member/membership/components/membership-detail-view.tsx",
+  "apps/web/src/features/member/membership/components/membership-period-grace-facts.tsx",
+  "apps/web/src/features/member/membership/components/membership-region-styles.ts"
 ]

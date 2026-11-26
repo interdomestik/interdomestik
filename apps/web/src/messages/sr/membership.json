@@ -102,7 +102,11 @@
       "complete_membership": "Dovrši članstvo",
       "choose_plan": "Izaberi plan",
       "select_subscription": "Izaberite pretplatu",
-      "back_to_list": "Nazad na listu"
+      "back_to_list": "Nazad na listu",
+      "about_title": "O vašem članstvu",
+      "sponsor_coverage_label": "Program kompanije",
+      "renewal_label": "Obnova",
+      "renewal_stops": "Ne obnavlja se nakon trenutnog perioda"
     },
     "actions": {
       "confirm_cancel": "Da li ste sigurni da želite da otkažete? Otkazivanje menja samo buduće obnavljanje, a vaš trenutni pristup ostaje aktivan do kraja tekućeg obračunskog perioda.",

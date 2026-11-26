@@ -1,0 +1,110 @@
+import { fireEvent, render, screen, within } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+import {
+  MembershipOpsPage,
+  actionMocks,
+  selectionMocks,
+  setupMembershipOpsPageHarness,
+} from './__tests__/membership-ops-page-harness';
+
+function subscription(overrides: Record<string, unknown> = {}) {
+  return {
+    id: 'sub-1',
+    status: 'active',
+    provider: 'cash',
+    planId: 'plan-standard',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    currentPeriodEnd: '2027-01-01T00:00:00.000Z',
+    plan: { name: 'Standard' },
+    gracePeriodEndsAt: null,
+    ...overrides,
+  } as never;
+}
+
+describe('MembershipOpsPage concept A layout', () => {
+  setupMembershipOpsPageHarness();
+
+  it('leads with the page heading and the status of the only membership, without a list', () => {
+    actionMocks.getMembershipActions.mockReturnValue({ primary: undefined, secondary: [] });
+    render(<MembershipOpsPage subscriptions={[subscription()]} documents={[]} />);
+
+    expect(screen.getByRole('heading', { level: 1, name: 'page.title' })).toBeInTheDocument();
+    const status = screen.getByRole('region', { name: 'Standard' });
+    expect(within(status).getByText('plan.status_label')).toBeInTheDocument();
+    expect(within(status).getByTestId('membership-current-period-end')).toBeInTheDocument();
+    expect(screen.queryByTestId('membership-subscription-list')).not.toBeInTheDocument();
+    // The scope facts follow the status, in their own labelled section.
+    const about = screen.getByRole('region', { name: 'ops.about_title' });
+    expect(status.compareDocumentPosition(about) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(within(about).getByTestId('membership-commercial-disclaimers')).toBeInTheDocument();
+  });
+
+  it('renders the coverage slot inside the scope section', () => {
+    render(
+      <MembershipOpsPage
+        subscriptions={[]}
+        documents={[]}
+        coverage={<div data-testid="coverage-slot" />}
+      />
+    );
+
+    const about = screen.getByRole('region', { name: 'ops.about_title' });
+    expect(within(about).getByTestId('coverage-slot')).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'ops.no_membership_title' })).toHaveAttribute(
+      'data-testid',
+      'membership-empty'
+    );
+  });
+
+  it('opens the first of several records and selects another by keyboard-operable button', () => {
+    actionMocks.getMembershipActions.mockReturnValue({ primary: undefined, secondary: [] });
+    const records = [
+      subscription({ id: 'sub-1', plan: { name: 'Standard' } }),
+      subscription({ id: 'sub-2', plan: { name: 'Family' } }),
+    ];
+    render(<MembershipOpsPage subscriptions={records} documents={[]} />);
+
+    const items = screen.getAllByTestId('subscription-item');
+    expect(items).toHaveLength(2);
+    expect(items[0]).toHaveAttribute('aria-pressed', 'true');
+    expect(items[1]).toHaveAttribute('aria-pressed', 'false');
+    expect(items[1].tagName).toBe('BUTTON');
+    expect(screen.getByRole('region', { name: 'Standard' })).toBeInTheDocument();
+
+    fireEvent.click(items[1]);
+    expect(selectionMocks.setSelectedId).toHaveBeenCalledWith('sub-2');
+  });
+
+  it('shows the selected record from the URL selection', () => {
+    actionMocks.getMembershipActions.mockReturnValue({ primary: undefined, secondary: [] });
+    selectionMocks.selectedId = 'sub-2';
+    const records = [
+      subscription({ id: 'sub-1', plan: { name: 'Standard' } }),
+      subscription({ id: 'sub-2', plan: { name: 'Family' } }),
+    ];
+    render(<MembershipOpsPage subscriptions={records} documents={[]} />);
+
+    expect(screen.getByRole('region', { name: 'Family' })).toBeInTheDocument();
+    expect(screen.getAllByTestId('subscription-item')[1]).toHaveAttribute('aria-pressed', 'true');
+  });
+
+  it('states that a scheduled cancellation does not renew, and says nothing when none is set', () => {
+    actionMocks.getMembershipActions.mockReturnValue({ primary: undefined, secondary: [] });
+    const view = render(
+      <MembershipOpsPage
+        subscriptions={[subscription({ cancelAtPeriodEnd: true })]}
+        documents={[]}
+      />
+    );
+    expect(screen.getByTestId('membership-renewal')).toHaveTextContent('ops.renewal_label');
+    expect(screen.getByTestId('membership-renewal')).toHaveTextContent('ops.renewal_stops');
+
+    view.rerender(
+      <MembershipOpsPage
+        subscriptions={[subscription({ id: 'sub-3', cancelAtPeriodEnd: false })]}
+        documents={[]}
+      />
+    );
+    expect(screen.queryByTestId('membership-renewal')).not.toBeInTheDocument();
+  });
+});

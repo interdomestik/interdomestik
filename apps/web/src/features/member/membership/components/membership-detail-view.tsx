@@ -16,7 +16,6 @@ import {
 } from '@/components/ops/adapters/membership';
 import { useRouter } from '@/i18n/routing';
 import { formatPilotDateTime } from '@/lib/utils/date';
-import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { cancelSubscription, getPaymentUpdateUrl } from '@/actions/subscription.core';
@@ -25,6 +24,7 @@ import { toast } from 'sonner';
 import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
 import { MembershipEntityDisclosureNotice } from './MembershipEntityDisclosureNotice';
 import { MembershipPeriodGraceFacts } from './membership-period-grace-facts';
+import { MEMBERSHIP_REGION } from './membership-region-styles';
 
 type TranslationFn = (key: string, values?: Record<string, string | number>) => string;
 
@@ -176,55 +176,62 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
   });
 
   return (
-    <div className="space-y-4 h-full overflow-y-auto pr-2">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            {subscription.plan?.name || subscription.planId}
-            <OpsStatusBadge
-              {...toOpsStatus(subscription.status)}
-              label={tStatus(membershipStatusKey(subscription.status))}
-            />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div className="grid min-w-0 gap-6">
+      <section
+        aria-labelledby="membership-status-title"
+        className={MEMBERSHIP_REGION}
+        data-testid="membership-status-region"
+      >
+        <h2 id="membership-status-title" className="text-lg font-semibold tracking-tight">
+          {subscription.plan?.name || subscription.planId}
+        </h2>
+        <dl className="grid gap-4 text-sm sm:grid-cols-2">
+          <div className="min-w-0 space-y-1">
+            <dt className="text-foreground/70">{t('plan.status_label')}</dt>
+            <dd>
+              <OpsStatusBadge
+                {...toOpsStatus(subscription.status)}
+                label={tStatus(membershipStatusKey(subscription.status))}
+              />
+            </dd>
+          </div>
           <MembershipPeriodGraceFacts subscription={subscription} locale={locale} t={t} />
+        </dl>
 
-          <MembershipEntityDisclosureNotice
-            testId="membership-entity-disclosure"
-            disclosure={subscription.entityDisclosure}
-          />
+        <MembershipEntityDisclosureNotice
+          testId="membership-entity-disclosure"
+          disclosure={subscription.entityDisclosure}
+        />
 
-          {leaveEntryId ? <LeaveCompanyProgramme entryId={leaveEntryId} t={t} /> : null}
-
-          <OpsActionBar
-            primary={primary ? mapAction(primary) : undefined}
-            secondary={secondary.map(mapAction)}
-          />
-
-          {isPaymentUpdateAction(primary?.id ?? '') && paymentUpdateStatus ? (
-            <p
-              role="status"
-              aria-live="polite"
-              data-testid="payment-update-status"
-              className="text-sm text-muted-foreground"
-            >
-              {paymentUpdateStatus}
+        {primary?.id === 'complete_membership' || sponsoredState === 'inactive' ? (
+          <div className="rounded-xl border border-foreground/60 p-4 forced-colors:border-[CanvasText]">
+            <h3 className="text-sm font-semibold">{t('ops.membership_not_active_title')}</h3>
+            <p className="mt-1 text-sm leading-6 text-foreground/70">
+              {t('ops.membership_not_active_body')}
             </p>
-          ) : null}
+          </div>
+        ) : null}
 
-          {primary?.id === 'complete_membership' || sponsoredState === 'inactive' ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-              <h4 className="text-sm font-semibold text-slate-900">
-                {t('ops.membership_not_active_title')}
-              </h4>
-              <p className="mt-1 text-sm text-slate-600">{t('ops.membership_not_active_body')}</p>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+        {leaveEntryId ? <LeaveCompanyProgramme entryId={leaveEntryId} t={t} /> : null}
 
-      <div className="space-y-4">
+        <OpsActionBar
+          primary={primary ? mapAction(primary) : undefined}
+          secondary={secondary.map(mapAction)}
+        />
+
+        {isPaymentUpdateAction(primary?.id ?? '') && paymentUpdateStatus ? (
+          <p
+            role="status"
+            aria-live="polite"
+            data-testid="payment-update-status"
+            className="text-sm text-foreground/70"
+          >
+            {paymentUpdateStatus}
+          </p>
+        ) : null}
+      </section>
+
+      <div className="grid min-w-0 items-start gap-6 md:grid-cols-2">
         <OpsTimeline
           title={t('timeline.title')}
           events={toOpsTimelineEvents(subscription, t)}
