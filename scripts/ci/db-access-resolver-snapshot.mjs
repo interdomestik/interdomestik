@@ -6,7 +6,7 @@ import { LOCK_PROJECTION_ID, lockProjection } from './db-access-lock-projection.
 // Protected executable-source data, separate from historical DB-debt ADOPTION.
 // No candidate, environment or CLI input can select a dependency snapshot.
 export const RESOLVER_SNAPSHOT = Object.freeze({
-  id: 'dependency-lock-projection-20261122-v1',
+  id: 'dependency-lock-projection-20261126-storybook-8-6-19',
   adoptionCommit: '278e33ab0dd448547fa81d4b0ff122b4d69c901e',
   adoptionTree: '4f9330417466b4f7bee68349e7183db22a5260ff',
   baselineSha256: '438b856b913d2946088b9c0f925dd07818b81ea82bad8d3468c2470a2f1131e9',
@@ -20,7 +20,7 @@ export const RESOLVER_SNAPSHOT = Object.freeze({
     'pnpm-lock.yaml': Object.freeze({
       projection: LOCK_PROJECTION_ID,
       previousSha256: '5afa99cf2e8b0a56f6d2bcc725cc8fae711407053e1b8af830d98248f5c3fc1c',
-      sha256: '00c82dc7fc1d6a66a02722791b2460b002c17331259e3f62d10c7172df6aefa7',
+      sha256: 'a9952363b3964a6ac0879b642a631137cecfd2d7f76a37145b321456912fddd6',
       maxBytes: 8 * 1024 * 1024,
     }),
   }),

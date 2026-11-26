@@ -40,8 +40,8 @@ jobs:
           expected_branch='main'
           # Immutable approved guard source. Advancing it requires a separately reviewed revision of this file.
           # Static-root G0: provider/helper transitions receive no proof exemption.
-          source_commit='743073568ac54c59f20cc24fbd48e2d7a9884cca'
-          source_tree='0ff3ac7416ce36796d44e18df49d675a8c1d7fcd'
+          source_commit='89cd2a2137ecb9dc71d17f2abfabc71a030a3061'
+          source_tree='3cf30f6c94718174a43b239f40fc786789f85271'
           # Identity comes only from GitHub event expressions; anything missing or unexpected fails closed.
           for name in EVENT_NAME EVENT_REPO EVENT_REF EVENT_SHA PR_NUMBER PR_BASE_REPO PR_BASE_REF PR_BASE_SHA PR_HEAD_SHA DEFAULT_BRANCH TS_EXPECTED_VERSION; do
             [[ -n "${!name:-}" ]] || fail "missing $name"
