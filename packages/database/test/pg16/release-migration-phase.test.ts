@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { cpSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import test from 'node:test';
 import { setTimeout as delay } from 'node:timers/promises';
@@ -117,7 +117,7 @@ test('CLI spends an authenticated approval even if the manifest is missing', asy
   const unusedUrl = new URL(
     'postgres://unused:unused@127.0.0.1:5432/interdomestik_admin_config_unused'
   );
-  const fixture = releaseFixture(t, unusedUrl, dir, registry);
+  const fixture = releaseFixture(unusedUrl, { t, dir, registry });
   const manifest = JSON.stringify({
     version: 1,
     environment: fixture.config.environment,
@@ -135,7 +135,7 @@ test('CLI refuses candidate and config inputs outside their declared roots', asy
   const unusedUrl = new URL(
     'postgres://unused:unused@127.0.0.1:5432/interdomestik_admin_config_unused'
   );
-  const fixture = releaseFixture(t, unusedUrl, dir, registry);
+  const fixture = releaseFixture(unusedUrl, { t, dir, registry });
   assertRefusal(
     await fixture.run('inspect', { RELEASE_PHASE_CANDIDATE_ROOT: workspace(t) }),
     'RELEASE_PATH_REJECTED'
@@ -149,6 +149,25 @@ test('CLI refuses candidate and config inputs outside their declared roots', asy
     await fixture.run('expand', { RELEASE_PHASE_CONFIG: link }),
     'RELEASE_PATH_REJECTED'
   );
+});
+
+test('release fixture and CLI refuse a Drizzle directory symlinked outside the export', async t => {
+  const { dir: outside } = makeJournal(t, { names: ['0000_base'] });
+  const candidateRoot = workspace(t);
+  const dir = join(candidateRoot, 'drizzle');
+  cpSync(outside, dir, { recursive: true });
+  const unusedUrl = new URL(
+    'postgres://unused:unused@127.0.0.1:5432/interdomestik_admin_config_unused'
+  );
+  const inputs = { t, dir, registry: policy, candidateRoot };
+  const fixture = releaseFixture(unusedUrl, inputs);
+  const inside = await fixture.run('inspect');
+  assert.equal(inside.code, 0, inside.stderr);
+
+  rmSync(dir, { recursive: true });
+  symlinkSync(outside, dir);
+  assert.throws(() => releaseFixture(unusedUrl, inputs), /RELEASE_PATH_REJECTED/u);
+  assertRefusal(await fixture.run('inspect'), 'RELEASE_PATH_REJECTED');
 });
 
 async function assertOldWriter(client: ScratchClient) {

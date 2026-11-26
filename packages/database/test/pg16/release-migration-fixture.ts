@@ -20,9 +20,17 @@ const marker = 'scratch-release-phase';
 const aliasHostname = 'staging.interdomestik.com';
 export const scratchOptions = { loopbackOnly: true, requirePg16: true };
 
+type ReleaseFixtureInputs = {
+  t: TestContext;
+  dir: string;
+  registry: string;
+  candidateRoot?: string;
+  commitSha?: string;
+};
+
 export async function withReleaseDatabase<T>(
   prefix: string,
-  inputs: { t: TestContext; dir: string; registry: string; commitSha?: string },
+  inputs: ReleaseFixtureInputs,
   work: (client: ScratchClient, fixture: ReturnType<typeof releaseFixture>) => Promise<T>
 ): Promise<T> {
   const rawAdminUrl = process.env.DATABASE_URL ?? '';
@@ -60,8 +68,7 @@ export async function withReleaseDatabase<T>(
                   await runner`INSERT INTO runtime_attestation.backend_marker VALUES (${marker})`;
                 }
               );
-              const { t, dir, registry, commitSha } = inputs;
-              return work(client, releaseFixture(t, runnerUrl, dir, registry, commitSha));
+              return work(client, releaseFixture(runnerUrl, inputs));
             },
             { ...scratchOptions, owner }
           ),
@@ -91,11 +98,8 @@ export async function assertLedger(
 }
 
 export function releaseFixture(
-  t: TestContext,
   url: URL,
-  dir: string,
-  registry: string,
-  commitSha = 'a'.repeat(40)
+  { t, dir, registry, candidateRoot = dir, commitSha = 'a'.repeat(40) }: ReleaseFixtureInputs
 ) {
   const temp = workspace(t);
   const files = (file: string) => path.join(temp, file);
@@ -104,8 +108,8 @@ export function releaseFixture(
   const attemptDirectory = files('attempts');
   mkdirSync(attemptDirectory, { mode: 0o700 });
   const journal = readReleaseJournal(dir, registry, {
-    candidateRoot: dir,
-    policyRoot: registry === policy ? path.dirname(policy) : dir,
+    candidateRoot,
+    policyRoot: registry === policy ? path.dirname(policy) : candidateRoot,
   });
   const config = {
     version: 1,
@@ -172,7 +176,7 @@ export function releaseFixture(
             PATH: process.env.PATH,
             NODE_ENV: 'test',
             RELEASE_MIGRATION_URL: url.toString(),
-            RELEASE_PHASE_CANDIDATE_ROOT: dir,
+            RELEASE_PHASE_CANDIDATE_ROOT: candidateRoot,
             RELEASE_PHASE_RUNNER_ROOT: temp,
             RELEASE_PHASE_CONFIG: files('config.json'),
             RELEASE_PHASE_MANIFEST: files('manifest.json'),

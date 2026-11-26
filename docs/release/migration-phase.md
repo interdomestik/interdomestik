@@ -85,6 +85,7 @@ Use a disposable loopback PostgreSQL 16 instance and set `DATABASE_URL` for it. 
 mac_job=/Users/arbenlila/development/rc31-scratch/verify-scripts/mac-job
 runner_head=$(git rev-parse HEAD)
 REQUIRE_JOURNAL_SCHEMA_PARITY=1 REQUIRE_RELEASE_PHASE_WP07=1 \
+  RELEASE_PHASE_CANDIDATE_ROOT="$candidate_export" \
   RELEASE_PHASE_WP07_CANDIDATE="$candidate_drizzle" RELEASE_PHASE_WP07_COMMIT="$candidate_commit" \
   "$mac_job" run pre-check release-phase-pg16 "$PWD" "$runner_head" -- pnpm db:journal:parity
 ```

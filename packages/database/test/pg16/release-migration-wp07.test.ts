@@ -1,7 +1,9 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
-import { resolve } from 'node:path';
+import { mkdirSync, realpathSync } from 'node:fs';
+import { join, resolve } from 'node:path';
 import test from 'node:test';
+import { resolveReleasePath } from '../../src/release-migration-path.mts';
 import { readReleaseJournal } from '../../src/release-migrations';
 import { exerciseRefusals, proveContractOnce } from './release-migration-approvals.fixture';
 import {
@@ -10,23 +12,61 @@ import {
   scratchOptions,
   withReleaseDatabase,
 } from './release-migration-fixture';
-import { folder, policy } from './release-migration-journal.fixture';
+import { folder, policy, workspace } from './release-migration-journal.fixture';
 import { migrateJournal, scratchServerMissing, withScratchDatabase } from './scratch-database';
 
 const requireDatabase = 'REQUIRE_JOURNAL_SCHEMA_PARITY';
+const checkoutDrizzle = resolve(folder);
+const checkoutRoot = resolve(checkoutDrizzle, '../../..');
+
+function wp07Candidate(candidatePath: string | undefined, exportRoot: string | undefined) {
+  if (candidatePath === undefined) return { dir: checkoutDrizzle, candidateRoot: checkoutRoot };
+  assert.ok(candidatePath.trim(), 'RELEASE_PHASE_WP07_CANDIDATE must not be empty');
+  assert.ok(exportRoot, 'RELEASE_PHASE_CANDIDATE_ROOT is required for a WP-07 export');
+  const dir = resolve(candidatePath);
+  assert.notEqual(
+    resolveReleasePath(exportRoot, dir),
+    realpathSync.native(exportRoot),
+    'The WP-07 Drizzle directory must be inside the candidate export root'
+  );
+  return { dir, candidateRoot: exportRoot };
+}
+
+test('WP-07 defaults to the checkout only when the candidate is unset', () => {
+  assert.deepEqual(wp07Candidate(undefined, undefined), {
+    dir: checkoutDrizzle,
+    candidateRoot: checkoutRoot,
+  });
+  for (const candidate of ['', ' ']) {
+    assert.throws(
+      () => wp07Candidate(candidate, undefined),
+      /RELEASE_PHASE_WP07_CANDIDATE must not be empty/u
+    );
+  }
+});
+
+test('WP-07 requires a separate export root for an explicit candidate', t => {
+  const candidateRoot = workspace(t);
+  const dir = join(candidateRoot, 'drizzle');
+  mkdirSync(dir);
+  assert.throws(() => wp07Candidate(dir, undefined), /RELEASE_PHASE_CANDIDATE_ROOT is required/u);
+  assert.throws(() => wp07Candidate(dir, dir), /must be inside the candidate export root/u);
+  assert.deepEqual(wp07Candidate(dir, candidateRoot), { dir, candidateRoot });
+});
 
 test('PG16 WP-07 candidate CLI preserves same-week publications and checks the active guard', async t => {
-  const candidate = process.env.RELEASE_PHASE_WP07_CANDIDATE
-    ? resolve(process.env.RELEASE_PHASE_WP07_CANDIDATE)
-    : folder;
+  const candidatePath = process.env.RELEASE_PHASE_WP07_CANDIDATE;
+  const { dir: candidate, candidateRoot } = wp07Candidate(
+    candidatePath,
+    process.env.RELEASE_PHASE_CANDIDATE_ROOT
+  );
   const journal = readReleaseJournal(candidate, policy, {
-    candidateRoot: candidate,
+    candidateRoot,
     policyRoot: folder,
   });
   if (journal.entries[112]?.tag !== '0112_wp07_rate_check_contract') {
-    assert.notEqual(
-      process.env.REQUIRE_RELEASE_PHASE_WP07,
-      '1',
+    assert.ok(
+      candidatePath === undefined && process.env.REQUIRE_RELEASE_PHASE_WP07 !== '1',
       'The exact reviewed WP-07 pair is required'
     );
     return t.skip('WP-07 pair is dormant in this checkout');
@@ -37,7 +77,7 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
   if (missing) return t.skip(missing);
   const commit =
     process.env.RELEASE_PHASE_WP07_COMMIT ??
-    (candidate === folder
+    (candidate === checkoutDrizzle
       ? execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
       : '');
   assert.match(
@@ -48,7 +88,7 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
 
   await withReleaseDatabase(
     'interdomestik_admin_config_wp07',
-    { t, dir: candidate, registry: policy, commitSha: commit },
+    { t, dir: candidate, candidateRoot, registry: policy, commitSha: commit },
     async (client, fixture) => {
       const plan = await fixture.expand();
       assert.deepEqual(
