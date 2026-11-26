@@ -2,12 +2,12 @@ import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
-import { isMemberUploadRole } from '@interdomestik/domain-claims/claims/evidence-confirmation';
 import { validateEvidenceFile } from '../evidence-file-policy';
 import { validateEvidenceContent } from './validate-evidence-content';
 import { validateStoredObject } from './stored-object-validation';
 import { hasPersistedClaimDocument } from './claim-document-replay';
 import { persistClaimDocumentMetadata } from './claim-document-write';
+import { isMemberUploadRole } from './member-upload-role';
 import { buildMemberAiExtractionConsent, type ConfirmUploadParams } from './upload-consent';
 import {
   expectedUploadPath,

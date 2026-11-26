@@ -44,6 +44,8 @@ tenant transaction. `lockClaimForEvidence` rechecks home and effective access, m
 or workforce scope on the locked claim, then locks the open information request when applicable.
 The same transaction checks request linkage on replay and uses `linkInformationRequestEvidence`
 to append the link and its audit row after a new document is created.
+The dependency-free `./claims/member-upload-role` export supplies the member-side role predicate
+to both the claim lock and the web upload validators.
 
 `./claims/send-message` composes the message write, response requests and notifications in one tenant transaction. Message and recovery decision commands take the actor from the tenant authority principal and require the session to match. The recovery decision action uses `resolveRecoveryDecisionActor` to apply the same check before reserving an idempotency key. An admin can post an internal message only in their home tenant. Staff routing and the send-time staff eligibility check use the same staff claim read scope. `./claims/notification-delivery-runner` drives the queue through the communications worker operations.
 

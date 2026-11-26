@@ -13,6 +13,7 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { isSuperAdmin, isTenantAdmin } from '@interdomestik/shared-auth';
 import { randomUUID } from 'node:crypto';
+import { isMemberUploadRole } from './member-upload-role';
 
 type Surface = 'admin' | 'member';
 
@@ -28,10 +29,6 @@ export type LockedClaimEvidenceScope = Readonly<{
   actorId: string;
   informationRequestId: string | null;
 }>;
-
-export function isMemberUploadRole(role: string | null | undefined): boolean {
-  return role === 'member' || role === 'user' || role === 'agent';
-}
 
 export function canAccessClaimFromAdminUploadSurface({
   branchId = null,

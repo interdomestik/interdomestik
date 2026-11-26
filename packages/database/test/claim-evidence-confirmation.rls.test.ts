@@ -8,7 +8,7 @@ import {
   openEvidenceConfirmationFixture,
   type ProvisionerTx,
 } from './claim-evidence-confirmation.fixture';
-import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
+import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
 import { MK_TENANT_ID } from './s8-claim-restricted-rls.fixture';
 
 type Fixture = NonNullable<Awaited<ReturnType<typeof openEvidenceConfirmationFixture>>>;
@@ -114,14 +114,6 @@ test('WP-19 evidence confirmation locks the authorized claim and request under r
         assert.deepEqual(await f.effects(input.fileId, input.authority), noEffects);
       }
 
-      const injected = {
-        ...f.input(claimId, { role: 'member' }),
-        userId: f.otherUserId,
-        actorRole: 'admin',
-      };
-      await assert.rejects(f.confirm(injected), /trusted upload actor role/);
-      assert.deepEqual(await f.effects(injected.fileId), noEffects);
-
       const assigned = await f.makeClaim({ staffId: f.otherUserId });
       const sameBranch = f.input(assigned, { role: 'staff', branchId: f.branchId });
       assert.equal(await f.confirm(sameBranch), true);
@@ -130,6 +122,37 @@ test('WP-19 evidence confirmation locks the authorized claim and request under r
       assert.deepEqual(await f.effects(branchless.fileId), noEffects);
     }
   );
+
+  for (const [field, value] of [
+    ['userId', f.otherUserId],
+    ['actorRole', 'admin'],
+  ] as const) {
+    await t.test(`ordinary confirmation rejects an injected ${field}`, async () => {
+      const claimId = await f.makeClaim();
+      const control = f.input(claimId, { role: 'member' });
+      await assert.rejects(f.confirm({ ...control, [field]: value }), /trusted upload actor role/);
+      assert.deepEqual(await f.effects(control.fileId), noEffects);
+      assert.equal(await f.confirm(control), true);
+      assert.deepEqual(await f.effects(control.fileId), {
+        ...noEffects,
+        documents: 1,
+        consents: 1,
+      });
+    });
+  }
+
+  await t.test('an explicit member-owner expectation rejects workforce confirmation', async () => {
+    const claimId = await f.makeClaim();
+    for (const role of ['admin', 'staff']) {
+      const control = f.input(claimId, { role, actorId: f.otherUserId, branchId: f.branchId });
+      await assert.rejects(
+        f.confirm({ ...control, expectedClaimOwnerId: control.userId }),
+        conflict
+      );
+      assert.deepEqual(await f.effects(control.fileId), noEffects);
+      assert.equal(await f.confirm(control), true);
+    }
+  });
 
   for (const confirmFirst of [false, true]) {
     const race = confirmFirst ? confirmationCommitsFirst : changeCommitsFirst;
@@ -197,16 +220,27 @@ test('WP-19 evidence confirmation locks the authorized claim and request under r
       const claimId = await f.makeClaim();
       const informationRequestId = await f.makeRequest(claimId);
       const input = f.input(claimId, { informationRequestId });
-      const role = quoteIdentifier(TEST_DB_ROLE);
-      await f.adminDb.execute(sql.raw(`revoke insert on audit_log from ${role}`));
+      const constraintName = `wp19_refuse_audit_${input.fileId.replaceAll('-', '')}`;
+      const constraint = quoteIdentifier(constraintName);
+      // Only the audit for this fixture's request and upload can violate the check.
+      await f.adminDb.execute(sql.raw(`
+        alter table public.audit_log add constraint ${constraint}
+        check (
+          action <> 'claim_information_request.evidence_submitted'
+          or entity_id is distinct from ${quoteSqlLiteral(informationRequestId)}
+          or (metadata->>'documentId') is distinct from ${quoteSqlLiteral(input.fileId)}
+        ) not valid
+      `));
       try {
         await assert.rejects(f.confirm(input), (error: unknown) => {
-          const cause = (error as { cause?: { code?: string; message?: string } }).cause;
-          return cause?.code === '42501' && /audit_log/.test(cause.message ?? '');
+          const cause = (error as { cause?: { code?: string; constraint_name?: string } }).cause;
+          return cause?.code === '23514' && cause.constraint_name === constraintName;
         });
         assert.deepEqual(await f.effects(input.fileId), noEffects);
       } finally {
-        await f.adminDb.execute(sql.raw(`grant insert on audit_log to ${role}`));
+        await f.adminDb.execute(
+          sql.raw(`alter table public.audit_log drop constraint ${constraint}`)
+        );
       }
       assert.equal(await f.confirm(input), true);
       assert.equal(await f.confirm(input), false);

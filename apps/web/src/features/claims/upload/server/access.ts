@@ -5,11 +5,9 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import {
-  canAccessClaimFromAdminUploadSurface,
-  isMemberUploadRole,
-} from '@interdomestik/domain-claims/claims/evidence-confirmation';
+import { canAccessClaimFromAdminUploadSurface } from '@interdomestik/domain-claims/claims/evidence-confirmation';
 import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
+import { isMemberUploadRole } from './member-upload-role';
 
 export { canAccessClaimFromAdminUploadSurface } from '@interdomestik/domain-claims/claims/evidence-confirmation';
 

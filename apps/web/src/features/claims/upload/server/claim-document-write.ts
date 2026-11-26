@@ -4,7 +4,6 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import {
-  isMemberUploadRole,
   linkInformationRequestEvidence,
   lockClaimForEvidence,
   matchesInformationRequestEvidence,
@@ -15,6 +14,7 @@ import {
   type VerifiedEvidenceUpload,
 } from '@interdomestik/domain-documents/claim-evidence';
 import { ClaimDocumentUploadConflictError } from './claim-document-upload-conflict';
+import { isMemberUploadRole } from './member-upload-role';
 
 export { ClaimDocumentUploadConflictError } from './claim-document-upload-conflict';
 
@@ -76,7 +76,7 @@ export async function persistClaimDocumentMetadata(
   }
   if (
     params.expectedClaimOwnerId !== undefined &&
-    params.expectedClaimOwnerId !== principal.userId
+    (!memberSurface || params.expectedClaimOwnerId !== principal.userId)
   ) {
     throw new ClaimDocumentUploadConflictError();
   }
