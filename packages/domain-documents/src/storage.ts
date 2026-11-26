@@ -42,7 +42,7 @@ export function buildStoragePath(
     }
   }
 
-  const legacyFileName = fileName.replace(/[/\\]/g, '_').replace(/\.\./g, '_');
+  const legacyFileName = fileName.replaceAll(/[/\\]/g, '_').replaceAll('..', '_');
   const sanitizedFileName = legacyFileName.replace(/[^A-Za-z0-9._-]/g, '_');
   if (preserveLegacyKey && sanitizedFileName !== legacyFileName) {
     throw new Error('The existing upload key contains noncanonical characters.');
