@@ -199,7 +199,7 @@ test('checks the deployment, pinned HTTPS attestation and alias without followin
   const attestationUrl = `https://${expected.hostname}/.well-known/interdomestik-release-attestation.json`;
   const manifest = { ...binding, commitSha: 'a'.repeat(40) };
   let redirect = false;
-  const fetch = t.mock.method(globalThis, 'fetch', async (url, options) => {
+  const fetch = t.mock.method(globalThis, 'fetch', (url, options) => {
     if (url.href === providerUrl) {
       assert.equal(options.redirect, 'error');
       return Response.json(deployment);

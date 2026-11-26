@@ -15,7 +15,7 @@ export async function exerciseRefusals(
   const wrongBuild = receipt();
   expired.expiresAt = expired.observedAt;
   const staleApproval = approval();
-  for (const [name, input, reason] of [
+  const refusals = [
     ['missing', approval(receipt(), { raw: null }), 'RECEIPT_MISSING_OR_SIZE'],
     ['empty', approval(receipt(), { raw: Buffer.alloc(0) }), 'RECEIPT_MISSING_OR_SIZE'],
     ['unparseable', approval(receipt(), { raw: Buffer.from('{') }), 'RECEIPT_JSON_INVALID'],
@@ -45,12 +45,17 @@ export async function exerciseRefusals(
       { ...approval(), RELEASE_PHASE_MANIFEST: fixture.files('absent') },
       'MANIFEST_MISSING_OR_SIZE',
     ],
-  ] as const) {
-    await t.test(name, async () => {
-      assertRefusal(await run('contract', input), reason);
-      await afterRefusal();
-    });
-  }
+  ] as const;
+  await refusals.reduce(
+    (previous, [name, input, reason]) =>
+      previous.then(() =>
+        t.test(name, async () => {
+          assertRefusal(await run('contract', input), reason);
+          await afterRefusal();
+        })
+      ),
+    Promise.resolve()
+  );
   await t.test('alias moved away and back to the same deployment', async () => {
     writeFileSync(
       livePath,
