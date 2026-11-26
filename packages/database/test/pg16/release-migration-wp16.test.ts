@@ -175,7 +175,13 @@ test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidenc
                 await stageJournal(runner, 'missing');
                 await runner`GRANT UPDATE ("updatedAt") ON public.${runner(overbroadRelation)}
                 TO ${runner(sponsorRuntimeRole)} WITH GRANT OPTION`;
-                const checks = await inspectSponsorCheckpoint(runner);
+                const reserved = await runner.reserve();
+                let checks: Awaited<ReturnType<typeof inspectSponsorCheckpoint>>;
+                try {
+                  checks = await inspectSponsorCheckpoint(reserved);
+                } finally {
+                  reserved.release();
+                }
                 assert.equal(
                   checks.every(row => row.matches0105),
                   claimGranted
