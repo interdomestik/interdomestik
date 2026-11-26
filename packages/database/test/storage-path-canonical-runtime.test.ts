@@ -1,29 +1,28 @@
 import assert from 'node:assert/strict';
 import { randomBytes, randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
-import postgres from 'postgres';
 
 import { withDisposableClient } from '../src/disposable-client';
 import {
-  documentInput,
   foreignTenant,
   homeTenant,
   insertClaim,
   restricted,
   seedActors,
-  type Case,
 } from './claim-correspondence.fixture';
 import { provisionE2eRuntimeRole } from './e2e-runtime-role.fixture';
-import { migrateJournalThrough } from './journal-prefix.support';
-import {
-  migrateJournal,
-  scratchServerMissing,
-  withScratchDatabase,
-  type ScratchClient,
-} from './pg16/scratch-database';
+import { migrateJournal, scratchServerMissing } from './pg16/scratch-database';
 import { quoteIdentifier } from './rls-test-connection';
+import {
+  insertPath,
+  migrations,
+  pathColumn,
+  pathViolation,
+  tables,
+  withStorageScratch,
+  type Sql,
+  type Table,
+} from './storage-path-canonical.test-support';
 
 // PostgreSQL rejects NUL in text before evaluating a CHECK.
 const canonicalKeys = ['AbZ09_-', '.hidden', 'a.b', 'a.', 'nested/A9_b-c/file.PDF'];
@@ -59,63 +58,10 @@ const invalidKeys = [
   ['closing parenthesis', 'root/file)'],
 ] as const;
 
-const migrations = fileURLToPath(new URL('../drizzle/', import.meta.url));
-const constraints = {
-  claim_documents: 'claim_documents_file_path_canonical_ck',
-  documents: 'documents_storage_path_canonical_ck',
-} as const;
-const tables = ['claim_documents', 'documents'] as const;
-type Table = (typeof tables)[number];
-type Sql = postgres.Sql | postgres.TransactionSql;
-
-function pathColumn(table: Table) {
-  return table === 'claim_documents' ? 'file_path' : 'storage_path';
-}
-
-async function insertPath(
-  sql: Sql,
-  table: Table,
-  claim: Case,
-  path: string,
-  conflict?: { id: string; updatePath: string }
-) {
-  const id = conflict?.id ?? randomUUID();
-  const row =
-    table === 'claim_documents'
-      ? documentInput(claim, id, path)
-      : {
-          id,
-          tenant_id: claim.tenant,
-          entity_type: 'claim',
-          entity_id: claim.id,
-          file_name: 'Display name.pdf',
-          mime_type: 'application/pdf',
-          file_size: 120,
-          storage_path: path,
-          uploaded_by: claim.user,
-        };
-  const onConflict = conflict
-    ? sql`on conflict (id) do update set ${sql(pathColumn(table))} = ${conflict.updatePath}`
-    : sql``;
-  await sql`insert into public.${sql(table)} ${sql(row)} ${onConflict}`;
-  return id;
-}
-
 async function readPath(sql: Sql, table: Table, id: string): Promise<string | undefined> {
   const [row] = await sql<{ path: string }[]>`
     select ${sql(pathColumn(table))} as path from public.${sql(table)} where id = ${id}`;
   return row?.path;
-}
-
-function pathViolation(table: Table) {
-  return (error: unknown) => {
-    assert.ok(error instanceof Error);
-    const cause = error.cause ?? error;
-    assert.ok(cause instanceof postgres.PostgresError);
-    assert.equal(cause.code, '23514');
-    assert.equal(cause.constraint_name, constraints[table]);
-    return true;
-  };
 }
 
 async function assertRestrictedRole(tx: Sql, role: string, table: Table) {
@@ -148,14 +94,6 @@ async function assertRestrictedRole(tx: Sql, role: string, table: Table) {
       tenant: homeTenant,
     }
   );
-}
-
-async function withStorageScratch(name: string, proof: (admin: ScratchClient) => Promise<void>) {
-  await withScratchDatabase(name, async admin => {
-    const [version] = await admin`show server_version_num`;
-    assert.equal(Math.floor(Number(version.server_version_num) / 10_000), 16, 'requires PG16');
-    await proof(admin);
-  });
 }
 
 test('storage paths under the restricted runtime role', async t => {
@@ -282,80 +220,3 @@ test('storage paths under the restricted runtime role', async t => {
     }
   });
 });
-
-async function beforeStorageChecks(admin: ScratchClient) {
-  const journal: { entries: { tag: string }[] } = JSON.parse(
-    readFileSync(new URL('../drizzle/meta/_journal.json', import.meta.url), 'utf8')
-  );
-  const index = journal.entries.findIndex(entry => entry.tag.endsWith('_storage_path_canonical'));
-  assert.ok(index > 0, 'storage-check migration follows its journal predecessor');
-  await migrateJournalThrough(admin, migrations, journal.entries[index - 1].tag);
-  await seedActors(admin);
-  return insertClaim(admin);
-}
-
-async function snapshot(admin: ScratchClient) {
-  return await admin`
-    select 'claim_documents' as source, xmin::text as row_version, to_jsonb(c) as row
-    from public.claim_documents c
-    union all
-    select 'documents', xmin::text, to_jsonb(d) from public.documents d
-    order by source`;
-}
-
-test('storage path migration preserves populated canonical rows', async t => {
-  const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
-  if (missing) return t.skip(missing);
-  await withStorageScratch('storage_paths_cutover', async admin => {
-    const claim = await beforeStorageChecks(admin);
-    await insertPath(admin, 'claim_documents', claim, 'legacy/.hidden/AbZ09_-');
-    await insertPath(admin, 'documents', claim, 'legacy/A.b/policy.');
-    const before = await snapshot(admin);
-    assert.equal(before.length, 2);
-    await migrateJournal(admin, migrations);
-    assert.deepEqual(await snapshot(admin), before);
-    const checks = await admin`
-      select conname::text as name from pg_constraint
-      where convalidated and contype = 'c'
-        and conname in ${admin(Object.values(constraints))}
-      order by conname`;
-    assert.deepEqual(
-      checks.map(row => row.name),
-      Object.values(constraints)
-    );
-  });
-});
-
-for (const table of tables) {
-  test(`storage path migration rolls back when ${table} holds an incompatible row`, async t => {
-    const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
-    if (missing) return t.skip(missing);
-    await withStorageScratch('storage_paths_refusal', async admin => {
-      const claim = await beforeStorageChecks(admin);
-      await insertPath(
-        admin,
-        'claim_documents',
-        claim,
-        table === 'claim_documents' ? '/legacy' : 'legacy/claim'
-      );
-      await insertPath(
-        admin,
-        'documents',
-        claim,
-        table === 'documents' ? '/legacy' : 'legacy/document'
-      );
-      const before = await snapshot(admin);
-      const beforeJournal =
-        await admin`select count(*)::int as size from drizzle.__drizzle_migrations`;
-      await assert.rejects(migrateJournal(admin, migrations), pathViolation(table));
-      assert.deepEqual(await snapshot(admin), before);
-      assert.deepEqual(
-        await admin`select count(*)::int as size from drizzle.__drizzle_migrations`,
-        beforeJournal
-      );
-      const checks = await admin`
-        select conname from pg_constraint where conname in ${admin(Object.values(constraints))}`;
-      assert.equal(checks.length, 0);
-    });
-  });
-}
