@@ -6,6 +6,7 @@ import type postgres from 'postgres';
 import { actor, importDomain, withDomainPools } from './claim-correspondence-domain.fixture';
 import {
   approve,
+  attest,
   enroll,
   enrolledCase,
   ownerA,
@@ -15,6 +16,7 @@ import {
   proveDirectDecisionBranch,
   proveDirectPublicationBranch,
   provePendingDecisionVisibility,
+  proveStorageVerification,
   publish,
   setActor,
   setup,
@@ -22,6 +24,7 @@ import {
 import {
   proveEnrollmentSnapshot,
   proveOrdinaryPathSegment,
+  provePolymorphicAliasMutation,
   provePublishedScope,
   proveReservation,
 } from './claim-correspondence-inbound-reservation.fixture';
@@ -72,6 +75,8 @@ async function proveReceivedSet(connections: Connection) {
     0
   );
   const historical = await restricted(runtime, tx => insertEntry(tx, inboundInput(claim)));
+  assert.equal(await attest(admin, document), true);
+  assert.equal(await attest(admin, second), true);
   await restricted(runtime, tx => publish(tx, document));
   await restricted(runtime, tx => publish(tx, second));
   const entry = inboundInput(claim);
@@ -143,8 +148,26 @@ async function proveReceivedSet(connections: Connection) {
   assert.ok(rows.every(row => row.created_at instanceof Date));
 }
 
-async function proveUnenrolledSeals({ admin }: Connection) {
+async function proveUnenrolledSeals({ admin, runtime }: Connection) {
   const claim = await insertClaim(admin);
+  const entry = inboundInput(claim);
+  // The earlier guard allowed this complete, empty received set to commit on an unenrolled case.
+  await assert.rejects(
+    restricted(runtime, async tx => {
+      await tx`insert into claim_correspondence_received_seals (tenant_id, claim_id, correspondence_id, document_count)
+      values (${claim.tenant}, ${claim.id}, ${entry.id}, 0)`;
+      await insertEntry(tx, entry);
+    }),
+    { code: 'P1205' }
+  );
+  assert.equal(
+    (
+      await admin`select correspondence_id from claim_correspondence_received_seals
+    where correspondence_id = ${entry.id}`
+    ).length,
+    0
+  );
+  assert.equal((await admin`select id from claim_correspondence where id = ${entry.id}`).length, 0);
   const staff = actor(homeActor, 'staff', homeTenant, null);
   const { recordInboundCorrespondence } =
     await importDomain<typeof import('@interdomestik/domain-claims/claims/correspondence')>(
@@ -183,6 +206,7 @@ async function proveRollbackPause(connections: Connection) {
   );
   await enroll(admin, claim);
   const document = await approve(connections, claim, 'intended-for-member');
+  assert.equal(await attest(admin, document), true);
   await restricted(runtime, tx => publish(tx, document));
   const historical = await restricted(runtime, tx => insertEntry(tx, inboundInput(claim)));
 
@@ -234,6 +258,10 @@ test('WP-12.1 restricted runtime publication and receipt proofs', async t => {
   await withRegisterDb(t, async connections => {
     await setup(connections);
     await withDomainPools(connections.admin, connections.runtime, async () => {
+      await t.test(
+        'the database refuses a direct unenrolled seal and ordinary correspondence still works',
+        () => proveUnenrolledSeals(connections)
+      );
       await t.test('hides pending decision metadata from same-tenant members and staff peers', () =>
         provePendingDecisionVisibility(connections)
       );
@@ -246,8 +274,13 @@ test('WP-12.1 restricted runtime publication and receipt proofs', async t => {
       await t.test('direct publication writes enforce branch', () =>
         proveDirectPublicationBranch(connections)
       );
-      await t.test('an expired approval cannot be loaded or published', () =>
-        proveDecisionExpiry(connections)
+      await t.test(
+        'expiry blocks first publication and preserves an authorized committed replay',
+        () => proveDecisionExpiry(connections)
+      );
+      await t.test(
+        'only the trusted storage verifier can authorize exact approved publication',
+        () => proveStorageVerification(connections)
       );
       await t.test('refuses decisions outside the assigned home-tenant role and case scope', () =>
         proveDecisionDenials(connections)
@@ -259,6 +292,11 @@ test('WP-12.1 restricted runtime publication and receipt proofs', async t => {
         'reserved keys reject reparenting and polymorphic aliases across snapshots',
         () => proveReservation(connections)
       );
+      for (const mutation of ['rekey', 'restore', 'upsert'] as const) {
+        await t.test(`reserved encoded basename fails on a polymorphic ${mutation}`, () =>
+          provePolymorphicAliasMutation(connections, mutation)
+        );
+      }
       await t.test('older snapshots cannot publish ordinary evidence after activation', () =>
         proveEnrollmentSnapshot(connections)
       );
@@ -271,9 +309,6 @@ test('WP-12.1 restricted runtime publication and receipt proofs', async t => {
       );
       await t.test('seals exactly the received set and preserves empty historical receipts', () =>
         proveReceivedSet(connections)
-      );
-      await t.test('ordinary correspondence leaves seals empty with zero enrollment', () =>
-        proveUnenrolledSeals(connections)
       );
       await t.test('rollback closes receipt inserts while preserving self-supply', () =>
         proveRollbackPause(connections)

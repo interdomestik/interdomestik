@@ -15,11 +15,15 @@ import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { actionFailure, defineAction, defineFormAction } from '@/lib/safe-action';
 import { parameterFreeFailure } from '@/actions/staff-claims/register-failure';
 import { resolveEvidenceBucketName } from '@/lib/storage/evidence-bucket';
-import { downloadTenantObject, uploadTenantObject } from '@/lib/storage/service-role';
+import {
+  downloadTenantObject,
+  recordInboundObjectVerification,
+  uploadTenantObject,
+} from '@/lib/storage/service-role';
 import { isClaimUploadPaused } from '@/features/claims/upload/server/claim-upload-cutover';
 import {
   createInboundUploadIntent,
-  verifyInboundUploadIntent,
+  readInboundUploadIntent,
 } from '@/features/claims/upload/server/claim-upload-intent';
 import { buildEvidenceStoragePath } from '@/features/claims/upload/server/storage-path';
 import { revalidatePathForAllLocales } from '@/features/claims/upload/server/shared-upload';
@@ -93,7 +97,9 @@ const issueIntent = defineAction({
     const decision = await withPrincipalTenantContext(authority, tx =>
       loadInboundUploadDecision(tx, authority, claimId, decisionId)
     );
-    if (!decision || Date.now() >= decision.expiresAt) return actionFailure('FORBIDDEN');
+    if (!decision || (!decision.published && Date.now() >= decision.expiresAt)) {
+      return actionFailure('FORBIDDEN');
+    }
     return {
       intentToken: createInboundUploadIntent({
         claimId,
@@ -134,6 +140,16 @@ async function saveApprovedObject(decision: InboundUploadDecision, file: File) {
   ) {
     throw parameterFreeFailure(existing.error ?? uploadError, 'inbound PDF storage verification');
   }
+  const verification = await recordInboundObjectVerification({
+    ...target,
+    decisionId: decision.id,
+    fileSize: decision.fileSize,
+    sha256: decision.sha256,
+  });
+  if (verification.error) {
+    throw parameterFreeFailure(verification.error, 'recording inbound PDF storage verification');
+  }
+  return verification.data === true;
 }
 
 const upload = defineFormAction({
@@ -148,7 +164,7 @@ const upload = defineFormAction({
   async handler({ claimId, intentToken, file }, { authority }) {
     const { tenantId } = readTenantAuthority(authority);
     if (await isClaimUploadPaused(authority, tenantId, claimId)) return actionFailure('FORBIDDEN');
-    const intent = verifyInboundUploadIntent(intentToken, claimId);
+    const intent = readInboundUploadIntent(intentToken, claimId);
     if (!intent) return actionFailure('FORBIDDEN');
 
     const decision = await withPrincipalTenantContext(authority, tx =>
@@ -167,19 +183,18 @@ const upload = defineFormAction({
     ) {
       return actionFailure('document_invalid');
     }
+    if (decision.published) return { documentId: decision.documentId };
     if (Date.now() >= intent.expiresAt) return actionFailure('FORBIDDEN');
 
-    await saveApprovedObject(decision, file);
+    const verified = await saveApprovedObject(decision, file);
 
     const published = await withPrincipalTenantContext(authority, async tx => {
-      const current = await loadInboundUploadDecision(tx, authority, claimId, intent.decisionId);
-      if (
-        !current ||
-        fingerprint(current) !== intent.fingerprint ||
-        Date.now() >= intent.expiresAt
-      ) {
-        return false;
-      }
+      const current = await loadInboundUploadDecision(tx, authority, claimId, intent.decisionId, {
+        forPublication: true,
+      });
+      if (!current || fingerprint(current) !== intent.fingerprint) return false;
+      if (current.published) return true;
+      if (!verified || Date.now() >= intent.expiresAt) return false;
       const status = await confirmClaimEvidence(tx, {
         verifiedScope: { tenantId, claimId, actorId: current.uploaderId },
         verifiedUpload: {

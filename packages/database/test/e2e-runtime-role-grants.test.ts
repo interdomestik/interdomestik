@@ -86,6 +86,7 @@ test('late E2E role provisioning preserves the WP-12.1 column grants and trigger
   const role = `interdomestik_e2e_runtime_inbound_${suffix}`;
   const expectedInserts = {
     claim_inbound_pilot_cases: [],
+    claim_inbound_object_verifications: [],
     claim_inbound_upload_decisions: [
       'tenant_id',
       'claim_id',
@@ -142,11 +143,12 @@ test('late E2E role provisioning preserves the WP-12.1 column grants and trigger
       }
       const [guard] = await admin`select rolcanlogin as login, rolbypassrls as bypass,
         has_function_privilege(${role}, 'public.claim_inbound_owner_guard_fn()', 'EXECUTE') as owner_lookup,
-        has_function_privilege(${role}, 'public.claim_inbound_document_home_guard_fn()', 'EXECUTE') as home_lookup
+        has_function_privilege(${role}, 'public.claim_inbound_document_home_guard_fn()', 'EXECUTE') as home_lookup,
+        has_function_privilege(${role}, 'public.record_claim_inbound_object_verification(uuid,text,text,integer,text)', 'EXECUTE') as attest
         from pg_roles where rolname = 'interdomestik_wp12_guard'`;
       assert.deepEqual(
         { ...guard },
-        { login: false, bypass: false, owner_lookup: false, home_lookup: false }
+        { login: false, bypass: false, owner_lookup: false, home_lookup: false, attest: false }
       );
     } finally {
       const [exists] = await admin`select 1 from pg_roles where rolname = ${role}`;

@@ -111,6 +111,28 @@ export const claimInboundUploadDecisions = pgTable(
   ]
 ).enableRLS();
 
+export const claimInboundObjectVerifications = pgTable(
+  'claim_inbound_object_verifications',
+  {
+    decisionId: uuid('decision_id').primaryKey(),
+    verifiedAt: timestamp('verified_at', { withTimezone: true, precision: 3 })
+      .defaultNow()
+      .notNull(),
+  },
+  t => [
+    foreignKey({
+      name: 'claim_inbound_object_verifications_decision_fk',
+      columns: [t.decisionId],
+      foreignColumns: [claimInboundUploadDecisions.id],
+    }),
+    // The migration adds the verification writer's policy after creating its role.
+    pgPolicy('claim_inbound_object_verifications_read', {
+      for: 'select',
+      using: sql`exists (select 1 from public.claim_inbound_upload_decisions as d where d.id = ${t.decisionId})`,
+    }),
+  ]
+).enableRLS();
+
 export const claimCorrespondenceReceivedSeals = pgTable(
   'claim_correspondence_received_seals',
   {

@@ -158,7 +158,8 @@ const inboundIntentPayload = z.strictObject({
   expiresAt: z.number().int(),
 });
 
-export function verifyInboundUploadIntent(token: string, claimId: string) {
+// Authenticate the binding. The publication action checks expiry after looking for a committed replay.
+export function readInboundUploadIntent(token: string, claimId: string) {
   const parts = token.split('.');
   if (parts.length !== 2) return null;
   const [encoded, signature] = parts;
@@ -167,7 +168,7 @@ export function verifyInboundUploadIntent(token: string, claimId: string) {
     const result = inboundIntentPayload.safeParse(
       JSON.parse(Buffer.from(encoded, 'base64url').toString())
     );
-    if (!result.success || result.data.claimId !== claimId || result.data.expiresAt <= Date.now()) {
+    if (!result.success || result.data.claimId !== claimId) {
       return null;
     }
     return result.data;

@@ -208,27 +208,27 @@
     },
     {
       "key": "function [\"public\",\"claim_inbound_decision_guard_fn()\"]",
-      "value": "cca9eac441dff72a321eab50b12b734b",
+      "value": "b51d7a2e42c2a8b55d0a4b4ae0221e2f",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
       "key": "function [\"public\",\"claim_inbound_decision_visible(p_tenant text, p_case text, p_decider text, p_uploader text, p_recipient text, p_document text, p_bucket character varying, p_path character varying)\"]",
-      "value": "eb5a4f621dde01688878ed9bc8489f66",
+      "value": "dbce8df44d2d7f405e93f01190fb14e3",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
       "key": "function [\"public\",\"claim_inbound_document_home_guard_fn()\"]",
-      "value": "b3247135146f4b4b457234ef1ce529e6",
+      "value": "822c3f7b5407d7a2a1e71923dd22f356",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
       "key": "function [\"public\",\"claim_inbound_document_publication_guard_fn()\"]",
-      "value": "69121a3fa70fb81d3e0e487ee6df692e",
+      "value": "afda4bf04dab447d1836c6b08d09b23e",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
       "key": "function [\"public\",\"claim_inbound_document_scope_guard_fn()\"]",
-      "value": "ac9c1dc458b9fb09df9e3354a6848634",
+      "value": "7133973a6d99c27913f6b7c5a01356d0",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
@@ -243,7 +243,17 @@
     },
     {
       "key": "function [\"public\",\"claim_inbound_polymorphic_guard_fn()\"]",
-      "value": "e913e6001a04200ed177e7aeabacf92b",
+      "value": "04afcbe14853be8bbdf7fcdd543b39b4",
+      "migration": "0110_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_reserved_path(p_path text)\"]",
+      "value": "95923faa888b2782dd53d9aa2467105e",
+      "migration": "0110_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_staff_branch_allowed(p_tenant text, p_branch text)\"]",
+      "value": "4ee70dca361ebc3db8c15d58bb58221c",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
@@ -375,6 +385,11 @@
       "key": "function [\"public\",\"provision_exchange_rate_book_fn()\"]",
       "value": "9825802eb7a6c6077fe83f894dc9f95c",
       "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "function [\"public\",\"record_claim_inbound_object_verification(p_decision_id uuid, p_bucket text, p_path text, p_file_size integer, p_sha256 text)\"]",
+      "value": "aead56a819f776fd5f9c4869a1eda0e5",
+      "migration": "0110_wp12_1_inbound_documents"
     },
     {
       "key": "function [\"public\",\"sponsor_handover_cancel_attempts_guard_fn()\"]",
@@ -820,6 +835,11 @@
       "key": "policy [\"public\",\"claim_escalation_agreements\",\"tenant_write_claim_escalation_agreements\"]",
       "value": "permissive for insert to [\"public\"] using - check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
       "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_inbound_object_verifications\",\"claim_inbound_object_verifications_record\"]",
+      "value": "permissive for insert to [\"interdomestik_wp12_guard\"] using - check true",
+      "migration": "0110_wp12_1_inbound_documents"
     },
     {
       "key": "policy [\"public\",\"claim_inbound_pilot_cases\",\"claim_inbound_pilot_cases_guard\"]",
@@ -1678,6 +1698,11 @@
     },
     {
       "key": "rls-force [\"public\",\"claim_correspondence_received_seals\"]",
+      "value": "forced",
+      "migration": "0110_wp12_1_inbound_documents"
+    },
+    {
+      "key": "rls-force [\"public\",\"claim_inbound_object_verifications\"]",
       "value": "forced",
       "migration": "0110_wp12_1_inbound_documents"
     },

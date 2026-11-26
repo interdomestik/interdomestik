@@ -56,7 +56,7 @@ import { isMkGateProject } from './gate-project-identity';
 
 test.describe('WP-12.1 MK pre-check', () => {
   // Signed capabilities stay in process memory. Keep request and storage traces off here.
-  test.use({ trace: 'off', video: 'off', screenshot: 'off' });
+  test.use({ secureDoor: true, trace: 'off', video: 'off', screenshot: 'off' });
 
   test('publishes the approved PDF before receipt and binds it to the approved member', async ({
     browser,
@@ -222,35 +222,49 @@ test.describe('WP-12.1 MK pre-check', () => {
     await enrollMkCase(claim);
     await loginAtDoor(page, origin, locale, 'MK_STAFF', info);
     const form = await staffPilotForm(page, origin, locale, claim, info);
+    expect(await page.evaluate(() => window.isSecureContext)).toBe(true);
     const stale = await approvePdf(form, 'mk-expired-approval');
     const [decision] = await dbAdmin
       .select()
       .from(claimInboundUploadDecisions)
       .where(eq(claimInboundUploadDecisions.id, stale));
     await placeApprovedPdf(decision.bucket, decision.filePath);
-    await dbAdmin.transaction(async tx => {
-      await tx.execute(
-        sql`alter table claim_inbound_upload_decisions disable trigger claim_inbound_decisions_immutable`
-      );
-      await tx.execute(sql`update claim_inbound_upload_decisions set decided_at = clock_timestamp() - interval '16 minutes'
-        where id = ${stale}`);
-      await tx.execute(
-        sql`alter table claim_inbound_upload_decisions enable trigger claim_inbound_decisions_immutable`
-      );
-    });
+    const expire = (id: string) =>
+      dbAdmin.transaction(async tx => {
+        await tx.execute(
+          sql`alter table claim_inbound_upload_decisions disable trigger claim_inbound_decisions_immutable`
+        );
+        await tx.execute(sql`update claim_inbound_upload_decisions set decided_at = clock_timestamp() - interval '16 minutes'
+        where id = ${id}`);
+        await tx.execute(
+          sql`alter table claim_inbound_upload_decisions enable trigger claim_inbound_decisions_immutable`
+        );
+      });
+    await expire(stale);
     await form.getByRole('button', { name: mkCopy.inbound.upload }).click();
     await expect(form.getByRole('alert')).toHaveText(mkCopy.feedback.forbidden);
     expect(await doorDocuments(claim.id)).toHaveLength(0);
     expect(await listMkObjects(claim)).toHaveLength(1);
 
-    expect(await approvePdf(form, 'mk-expired-approval')).not.toBe(stale);
+    const fresh = await approvePdf(form, 'mk-expired-approval');
+    expect(fresh).not.toBe(stale);
     await publishPdf(form);
     const [published, ...rest] = await doorDocuments(claim.id);
     expect(rest).toHaveLength(0);
     expect(published?.id).not.toBe(decision.documentId);
     await assertStoredDoorDocument(published, inboundPdf.buffer);
-  });
 
+    await expire(fresh);
+    await form.getByLabel(mkCopy.inbound.file).setInputFiles(inboundPdf);
+    await form.getByLabel(mkCopy.inbound.decisionRef).fill(fresh);
+    await publishPdf(form);
+    expect((await doorDocuments(claim.id)).map(document => document.id)).toEqual([published.id]);
+    expect(await listMkObjects(claim)).toHaveLength(2);
+  });
+});
+
+test.describe('WP-12.1 MK provider cutover', () => {
+  test.use({ trace: 'off', video: 'off', screenshot: 'off' });
   test('storage refuses the legacy upload credential after the verified provider expiry', async ({
     browser,
     door,

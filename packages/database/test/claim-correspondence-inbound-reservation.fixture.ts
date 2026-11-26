@@ -4,6 +4,7 @@ import type postgres from 'postgres';
 
 import {
   approve,
+  attest,
   changeOwner,
   enroll,
   enrolledCase,
@@ -58,6 +59,7 @@ export async function provePublishedScope(connections: Connection) {
       restricted(runtime, tx => publish(tx, { ...document, category: 'legal' })),
       reserved
     );
+    assert.equal(await attest(admin, document), true);
     await restricted(runtime, tx => publish(tx, document, explicitHome));
     const frozen = [ownerB, explicitHome ? null : homeTenant, 'legal'] as const;
     await assert.rejects(
@@ -128,6 +130,7 @@ export async function provePublishedScope(connections: Connection) {
 
   const claim = await enrolledCase(admin);
   const document = await approve(connections, claim, 'intended-for-member');
+  assert.equal(await attest(admin, document), true);
   // Hold an older repeatable-read snapshot in one connection and publish in the other.
   await restricted(
     peer,
@@ -295,6 +298,24 @@ export async function proveReservation(connections: Connection) {
   );
   const ordinaryId = randomUUID();
   await restricted(peer, tx => alias(tx, ordinaryId, assignedPath(other, ordinaryId)));
+  const encoded = document.file_path.replace('/wp12-inbound-', '/%77p12-inbound-');
+  const aliases = [
+    document.file_path + '#fragment',
+    document.file_path + '?query',
+    document.file_path + '%3Fquery',
+    encoded,
+    encoded.replace('%77', '%2577'),
+  ];
+  for (const path of aliases) {
+    await assert.rejects(
+      restricted(peer, tx => insertDocument(tx, documentInput(other, randomUUID(), path))),
+      reserved
+    );
+    await assert.rejects(
+      restricted(peer, tx => alias(tx, randomUUID(), path)),
+      reserved
+    );
+  }
   await restricted(peer, async tx => {
     const updated =
       await tx`update documents set deleted_at = now() where id = ${ordinaryId} returning id`;
@@ -313,8 +334,8 @@ export async function proveReservation(connections: Connection) {
       peer,
       tx => tx`insert into documents
     (id, tenant_id, entity_type, entity_id, file_name, storage_path, uploaded_by)
-    values (${ordinaryId}, ${homeTenant}, 'claim', ${other.id}, 'Fixture PDF', ${document.file_path}, ${homeActor})
-    on conflict (id) do update set storage_path = excluded.storage_path, deleted_at = null`
+    values (${ordinaryId}, ${homeTenant}, 'claim', ${other.id}, 'Fixture PDF', ${assignedPath(other, ordinaryId)}, ${homeActor})
+    on conflict (id) do update set storage_path = ${document.file_path}, deleted_at = null`
     ),
     reserved
   );
@@ -327,16 +348,62 @@ export async function proveReservation(connections: Connection) {
       await tx`update documents set deleted_at = null where id = ${ordinaryId} returning id`;
     assert.equal(restored.length, 1);
   });
+  assert.equal(await attest(admin, document), true);
   await restricted(runtime, tx => publish(tx, document));
   const [count] = await admin`select
     (select count(*)::int from claim_documents where file_path = ${document.file_path}) as ordinary,
-    (select count(*)::int from documents where storage_path = ${document.file_path} or id = ${document.id}) as aliases`;
+    (select count(*)::int from documents where storage_path in ${admin([document.file_path, ...aliases])} or id = ${document.id}) as aliases`;
   assert.deepEqual({ ...count }, { ordinary: 1, aliases: 0 });
+}
+
+export async function provePolymorphicAliasMutation(
+  { admin, runtime }: Connection,
+  mutation: 'rekey' | 'restore' | 'upsert'
+) {
+  const claim = await insertClaim(admin);
+  const id = randomUUID();
+  const nextId = randomUUID();
+  const canonical = assignedPath(claim, id);
+  // Both parent revisions accept the encoded basename, even before a pilot decision exists.
+  const encoded = assignedPath(claim, '%77p12-inbound-' + 'a'.repeat(32));
+  const insert = (tx: postgres.TransactionSql) => tx`insert into documents
+    (id, tenant_id, entity_type, entity_id, file_name, storage_path, uploaded_by)
+    values (${id}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', ${canonical}, ${homeActor})`;
+  await restricted(runtime, async tx => {
+    await insert(tx);
+    if (mutation !== 'rekey') await tx`update documents set deleted_at = now() where id = ${id}`;
+  });
+  const change = (tx: postgres.TransactionSql, path: string) => {
+    switch (mutation) {
+      case 'rekey':
+        return tx`update documents set id = ${nextId}, storage_path = ${path} where id = ${id} returning id`;
+      case 'restore':
+        return tx`update documents set deleted_at = null, storage_path = ${path} where id = ${id} returning id`;
+      case 'upsert':
+        // The insert arm uses an ordinary key. Only the conflict update introduces the alias.
+        return tx`insert into documents (id, tenant_id, entity_type, entity_id, file_name, storage_path, uploaded_by)
+          values (${id}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', ${canonical}, ${homeActor})
+          on conflict (id) do update set storage_path = ${path}, deleted_at = null returning id`;
+    }
+  };
+  await assert.rejects(
+    restricted(runtime, tx => change(tx, encoded)),
+    {
+      ...reserved,
+      message: 'Reserved pilot document refused',
+    }
+  );
+  const [unchanged] =
+    await admin`select id, storage_path, deleted_at from documents where id = ${id}`;
+  assert.equal(unchanged?.storage_path, canonical);
+  assert.equal(unchanged?.deleted_at !== null, mutation !== 'rekey');
+  const [control] = await restricted(runtime, tx => change(tx, canonical));
+  assert.equal(control?.id, mutation === 'rekey' ? nextId : id);
 }
 
 export async function proveOrdinaryPathSegment({ admin, runtime }: Connection) {
   // A case ID can resemble the pilot prefix. The reserved segment is the object file name.
-  const claim = await insertClaim(admin, { id: 'wp12-inbound-ordinary-case' });
+  const claim = await insertClaim(admin, { id: 'wp12-inbound-' + 'a'.repeat(32) + '.pdf' });
   const document = documentInput(claim);
   await restricted(runtime, async tx => {
     await insertDocument(tx, document);

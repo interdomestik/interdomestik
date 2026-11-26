@@ -1,12 +1,13 @@
 import { randomUUID } from 'node:crypto';
 
-import { and, eq, getTableColumns, gt, isNotNull, sql } from 'drizzle-orm';
+import { and, eq, exists, getTableColumns, isNotNull, sql } from 'drizzle-orm';
 import { type TenantTransaction } from '@interdomestik/database';
 import { insertClaimInboundDecision } from '@interdomestik/database/claim-evidence-object-lock';
 import { withPrincipalTenantContext } from '@interdomestik/database/free-start-drafts';
 import {
   claimInboundPilotCases,
   claimInboundUploadDecisions,
+  claimDocuments,
   claims,
 } from '@interdomestik/database/schema';
 import {
@@ -100,11 +101,12 @@ export function readClaimUploadPaused(
   });
 }
 
-async function lockInboundPilotCase(
+async function readInboundPilotScope(
   tx: TenantTransaction,
   tenantId: string,
   claimId: string,
-  principal: NonNullable<ReturnType<typeof readTenantAuthority>['principal']>
+  principal: NonNullable<ReturnType<typeof readTenantAuthority>['principal']>,
+  lock: boolean
 ) {
   const staffScope =
     principal.role === 'staff'
@@ -115,7 +117,7 @@ async function lockInboundPilotCase(
           userId: principal.userId,
         })
       : undefined;
-  const [row] = await tx
+  const query = tx
     .select({ recipientId: claims.userId, uploaderId: claims.staffId })
     .from(claims)
     .where(
@@ -125,8 +127,8 @@ async function lockInboundPilotCase(
         claimLifecycleStatusNotIn(['draft']),
         staffScope
       )
-    )
-    .for('update');
+    );
+  const [row] = await (lock ? query.for('update') : query);
   if (!row?.recipientId || !row.uploaderId) return null;
   const enrollment = await readInboundPilotCase(tx, tenantId, claimId);
   if (!enrollment?.enrolledAt || enrollment.paused) return null;
@@ -162,7 +164,7 @@ export async function recordInboundUploadDecision(
     return { ok: false, code: 'forbidden' } as const;
   }
   return withPrincipalTenantContext(authority, async tx => {
-    const scope = await lockInboundPilotCase(tx, tenantId, input.claimId, principal);
+    const scope = await readInboundPilotScope(tx, tenantId, input.claimId, principal, true);
     if (!scope || (role === 'staff' && principal.userId !== scope.uploaderId)) {
       return { ok: false, code: 'forbidden' } as const;
     }
@@ -212,30 +214,48 @@ export async function loadInboundUploadDecision(
   tx: TenantTransaction,
   authority: TenantAuthority,
   claimId: string,
-  decisionId: string
+  decisionId: string,
+  { forPublication = false } = {}
 ) {
   const { tenantId, accessTenantId, principal } = readTenantAuthority(authority);
   if (tenantId !== accessTenantId || principal?.role !== 'staff') return null;
-  const scope = await lockInboundPilotCase(tx, tenantId, claimId, principal);
+  const scope = await readInboundPilotScope(tx, tenantId, claimId, principal, forPublication);
   if (scope?.uploaderId !== principal.userId) return null;
-  const deadline = sql`public.claim_inbound_decision_deadline(decided_at)`;
+  const approval = claimInboundUploadDecisions;
+  const deadline = sql`public.claim_inbound_decision_deadline(${approval.decidedAt})`;
+  const published = exists(
+    tx
+      .select({ id: claimDocuments.id })
+      .from(claimDocuments)
+      .where(
+        and(
+          eq(claimDocuments.tenantId, approval.tenantId),
+          eq(claimDocuments.claimId, approval.claimId),
+          eq(claimDocuments.id, approval.documentId),
+          eq(claimDocuments.bucket, approval.bucket),
+          eq(claimDocuments.filePath, approval.filePath),
+          eq(claimDocuments.uploadedBy, approval.uploaderId)
+        )
+      )
+  );
   const [decision] = await tx
     .select({
-      ...getTableColumns(claimInboundUploadDecisions),
+      ...getTableColumns(approval),
+      published: sql<boolean>`${published}`,
+      withinDeadline: sql<boolean>`${deadline} > clock_timestamp()`,
       expiresAt: sql<number>`
       floor(extract(epoch from ${deadline}) * 1000)::bigint
     `.mapWith(Number),
     })
-    .from(claimInboundUploadDecisions)
+    .from(approval)
     .where(
       and(
-        eq(claimInboundUploadDecisions.tenantId, tenantId),
-        eq(claimInboundUploadDecisions.claimId, claimId),
-        eq(claimInboundUploadDecisions.id, decisionId),
-        eq(claimInboundUploadDecisions.uploaderId, principal.userId),
-        eq(claimInboundUploadDecisions.recipientId, scope.recipientId),
-        gt(deadline, sql`clock_timestamp()`)
+        eq(approval.tenantId, tenantId),
+        eq(approval.claimId, claimId),
+        eq(approval.id, decisionId),
+        eq(approval.uploaderId, principal.userId),
+        eq(approval.recipientId, scope.recipientId)
       )
     );
-  return decision ?? null;
+  return decision && (decision.withinDeadline || decision.published) ? decision : null;
 }

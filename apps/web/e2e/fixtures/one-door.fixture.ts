@@ -4,17 +4,21 @@ import { waitForTestSignal } from '../gate/signal-wait.fixture';
 import { gotoApp } from '../utils/navigation';
 import { requireDoorActor } from './one-door-data.fixture';
 
-export function doorLocation(info: TestInfo): { origin: string; locale: string } {
+export function doorLocation(info: TestInfo, secure = false): { origin: string; locale: string } {
   const baseUrl = new URL(info.project.use.baseURL?.toString() ?? 'http://localhost:3000');
-  const host = process.env.IDA_HOST;
-  if (!host) throw new Error('One-door proof requires configured IDA_HOST');
+  const host = secure ? process.env.PW_SECURE_IDA_HOST : process.env.IDA_HOST;
+  if (!host) throw new Error('One-door proof requires a configured IDA host');
   const door = new URL(host.includes('://') ? host : `${baseUrl.protocol}//${host}`);
   return { origin: door.origin, locale: baseUrl.pathname.split('/').find(Boolean) ?? 'en' };
 }
 
-export const test = base.extend<{ door: { page: Page; origin: string; locale: string } }>({
-  door: async ({ browser }, use, info) => {
-    const { origin, locale } = doorLocation(info);
+export const test = base.extend<{
+  secureDoor: boolean;
+  door: { page: Page; origin: string; locale: string };
+}>({
+  secureDoor: [false, { option: true }],
+  door: async ({ browser, secureDoor }, use, info) => {
+    const { origin, locale } = doorLocation(info, secureDoor);
     const context = await browser.newContext({
       baseURL: origin,
       extraHTTPHeaders: {},
@@ -36,6 +40,30 @@ export const test = base.extend<{ door: { page: Page; origin: string; locale: st
   },
 });
 export { expect };
+
+// Chromium resolves the secure *.localhost origin even when the Node resolver does not.
+export async function requestFromDoor(page: Page, url: string, json?: object) {
+  const response = await page.evaluate(
+    async ({ url, json }) => {
+      if (new URL(url).origin !== window.location.origin) throw new Error('Wrong door origin');
+      const response = await fetch(url, {
+        redirect: 'manual',
+        ...(json && {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(json),
+        }),
+      });
+      return {
+        status: response.status,
+        contentType: response.headers.get('content-type'),
+        body: Array.from(new Uint8Array(await response.arrayBuffer())),
+      };
+    },
+    { url, json }
+  );
+  return { ...response, body: Buffer.from(response.body) };
+}
 
 export async function loginAtDoor(
   page: Page,
@@ -85,11 +113,17 @@ export async function loginAtDoor(
         page.getByTestId('role-shell').getByTestId('branch-dashboard-title')
       ).toBeVisible();
     }
-    const response = await page.request.get(`${origin}/api/auth/get-session`, {
-      timeout: remaining(),
-    });
-    expect(response.status()).toBe(200);
-    const session = await response.json();
+    const url = `${origin}/api/auth/get-session`;
+    const session = await (async () => {
+      if (new URL(origin).hostname === 'ida.localhost') {
+        const response = await requestFromDoor(page, url);
+        expect(response.status).toBe(200);
+        return JSON.parse(response.body.toString('utf8'));
+      }
+      const response = await page.request.get(url, { timeout: remaining() });
+      expect(response.status()).toBe(200);
+      return response.json();
+    })();
     expect(session?.user?.id).toBe(E2E_USER_IDS[actor]);
     expect(session.user).toMatchObject({
       id: expected.id,

@@ -7,6 +7,7 @@ const mocks = vi.hoisted(() => ({
   load: vi.fn(),
   upload: vi.fn(),
   download: vi.fn(),
+  attest: vi.fn(),
   confirm: vi.fn(),
 }));
 
@@ -22,6 +23,7 @@ vi.mock('@/features/claims/upload/server/shared-upload', () => ({
 vi.mock('@/lib/storage/service-role', () => ({
   uploadTenantObject: mocks.upload,
   downloadTenantObject: mocks.download,
+  recordInboundObjectVerification: mocks.attest,
 }));
 vi.mock('@interdomestik/domain-documents/claim-evidence', () => ({
   confirmClaimEvidence: mocks.confirm,
@@ -44,9 +46,9 @@ const fileName = 'evidence.pdf';
 const mimeType = 'application/pdf';
 const bytes = '%PDF-1.4\n%%EOF';
 
-async function issueAndSubmit(content = bytes) {
+async function issue(content = bytes) {
   const file = new File([content], fileName, { type: mimeType });
-  mocks.load.mockResolvedValue({
+  const decision = {
     id: decisionId,
     tenantId: STAFF_A.tenantId,
     claimId,
@@ -60,7 +62,9 @@ async function issueAndSubmit(content = bytes) {
     fileSize: file.size,
     sha256: createHash('sha256').update(content).digest('hex'),
     expiresAt: Date.now() + 60_000,
-  });
+    published: false,
+  };
+  mocks.load.mockResolvedValue(decision);
   const issued = await issueInboundEvidenceIntent({ claimId, decisionId });
   if (!issued.success || !issued.data)
     throw new Error('Expected the staff action to issue an intent');
@@ -68,6 +72,11 @@ async function issueAndSubmit(content = bytes) {
   form.set('claimId', claimId);
   form.set('intentToken', issued.data.intentToken);
   form.set('file', file);
+  return { decision, form };
+}
+
+async function issueAndSubmit(content = bytes) {
+  const { form } = await issue(content);
   return uploadInboundEvidence(undefined, form);
 }
 
@@ -78,8 +87,12 @@ describe('inbound PDF publication', () => {
     mocks.authorize.mockResolvedValue(authorizedSession(STAFF_A));
     mocks.confirm.mockResolvedValue('created');
     mocks.upload.mockResolvedValue({ error: null });
+    mocks.attest.mockResolvedValue({ data: true, error: null });
   });
-  afterEach(() => vi.unstubAllEnvs());
+  afterEach(() => {
+    vi.useRealTimers();
+    vi.unstubAllEnvs();
+  });
 
   it('refuses matching non-PDF bytes before storage', async () => {
     expect(await issueAndSubmit('Synthetic text')).toMatchObject({
@@ -98,13 +111,73 @@ describe('inbound PDF publication', () => {
     expect(await issueAndSubmit()).toMatchObject({ success: false });
     expect(mocks.upload).toHaveBeenCalledOnce();
     expect(mocks.download).toHaveBeenCalledOnce();
+    expect(mocks.attest).not.toHaveBeenCalled();
     expect(mocks.confirm).not.toHaveBeenCalled();
   });
 
-  it('confirms a successful write after reading back the exact bytes', async () => {
+  it('confirms after exact readback and a decision-bound verification receipt', async () => {
     mocks.download.mockResolvedValue({ data: new Blob([bytes]), error: null });
     expect(await issueAndSubmit()).toMatchObject({ success: true, data: { documentId } });
     expect(mocks.download).toHaveBeenCalledOnce();
+    expect(mocks.attest).toHaveBeenCalledWith(
+      expect.objectContaining({ decisionId, fileSize: bytes.length })
+    );
     expect(mocks.confirm).toHaveBeenCalledOnce();
+    expect(mocks.download.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.attest.mock.invocationCallOrder[0]
+    );
+    expect(mocks.attest.mock.invocationCallOrder[0]).toBeLessThan(
+      mocks.confirm.mock.invocationCallOrder[0]
+    );
+  });
+
+  it('leaves verified bytes unpublished when recording the receipt fails', async () => {
+    mocks.download.mockResolvedValue({ data: new Blob([bytes]), error: null });
+    mocks.attest.mockResolvedValue({ data: null, error: { message: 'Synthetic RPC failure' } });
+    expect(await issueAndSubmit()).toMatchObject({ success: false });
+    expect(mocks.attest).toHaveBeenCalledOnce();
+    expect(mocks.confirm).not.toHaveBeenCalled();
+  });
+
+  it('acknowledges exact expired replay without touching storage or publishing again', async () => {
+    const { decision, form } = await issue();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(decision.expiresAt);
+    mocks.load.mockResolvedValue({ ...decision, published: true });
+    const reissued = await issueInboundEvidenceIntent({ claimId, decisionId });
+    expect(reissued).toMatchObject({
+      success: true,
+      data: { intentToken: form.get('intentToken') },
+    });
+    expect(await uploadInboundEvidence(undefined, form)).toMatchObject({
+      success: true,
+      data: { documentId },
+    });
+    form.set('file', new File([bytes.replace('1.4', '1.5')], fileName, { type: mimeType }));
+    expect(await uploadInboundEvidence(undefined, form)).toMatchObject({
+      success: false,
+      code: 'document_invalid',
+    });
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(mocks.download).not.toHaveBeenCalled();
+    expect(mocks.attest).not.toHaveBeenCalled();
+    expect(mocks.confirm).not.toHaveBeenCalled();
+  });
+
+  it('refuses an expired first upload before any storage write', async () => {
+    const { decision, form } = await issue();
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(decision.expiresAt);
+    mocks.load.mockResolvedValue(null);
+    expect(await issueInboundEvidenceIntent({ claimId, decisionId })).toMatchObject({
+      success: false,
+      code: 'FORBIDDEN',
+    });
+    expect(await uploadInboundEvidence(undefined, form)).toMatchObject({
+      success: false,
+      code: 'FORBIDDEN',
+    });
+    expect(mocks.upload).not.toHaveBeenCalled();
+    expect(mocks.confirm).not.toHaveBeenCalled();
   });
 });

@@ -54,6 +54,12 @@ export async function withRuntime(
         recipient_id, uploader_id, office_receipt_ref, document_id, bucket, file_path, file_name, mime_type, file_size, sha256)
         on claim_inbound_upload_decisions to ${roleSql};
       grant select, insert, update, delete on documents to ${roleSql}`);
+    // The reservation and seal regressions also run against the parent migration for comparison.
+    const [{ present }] =
+      await admin`select to_regclass('public.claim_inbound_object_verifications') is not null as present`;
+    if (present) {
+      await admin.unsafe(`grant select on claim_inbound_object_verifications to ${roleSql}`);
+    }
     await withDisposableClient(
       runtimeUrl.toString(),
       { applicationName: 'wp12_register_runtime', max: runtimeConnections },

@@ -57,6 +57,17 @@ CREATE TABLE "claim_inbound_upload_decisions" (
 );
 --> statement-breakpoint
 ALTER TABLE "claim_inbound_upload_decisions" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE TABLE public.claim_inbound_object_verifications (
+  decision_id uuid PRIMARY KEY NOT NULL,
+  verified_at timestamp (3) with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT claim_inbound_object_verifications_decision_fk FOREIGN KEY (decision_id)
+    REFERENCES public.claim_inbound_upload_decisions (id)
+);
+--> statement-breakpoint
+ALTER TABLE public.claim_inbound_object_verifications ENABLE ROW LEVEL SECURITY;
+--> statement-breakpoint
+ALTER TABLE public.claim_inbound_object_verifications FORCE ROW LEVEL SECURITY;
+--> statement-breakpoint
 ALTER TABLE "claim_correspondence_received_documents" ADD CONSTRAINT "claim_received_documents_entry_fk" FOREIGN KEY ("tenant_id","claim_id","correspondence_id") REFERENCES "public"."claim_correspondence"("tenant_id","claim_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "claim_correspondence_received_documents" ADD CONSTRAINT "claim_received_documents_document_fk" FOREIGN KEY ("tenant_id","claim_id","claim_document_id") REFERENCES "public"."claim_documents"("tenant_id","claim_id","id") ON DELETE restrict ON UPDATE restrict;--> statement-breakpoint
 ALTER TABLE "claim_correspondence_received_seals" ADD CONSTRAINT "claim_received_seals_claim_fk" FOREIGN KEY ("tenant_id","claim_id") REFERENCES "public"."claim"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
@@ -84,6 +95,34 @@ CREATE POLICY "claim_inbound_decisions_tenant" ON "claim_inbound_upload_decision
         and "claim_inbound_upload_decisions"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);
 
 --> statement-breakpoint
+-- Classify the URL path's final segment without rewriting the stored reference.
+CREATE FUNCTION public.claim_inbound_reserved_path(p_path text) RETURNS boolean
+LANGUAGE plpgsql IMMUTABLE STRICT SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  reserved_basename constant text := '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf';
+  object_key text;
+  encoded_octet text[];
+  byte integer;
+BEGIN
+  object_key := split_part(split_part(translate(p_path, E'\t\r\n', ''), '#', 1), '?', 1);
+  object_key := regexp_replace(replace(object_key, E'\\', '/') COLLATE "C", '[[:cntrl:] ]+$', '');
+  IF object_key COLLATE "C" ~ (reserved_basename || '$') THEN RETURN true; END IF;
+  IF strpos(object_key, '%') = 0 THEN RETURN false; END IF;
+
+  object_key := regexp_replace(object_key, '%(?:25)+([0-9a-f]{2})', E'%\\1', 'gi');
+  FOR encoded_octet IN SELECT DISTINCT regexp_matches(object_key, '%([0-9a-fA-F]{2})', 'g') LOOP
+    byte := get_byte(decode(encoded_octet[1], 'hex'), 0);
+    IF byte BETWEEN 1 AND 127 AND byte <> 37 THEN
+      object_key := replace(object_key, '%' || encoded_octet[1], chr(byte));
+    END IF;
+  END LOOP;
+  object_key := replace(translate(object_key, E'\t\r\n', ''), E'\\', '/');
+  object_key := regexp_replace(object_key COLLATE "C", '[[:cntrl:] ]+$', '');
+  -- Encoded delimiters may be decoded upstream. Keep any literal reserved path recognized above.
+  RETURN object_key COLLATE "C" ~ (reserved_basename || '($|[?#])');
+END;
+$$;
+--> statement-breakpoint
 -- The reserved namespace is protected independently of the writer's snapshot, tenant or case.
 LOCK TABLE public.claim_documents, public.documents IN SHARE ROW EXCLUSIVE MODE;
 --> statement-breakpoint
@@ -91,10 +130,10 @@ DO $$
 BEGIN
   IF EXISTS (
     SELECT 1 FROM public.claim_documents
-    WHERE id LIKE 'wp12-inbound-%' OR file_path ~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$'
+    WHERE id LIKE 'wp12-inbound-%' OR public.claim_inbound_reserved_path(file_path)
   ) OR EXISTS (
     SELECT 1 FROM public.documents
-    WHERE id LIKE 'wp12-inbound-%' OR storage_path ~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$'
+    WHERE id LIKE 'wp12-inbound-%' OR public.claim_inbound_reserved_path(storage_path)
   ) THEN
     RAISE EXCEPTION 'WP-12.1 document namespace is already occupied';
   END IF;
@@ -132,8 +171,12 @@ GRANT USAGE, CREATE ON SCHEMA public TO interdomestik_wp12_guard;
 --> statement-breakpoint
 GRANT SELECT (tenant_id, claim_id, enrolled_at) ON public.claim_inbound_pilot_cases TO interdomestik_wp12_guard;
 --> statement-breakpoint
-GRANT SELECT (tenant_id, claim_id, document_id, bucket, file_path)
+GRANT SELECT (id, tenant_id, claim_id, document_id, bucket, file_path, decided_at, file_size, sha256)
   ON public.claim_inbound_upload_decisions TO interdomestik_wp12_guard;
+--> statement-breakpoint
+GRANT INSERT ON public.claim_inbound_object_verifications TO interdomestik_wp12_guard;
+--> statement-breakpoint
+GRANT SELECT (tenant_id, id, role, branch_id) ON public."user" TO interdomestik_wp12_guard;
 --> statement-breakpoint
 GRANT SELECT (tenant_id, claim_id, id, bucket, file_path)
   ON public.claim_documents TO interdomestik_wp12_guard;
@@ -163,30 +206,46 @@ CREATE POLICY claim_inbound_guard_case_lock ON public.claim
 CREATE POLICY claim_inbound_guard_case_no_update ON public.claim
   AS RESTRICTIVE FOR UPDATE TO interdomestik_wp12_guard USING (true) WITH CHECK (false);
 --> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_staff_branch_allowed(p_tenant text, p_branch text) RETURNS boolean
+LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+  SELECT p_tenant = current_setting('app.current_tenant_id', true)
+    AND p_tenant = current_setting('app.current_access_tenant_id', true)
+    AND EXISTS (
+      SELECT 1 FROM public."user" AS staff
+      WHERE staff.tenant_id = p_tenant AND staff.id = current_setting('app.current_actor_id', true)
+        AND staff.role = 'staff' AND (staff.branch_id IS NULL OR staff.branch_id = p_branch)
+    );
+$$;
+--> statement-breakpoint
+ALTER FUNCTION public.claim_inbound_staff_branch_allowed(text, text) OWNER TO interdomestik_wp12_guard;
+--> statement-breakpoint
 CREATE FUNCTION public.claim_inbound_decision_visible(
   p_tenant text, p_case text, p_decider text, p_uploader text, p_recipient text,
   p_document text, p_bucket varchar, p_path varchar
 ) RETURNS boolean
-LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
-  SELECT CASE
-    WHEN CURRENT_USER = 'interdomestik_wp12_guard' THEN true
-    WHEN current_setting('app.current_actor_role', true) = 'tenant_admin' THEN
-      p_decider = current_setting('app.current_actor_id', true)
-    WHEN current_setting('app.current_actor_role', true) = 'staff' THEN EXISTS (
+LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  -- Return before the principal query is planned and its column grants are checked.
+  IF CURRENT_USER = 'interdomestik_wp12_guard' THEN RETURN true; END IF;
+  IF current_setting('app.current_actor_role', true) = 'tenant_admin' THEN
+    RETURN p_decider = current_setting('app.current_actor_id', true);
+  END IF;
+  IF current_setting('app.current_actor_role', true) = 'staff' THEN
+    RETURN EXISTS (
       SELECT 1 FROM public.claim AS c
       WHERE c.tenant_id = p_tenant AND c.id = p_case
         AND c."staffId" = current_setting('app.current_actor_id', true)
         AND c.case_lifecycle_state <> 'draft'
-        AND (nullif(current_setting('app.current_actor_branch_id', true), '') IS NULL
-          OR c.branch_id = current_setting('app.current_actor_branch_id', true))
+        AND public.claim_inbound_staff_branch_allowed(c.tenant_id, c.branch_id)
         AND ((p_uploader = c."staffId" AND p_recipient = c."userId") OR EXISTS (
           SELECT 1 FROM public.claim_documents AS d
           WHERE d.tenant_id = p_tenant AND d.claim_id = p_case AND d.id = p_document
             AND d.bucket = p_bucket AND d.file_path = p_path
         ))
-    )
-    ELSE false
-  END;
+    );
+  END IF;
+  RETURN false;
+END;
 $$;
 --> statement-breakpoint
 CREATE POLICY claim_inbound_decisions_principal ON public.claim_inbound_upload_decisions
@@ -198,6 +257,56 @@ CREATE POLICY claim_inbound_decisions_principal ON public.claim_inbound_upload_d
 CREATE FUNCTION public.claim_inbound_decision_deadline(p_decided_at timestamptz) RETURNS timestamptz
 LANGUAGE sql IMMUTABLE STRICT SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
   SELECT p_decided_at + interval '15 minutes';
+$$;
+--> statement-breakpoint
+CREATE POLICY claim_inbound_object_verifications_read ON public.claim_inbound_object_verifications
+  FOR SELECT TO public USING (EXISTS (
+    SELECT 1 FROM public.claim_inbound_upload_decisions AS d
+    WHERE d.id = claim_inbound_object_verifications.decision_id
+  ));
+--> statement-breakpoint
+CREATE POLICY claim_inbound_object_verifications_record ON public.claim_inbound_object_verifications
+  FOR INSERT TO interdomestik_wp12_guard WITH CHECK (true);
+--> statement-breakpoint
+CREATE FUNCTION public.record_claim_inbound_object_verification(
+  p_decision_id uuid, p_bucket text, p_path text, p_file_size integer, p_sha256 text
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM public.claim_inbound_upload_decisions AS d
+    WHERE d.id = p_decision_id AND d.bucket = p_bucket AND d.file_path = p_path
+      AND d.file_size = p_file_size AND d.sha256 = p_sha256
+      AND public.claim_inbound_decision_deadline(d.decided_at) > clock_timestamp()
+  ) THEN
+    RETURN false;
+  END IF;
+  INSERT INTO public.claim_inbound_object_verifications (decision_id) VALUES (p_decision_id)
+  ON CONFLICT DO NOTHING;
+  RETURN true;
+END;
+$$;
+--> statement-breakpoint
+ALTER FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text)
+  OWNER TO interdomestik_wp12_guard;
+--> statement-breakpoint
+REVOKE ALL ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text) FROM PUBLIC;
+--> statement-breakpoint
+REVOKE ALL ON public.claim_inbound_object_verifications FROM PUBLIC;
+--> statement-breakpoint
+DO $$
+DECLARE
+  api_role name;
+BEGIN
+  FOR api_role IN SELECT rolname FROM pg_catalog.pg_roles WHERE rolname IN ('anon', 'authenticated', 'service_role') LOOP
+    EXECUTE format('REVOKE ALL ON public.claim_inbound_object_verifications FROM %I', api_role);
+    EXECUTE format('REVOKE ALL ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text) FROM %I', api_role);
+  END LOOP;
+  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
+    GRANT EXECUTE ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text)
+      TO service_role;
+  END IF;
+END;
 $$;
 --> statement-breakpoint
 CREATE FUNCTION public.claim_inbound_enrollment_guard_fn() RETURNS trigger
@@ -229,7 +338,7 @@ DECLARE
 BEGIN
   -- Ordinary keys must take the lock even when the snapshot predates the enrollment row.
   -- The reserved publication path obtains its own update lock before it can succeed.
-  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NEW.file_path !~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$' THEN
+  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NOT public.claim_inbound_reserved_path(NEW.file_path) THEN
     PERFORM c.id FROM public.claim AS c WHERE c.id = NEW.claim_id FOR SHARE;
   END IF;
   SELECT e.tenant_id INTO home_tenant
@@ -238,7 +347,7 @@ BEGIN
   IF home_tenant IS DISTINCT FROM NEW.tenant_id THEN
     RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot case document refused';
   END IF;
-  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NEW.file_path !~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$' AND (
+  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NOT public.claim_inbound_reserved_path(NEW.file_path) AND (
     current_setting('app.current_actor_role', true) IS NULL
     OR current_setting('app.current_actor_role', true) NOT IN ('member', 'user', 'agent')
     OR NEW.uploaded_by IS DISTINCT FROM current_setting('app.current_actor_id', true)
@@ -266,9 +375,7 @@ BEGIN
   SELECT c."userId", c."staffId" INTO recipient, uploader FROM public.claim AS c
     WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id
       AND c.case_lifecycle_state <> 'draft'
-      AND (current_setting('app.current_actor_role', true) <> 'staff'
-        OR nullif(current_setting('app.current_actor_branch_id', true), '') IS NULL
-        OR c.branch_id = current_setting('app.current_actor_branch_id', true))
+      AND (NEW.role_basis <> 'staff' OR public.claim_inbound_staff_branch_allowed(c.tenant_id, c.branch_id))
     FOR UPDATE OF c;
   IF NOT FOUND OR recipient IS NULL OR uploader IS NULL
     OR NOT EXISTS (
@@ -279,6 +386,9 @@ BEGIN
     OR NEW.recipient_id IS DISTINCT FROM recipient OR NEW.uploader_id IS DISTINCT FROM uploader
     OR NEW.decided_by IS DISTINCT FROM current_setting('app.current_actor_id', true)
     OR NEW.role_basis IS DISTINCT FROM current_setting('app.current_actor_role', true)
+    OR NEW.tenant_id COLLATE "C" !~ '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+    OR NEW.claim_id COLLATE "C" !~ '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+    OR strpos(NEW.tenant_id, '..') > 0 OR strpos(NEW.claim_id, '..') > 0
     OR (NEW.role_basis = 'staff' AND NEW.decided_by IS DISTINCT FROM uploader) THEN
     RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot visibility decision refused';
   END IF;
@@ -299,7 +409,7 @@ DECLARE
   actor text := nullif(current_setting('app.current_actor_id', true), '');
   actor_role text := nullif(current_setting('app.current_actor_role', true), '');
 BEGIN
-  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NEW.file_path !~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$' THEN
+  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NOT public.claim_inbound_reserved_path(NEW.file_path) THEN
     IF EXISTS (
       SELECT 1 FROM public.claim_inbound_pilot_cases
       WHERE tenant_id = NEW.tenant_id AND claim_id = NEW.claim_id AND enrolled_at IS NOT NULL
@@ -312,25 +422,27 @@ BEGIN
     RETURN NULL;
   END IF;
 
+  SELECT c."userId", c."staffId" INTO recipient, uploader FROM public.claim AS c
+    WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id
+      AND c.case_lifecycle_state <> 'draft'
+      AND public.claim_inbound_staff_branch_allowed(c.tenant_id, c.branch_id)
+    FOR UPDATE OF c;
+  IF NOT FOUND OR actor_role IS DISTINCT FROM 'staff' OR actor IS DISTINCT FROM uploader THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document is outside assigned staff scope';
+  END IF;
+
   SELECT d.* INTO approval FROM public.claim_inbound_upload_decisions AS d
     WHERE d.document_id = NEW.id AND d.bucket = NEW.bucket AND d.file_path = NEW.file_path
       AND d.tenant_id = NEW.tenant_id AND d.claim_id = NEW.claim_id;
-  IF NOT FOUND OR actor_role IS DISTINCT FROM 'staff' OR actor IS DISTINCT FROM approval.uploader_id
-    OR NEW.uploaded_by IS DISTINCT FROM approval.uploader_id OR NEW.category <> 'evidence'
+  IF NOT FOUND OR actor IS DISTINCT FROM approval.uploader_id
+    OR NEW.uploaded_by IS DISTINCT FROM approval.uploader_id OR NEW.category IS DISTINCT FROM 'evidence'
     OR coalesce(NEW.access_tenant_id, NEW.tenant_id) IS DISTINCT FROM NEW.tenant_id
     OR NEW.name IS DISTINCT FROM approval.file_name OR NEW.file_type IS DISTINCT FROM approval.mime_type
     OR NEW.file_size IS DISTINCT FROM approval.file_size THEN
     RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document refused';
   END IF;
 
-  SELECT c."userId", c."staffId" INTO recipient, uploader FROM public.claim AS c
-    WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id
-      AND c.case_lifecycle_state <> 'draft'
-      AND (current_setting('app.current_actor_role', true) <> 'staff'
-        OR nullif(current_setting('app.current_actor_branch_id', true), '') IS NULL
-        OR c.branch_id = current_setting('app.current_actor_branch_id', true))
-    FOR UPDATE OF c;
-  IF NOT FOUND OR NOT EXISTS (
+  IF NOT EXISTS (
       SELECT 1 FROM public.claim_inbound_pilot_cases AS e
       WHERE e.tenant_id = NEW.tenant_id AND e.claim_id = NEW.claim_id
         AND e.enrolled_at IS NOT NULL AND NOT e.paused
@@ -339,6 +451,12 @@ BEGIN
     OR recipient IS DISTINCT FROM approval.recipient_id
     OR uploader IS DISTINCT FROM approval.uploader_id THEN
     RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document refused';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.claim_inbound_object_verifications AS v WHERE v.decision_id = approval.id
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document requires verified storage';
   END IF;
 
   -- Advance the row version so a waiting owner update with an old snapshot must conflict.
@@ -353,7 +471,7 @@ CREATE TRIGGER claim_inbound_document_publication_guard AFTER INSERT ON public.c
 CREATE FUNCTION public.claim_inbound_document_scope_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
-  IF NEW.id LIKE 'wp12-inbound-%' OR NEW.file_path ~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$' THEN
+  IF NEW.id LIKE 'wp12-inbound-%' OR public.claim_inbound_reserved_path(NEW.file_path) THEN
     IF NEW.uploaded_by IS DISTINCT FROM OLD.uploaded_by
       OR NEW.access_tenant_id IS DISTINCT FROM OLD.access_tenant_id
       OR NEW.category IS DISTINCT FROM OLD.category THEN
@@ -370,7 +488,7 @@ CREATE TRIGGER claim_inbound_document_scope_guard AFTER UPDATE ON public.claim_d
 CREATE FUNCTION public.claim_inbound_polymorphic_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
-  IF NEW.id LIKE 'wp12-inbound-%' OR NEW.storage_path ~ '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf$' THEN
+  IF NEW.id LIKE 'wp12-inbound-%' OR public.claim_inbound_reserved_path(NEW.storage_path) THEN
     RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document refused';
   END IF;
   RETURN NULL;
@@ -497,6 +615,10 @@ REVOKE ALL ON public.claim_inbound_pilot_cases, public.claim_inbound_upload_deci
 DO $$
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'interdomestik_runtime_rls') THEN
+    REVOKE ALL ON public.claim_inbound_object_verifications FROM interdomestik_runtime_rls;
+    GRANT SELECT ON public.claim_inbound_object_verifications TO interdomestik_runtime_rls;
+    REVOKE ALL ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text)
+      FROM interdomestik_runtime_rls;
     REVOKE ALL ON public.claim_inbound_pilot_cases, public.claim_inbound_upload_decisions,
       public.claim_correspondence_received_seals, public.claim_correspondence_received_documents
       FROM interdomestik_runtime_rls;

@@ -19,7 +19,7 @@ import mk from '../../src/messages/mk/staff-correspondence.json';
 import mkClaims from '../../src/messages/mk/claims.json';
 import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 import { assertStoredDoorDocument, requireDoorActor } from '../fixtures/one-door-data.fixture';
-import { expect } from '../fixtures/one-door.fixture';
+import { expect, requestFromDoor } from '../fixtures/one-door.fixture';
 import { pdf } from '../fixtures/one-door-upload.fixture';
 import { gotoApp } from '../utils/navigation';
 import { occurred, registerRow } from './claim-correspondence.fixture';
@@ -121,13 +121,13 @@ export async function openCleanContext(browser: Browser, origin: string) {
 }
 
 export async function signInSecondMember(page: Page, origin: string, member: MemberFixture) {
-  const login = await page.request.post(`${origin}/api/auth/sign-in/email`, {
-    headers: { Origin: origin },
-    data: { email: member.email, password: E2E_PASSWORD },
-    maxRedirects: 0,
+  await page.goto(`${origin}/mk/login`);
+  const login = await requestFromDoor(page, `${origin}/api/auth/sign-in/email`, {
+    email: member.email,
+    password: E2E_PASSWORD,
   });
-  expect(login.status()).toBe(200);
-  expect((await login.json()).user.id).toBe(member.id);
+  expect(login.status).toBe(200);
+  expect(JSON.parse(login.body.toString('utf8')).user.id).toBe(member.id);
 }
 
 export async function enrollMkCase(claim: MkCase) {
@@ -218,16 +218,13 @@ export async function proveMemberUploadDuringRollback(
     .returning({ id: claimInboundPilotCases.claimId });
   expect(paused).toEqual([{ id: claim.id }]);
 
-  const response = await member.request.post(origin + '/api/uploads', {
-    headers: { Origin: origin },
-    data: {
-      claimId: claim.id,
-      fileName,
-      fileType: inboundPdf.mimeType,
-      fileSize: inboundPdf.buffer.length,
-    },
+  const response = await requestFromDoor(member, origin + '/api/uploads', {
+    claimId: claim.id,
+    fileName,
+    fileType: inboundPdf.mimeType,
+    fileSize: inboundPdf.buffer.length,
   });
-  expect(response.status()).toBe(200);
+  expect(response.status).toBe(200);
 
   const title = mkClaims.claims.claimsPro.actions.uploadEvidence;
   await gotoApp(member, `/${locale}/member/documents`, info, {
@@ -263,10 +260,10 @@ export async function expectBothDocumentGetsDenied(
   statuses: number[]
 ) {
   for (const path of documentPaths(id)) {
-    const result = await page.request.get(origin + path, { maxRedirects: 0 });
-    expect(statuses).toContain(result.status());
-    expect(result.headers()['content-type']).toContain('application/json');
-    expect(Object.keys(await result.json())).toEqual(['error']);
+    const result = await requestFromDoor(page, origin + path);
+    expect(statuses).toContain(result.status);
+    expect(result.contentType).toContain('application/json');
+    expect(Object.keys(JSON.parse(result.body.toString('utf8')))).toEqual(['error']);
   }
 }
 
@@ -288,13 +285,13 @@ export async function expectMemberOpensPdf(
   const inlinePath = `${downloadPath}?disposition=inline`;
   await expect(row.getByRole('link')).toHaveAttribute('href', inlinePath);
   await expect(page.getByTestId('member-vault-consent').getByRole('listitem')).toHaveCount(1);
-  const opened = await page.request.get(origin + inlinePath, { maxRedirects: 0 });
-  expect(opened.status()).toBe(200);
-  expect(await opened.body()).toEqual(pdf);
+  const opened = await requestFromDoor(page, origin + inlinePath);
+  expect(opened.status).toBe(200);
+  expect(opened.body).toEqual(pdf);
 
-  const signed = await page.request.get(origin + signedPath, { maxRedirects: 0 });
-  expect(signed.status()).toBe(200);
-  const response: unknown = await signed.json();
+  const signed = await requestFromDoor(page, origin + signedPath);
+  expect(signed.status).toBe(200);
+  const response: unknown = JSON.parse(signed.body.toString('utf8'));
   const url =
     response &&
     typeof response === 'object' &&

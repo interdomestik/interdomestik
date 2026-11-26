@@ -1,5 +1,5 @@
 {
-  "id": "dfb442cb-bb76-4d25-bead-6d4bfb8a6324",
+  "id": "da379ccc-36b4-4d2a-a6a7-73cc99631a0f",
   "prevId": "39ae5a2a-a9d2-4146-b965-d9c8468986b8",
   "version": "7",
   "dialect": "postgresql",
@@ -22361,6 +22361,56 @@
           "value": "\"claim_correspondence_received_seals\".\"document_count\" between 0 and 20"
         }
       },
+      "isRLSEnabled": true
+    },
+    "public.claim_inbound_object_verifications": {
+      "name": "claim_inbound_object_verifications",
+      "schema": "",
+      "columns": {
+        "decision_id": {
+          "name": "decision_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "claim_inbound_object_verifications_decision_fk": {
+          "name": "claim_inbound_object_verifications_decision_fk",
+          "tableFrom": "claim_inbound_object_verifications",
+          "tableTo": "claim_inbound_upload_decisions",
+          "columnsFrom": [
+            "decision_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "claim_inbound_object_verifications_read": {
+          "name": "claim_inbound_object_verifications_read",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "exists (select 1 from public.claim_inbound_upload_decisions as d where d.id = \"claim_inbound_object_verifications\".\"decision_id\")"
+        }
+      },
+      "checkConstraints": {},
       "isRLSEnabled": true
     },
     "public.claim_inbound_pilot_cases": {

@@ -8,6 +8,7 @@ import type { TenantTransaction } from '../src/tenant';
 import { importDomain } from './claim-correspondence-domain.fixture';
 import {
   approve,
+  attest,
   changeOwner,
   enrolledCase,
   ownerA,
@@ -38,6 +39,7 @@ export async function proveVaultRace(connections: Connection) {
   const { admin, runtime, peer } = connections;
   const claim = await enrolledCase(admin);
   const stale = await approve(connections, claim, 'intended-for-member');
+  assert.equal(await attest(admin, stale), true);
   const { readCurrentMemberVaultEvidence } = await importDomain<
     typeof import('@interdomestik/domain-documents/claim-evidence')
   >('/claim-evidence', 'domain-documents');
@@ -52,6 +54,7 @@ export async function proveVaultRace(connections: Connection) {
       { code: 'P1211' }
     );
     const fresh = await approve(connections, claim, 'intended-for-member');
+    assert.equal(await attest(admin, fresh), true);
     await restricted(runtime, tx => publish(tx, fresh));
 
     const oldItems = await readCurrentMemberVaultEvidence(former, homeTenant, claim.id, ownerA);

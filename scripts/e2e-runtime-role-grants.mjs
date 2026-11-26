@@ -10,6 +10,7 @@ const verificationGrants = new Map([
 // WP-12.1 relations retain the column-level insert limits when provisioned late.
 const inboundGrants = new Map([
   ['public.claim_inbound_pilot_cases', 'SELECT'],
+  ['public.claim_inbound_object_verifications', 'SELECT'],
   [
     'public.claim_inbound_upload_decisions',
     `SELECT, INSERT (

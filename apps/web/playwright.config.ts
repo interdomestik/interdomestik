@@ -199,6 +199,7 @@ const IDA_HOST = normalizeLoopbackTenantHost(
 // explicit browser origin so native auth requests exercise Better Auth's origin check.
 const SECURE_IDA_HOST = `ida.localhost:${PORT}`;
 process.env.IDA_HOST = IDA_HOST;
+process.env.PW_SECURE_IDA_HOST = SECURE_IDA_HOST;
 
 fs.mkdirSync(TEST_RESULTS_DIR, { recursive: true });
 

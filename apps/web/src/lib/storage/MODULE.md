@@ -55,4 +55,4 @@ TEN-03, TEN-04 (`A/modules/tenancy.md:217-220`), POPS-01, POPS-02, POPS-06, POPS
 
 ## WP-12.1 pilot evidence
 
-The guarded form writes a reserved key create-only in the private claim-evidence bucket and verifies existing bytes before a confirmation retry. It issues no provider write credential to the browser. Before enrolling a case, pause predecessor issuers, drain in-flight work and establish every legacy provider credential's expiry, invalidation or documented absence.
+The guarded form writes a reserved key create-only in the private claim-evidence bucket. After readback verifies the exact bytes, the server-side storage adapter records the decision-bound verification through the service-role RPC. The browser receives the application intent. Before enrolling a case, pause predecessor issuers, drain in-flight work and establish every legacy provider credential's expiry, invalidation or documented absence.
