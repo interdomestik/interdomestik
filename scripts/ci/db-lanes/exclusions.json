@@ -607,39 +607,39 @@
   },
   {
     "file": "packages/database/test/migration-callback-boundary.test.ts",
-    "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its canonical corpus check rejects main's drizzle directory: migration-corpus-manifest.ts pins the 2026-09 corpus hashes and migration-corpus-directories.ts caps the root at 101 entries (main has 109 including meta).",
+    "reason": "The private plan authority test fails at line 39: canonical corpus validation returns false before the authority assertions because the 110-entry drizzle root at e4edd6609 exceeds the 101-entry cap (MIGRATION_CORPUS_ROOT_REJECTED).",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
   },
   {
     "file": "packages/database/test/migration-callback-plan.test.ts",
-    "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its canonical corpus check rejects main's drizzle directory: migration-corpus-manifest.ts pins the 2026-09 corpus hashes and migration-corpus-directories.ts caps the root at 101 entries (main has 109 including meta).",
+    "reason": "The frozen callback-plan summary test fails at line 20: canonical corpus verification returns false before plan construction because the 110-entry drizzle root at e4edd6609 exceeds the 101-entry cap (MIGRATION_CORPUS_ROOT_REJECTED).",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
   },
   {
     "file": "packages/database/test/migration-callback-validation.test.ts",
-    "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its callback-plan builder expects the 96-entry journal of 2026-09 (migration-callback-plan-builder.ts:75) and rejects main's 108 entries.",
+    "reason": "The builder ownership and deep-freeze test fails at line 88 with MIGRATION_CALLBACK_PLAN_REJECTED. The builder's journal-length check at migration-callback-plan-builder.ts:75 expects 96 entries and receives 109 at e4edd6609.",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
   },
   {
     "file": "packages/database/test/migration-corpus-boundary.test.ts",
-    "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its canonical corpus check rejects main's drizzle directory: migration-corpus-manifest.ts pins the 2026-09 corpus hashes and migration-corpus-directories.ts caps the root at 101 entries (main has 109 including meta).",
+    "reason": "The physical line ceiling assertion fails at line 120: migration-corpus-validator.ts has 151 lines and the test allows 149 (151 > 149).",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
   },
   {
     "file": "packages/database/test/migration-corpus-journal.test.ts",
-    "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its assertions pin the 2026-09 journal: the per-file SQL hashes in journal order and a journal length of 96 (main has 108); the copied-corpus cases pass.",
+    "reason": "The journal schema, order and timestamp test fails at line 38: the journal has 109 entries at e4edd6609 and the test expects 96 (109 !== 96).",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
   },
   {
     "file": "packages/database/test/migration-corpus.test.ts",
-    "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its canonical corpus check rejects main's drizzle directory: migration-corpus-manifest.ts pins the 2026-09 corpus hashes and migration-corpus-directories.ts caps the root at 101 entries (main has 109 including meta).",
+    "reason": "The canonical corpus summary test fails at line 26: the validator returns ok: false (MIGRATION_CORPUS_ROOT_REJECTED) because the 110-entry drizzle root at e4edd6609 exceeds the 101-entry cap.",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
   },
   {
     "file": "packages/database/test/migration-execution-boundary.test.ts",
@@ -661,9 +661,9 @@
   },
   {
     "file": "packages/database/test/migration-ledger-inspection-faults.test.ts",
-    "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its canonical corpus check rejects main's drizzle directory: migration-corpus-manifest.ts pins the 2026-09 corpus hashes and migration-corpus-directories.ts caps the root at 101 entries (main has 109 including meta). It reaches the check through authenticCorpus().",
+    "reason": "The forged-plan and pre-abort test fails in its setup at line 14: authenticCorpus() asserts successful validation before SQL and receives MIGRATION_CORPUS_ROOT_REJECTED because the 110-entry drizzle root at e4edd6609 exceeds the 101-entry cap.",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
   },
   {
     "file": "packages/database/test/migration-ledger-inspection.test.ts",
@@ -679,9 +679,9 @@
   },
   {
     "file": "packages/database/test/migration-runtime-role-fixture-boundary.test.ts",
-    "reason": "Named owner exclusion (2026-11-25) for the dormant migration-execution kernel; db:migrate does not use it. Its static boundary scan fails because the kernel's migration-corpus-validator.ts has 151 lines against the test's 150-line ceiling, unchanged since 2026-09.",
+    "reason": "The runtime import boundary test fails at line 90: migration-corpus-validator.ts has 151 lines and the test allows 150.",
     "owner": "Database migrations",
-    "removeWhen": "The kernel is activated and all eight suites pass against the live migration corpus, including their pinned corpus and file digests, journal counts (96), statement and callback counts (773, 869), directory entry caps and static size ceilings."
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
   },
   {
     "file": "packages/database/test/pg16/migration-runtime-role-fixture.test.ts",
