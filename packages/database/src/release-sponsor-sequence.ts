@@ -95,6 +95,42 @@ export function runSequentially<T>(items: Iterable<T>, run: (item: T) => Promise
   return next();
 }
 
+async function recordSponsorAcl(
+  sql: ReleaseSql,
+  options: SponsorReleaseOptions,
+  target: Target,
+  phase: Parameters<SponsorReleaseOptions['recordAcl']>[0]['phase']
+) {
+  await options.recordAcl({ phase, target, acl: await inspectReleaseSponsorAcl(sql) });
+}
+
+async function applySponsorTrailing(
+  sql: ReleaseSql,
+  options: SponsorReleaseOptions,
+  journal: SponsorJournal,
+  target: Target,
+  trailing: number,
+  apply: ApplySponsorRange
+) {
+  if (target.ledger.length <= trailing) {
+    if (target.ledger.length < trailing) {
+      await apply(target.ledger.length, trailing);
+      target = await inspectTarget(sql, options.database, journal);
+    }
+    if (target.ledger.length !== trailing)
+      throw new Error('Release ledger is incomplete before sponsor grants');
+    await recordSponsorAcl(sql, options, target, 'before-trailing');
+    await apply(trailing, trailing + 1);
+    target = await inspectTarget(sql, options.database, journal);
+    if (target.ledger.length !== trailing + 1)
+      throw new Error('Sponsor grants migration did not apply');
+  }
+  if (target.ledger.length === trailing + 1) {
+    await recordSponsorAcl(sql, options, target, 'after-trailing');
+  }
+  return target;
+}
+
 export async function runSponsorSequence(
   sql: ReleaseSql,
   options: SponsorReleaseOptions,
@@ -110,9 +146,6 @@ export async function runSponsorSequence(
   await options.assertClosedTargetAndBaseline(sql, target);
   const applied = target.ledger.length;
   const apply = prepare();
-  const recordAcl = async (phase: Parameters<SponsorReleaseOptions['recordAcl']>[0]['phase']) => {
-    await options.recordAcl({ phase, target, acl: await inspectReleaseSponsorAcl(sql) });
-  };
   if (options.path === 'fresh' && applied === 0) {
     const existing = await sql`select oid from pg_class
       where relnamespace = 'public'::regnamespace and relkind in ('r', 'p', 'v', 'm', 'f', 'S')`;
@@ -125,7 +158,7 @@ export async function runSponsorSequence(
   }
 
   if (target.ledger.length === checkpoint) {
-    await recordAcl('before-checkpoint');
+    await recordSponsorAcl(sql, options, target, 'before-checkpoint');
     await checkpointTransaction(async tx => {
       const [{ attemptId }] = await tx<{ attemptId: string }[]>`
         select pg_catalog.pg_current_xact_id()::text as "attemptId"
@@ -146,22 +179,8 @@ export async function runSponsorSequence(
     });
   }
 
-  const appliesTrailing = trailing !== undefined && through > trailing;
-  if (appliesTrailing && target.ledger.length <= trailing) {
-    if (target.ledger.length < trailing) {
-      await apply(target.ledger.length, trailing);
-      target = await inspectTarget(sql, options.database, journal);
-    }
-    if (target.ledger.length !== trailing)
-      throw new Error('Release ledger is incomplete before sponsor grants');
-    await recordAcl('before-trailing');
-    await apply(trailing, trailing + 1);
-    target = await inspectTarget(sql, options.database, journal);
-    if (target.ledger.length !== trailing + 1)
-      throw new Error('Sponsor grants migration did not apply');
-  }
-  if (appliesTrailing && target.ledger.length === trailing + 1) {
-    await recordAcl('after-trailing');
+  if (trailing !== undefined && through > trailing) {
+    target = await applySponsorTrailing(sql, options, journal, target, trailing, apply);
   }
   if (target.ledger.length < through) {
     await apply(target.ledger.length, through);
