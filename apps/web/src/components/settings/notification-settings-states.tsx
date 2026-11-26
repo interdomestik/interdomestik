@@ -49,7 +49,7 @@ type UnavailableProps = HeaderCopy &
   Readonly<{ message: string; retryLabel: string; onRetry: () => void }>;
 
 /**
- * A failed or rejected read (fail closed, R-37): no toggles and no Save, so defaults can never be
+ * A failed or rejected read (fail closed, R-08 and R-23): no toggles and no Save, so defaults can never be
  * saved over the member's stored choices. Retry reads the stored preferences again.
  */
 export function NotificationSettingsUnavailable({
