@@ -112,7 +112,7 @@ test('RC manifest retains legacy upgrade, shared RLS, and Playwright evidence', 
     assert.equal(receipt.commands.pr_verify_hosts.exit_code, 0);
     assert.deepEqual(receipt.commands.wp07_legacy_upgrade, {
       id: 'wp07_legacy_upgrade',
-      cmd: 'pnpm db:wp07:legacy-upgrade',
+      cmd: 'pnpm exec node scripts/ci/run-wp07-legacy-upgrade.mjs',
       exit_code: 0,
       log_path: path.relative(rootDir, path.join(logsDir, 'wp07_legacy_upgrade.log')),
     });

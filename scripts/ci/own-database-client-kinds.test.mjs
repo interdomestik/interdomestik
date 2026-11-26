@@ -174,6 +174,18 @@ test('a client adapter is the reviewed text: a second Drizzle call on another va
   assert.throws(() => checkClientAdapter(entry('client-adapter'), real), /not a pinned adapter/u);
 });
 
+test('the release migration entry point must match its pinned bytes', () => {
+  const path = 'scripts/ci/migration-phase/run.mjs';
+  const kind = entry('pinned-release-migration', { path });
+  const source = readFileSync(join(root, path), 'utf8');
+  assert.doesNotThrow(() => checkEntry(kind, source));
+  assert.throws(() => checkEntry(kind, `${source}\n`), /changed since its review/u);
+  assert.throws(
+    () => checkEntry(entry('pinned-release-migration'), source),
+    /not a pinned release migration/u
+  );
+});
+
 test('a guarded script opens clients only through the factory', () => {
   const kind = entry('guarded');
   const guarded =
@@ -187,6 +199,34 @@ test('a guarded script opens clients only through the factory', () => {
     () => checkGuarded(kind, "await openGuardedClient(url, 'x');"),
     /imports the guarded factory/u
   );
+});
+
+test('the pinned guarded files require both their reviewed bytes and the guarded kind checks', () => {
+  const dir = 'packages/database/test/pg16';
+  const cases = [
+    [
+      'wp16-1-runtime-grants-opt-out.ts',
+      source => source.replace('import type postgres', 'import postgres'),
+    ],
+    [
+      'wp16-1-runtime-grants.test-support.ts',
+      source => source.replace('drizzle(sql)', 'drizzle(url)'),
+    ],
+  ];
+  for (const [file, change] of cases) {
+    const path = `${dir}/${file}`;
+    const kind = entry('pinned-guarded', { path });
+    const source = readFileSync(join(root, path), 'utf8');
+    assert.doesNotThrow(() => checkEntry(kind, source));
+    const changed = change(source);
+    assert.notEqual(changed, source);
+    assert.throws(() => checkEntry(kind, changed), /changed since its review/u);
+    assert.throws(
+      () => checkEntry(entry('pinned-guarded'), source),
+      /not a pinned guarded script/u
+    );
+    assert.throws(() => checkEntry(entry('guarded', { path }), source), /loads no driver/u);
+  }
 });
 
 test('the factory is imported only in its two reviewed forms; a near miss of either is refused', () => {

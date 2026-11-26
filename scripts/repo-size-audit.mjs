@@ -14,13 +14,15 @@ import {
 } from './repo-size-inventory.mjs';
 import { printBudgetResult, printReport } from './repo-size-audit-output.mjs';
 import { sanitizeLegacyBudget, validateLegacyBudget } from './repo-size-legacy-budget.mjs';
+import { delegatedGitEnvironment } from './ci/verification-evidence/worker-profile.mjs';
 
 const DEFAULT_BUDGET_PATH = 'scripts/repo-size-budget.json';
 const SAFE_EXEC_ENV = Object.freeze({ PATH: '/usr/bin:/bin:/usr/sbin:/sbin' });
+const gitEnv = delegatedGitEnvironment(SAFE_EXEC_ENV);
 const GIT_BIN = '/usr/bin/git';
 const DU_BIN = '/usr/bin/du';
 const repoRoot = getRepoRoot();
-const system = { gitBin: GIT_BIN, duBin: DU_BIN, env: SAFE_EXEC_ENV };
+const system = { gitBin: GIT_BIN, duBin: DU_BIN, env: gitEnv };
 
 function parseArgs(argv) {
   const options = {
@@ -73,7 +75,7 @@ function getRepoRoot() {
   return execFileSync(GIT_BIN, ['rev-parse', '--show-toplevel'], {
     cwd: process.cwd(),
     encoding: 'utf8',
-    env: SAFE_EXEC_ENV,
+    env: gitEnv,
   }).trim(); // NOSONAR - absolute executable and fixed system PATH.
 }
 

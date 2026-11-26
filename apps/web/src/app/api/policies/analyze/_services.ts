@@ -72,6 +72,11 @@ export async function uploadPolicyFileService(args: {
   buffer: Buffer;
   safeName: string;
 }) {
+  if (
+    [args.tenantId, args.userId, args.safeName].some(part => !part || /[^A-Za-z0-9._-]/.test(part))
+  ) {
+    throw new Error('Policy upload key contains a noncanonical component.');
+  }
   const filePath = buildPolicyStoragePath({
     bucket: RESOLVED_POLICIES_BUCKET,
     fileName: `${Date.now()}_${args.safeName}`,

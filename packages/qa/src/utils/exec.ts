@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process';
+import { userInfo } from 'node:os';
 import { buildToolProcessEnv } from './root-env.js';
 
 import { classifyVerificationFailure, type FailureCategory } from './verification-failure.js';
@@ -132,11 +133,34 @@ export async function execAsync(command: ExecCommand, options: ExecOptions): Pro
   } = options;
   const startedAt = Date.now();
   const commandDisplay = formatExecCommand(command);
+  const childEnv = buildToolProcessEnv(env);
+  const checkout = process.env.INTERDOMESTIK_M5_CHECKOUT;
+  // The worker's checkout is supervisor-owned. Carry its exact admission into Git only.
+  if (
+    command.file === 'git' &&
+    checkout === cwd &&
+    /^\/[^\r\n\0]+$/u.test(checkout) &&
+    !checkout.endsWith('/*') &&
+    userInfo().username === '_interdomestik_gate_worker' &&
+    process.env.GIT_CONFIG_COUNT === '1' &&
+    process.env.GIT_CONFIG_KEY_0 === 'safe.directory' &&
+    process.env.GIT_CONFIG_VALUE_0 === checkout
+  ) {
+    Object.assign(childEnv, {
+      GIT_CONFIG_COUNT: '1',
+      GIT_CONFIG_KEY_0: 'safe.directory',
+      GIT_CONFIG_VALUE_0: checkout,
+      GIT_CONFIG_NOSYSTEM: '1',
+      GIT_CONFIG_GLOBAL: '/dev/null',
+      GIT_OPTIONAL_LOCKS: '0',
+      GIT_NO_REPLACE_OBJECTS: '1',
+    });
+  }
 
   return new Promise((resolve, reject) => {
     const child = spawn(command.file, command.args ?? [], {
       cwd,
-      env: buildToolProcessEnv(env),
+      env: childEnv,
       stdio: ['ignore', 'pipe', 'pipe'],
     });
 

@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import yaml from 'js-yaml';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 const repositoryRoot = path.resolve(new URL('../../', import.meta.url).pathname);
 const bootstrapParent = 'ba9da7ff8b13ceb1f1bc64864a40045ce4a79051';
@@ -54,7 +55,7 @@ function runClassifier(directory, command, before, event = {}) {
     GITHUB_REF: 'refs/heads/main',
     ...event,
   };
-  execFileSync('/bin/bash', ['-c', command], { cwd: directory, env });
+  execFileSync(contractBash(), ['-c', command], { cwd: directory, env });
   return fs.readFileSync(output, 'utf8');
 }
 

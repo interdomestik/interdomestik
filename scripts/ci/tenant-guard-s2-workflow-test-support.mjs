@@ -7,6 +7,7 @@ import yaml from 'js-yaml';
 import { officialArchive } from './db-access-required-compiler.mjs';
 import { commit, git, rootDir, tmp, writeFile } from './db-access-required-git.mjs';
 import { KERNEL_ANCHOR } from './tenant-guard/manifest.mjs';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 // Adversarial coverage of the S2 org-required workflow: its production step text runs verbatim
 // (bash) against a fixture origin whose protected main combines the committed application tree
@@ -153,7 +154,7 @@ export function route(
     ...extraEnv,
   };
   for (const key of Object.keys(env)) if (env[key] === undefined) delete env[key];
-  const result = spawnSync('/bin/bash', ['--noprofile', '--norc', '-c', script], {
+  const result = spawnSync(contractBash(), ['--noprofile', '--norc', '-c', script], {
     cwd: pr.ws,
     env,
     encoding: 'utf8',

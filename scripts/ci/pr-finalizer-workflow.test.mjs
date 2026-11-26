@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 import yaml from 'js-yaml';
 
@@ -120,7 +121,7 @@ require_gh_checks
 `;
       const harness = path.join(directory, 'harness.sh');
       fs.writeFileSync(harness, code, { mode: 0o600 });
-      const result = spawnSync('bash', ['--', harness], {
+      const result = spawnSync(contractBash('bash'), ['--', harness], {
         cwd: rootDir,
         encoding: 'utf8',
         timeout: 5000,

@@ -12,6 +12,11 @@
       "migration": "0034_invoice_append_only_ledger_invariants"
     },
     {
+      "key": "check [\"public\",\"claim_documents\",\"claim_documents_file_path_canonical_ck\"]",
+      "value": "(((file_path COLLATE \"C\") ~ '^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$'::text) AND ((file_path COLLATE \"C\") !~ '(^|/)[.](/|$)'::text) AND ((file_path COLLATE \"C\") !~ '[.][.]'::text))",
+      "migration": "0110_storage_path_canonical"
+    },
+    {
       "key": "check [\"public\",\"claim_recovery_no_fee_evidence\",\"claim_recovery_no_fee_evidence_reason_code_check\"]",
       "value": "(reason_code = ANY (ARRAY['no_recovery'::text, 'not_billable_under_recovery_scope'::text]))",
       "migration": "0084_claim_recovery_no_fee_evidence"
@@ -25,6 +30,11 @@
       "key": "check [\"public\",\"claim_transition_evidence\",\"claim_transition_evidence_type_check\"]",
       "value": "(evidence_type = ANY (ARRAY['assignment_signed'::text, 'poa_signed'::text, 'airline_submission_consent'::text, 'vehicle_valuation_delta'::text, 'service_consent'::text, 'medical_consent'::text, 'human_review'::text]))",
       "migration": "0090_t002b_claim_transition_evidence"
+    },
+    {
+      "key": "check [\"public\",\"documents\",\"documents_storage_path_canonical_ck\"]",
+      "value": "(((storage_path COLLATE \"C\") ~ '^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$'::text) AND ((storage_path COLLATE \"C\") !~ '(^|/)[.](/|$)'::text) AND ((storage_path COLLATE \"C\") !~ '[.][.]'::text))",
+      "migration": "0110_storage_path_canonical"
     },
     {
       "key": "exclusion [\"public\",\"sponsor_terms\",\"sponsor_terms_no_overlap\"]",
@@ -204,27 +214,27 @@
     {
       "key": "function [\"public\",\"exchange_rate_check_completed(p_tenant text, p_book text, p_check text)\"]",
       "value": "c8b1e45435c96329cd4d13831acbcd2e",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_check_events_insert_fn()\"]",
       "value": "94d712c895dd6c85c5924cb8b2cfcd9a",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_check_windows_insert_fn()\"]",
       "value": "778191036aad5a60a73c84a0bb4bb9e7",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_head_at(p_tenant text, p_book text, p_at timestamp with time zone)\"]",
       "value": "0c8c2d62e7cb5c5a07043ad9e66ecea3",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_insert_guard_fn()\"]",
       "value": "bcf16d83651375024506393cccc9f9fd",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_reject_mutation_fn()\"]",
@@ -234,12 +244,12 @@
     {
       "key": "function [\"public\",\"exchange_rate_verifications_insert_guard_fn()\"]",
       "value": "1c7901f2980ec3fb4006c9a2b05537a8",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_verifications_require_check_fn()\"]",
       "value": "b01c5efcc9204ecef13c2df78f20df97",
-      "migration": "0111_wp07_rate_check_contract"
+      "migration": "0113_wp07_rate_check_contract"
     },
     {
       "key": "function [\"public\",\"legal_acceptance_reject_mutation()\"]",
@@ -309,12 +319,12 @@
     {
       "key": "function [\"public\",\"membership_sale_rate_at(p_tenant text, p_book text, p_at timestamp with time zone)\"]",
       "value": "77a5faff48c724a9cfe3e6fe3cc44adf",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"membership_sale_rate_verification_age_fn()\"]",
       "value": "0e32d10f142de9c03502ddd8325d6f32",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"membership_sale_require_charge_fn()\"]",
@@ -1609,12 +1619,12 @@
     {
       "key": "rls-force [\"public\",\"exchange_rate_check_events\"]",
       "value": "forced",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "rls-force [\"public\",\"exchange_rate_check_windows\"]",
       "value": "forced",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "rls-force [\"public\",\"exchange_rate_verification_limits\"]",
@@ -1817,6 +1827,11 @@
       "migration": "0106_wp12_claim_correspondence"
     },
     {
+      "key": "trigger [\"public\",\"claim_transition_evidence\",\"wp16_claim_transition_evidence_runtime_id_guard\"]",
+      "value": "CREATE TRIGGER wp16_claim_transition_evidence_runtime_id_guard BEFORE UPDATE OF id ON public.claim_transition_evidence FOR EACH STATEMENT WHEN ((CURRENT_USER = 'interdomestik_runtime_rls'::name)) EXECUTE FUNCTION sponsor_reject_update_fn()",
+      "migration": "0111_wp16_1_sponsor_runtime_grants"
+    },
+    {
       "key": "trigger [\"public\",\"exchange_rate_books\",\"exchange_rate_books_append_only\"]",
       "value": "CREATE TRIGGER exchange_rate_books_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_books FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
       "migration": "0101_wp07_exchange_rates"
@@ -1824,22 +1839,22 @@
     {
       "key": "trigger [\"public\",\"exchange_rate_check_events\",\"exchange_rate_check_events_append_only\"]",
       "value": "CREATE TRIGGER exchange_rate_check_events_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_check_events FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_check_events\",\"exchange_rate_check_events_insert_guard\"]",
       "value": "CREATE TRIGGER exchange_rate_check_events_insert_guard BEFORE INSERT ON public.exchange_rate_check_events FOR EACH ROW EXECUTE FUNCTION exchange_rate_check_events_insert_fn()",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_check_windows\",\"exchange_rate_check_windows_append_only\"]",
       "value": "CREATE TRIGGER exchange_rate_check_windows_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_check_windows FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_check_windows\",\"exchange_rate_check_windows_insert_guard\"]",
       "value": "CREATE TRIGGER exchange_rate_check_windows_insert_guard BEFORE INSERT ON public.exchange_rate_check_windows FOR EACH ROW EXECUTE FUNCTION exchange_rate_check_windows_insert_fn()",
-      "migration": "0110_wp07_rate_check_expand"
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_verifications\",\"exchange_rate_verifications_append_only\"]",
@@ -1849,7 +1864,7 @@
     {
       "key": "trigger [\"public\",\"exchange_rate_verifications\",\"exchange_rate_verifications_check_required\"]",
       "value": "CREATE TRIGGER exchange_rate_verifications_check_required BEFORE INSERT ON public.exchange_rate_verifications FOR EACH ROW WHEN ((new.check_id IS NULL)) EXECUTE FUNCTION exchange_rate_verifications_require_check_fn()",
-      "migration": "0111_wp07_rate_check_contract"
+      "migration": "0113_wp07_rate_check_contract"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_verifications\",\"exchange_rate_verifications_insert_guard\"]",
@@ -1910,6 +1925,11 @@
       "key": "trigger [\"public\",\"membership_plan_versions\",\"membership_plan_versions_no_delete\"]",
       "value": "CREATE TRIGGER membership_plan_versions_no_delete BEFORE DELETE OR TRUNCATE ON public.membership_plan_versions FOR EACH STATEMENT EXECUTE FUNCTION membership_port_reject_mutation_fn()",
       "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_plans\",\"wp16_membership_plans_runtime_id_guard\"]",
+      "value": "CREATE TRIGGER wp16_membership_plans_runtime_id_guard BEFORE UPDATE OF id ON public.membership_plans FOR EACH STATEMENT WHEN ((CURRENT_USER = 'interdomestik_runtime_rls'::name)) EXECUTE FUNCTION sponsor_reject_update_fn()",
+      "migration": "0111_wp16_1_sponsor_runtime_grants"
     },
     {
       "key": "trigger [\"public\",\"membership_sale_claims\",\"membership_claims_require_sale\"]",
@@ -1990,6 +2010,11 @@
       "key": "trigger [\"public\",\"sponsor_terms\",\"sponsor_terms_guard\"]",
       "value": "CREATE TRIGGER sponsor_terms_guard BEFORE UPDATE ON public.sponsor_terms FOR EACH ROW EXECUTE FUNCTION sponsor_terms_guard_fn()",
       "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "trigger [\"public\",\"sponsors\",\"wp16_sponsors_runtime_id_guard\"]",
+      "value": "CREATE TRIGGER wp16_sponsors_runtime_id_guard BEFORE UPDATE OF id ON public.sponsors FOR EACH STATEMENT WHEN ((CURRENT_USER = 'interdomestik_runtime_rls'::name)) EXECUTE FUNCTION sponsor_reject_update_fn()",
+      "migration": "0111_wp16_1_sponsor_runtime_grants"
     },
     {
       "key": "view-definition [\"public\",\"tenant_entity_boundaries\"]",

@@ -1,0 +1,3 @@
+import { db } from '@interdomestik/database';
+import { expect, test } from '@playwright/test';
+test('uses the database fixture', () => { expect(db).toBeDefined(); });

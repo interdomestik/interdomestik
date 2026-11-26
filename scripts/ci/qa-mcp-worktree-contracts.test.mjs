@@ -5,6 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const timeoutMs = 30000;
 const head = root =>
@@ -21,7 +22,7 @@ function assertIdentity(result, targetRoot, branch = currentBranch(targetRoot)) 
   assert.equal(result.structuredContent.repoRootSource, 'tool-argument');
 }
 async function createClient() {
-  const child = spawn('/bin/bash', ['scripts/start-repo-qa.sh'], {
+  const child = spawn(contractBash(), ['scripts/start-repo-qa.sh'], {
     cwd: rootDir,
     detached: true,
     env: {

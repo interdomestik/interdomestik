@@ -1,4 +1,5 @@
 import { subscriptions } from '@interdomestik/database/schema';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { eq } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
@@ -26,7 +27,12 @@ describe.runIf(pilotSalesContractEnabled)(
         vi.stubEnv('NEXT_PUBLIC_BILLING_TEST_MODE', '1');
         const { mockActivateSubscription } = await import('./billing-test');
         request.authenticate.mockResolvedValue({
-          authority: fixture.agentAuthority,
+          authority: mintTestTenantAuthority(tenantId, {
+            userId: fixture.agentId,
+            role: 'agent',
+            branchId: fixture.branchId,
+            purpose: 'session',
+          }),
           session: { user: { id: fixture.agentId } },
         });
         const coverage = () =>

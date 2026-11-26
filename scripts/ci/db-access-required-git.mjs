@@ -3,12 +3,13 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { delegatedGitEnvironment } from './verification-evidence/worker-profile.mjs';
 
 export const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 export const ADOPTION_COMMIT = '278e33ab0dd448547fa81d4b0ff122b4d69c901e';
 export const ADOPTION_TREE = '4f9330417466b4f7bee68349e7183db22a5260ff';
-export const SOURCE_COMMIT = '743073568ac54c59f20cc24fbd48e2d7a9884cca';
-export const SOURCE_TREE = '0ff3ac7416ce36796d44e18df49d675a8c1d7fcd';
+export const SOURCE_COMMIT = '89cd2a2137ecb9dc71d17f2abfabc71a030a3061';
+export const SOURCE_TREE = '3cf30f6c94718174a43b239f40fc786789f85271';
 export const TS = '5.9.3';
 
 const temporary = new Set();
@@ -56,7 +57,7 @@ const fixtureConfig = [
 ];
 function runHostGit(cwd, args, encoding) {
   return spawnSync(HOST_GIT, ['-C', cwd, ...fixtureConfig, ...args], {
-    env: gitEnv,
+    env: delegatedGitEnvironment(gitEnv),
     encoding,
     maxBuffer: 512 * 1024 * 1024,
   });
