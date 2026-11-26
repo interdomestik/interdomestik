@@ -25,3 +25,7 @@ Claim producers write deterministic inbox rows and queue eligible email and push
 `./messages/select` shares the message and sender projection for reads and command results. It scopes the query to the supplied tenant and applies the caller's operation-specific predicate within the existing transaction.
 
 `./recipient-locale` resolves the stored locale and applies the tenant default. Its preference writer binds the authenticated user to the session authority principal and writes within the authority when it covers the same profile tenant. A session outside that tenant receives a distinct scope-unavailable outcome. `./tenant-locale` exports the tenant default rule.
+
+The expiry notice worker uses `captureVerifiedRecipientInTx` at claim and `authorizeVerifiedRecipientInTx` at dispatch. Both take the caller's read-committed tenant transaction and a live, principal-less scheduled-work authority that matches both tenant settings. After the tenant gate and billing's aggregate lock, they share-lock the current member account, then the exact locale preference. The verified mailbox and supported stored locale are required. The process-local handle binds the tenant, member, lease and both row versions. The worker uses it after claim commit and keeps recipient data out of delivery records. Recipient refusals expose only fixed codes.
+
+The single-provider email outcome path logs only the classified failure code at its SMTP, Resend and outer error boundaries.
