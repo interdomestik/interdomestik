@@ -1,28 +1,90 @@
-// This entry point is loaded with tsx by the two kinds of protected CD migration job.
-import path from 'node:path';
+// Run with tsx from the independently reviewed owner checkout.
+import { fileURLToPath } from 'node:url';
 import { withPreflightedAdminConnection } from '../../../packages/database/src/admin-connection-preflight.ts';
+import { assertDisposableUrl } from '../../../packages/database/src/disposable-client.ts';
 import {
   readReleaseJournal,
   runReleaseMigrations,
 } from '../../../packages/database/src/release-migrations.ts';
-import { STAGING_EXPECTATION } from '../runtime-attestation/staging-expectation.mjs';
-import { createManifest, output, readContext, readRelease, writeEvidence } from './context.mjs';
 import { verifyDeployment } from './deployment.mjs';
-import { digest, verifyDrainReceipt, verifyGitHubApproval } from './proof.mjs';
+import {
+  COMMIT,
+  HEX,
+  ID,
+  digest,
+  matches,
+  object,
+  readBytes,
+  readObject,
+  verificationKey,
+  verifyDrainReceipt,
+} from './proof.mjs';
 
-const env = process.env;
-const evidence = { version: 1, status: 'refused' };
+const POLICY = fileURLToPath(
+  new URL('../../../packages/database/drizzle/contract-phases.json', import.meta.url)
+);
 const SAFE_CODES = new Set([
-  'RELEASE_CONTEXT_INVALID',
-  'MODE_INVALID',
+  'RELEASE_USAGE_INVALID',
+  'OWNER_CONFIG_INVALID',
+  'CONFIG_MISSING_OR_SIZE',
+  'CONFIG_JSON_INVALID',
+  'CONFIG_SHAPE_INVALID',
+  'CANDIDATE_PIN_MISMATCH',
+  'MANIFEST_MISSING_OR_SIZE',
+  'MANIFEST_JSON_INVALID',
+  'MANIFEST_SHAPE_INVALID',
   'MANIFEST_PLAN_MISMATCH',
+  'KEY_MISSING_OR_SIZE',
+  'KEY_PIN_MISMATCH',
+  'RECEIPT_MISSING_OR_SIZE',
+  'RECEIPT_JSON_INVALID',
+  'RECEIPT_SHAPE_INVALID',
+  'RECEIPT_SIGNATURE_INVALID',
+  'RECEIPT_BINDING_MISMATCH',
+  'RECEIPT_DEPLOYMENT_INVALID',
+  'RECEIPT_DRAIN_INVALID',
+  'RECEIPT_EXPIRED',
+  'RECEIPT_REPLAYED',
+  'ATTEMPT_INVALID',
   'BACKEND_MISMATCH',
+  'BACKEND_CATALOG_REJECTED',
+  'ATTEMPT_CATALOG_REJECTED',
   'LEDGER_DIVERGENT',
   'LEDGER_WRITE_MISMATCH',
   'EXPAND_PREFIX_MISMATCH',
-  'INTERMEDIATE_RELEASE_REQUIRED',
-  'MIGRATION_CONNECTION_INVALID',
+  'RECOVERY_AT_EXPAND',
+  'RECOVERY_LEDGER_MISMATCH',
   'RELEASE_TRANSACTION_OUTCOME_UNKNOWN',
+  'MIGRATION_TRANSACTION_CONTROL',
+  'MIGRATION_REPLICATION_MODE_REJECTED',
+  'MIGRATION_SQL_INVALID',
+  'MIGRATION_SQL_FAILED',
+  'MIGRATION_SESSION_CONTROL',
+  'REGISTRY_INVALID',
+  'REGISTRY_TAG_INVALID',
+  'REGISTRY_POSITIONS_INVALID',
+  'DORMANT_PAIR_HAS_SQL',
+  'REGISTERED_PAIR_MISMATCH',
+  'REGISTERED_PHASE_SQL_MISMATCH',
+  'UNREGISTERED_PHASE',
+  'JOURNAL_INVALID',
+  'JOURNAL_ENTRY_INVALID',
+  'JOURNAL_SQL_INVALID',
+  'JOURNAL_INPUT_UNAVAILABLE',
+  'PHASE_SCHEMA_DIVERGENT',
+  'PHASE_SHAPE_POLICY_MISSING',
+  'PREPARED_TRANSACTIONS_PRESENT',
+  'CANONICAL_ALIAS_MISMATCH',
+  'IMMUTABLE_DEPLOYMENT_MISMATCH',
+  'DEPLOYMENT_ATTESTATION_MISMATCH',
+  'DEPLOYMENT_AUTHORITY_MISSING',
+  'DEPLOYMENT_PROVIDER_REFUSED',
+  'MIGRATION_EXECUTION_PUBLIC_SCHEMA_REJECTED',
+  'MIGRATION_EXECUTION_BOOTSTRAP_FAILED',
+  'MIGRATION_LEDGER_OWNER_REJECTED',
+  'MIGRATION_LEDGER_ACL_REJECTED',
+  'MIGRATION_LEDGER_SHAPE_REJECTED',
+  'MIGRATION_LEDGER_CATALOG_REJECTED',
   'ADMIN_DB_PREFLIGHT_CONFIG_REJECTED',
   'ADMIN_DB_PREFLIGHT_AUTHORITY_REJECTED',
   'ADMIN_DB_PREFLIGHT_CONNECT_FAILED',
@@ -31,172 +93,161 @@ const SAFE_CODES = new Set([
   'ADMIN_DB_PREFLIGHT_STATE_REJECTED',
   'ADMIN_DB_PREFLIGHT_TRANSPORT_REJECTED',
   'ADMIN_DB_PREFLIGHT_VERSION_REJECTED',
-  'ADMIN_DB_PREFLIGHT_CLEANUP_FAILED',
-  'ADMIN_DB_PREFLIGHT_ABORTED',
-  'MIGRATION_TRANSACTION_CONTROL',
-  'MIGRATION_SQL_INVALID',
-  'REGISTRY_INVALID',
-  'REGISTRY_TAG_INVALID',
-  'REGISTRY_POSITIONS_INVALID',
-  'DORMANT_PAIR_HAS_SQL',
-  'REGISTERED_PAIR_MISMATCH',
-  'UNREGISTERED_PHASE',
-  'JOURNAL_INVALID',
-  'JOURNAL_ENTRY_INVALID',
-  'ATTESTED_IMAGE_REQUIRED',
-  'MIGRATION_AUTHORITY_MISSING',
-  'MANIFEST_CONTEXT_MISMATCH',
-  'MANIFEST_MISSING_OR_SIZE',
-  'DEPLOYMENT_MISSING_OR_SIZE',
-  'DEPLOYMENT_CONTEXT_MISMATCH',
-  'CANONICAL_ALIAS_MISMATCH',
-  'IMMUTABLE_DEPLOYMENT_MISMATCH',
-  'DEPLOYMENT_ATTESTATION_MISMATCH',
-  'DEPLOYMENT_AUTHORITY_MISSING',
-  'DEPLOYMENT_PROVIDER_REFUSED',
-  'DEPLOYMENT_IDENTITY_INVALID',
-  'RECEIPT_MISSING_OR_SIZE',
-  'RECEIPT_JSON_INVALID',
-  'RECEIPT_SHAPE_INVALID',
-  'RECEIPT_RELEASE_OR_INVOCATION_MISMATCH',
-  'RECEIPT_DRAIN_INVALID',
-  'RECEIPT_WRITER_INVENTORY_INVALID',
-  'RECEIPT_TIMESTAMP_INVALID',
-  'RECEIPT_EXPIRED_OR_NOT_YET_VALID',
-  'RECEIPT_EXPIRED',
-  'REVIEW_AUTHORITY_INVALID',
-  'REVIEW_HISTORY_INVALID',
-  'RECEIPT_APPROVAL_MISSING',
-  'REVIEW_ACTOR_INVALID',
-  'REVIEW_HISTORY_UNAVAILABLE',
 ]);
 
-async function approvalHistory(context) {
-  if (!env.GITHUB_TOKEN) throw new Error('REVIEW_HISTORY_UNAVAILABLE');
-  const response = await fetch(
-    `https://api.github.com/repos/${context.repository}/actions/runs/${context.runId}/approvals`,
-    {
-      redirect: 'error',
-      signal: AbortSignal.timeout(10_000),
-      headers: {
-        authorization: `Bearer ${env.GITHUB_TOKEN}`,
-        accept: 'application/vnd.github+json',
-        'x-github-api-version': '2022-11-28',
-      },
-    }
-  );
-  if (!response.ok) throw new Error('REVIEW_HISTORY_UNAVAILABLE');
-  return response.json();
+function readConfig() {
+  const env = process.env;
+  const config = readObject(readBytes(env.RELEASE_PHASE_CONFIG, 'CONFIG'), 'CONFIG');
+  const scratch = config.environment === 'scratch';
+  if (
+    config.version !== 1 ||
+    !(scratch ? env.NODE_ENV === 'test' : ['staging', 'production'].includes(config.environment)) ||
+    !matches(COMMIT, config.commitSha) ||
+    ![
+      'journalSha256',
+      'ledgerSha256',
+      'registrySha256',
+      'backendMarkerSha256',
+      'publicKeySha256',
+      'caSha256',
+    ].every(key => matches(HEX, config[key])) ||
+    !matches(ID, config.teamId) ||
+    !matches(ID, config.projectId) ||
+    typeof config.expectedRolsuper !== 'boolean' ||
+    typeof config.expectedRolbypassrls !== 'boolean' ||
+    (scratch
+      ? !matches(/^127\.0\.0\.1:[1-9]\d{0,4}$/u, config.endpoint)
+      : config.expectedRolsuper ||
+        !matches(/^db\.[a-z0-9]{20}\.supabase\.co:5432$/u, config.endpoint))
+  )
+    throw new Error('OWNER_CONFIG_INVALID');
+  return { config, scratch };
+}
+
+function journalFrom(folder, policy) {
+  try {
+    return readReleaseJournal(folder, policy);
+  } catch (error) {
+    if (error instanceof SyntaxError || error?.code === 'ENOENT')
+      throw new Error('JOURNAL_INPUT_UNAVAILABLE');
+    throw error;
+  }
 }
 
 async function main() {
-  const context = readContext();
-  const mode = process.argv[2];
-  if (!['expand', 'contract'].includes(mode) || process.argv.length !== 3)
-    throw new Error('MODE_INVALID');
-  const protectedEnvironment = `${context.environment}-migration-${mode}`;
-  const imageDigest = env.RELEASE_IMAGE_DIGEST;
-  const backend = env.RELEASE_BACKEND_MARKER;
-  if (
-    env.RELEASE_PROTECTED_ENVIRONMENT !== protectedEnvironment ||
-    !/^ida\.(?:staging|production)\.backend-marker\.v1:[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(
-      backend ?? ''
-    ) ||
-    !backend.startsWith(`ida.${context.environment}.`) ||
-    (context.environment === 'staging' && backend !== STAGING_EXPECTATION.backendMarker)
-  )
-    throw new Error('MIGRATION_AUTHORITY_MISSING');
-  const journal = readReleaseJournal(path.resolve('packages/database/drizzle'));
-  const backendMarkerSha256 = digest(backend);
-  const release = mode === 'contract' ? readRelease(env.RELEASE_DEPLOYMENT, context) : null;
-  if (mode === 'expand') createManifest(context, imageDigest, null);
-  evidence.context = context;
-  evidence.mode = mode;
-  evidence.release = release;
-  if (release) {
-    evidence.manifestSha256 = digest(JSON.stringify(release.manifest));
-    if (env.RELEASE_DRAIN_RECEIPT && Buffer.byteLength(env.RELEASE_DRAIN_RECEIPT) <= 16_384)
-      evidence.receiptSha256 = digest(env.RELEASE_DRAIN_RECEIPT);
-    // Read-only recovery also requires that this exact deployment still holds the alias.
-    await verifyDeployment(release);
-  }
-  const authorize = async () => {
-    const invocation = {
-      environment: protectedEnvironment,
-      runId: context.runId,
-      attempt: context.attempt,
+  const env = process.env;
+  const [folder, mode = 'expand', ...extra] = process.argv.slice(2);
+  if (!folder || extra.length || !['inspect', 'expand', 'contract', 'recover'].includes(mode))
+    throw new Error('RELEASE_USAGE_INVALID');
+  if (mode === 'inspect') {
+    const { journalSha256, ledgerSha256, registrySha256, contracts, entries } = journalFrom(
+      folder,
+      POLICY
+    );
+    return {
+      journalSha256,
+      ledgerSha256,
+      registrySha256,
+      pairs: contracts.map(idx => ({ expand: entries[idx - 1], contract: entries[idx] })),
     };
-    const binding = { release, manifestSha256: evidence.manifestSha256, invocation };
-    const receipt = verifyDrainReceipt(env.RELEASE_DRAIN_RECEIPT, binding);
-    const operator = verifyGitHubApproval(await approvalHistory(context), {
-      environment: protectedEnvironment,
-      reviewerIds: env.RELEASE_DRAIN_REVIEWER_IDS,
-      receiptSha256: receipt.receiptSha256,
-    });
-    evidence.approval = { ...operator, invocation, ...receipt };
-    // Re-read the alias and immutable build under the ledger lock, then recheck expiry.
-    await verifyDeployment(release);
-    return verifyDrainReceipt(env.RELEASE_DRAIN_RECEIPT, binding).expiresAt;
-  };
+  }
 
-  const ca = env.RELEASE_DATABASE_CA_BASE64;
-  const host = env.RELEASE_DATABASE_HOST;
-  const bypassesRls = env.RELEASE_DATABASE_ROLE_BYPASSES_RLS;
-  if (
-    !/^db\.[a-z0-9]{20}\.supabase\.co$/u.test(host ?? '') ||
-    !ca ||
-    !['true', 'false'].includes(bypassesRls) ||
-    !env.RELEASE_MIGRATION_URL
-  )
-    throw new Error('MIGRATION_CONNECTION_INVALID');
+  const { config, scratch } = readConfig();
+  const journal = journalFrom(folder, (scratch && env.RELEASE_PHASE_TEST_POLICY) || POLICY);
+  if (['journalSha256', 'ledgerSha256', 'registrySha256'].some(key => journal[key] !== config[key]))
+    throw new Error('CANDIDATE_PIN_MISMATCH');
+  const context = { version: 1, environment: config.environment, commitSha: config.commitSha };
 
-  // The preflight owns the connection and checks the direct TLS endpoint and owner role,
-  // while the phase runner checks the enrolled database and ledger under the lock.
+  let request = { mode };
+  if (mode !== 'expand') {
+    const manifestBytes = readBytes(env.RELEASE_PHASE_MANIFEST, 'MANIFEST');
+    const manifest = readObject(manifestBytes, 'MANIFEST');
+    if (
+      !Object.keys(context).every(key => manifest[key] === context[key]) ||
+      !object(manifest.plan)
+    )
+      throw new Error('MANIFEST_PLAN_MISMATCH');
+    request.plan = manifest.plan;
+    if (mode === 'contract') {
+      if (!matches(HEX, env.RELEASE_PHASE_ATTEMPT)) throw new Error('ATTEMPT_INVALID');
+      const raw = readBytes(env.RELEASE_PHASE_RECEIPT, 'RECEIPT');
+      const key = verificationKey(env.RELEASE_PHASE_PUBLIC_KEY, config.publicKeySha256);
+      const signature = readBytes(env.RELEASE_PHASE_SIGNATURE, 'RECEIPT', 64);
+      const approval = verifyDrainReceipt(raw, signature, key, {
+        environment: config.environment,
+        manifestSha256: digest(manifestBytes),
+        attempt: env.RELEASE_PHASE_ATTEMPT,
+      });
+      request.approval = {
+        ...approval,
+        verifyLive: () =>
+          verifyDeployment(
+            approval.deployment,
+            manifest,
+            config,
+            scratch
+              ? readObject(readBytes(env.RELEASE_PHASE_TEST_DEPLOYMENT, 'FIXTURE'), 'FIXTURE')
+              : null
+          ),
+      };
+    }
+  }
+
+  if (scratch) assertDisposableUrl(env.RELEASE_MIGRATION_URL ?? '');
   const authority = {
-    environmentClass: 'supabase_direct',
-    endpointSha256: digest(`${host}:5432`),
-    caSha256: digest(Buffer.from(ca, 'base64')),
-    expectedRolsuper: false,
-    expectedRolbypassrls: bypassesRls === 'true',
+    environmentClass: scratch ? 'local_scratch' : 'supabase_direct',
+    endpointSha256: digest(config.endpoint),
+    caSha256: config.caSha256,
+    expectedRolsuper: config.expectedRolsuper,
+    expectedRolbypassrls: config.expectedRolbypassrls,
   };
-  const signal = AbortSignal.timeout(12 * 60_000);
   let result;
-  let refused;
-  const verified = await withPreflightedAdminConnection(
-    { DATABASE_URL: env.RELEASE_MIGRATION_URL, DATABASE_ADMIN_CA_PEM_BASE64: ca },
+  let operationError;
+  let operationStarted = false;
+  const preflight = await withPreflightedAdminConnection(
+    {
+      DATABASE_URL: env.RELEASE_MIGRATION_URL,
+      DATABASE_ADMIN_CA_PEM_BASE64: env.RELEASE_DATABASE_CA_BASE64,
+      NODE_ENV: scratch ? 'test' : undefined,
+      ADMIN_DB_LOCAL_SCRATCH: scratch ? '1' : undefined,
+    },
     Date.now(),
-    signal,
+    AbortSignal.timeout(12 * 60_000),
     { ...authority, receiptSha256: digest(JSON.stringify(authority)) },
-    async reserved => {
-      const request = release ? { mode, plan: release.manifest.plan, authorize } : { mode };
+    async sql => {
+      operationStarted = true;
       try {
-        result = await runReleaseMigrations(reserved, journal, backendMarkerSha256, request);
+        if (scratch) {
+          const [{ server_version_num }] = await sql`SHOW server_version_num`;
+          if (!/^16\d{4}$/u.test(server_version_num))
+            throw new Error('ADMIN_DB_PREFLIGHT_VERSION_REJECTED');
+        }
+        result = await runReleaseMigrations(
+          sql,
+          journal,
+          config.backendMarkerSha256,
+          request,
+          scratch
+        );
       } catch (error) {
-        refused = error;
+        operationError = error;
         throw error;
       }
     }
   );
-  if (!verified.ok) throw refused ?? new Error(verified.error.code);
-  if (!result) throw new Error('MIGRATION_PHASE_FAILED');
-  evidence.status = result.status;
-  if (mode === 'expand') {
-    const manifest = createManifest(context, imageDigest, result.plan);
-    evidence.manifest = manifest;
-    evidence.manifestSha256 = digest(JSON.stringify(manifest));
-    output('manifest', JSON.stringify(manifest));
-    output('contract_required', String(Boolean(result.plan.contract)));
-    output('attempt', context.attempt);
+  if (!preflight.ok) {
+    if (operationError) throw operationError;
+    if (operationStarted && mode !== 'recover')
+      throw new Error('RELEASE_TRANSACTION_OUTCOME_UNKNOWN');
+    throw new Error(preflight.error.code);
   }
+  return { ...context, ...result };
 }
 
 try {
-  await main();
+  process.stdout.write(`${JSON.stringify(await main())}\n`);
 } catch (error) {
-  evidence.status = 'refused';
-  evidence.code = SAFE_CODES.has(error?.message) ? error.message : 'MIGRATION_PHASE_FAILED';
-  process.stderr.write(`${evidence.code}\n`);
+  const code = SAFE_CODES.has(error?.message) ? error.message : 'MIGRATION_PHASE_FAILED';
+  process.stderr.write(`${code}\n`);
   process.exitCode = 1;
-} finally {
-  writeEvidence(evidence);
 }

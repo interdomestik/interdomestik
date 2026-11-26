@@ -24,13 +24,11 @@ export function scratchServerMissing(requiredBy: string): string | undefined {
 
 export async function withScratchDatabase<T>(
   prefix: string,
-  work: (client: ScratchClient, maintenance: ScratchClient) => Promise<T>,
+  work: (client: ScratchClient, maintenance: ScratchClient, scratchUrl: URL) => Promise<T>,
   {
-    maxConnections,
     loopbackOnly,
     requirePg16,
   }: {
-    maxConnections?: number;
     loopbackOnly?: boolean;
     requirePg16?: boolean;
   } = {}
@@ -50,10 +48,8 @@ export async function withScratchDatabase<T>(
     const scratchUrl = new URL(adminUrl);
     scratchUrl.pathname = `/${name}`;
     return withCreatedScratchDatabase(admin, name, () =>
-      withDisposableClient(
-        scratchUrl.toString(),
-        { applicationName: 'wp04_scratch', max: maxConnections },
-        client => work(client, admin)
+      withDisposableClient(scratchUrl.toString(), { applicationName: 'wp04_scratch' }, client =>
+        work(client, admin, scratchUrl)
       )
     );
   });

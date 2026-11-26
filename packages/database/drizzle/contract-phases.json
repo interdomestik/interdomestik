@@ -2,5 +2,9 @@
   "version": 1,
   "pairs": {
     "0112_wp07_rate_check_contract": "0111_wp07_rate_check_expand"
+  },
+  "sqlSha256": {
+    "0111_wp07_rate_check_expand": "6830b41e157f6b5d2d8e9bc50d503e483c38d0cae99277de9bde3303d13cc63d",
+    "0112_wp07_rate_check_contract": "6152c3d56e013dc71fce07c07fc33927187ecab4d944a233ef9c5bbbf22d54e7"
   }
 }

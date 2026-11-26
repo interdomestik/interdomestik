@@ -49,6 +49,14 @@ export function assertTransactionalMigration(statement: string) {
       /^(?:abort|begin|commit|end|prepare|release|rollback|savepoint|start)$/iu.test(part)
     )
       throw new Error('MIGRATION_TRANSACTION_CONTROL');
+    if (
+      first &&
+      /^(?:set|reset|discard)$/iu.test(part) &&
+      !/^(?:set\s+statement_timeout\s*=\s*'\d+s'|reset\s+statement_timeout)\s*;/iu.test(
+        statement.slice(match.index)
+      )
+    )
+      throw new Error('MIGRATION_SESSION_CONTROL');
     first = false;
     if (part.startsWith('$') && part.length > 1) {
       const end = statement.indexOf(part, token.lastIndex);

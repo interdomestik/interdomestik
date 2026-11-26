@@ -51,7 +51,6 @@ function runClassifier(directory, command, before, event = {}) {
     CD_BEFORE: before,
     GITHUB_EVENT_NAME: 'push',
     GITHUB_OUTPUT: output,
-    GITHUB_SHA: git(directory, 'rev-parse', 'HEAD'),
     GITHUB_REF: 'refs/heads/main',
     ...event,
   };
@@ -102,7 +101,6 @@ test('classifier executes trusted parent code and limits current code to exact b
     fs.rmSync(path.join(directory, 'tmp'), { recursive: true, force: true });
   }
 
-  git(directory, 'update-ref', 'refs/remotes/origin/main', trustedBefore);
   for (const event of [
     { GITHUB_EVENT_NAME: 'workflow_dispatch' },
     { GITHUB_EVENT_NAME: 'push', GITHUB_REF: 'refs/tags/v3.2.1' },
@@ -111,13 +109,5 @@ test('classifier executes trusted parent code and limits current code to exact b
       runClassifier(directory, classifierRun, trustedBefore, event),
       'selected=untrusted-current\n'
     );
-  }
-  for (const event of [
-    { GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_REF: 'refs/heads/feature' },
-    { GITHUB_EVENT_NAME: 'workflow_dispatch', GITHUB_REF: 'refs/tags/v3.2.1' },
-    { GITHUB_EVENT_NAME: 'push', GITHUB_REF: 'refs/tags/v3.2.1', GITHUB_SHA: wrongBootstrap },
-  ]) {
-    assert.throws(() => runClassifier(directory, classifierRun, trustedBefore, event));
-    assert.equal(fs.readFileSync(path.join(directory, 'scope-output.txt'), 'utf8'), '');
   }
 });

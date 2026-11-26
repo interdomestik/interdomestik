@@ -77,7 +77,6 @@ test('deploy action exports rollback controls without expanding historical job o
     hostname: '${{ steps.vercel.outputs.hostname }}',
     gate_base_url: '${{ steps.vercel.outputs.gate_base_url }}',
     gate_hostname: '${{ steps.vercel.outputs.gate_hostname }}',
-    release: '${{ steps.deployment.outputs.release }}',
   });
 });
 test('preimage is uploaded before checks and atomically confirms alias movement', () => {

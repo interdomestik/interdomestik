@@ -1,10 +1,14 @@
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { readMigrationFiles } from 'drizzle-orm/migrator';
+import { bootstrapMigrationLedger, validatePublicSchema } from './migration-execution-bootstrap';
+import { inspectMigrationLedgerCatalog } from './migration-ledger-catalog';
+import { consumeReleaseAttempt, verifyBackend } from './release-migration-catalog';
+import { verifyReleaseShape } from './release-migration-shape';
 import type { MigrationExecutionSql } from './migration-execution-contracts';
 import { assertTransactionalMigration } from './release-migration-sql';
 
+const HASH = /^[a-f0-9]{64}$/u;
 const TAG = /^(\d{4})_[a-z0-9_-]+$/u;
 
 export const sha256 = (bytes: string | Buffer) => createHash('sha256').update(bytes).digest('hex');
@@ -24,16 +28,24 @@ type Plan = {
 };
 
 type Request =
-  { mode: 'expand' } | { mode: 'contract'; plan: Plan; authorize: () => Promise<number> };
+  | { mode: 'expand' }
+  | { mode: 'recover'; plan: Plan }
+  | {
+      mode: 'contract';
+      plan: Plan;
+      approval: { nonce: string; expiresAt: number; verifyLive: () => Promise<void> };
+    };
 
 function registeredContracts(folder: string, entries: JournalEntry[], registry: string) {
   const config = JSON.parse(registry);
   if (
     config?.version !== 1 ||
-    Object.keys(config).length !== 2 ||
+    Object.keys(config).length !== 3 ||
     !config.pairs ||
     Object.getPrototypeOf(config.pairs) !== Object.prototype ||
-    Object.keys(config.pairs).length === 0
+    Object.keys(config.pairs).length === 0 ||
+    !config.sqlSha256 ||
+    Object.getPrototypeOf(config.sqlSha256) !== Object.prototype
   )
     throw new Error('REGISTRY_INVALID');
 
@@ -53,8 +65,8 @@ function registeredContracts(folder: string, entries: JournalEntry[], registry: 
     registered.add(contract);
     registered.add(expandMatch[0]);
 
-    // Dormancy is allowed only before the reserved journal positions. Moving or renaming
-    // both tags cannot turn an occupied boundary into a dormant one.
+    // Occupied positions must have the exact reviewed tags. Before those positions,
+    // a dormant pair has neither registered SQL files on disk nor phase SQL in the journal.
     if (entries.length <= start) {
       if ([contract, expandMatch[0]].some(tag => existsSync(path.join(folder, `${tag}.sql`))))
         throw new Error('DORMANT_PAIR_HAS_SQL');
@@ -64,14 +76,27 @@ function registeredContracts(folder: string, entries: JournalEntry[], registry: 
       throw new Error('REGISTERED_PAIR_MISMATCH');
     contracts.push(end);
   }
-  if (entries.some(({ tag }) => /_(?:expand|contract)$/u.test(tag) && !registered.has(tag)))
-    throw new Error('UNREGISTERED_PHASE');
+  const hashes = new Set<string>();
+  if (Object.keys(config.sqlSha256).length !== registered.size) throw new Error('REGISTRY_INVALID');
+  for (const tag of registered) {
+    const hash = config.sqlSha256[tag];
+    if (typeof hash !== 'string' || !HASH.test(hash) || hashes.has(hash))
+      throw new Error('REGISTRY_INVALID');
+    hashes.add(hash);
+  }
+  for (const { tag, hash } of entries) {
+    if (registered.has(tag)) {
+      if (config.sqlSha256[tag] !== hash) throw new Error('REGISTERED_PHASE_SQL_MISMATCH');
+    } else if (hashes.has(hash) || /_(?:expand|contract)$/u.test(tag)) {
+      throw new Error('UNREGISTERED_PHASE');
+    }
+  }
   return contracts.sort((a, b) => a - b);
 }
 
-export function readReleaseJournal(folder: string) {
+export function readReleaseJournal(folder: string, policyPath: string) {
   const journal = readFileSync(path.join(folder, 'meta/_journal.json'), 'utf8');
-  const registry = readFileSync(path.join(folder, 'contract-phases.json'), 'utf8');
+  const registry = readFileSync(policyPath, 'utf8');
   const parsed = JSON.parse(journal);
   if (!Array.isArray(parsed?.entries) || parsed.entries.length === 0)
     throw new Error('JOURNAL_INVALID');
@@ -92,18 +117,19 @@ export function readReleaseJournal(folder: string) {
       return { tag, idx, when, hash: '' };
     }
   );
-  const contracts = registeredContracts(folder, entries, registry);
-  const migrations = readMigrationFiles({ migrationsFolder: folder });
-  if (
-    migrations.length !== entries.length ||
-    migrations.some((migration, idx) => migration.folderMillis !== entries[idx].when)
-  )
-    throw new Error('JOURNAL_ENTRY_INVALID');
-  entries.forEach((entry, idx) => {
-    entry.hash = migrations[idx].hash;
+  const migrations = entries.map(entry => {
+    const bytes = readFileSync(path.join(folder, `${entry.tag}.sql`));
+    const sql = bytes.toString('utf8');
+    if (!Buffer.from(sql).equals(bytes) || !sql.trim()) throw new Error('JOURNAL_SQL_INVALID');
+    entry.hash = sha256(bytes);
+    return {
+      hash: entry.hash,
+      folderMillis: entry.when,
+      sql: sql.split('--> statement-breakpoint'),
+    };
   });
   return {
-    contracts,
+    contracts: registeredContracts(folder, entries, registry),
     entries,
     migrations,
     journalSha256: sha256(journal),
@@ -119,9 +145,8 @@ function planFrom(
 ): Plan {
   if (!Number.isSafeInteger(beforeCount) || beforeCount < 0 || beforeCount > journal.entries.length)
     throw new Error('MANIFEST_PLAN_MISMATCH');
-  const pending = journal.contracts.filter(idx => idx >= beforeCount);
-  if (pending.length > 1) throw new Error('INTERMEDIATE_RELEASE_REQUIRED');
-  const expandCount = pending[0] ?? journal.entries.length;
+  const pending = journal.contracts.find(idx => idx >= beforeCount);
+  const expandCount = pending ?? journal.entries.length;
   return {
     backendMarkerSha256,
     journalSha256: journal.journalSha256,
@@ -130,27 +155,30 @@ function planFrom(
     beforeCount,
     expandCount,
     expandLedgerSha256: sha256(JSON.stringify(journal.entries.slice(0, expandCount))),
-    finalCount: journal.entries.length,
-    expand: pending.length ? journal.entries[expandCount - 1] : null,
-    contract: pending.length ? journal.entries[expandCount] : null,
+    finalCount: pending === undefined ? expandCount : expandCount + 1,
+    expand: pending === undefined ? null : journal.entries[expandCount - 1],
+    contract: pending === undefined ? null : journal.entries[expandCount],
   };
 }
 
-async function readLedger(tx: MigrationExecutionSql, entries: JournalEntry[]) {
-  const [relation] =
-    await tx`SELECT pg_catalog.to_regclass('drizzle.__drizzle_migrations') AS name`;
-  if (!relation.name) return { exists: false, count: 0 };
-  const rows = await tx<{ hash: string; created_at: string }[]>`
-    SELECT hash, created_at::text FROM drizzle.__drizzle_migrations ORDER BY id
-    LIMIT ${entries.length + 1}
+async function readLedger(tx: MigrationExecutionSql, entries: JournalEntry[], readOnly: boolean) {
+  const catalog = await inspectMigrationLedgerCatalog(tx);
+  if (catalog !== 'table_present') return { catalog, count: 0 };
+  if (!readOnly) await tx`LOCK TABLE drizzle.__drizzle_migrations IN SHARE ROW EXCLUSIVE MODE`;
+  const rows = await tx<{ id: number; hash: string; created_at: string }[]>`
+    SELECT id, CASE WHEN octet_length(hash) = 64 THEN hash END AS hash, created_at::text
+    FROM drizzle.__drizzle_migrations ORDER BY id LIMIT ${entries.length + 1}
   `;
   if (
     rows.some(
-      (row, idx) => row.hash !== entries[idx]?.hash || row.created_at !== String(entries[idx]?.when)
+      (row, idx) =>
+        row.id <= 0 ||
+        row.hash !== entries[idx]?.hash ||
+        row.created_at !== String(entries[idx]?.when)
     )
   )
     throw new Error('LEDGER_DIVERGENT');
-  return { exists: true, count: rows.length };
+  return { catalog, count: rows.length };
 }
 
 async function apply(
@@ -159,84 +187,152 @@ async function apply(
   from: number,
   through: number
 ) {
+  // PostgreSQL searches pg_catalog first implicitly and creates unqualified objects in public.
+  await tx`SET LOCAL search_path = public, pg_temp`;
   for (const migration of journal.migrations.slice(from, through)) {
     for (const statement of migration.sql) {
       assertTransactionalMigration(statement);
-      await tx.unsafe(statement);
+      try {
+        await tx.unsafe(statement);
+      } catch (error) {
+        throw new Error('MIGRATION_SQL_FAILED', { cause: error });
+      }
       if (/^\s*RESET\s+statement_timeout\s*;\s*$/iu.test(statement))
         await tx`SET LOCAL statement_timeout = '45s'`;
     }
     await tx`INSERT INTO drizzle.__drizzle_migrations (hash, created_at)
              VALUES (${migration.hash}, ${migration.folderMillis})`;
   }
-  if ((await readLedger(tx, journal.entries)).count !== through)
-    throw new Error('LEDGER_WRITE_MISMATCH');
+  await tx`SET LOCAL search_path = pg_catalog, pg_temp`;
 }
 
-async function executePhase(
-  tx: MigrationExecutionSql,
-  journal: ReturnType<typeof readReleaseJournal>,
-  backendMarkerSha256: string,
-  request: Request
-) {
-  await tx`SET LOCAL lock_timeout = '5s'`;
-  await tx`SET LOCAL statement_timeout = '45s'`;
-  await tx`SET LOCAL idle_in_transaction_session_timeout = '45s'`;
-  await tx`SELECT pg_catalog.pg_advisory_xact_lock(673167055, -773281837)`;
-  await tx`SET LOCAL standard_conforming_strings = on`;
-  const markers = await tx<{ marker: string }[]>`
-      SELECT marker FROM runtime_attestation.backend_marker LIMIT 2
-    `;
-  if (markers.length !== 1 || sha256(markers[0].marker) !== backendMarkerSha256)
-    throw new Error('BACKEND_MISMATCH');
-
-  const ledger = await readLedger(tx, journal.entries);
-  if (request.mode === 'expand') {
-    const plan = planFrom(journal, backendMarkerSha256, ledger.count);
-    if (!ledger.exists) {
-      await tx`CREATE SCHEMA IF NOT EXISTS drizzle`;
-      await tx`CREATE TABLE drizzle.__drizzle_migrations (
-          id serial PRIMARY KEY, hash text NOT NULL, created_at bigint
-        )`;
-    }
-    await apply(tx, journal, ledger.count, plan.expandCount);
-    return { plan, status: 'expanded' as const };
-  }
-
-  if (request.mode !== 'contract') throw new Error('MODE_INVALID');
-  const plan = planFrom(journal, backendMarkerSha256, request.plan.beforeCount);
-  if (!plan.contract || JSON.stringify(plan) !== JSON.stringify(request.plan))
-    throw new Error('MANIFEST_PLAN_MISMATCH');
-  if (ledger.count === plan.finalCount) return { plan, status: 'already-committed' as const };
-  if (ledger.count !== plan.expandCount) throw new Error('EXPAND_PREFIX_MISMATCH');
-  const expiresAt = await request.authorize();
-  if (!Number.isFinite(expiresAt) || Date.now() >= expiresAt) throw new Error('RECEIPT_EXPIRED');
-  await apply(tx, journal, plan.expandCount, plan.finalCount);
-  if (Date.now() >= expiresAt) throw new Error('RECEIPT_EXPIRED');
-  return { plan, status: 'contracted' as const };
-}
-
-export async function runReleaseMigrations(
-  reserved: MigrationExecutionSql,
-  journal: ReturnType<typeof readReleaseJournal>,
-  backendMarkerSha256: string,
-  request: Request
-) {
-  // Both the protected preflight and the scratch fixture supply a single reserved session.
-  await reserved`BEGIN ISOLATION LEVEL READ COMMITTED`;
+async function transaction<T>(
+  sql: MigrationExecutionSql,
+  execute: () => Promise<T>,
+  readOnly = false
+): Promise<T> {
+  if (readOnly) await sql`BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY`;
+  else await sql`BEGIN ISOLATION LEVEL READ COMMITTED`;
   let committing = false;
   try {
-    const result = await executePhase(reserved, journal, backendMarkerSha256, request);
+    await sql`SET LOCAL search_path = pg_catalog, pg_temp`;
+    await sql`SET LOCAL statement_timeout = '45s'`;
+    await sql`SET LOCAL idle_in_transaction_session_timeout = '45s'`;
+    await sql`SET LOCAL standard_conforming_strings = on`;
+    await sql`SET LOCAL synchronous_commit = on`;
+    const [{ mode }] = await sql<{ mode: string }[]>`
+      SELECT pg_catalog.current_setting('session_replication_role') AS mode
+    `;
+    if (mode !== 'origin') throw new Error('MIGRATION_REPLICATION_MODE_REJECTED');
+    const result = await execute();
     committing = true;
-    await reserved`COMMIT`;
+    if ((await sql`COMMIT`).command !== 'COMMIT') throw new Error('COMMIT_NOT_CONFIRMED');
     return result;
   } catch (error) {
     try {
-      await reserved`ROLLBACK`;
+      await sql`ROLLBACK`;
     } catch (rollbackError) {
       throw new AggregateError([error, rollbackError], 'RELEASE_TRANSACTION_OUTCOME_UNKNOWN');
     }
     if (committing) throw new Error('RELEASE_TRANSACTION_OUTCOME_UNKNOWN', { cause: error });
     throw error;
   }
+}
+
+function checkFresh(expiresAt: number) {
+  if (Date.now() >= expiresAt) throw new Error('RECEIPT_EXPIRED');
+}
+
+export async function runReleaseMigrations(
+  sql: MigrationExecutionSql,
+  journal: ReturnType<typeof readReleaseJournal>,
+  backendMarkerSha256: string,
+  request: Request,
+  scratch: boolean
+) {
+  const plan =
+    request.mode === 'expand'
+      ? null
+      : planFrom(journal, backendMarkerSha256, request.plan?.beforeCount);
+  if (
+    request.mode !== 'expand' &&
+    (!plan?.contract || JSON.stringify(request.plan) !== JSON.stringify(plan))
+  )
+    throw new Error('MANIFEST_PLAN_MISMATCH');
+
+  // The same session lock covers the attempt reservation and migration transactions.
+  // Recovery must acquire it too. The admin preflight closes the session after its final probe.
+  await sql`SET lock_timeout = '15s'`;
+  await sql`SET idle_session_timeout = '45s'`;
+  const [{ pid }] = await sql<{ pid: number }[]>`
+    SELECT pg_catalog.pg_advisory_lock(673167055, -773281837), pg_catalog.pg_backend_pid() AS pid
+  `;
+  const verifyAuthority = async () => {
+    await verifyBackend(sql, backendMarkerSha256);
+    await validatePublicSchema(sql, pid);
+  };
+  const inspect = async (readOnly = false) => {
+    await verifyAuthority();
+    return readLedger(sql, journal.entries, readOnly);
+  };
+  const checkShape = async (count: number) => {
+    for (const idx of journal.contracts) {
+      if (count >= idx)
+        await verifyReleaseShape(sql, journal.entries[idx].tag, count > idx, scratch);
+    }
+  };
+  if (request.mode === 'contract' && plan) {
+    const { nonce, expiresAt, verifyLive } = request.approval;
+    await transaction(sql, async () => {
+      await verifyAuthority();
+      if ((await inspectMigrationLedgerCatalog(sql)) !== 'table_present')
+        throw new Error('EXPAND_PREFIX_MISMATCH');
+      checkFresh(expiresAt);
+      // Persist before inspecting the prefix or running contract SQL. A refusal after this
+      // commit cannot make the authenticated invocation reusable.
+      await consumeReleaseAttempt(sql, nonce);
+    });
+    await transaction(sql, async () => {
+      if ((await inspect()).count !== plan.expandCount) throw new Error('EXPAND_PREFIX_MISMATCH');
+      await checkShape(plan.expandCount);
+      const [prepared] = await sql<{ present: boolean }[]>`
+        SELECT EXISTS (SELECT 1 FROM pg_catalog.pg_prepared_xacts
+          WHERE database = pg_catalog.current_database()) AS present
+      `;
+      if (prepared.present) throw new Error('PREPARED_TRANSACTIONS_PRESENT');
+      await verifyLive();
+      checkFresh(expiresAt);
+      await apply(sql, journal, plan.expandCount, plan.finalCount);
+      if ((await inspect()).count !== plan.finalCount) throw new Error('LEDGER_WRITE_MISMATCH');
+      await checkShape(plan.finalCount);
+      checkFresh(expiresAt);
+    });
+    return { plan, status: 'contracted' };
+  }
+
+  if (request.mode === 'recover' && plan) {
+    return transaction(
+      sql,
+      async () => {
+        const { count } = await inspect(true);
+        if (count !== plan.expandCount && count !== plan.finalCount)
+          throw new Error('RECOVERY_LEDGER_MISMATCH');
+        await checkShape(count);
+        if (count === plan.expandCount) throw new Error('RECOVERY_AT_EXPAND');
+        return { plan, status: 'verified-committed' };
+      },
+      true
+    );
+  }
+
+  return transaction(sql, async () => {
+    const ledger = await inspect();
+    await checkShape(ledger.count);
+    const expand = planFrom(journal, backendMarkerSha256, ledger.count);
+    await bootstrapMigrationLedger(sql, ledger.catalog);
+    await apply(sql, journal, ledger.count, expand.expandCount);
+    if ((await inspect()).count !== expand.expandCount) throw new Error('LEDGER_WRITE_MISMATCH');
+    await checkShape(expand.expandCount);
+    return { plan: expand, status: 'expanded' };
+  });
 }

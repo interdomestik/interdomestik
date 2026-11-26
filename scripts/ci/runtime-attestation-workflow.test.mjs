@@ -59,20 +59,11 @@ test('U2-e: the collector runs first, the gate always runs and keeps its own sta
   for (const name of OBSERVER) assert.ok(commands[gate].includes(`-u ${name}`), name);
 });
 
-test('U2-e: observer secrets live only in the two isolated collection steps', () => {
-  const full = workflow.jobs['finalize-staging'].steps.find(
-    candidate => candidate.name === 'Verify Staging Full Journal'
-  );
-  assert.equal(full.run, 'node scripts/ci/runtime-attestation/isolated-collect.mjs');
-  for (const collector of [step, full])
-    for (const name of OBSERVER) assert.equal(collector.env[name], `\${{ secrets.${name} }}`, name);
+test('U2-e: observer secrets live only in this step; the collector sees an allowlist', () => {
+  for (const name of OBSERVER) assert.equal(step.env[name], `\${{ secrets.${name} }}`, name);
   const text = yaml.dump(workflow);
   for (const name of OBSERVER)
-    assert.equal(
-      text.split(`secrets.${name}`).length - 1,
-      2,
-      `${name} appears only in the collection steps`
-    );
+    assert.equal(text.split(`secrets.${name}`).length - 1, 1, `${name} appears once`);
   const env = collectorEnv({
     ...Object.fromEntries(Object.keys(job.env).map(name => [name, 'x'])),
     ...Object.fromEntries(Object.keys(step.env).map(name => [name, 'x'])),

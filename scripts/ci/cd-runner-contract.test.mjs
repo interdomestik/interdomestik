@@ -29,7 +29,7 @@ test('runs staging on GitHub-hosted runners and production on the Mac', () => {
   assert.equal(cd.jobs['production-evidence']['runs-on'], 'ubuntu-latest');
   for (const name of production)
     assert.deepEqual(cd.jobs[name]['runs-on'], ['self-hosted', 'interdomestik-mac']);
-  assert.deepEqual(cd.jobs['production-evidence'].needs, ['scope', 'finalize-staging']);
+  assert.deepEqual(cd.jobs['production-evidence'].needs, ['scope', 'e2e-staging']);
 });
 test('hosted scope is the direct fail-closed predecessor of every capable job', () => {
   const scope = cd.jobs.scope;
