@@ -11,11 +11,7 @@ import {
   withVerifiedRecipientDatabase,
 } from '../../../database/test/wp11-verified-recipient-rls.fixture';
 import { paymentPortTestScheduledAuthority } from '../../../database/test/exchange-rates.fixture';
-import type {
-  ExpiryDeliveryKey,
-  ExpiryDeliveryRecord,
-  ExpiryDeliveryState,
-} from '../../src/expiry-deliveries/types';
+import type { ExpiryDeliveryKey, ExpiryDeliveryRecord, ExpiryDeliveryState } from './types';
 
 const queued: ExpiryDeliveryState = {
   state: 'queued',

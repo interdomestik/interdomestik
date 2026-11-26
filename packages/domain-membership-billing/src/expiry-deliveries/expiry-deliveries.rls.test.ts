@@ -11,12 +11,9 @@ import {
   recipientId,
   staffId,
   withExpiryFixture,
-} from './expiry-deliveries.rls.fixture';
+} from './expiry-deliveries.rls.test-support';
 
-vi.mock(
-  import('../../src/expiry-deliveries/delivery-queries'),
-  () => import('./expiry-deliveries.rls.fixture')
-);
+vi.mock(import('./delivery-queries'), () => import('./expiry-deliveries.rls.test-support'));
 
 vi.mock('@interdomestik/database/tenant-authority-context', async importOriginal => {
   const actual =
@@ -35,7 +32,7 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
       async ({ admin, authority, email, enqueue, record, appPoolSize }) => {
         // Resolve the async mock before the worker imports it, so both use the same spy.
         const transactions = await import('@interdomestik/database/tenant-authority-context');
-        const { createExpiryDeliveryWorker } = await import('../../src/expiry-deliveries');
+        const { createExpiryDeliveryWorker } = await import('./index');
         expect(appPoolSize()).toBe(1);
         const accepted = () => Response.json({ id: 'provider-private-ref' });
         const provider = vi.fn(async (_url: string, _request: RequestInit) => accepted());
