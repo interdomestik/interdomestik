@@ -19,16 +19,26 @@ vi.mock('@/lib/ai/claim-workflows', () => ({
 vi.mock('@interdomestik/database', () => {
   const tenantTx = () => ({
     insert: hoisted.insert,
-    select: () => ({ from: () => ({ where: () => ({ limit: hoisted.selectLimit }) }) }),
+    select: () => ({
+      from: () => ({
+        where: () => ({
+          limit: hoisted.selectLimit,
+          for: async () => [{ tenantId: 'tenant-1', userId: 'member-1' }],
+        }),
+      }),
+    }),
   });
   return {
     and: (...args: unknown[]) => args,
     claimDocumentAiExtractionConsents: 'claim_document_ai_extraction_consents',
     claimDocuments: 'claim_documents',
+    claims: { id: 'claim.id', tenantId: 'claim.tenant_id' },
+    claimInformationRequestEvidence: 'claim_information_request_evidence',
     db: {
       transaction: vi.fn(async callback => callback({ insert: hoisted.insert })),
     },
     eq: (left: unknown, right: unknown) => [left, right],
+    isNull: (left: unknown) => [left, null],
     withTenantContext: vi.fn(async (_context, callback) => callback(tenantTx())),
   };
 });
@@ -101,7 +111,7 @@ describe('persistClaimDocumentAndQueueWorkflows', () => {
     hoisted.queue.mockResolvedValue([]);
   });
 
-  it('preserves document upload and skips dispatch when unchecked consent queues no AI runs', async () => {
+  it('preserves document upload in one tenant transaction with AI dormant', async () => {
     await persistClaimDocumentAndQueueWorkflows({
       ...baseParams(),
       aiExtractionConsent: { ...CONSENT, granted: false },
@@ -109,14 +119,9 @@ describe('persistClaimDocumentAndQueueWorkflows', () => {
 
     expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');
     expect(hoisted.insert).not.toHaveBeenCalledWith('claim_document_ai_extraction_consents');
-    expect(hoisted.queue).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({ claimId: 'claim-1', tenantId: 'tenant-1', userId: 'member-1' })
-    );
+    expect(hoisted.queue).not.toHaveBeenCalled();
     expect(hoisted.emit).not.toHaveBeenCalled();
-    // Metadata and the AI queue each run in their own transaction under the session authority.
     expect(vi.mocked(withTenantContext).mock.calls.map(([context]) => context)).toEqual([
-      authority,
       authority,
     ]);
     for (const [context] of vi.mocked(withTenantContext).mock.calls)
@@ -124,37 +129,14 @@ describe('persistClaimDocumentAndQueueWorkflows', () => {
     expect(db.transaction).not.toHaveBeenCalled();
   });
 
-  it('marks a queued run failed under the session authority when its dispatch fails', async () => {
-    hoisted.queue.mockResolvedValue([
-      {
-        runId: 'run-1',
-        tenantId: 'tenant-1',
-        workflow: 'claim_intake_extract',
-        claimId: 'claim-1',
-        documentId: 'doc-1',
-      },
-    ]);
-    hoisted.emit.mockRejectedValue(new Error('Inngest unavailable'));
-
+  it('records explicit member consent without queueing or dispatching AI', async () => {
     await persistClaimDocumentAndQueueWorkflows({
       ...baseParams(),
       aiExtractionConsent: CONSENT,
     });
-
-    expect(hoisted.markDispatchFailed).toHaveBeenCalledTimes(1);
-    const args = hoisted.markDispatchFailed.mock.calls[0]?.[0];
-    expect(args).toEqual(
-      expect.objectContaining({ runId: 'run-1', message: 'Inngest unavailable' })
-    );
-    expect(args).not.toHaveProperty('tenantId');
-    expect(args.authority).toBe(authority);
-  });
-
-  it('persists scoped consent row only for explicit member opt-in', async () => {
-    await persistClaimDocumentAndQueueWorkflows({
-      ...baseParams(),
-      aiExtractionConsent: CONSENT,
-    });
+    expect(hoisted.queue).not.toHaveBeenCalled();
+    expect(hoisted.emit).not.toHaveBeenCalled();
+    expect(hoisted.markDispatchFailed).not.toHaveBeenCalled();
 
     expect(hoisted.insert).toHaveBeenCalledWith('claim_document_ai_extraction_consents');
     expect(hoisted.values).toHaveBeenNthCalledWith(
@@ -177,7 +159,9 @@ describe('persistClaimDocumentAndQueueWorkflows', () => {
 
   it('skips consent, queue, and dispatch when an exact replay finds the committed document', async () => {
     hoisted.returning.mockResolvedValueOnce([]);
-    hoisted.selectLimit.mockResolvedValueOnce([EXISTING_ROW]);
+    hoisted.selectLimit
+      .mockResolvedValueOnce([EXISTING_ROW])
+      .mockResolvedValueOnce([{ ...CONSENT, actorId: 'member-1' }]);
 
     await persistClaimDocumentAndQueueWorkflows({ ...baseParams(), aiExtractionConsent: CONSENT });
 

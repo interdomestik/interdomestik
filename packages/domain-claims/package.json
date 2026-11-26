@@ -22,6 +22,7 @@
     "./claims/notification-delivery-runner": "./src/claims/notification-delivery-runner.ts",
     "./claims/submit": "./src/claims/submit.ts",
     "./claims/evidence-file-policy": "./src/claims/evidence-file-policy.ts",
+    "./claims/evidence-confirmation": "./src/claims/evidence-confirmation.ts",
     "./claims/diaspora-origin": "./src/claims/diaspora-origin.ts",
     "./claims/change-status": "./src/claims/change-status.ts",
     "./claims/response-requests": "./src/claims/response-requests.ts",

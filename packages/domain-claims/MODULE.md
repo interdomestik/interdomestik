@@ -39,6 +39,12 @@ The staff and admin actions call `changeClaimStatus` from `./claims/change-statu
 
 ## Tenant boundary
 
+WP-19 evidence confirmation calls `./claims/evidence-confirmation` inside the existing session
+tenant transaction. `lockClaimForEvidence` rechecks home and effective access, member ownership
+or workforce scope on the locked claim, then locks the open information request when applicable.
+The same transaction checks request linkage on replay and uses `linkInformationRequestEvidence`
+to append the link and its audit row after a new document is created.
+
 `./claims/send-message` composes the message write, response requests and notifications in one tenant transaction. Message and recovery decision commands take the actor from the tenant authority principal and require the session to match. The recovery decision action uses `resolveRecoveryDecisionActor` to apply the same check before reserving an idempotency key. An admin can post an internal message only in their home tenant. Staff routing and the send-time staff eligibility check use the same staff claim read scope. `./claims/notification-delivery-runner` drives the queue through the communications worker operations.
 
 Reads and writes run inside `withTenantAuthority`; the staff read scope adds branch and ownership predicates on top (`src/staff-claims/scope.ts:24-36`). Document access on this journey is tenant-bound and role-bound (`A/modules/case-handoff.md:204`: full-tenant roles, owner, uploader, staff only when `staffId` = self, agent scope, case grant, never staff on a draft). R1 found **no cross-tenant or cross-member reachability** in the files it read, with the cross-tenant grant fallback and the agent document scope **not opened** (`A/modules/case-handoff.md:206`).

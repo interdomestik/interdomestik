@@ -8,7 +8,8 @@
     ".": "./src/index.ts",
     "./storage": "./src/storage.ts",
     "./upload": "./src/upload.ts",
-    "./audit": "./src/audit.ts"
+    "./audit": "./src/audit.ts",
+    "./claim-evidence": "./src/claim-evidence.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",
