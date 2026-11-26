@@ -221,40 +221,38 @@ export async function loadInboundUploadDecision(
   if (tenantId !== accessTenantId || principal?.role !== 'staff') return null;
   const scope = await readInboundPilotScope(tx, tenantId, claimId, principal, forPublication);
   if (scope?.uploaderId !== principal.userId) return null;
-  const approval = claimInboundUploadDecisions;
-  const deadline = sql`public.claim_inbound_decision_deadline(${approval.decidedAt})`;
   const published = exists(
     tx
       .select({ id: claimDocuments.id })
       .from(claimDocuments)
       .where(
         and(
-          eq(claimDocuments.tenantId, approval.tenantId),
-          eq(claimDocuments.claimId, approval.claimId),
-          eq(claimDocuments.id, approval.documentId),
-          eq(claimDocuments.bucket, approval.bucket),
-          eq(claimDocuments.filePath, approval.filePath),
-          eq(claimDocuments.uploadedBy, approval.uploaderId)
+          eq(claimDocuments.tenantId, claimInboundUploadDecisions.tenantId),
+          eq(claimDocuments.claimId, claimInboundUploadDecisions.claimId),
+          eq(claimDocuments.id, claimInboundUploadDecisions.documentId),
+          eq(claimDocuments.bucket, claimInboundUploadDecisions.bucket),
+          eq(claimDocuments.filePath, claimInboundUploadDecisions.filePath),
+          eq(claimDocuments.uploadedBy, claimInboundUploadDecisions.uploaderId)
         )
       )
   );
   const [decision] = await tx
     .select({
-      ...getTableColumns(approval),
+      ...getTableColumns(claimInboundUploadDecisions),
       published: sql<boolean>`${published}`,
-      withinDeadline: sql<boolean>`${deadline} > clock_timestamp()`,
+      withinDeadline: sql<boolean>`public.claim_inbound_decision_deadline(${claimInboundUploadDecisions.decidedAt}) > clock_timestamp()`,
       expiresAt: sql<number>`
-      floor(extract(epoch from ${deadline}) * 1000)::bigint
+      floor(extract(epoch from public.claim_inbound_decision_deadline(${claimInboundUploadDecisions.decidedAt})) * 1000)::bigint
     `.mapWith(Number),
     })
-    .from(approval)
+    .from(claimInboundUploadDecisions)
     .where(
       and(
-        eq(approval.tenantId, tenantId),
-        eq(approval.claimId, claimId),
-        eq(approval.id, decisionId),
-        eq(approval.uploaderId, principal.userId),
-        eq(approval.recipientId, scope.recipientId)
+        eq(claimInboundUploadDecisions.tenantId, tenantId),
+        eq(claimInboundUploadDecisions.claimId, claimId),
+        eq(claimInboundUploadDecisions.id, decisionId),
+        eq(claimInboundUploadDecisions.uploaderId, principal.userId),
+        eq(claimInboundUploadDecisions.recipientId, scope.recipientId)
       )
     );
   return decision && (decision.withinDeadline || decision.published) ? decision : null;

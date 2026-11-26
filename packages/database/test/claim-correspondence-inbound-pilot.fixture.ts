@@ -4,8 +4,6 @@ import type postgres from 'postgres';
 import { sql } from 'drizzle-orm';
 
 import { mintTenantAuthority } from '../src/tenant-authority';
-import { drizzle } from 'drizzle-orm/postgres-js';
-import * as schema from '../src/schema';
 import { importDomain, runtimePid, waitUntilBlocked } from './claim-correspondence-domain.fixture';
 import {
   assignedPath,
@@ -72,11 +70,18 @@ export async function setActor(
   }
 }
 
-const staffAuthority = mintTenantAuthority({
-  tenantId: homeTenant,
-  purpose: 'session',
-  principal: { userId: homeActor, role: 'staff', branchId: null, agentId: null },
-});
+function sessionAuthority(
+  tenantId: string,
+  userId: string,
+  role: string,
+  branchId: string | null = null
+) {
+  return mintTenantAuthority({
+    tenantId,
+    purpose: 'session',
+    principal: { userId, role, branchId, agentId: null },
+  });
+}
 
 function decisionDocument(claim: Case, id = 'wp12-inbound-' + randomUUID().replaceAll('-', '')) {
   return { ...documentInput(claim, id), name: 'synthetic-inbound.pdf' };
@@ -458,23 +463,27 @@ export async function proveDirectPublicationBranch(connections: Connection) {
 }
 
 export async function proveDecisionExpiry(connections: Connection) {
-  const { admin, runtime } = connections;
+  const { admin, runtime, role } = connections;
   const claim = await enrolledCase(admin);
   const { document, decisionId } = await createDecision(connections, claim, 'intended-for-member');
+  const { withPrincipalTenantContext } = await import('../src/free-start-drafts');
   const { loadInboundUploadDecision } =
     await importDomain<typeof import('@interdomestik/domain-claims/claims/inbound-upload')>(
       '/claims/inbound-upload'
     );
-  const load = async (id: string) =>
-    drizzle(runtime, { schema }).transaction(async tx => {
-      await tx.execute(sql`select set_config('app.current_tenant_id', ${homeTenant}, true),
-      set_config('app.current_access_tenant_id', ${homeTenant}, true),
-      set_config('app.current_actor_id', ${homeActor}, true),
-      set_config('app.current_actor_role', 'staff', true),
-      set_config('app.current_actor_branch_id', '', true)`);
-      return loadInboundUploadDecision(tx, staffAuthority, claim.id, id);
+  const staff = sessionAuthority(homeTenant, homeActor, 'staff');
+  const load = (id: string, authority = staff) =>
+    withPrincipalTenantContext(authority, async tx => {
+      const [login] = await tx.execute<{ role: string }>(sql`select current_user as role`);
+      assert.equal(login.role, role);
+      return loadInboundUploadDecision(tx, authority, claim.id, id);
     });
-  assert.equal((await load(decisionId))?.published, false);
+  const pending = await load(decisionId);
+  assert.ok(pending);
+  assert.equal(pending.published, false);
+  assert.equal(pending.withinDeadline, true);
+  assert.equal(pending.documentId, document.id);
+  assert.equal(pending.expiresAt, pending.decidedAt.getTime() + 15 * 60_000);
   assert.equal(await attest(admin, document), true);
   const expire = (id: string) =>
     admin.begin(async tx => {
@@ -502,6 +511,13 @@ export async function proveDecisionExpiry(connections: Connection) {
   assert.equal(committed?.withinDeadline, false);
   assert.equal(committed?.published, true);
   assert.equal(committed?.documentId, fresh.id);
+  for (const [reason, authority] of [
+    ['wrong user', sessionAuthority(homeTenant, staffPeer, 'staff')],
+    ['wrong role', sessionAuthority(homeTenant, homeActor, 'tenant_admin')],
+    ['wrong tenant', sessionAuthority(foreignTenant, foreignActor, 'staff')],
+  ] as const) {
+    assert.equal(await load(freshId, authority), null, reason);
+  }
 }
 
 export async function proveDecisionDenials({ admin }: Connection) {
@@ -527,27 +543,16 @@ export async function proveDecisionDenials({ admin }: Connection) {
     bucket: 'claim-evidence',
     pathForDocument: (id: string) => assignedPath(claim, id),
   };
-  const session = (
-    tenantId: string,
-    userId: string,
-    role: string,
-    branchId: string | null = null
-  ) =>
-    mintTenantAuthority({
-      tenantId,
-      purpose: 'session',
-      principal: { userId, role, branchId, agentId: null },
-    });
   const refused = { ok: false, code: 'forbidden' };
   for (const authority of [
-    session(homeTenant, ownerB, 'member'),
-    session(homeTenant, approver, 'tenant_admin'),
-    session(foreignTenant, foreignActor, 'staff'),
-    session(homeTenant, homeActor, 'staff', 'different-branch'),
+    sessionAuthority(homeTenant, ownerB, 'member'),
+    sessionAuthority(homeTenant, approver, 'tenant_admin'),
+    sessionAuthority(foreignTenant, foreignActor, 'staff'),
+    sessionAuthority(homeTenant, homeActor, 'staff', 'different-branch'),
   ]) {
     assert.deepEqual(await recordInboundUploadDecision(authority, input, storage), refused);
   }
-  const staff = session(homeTenant, homeActor, 'staff');
+  const staff = sessionAuthority(homeTenant, homeActor, 'staff');
   assert.deepEqual(
     await recordInboundUploadDecision(staff, { ...input, claimId: draft.id }, storage),
     refused

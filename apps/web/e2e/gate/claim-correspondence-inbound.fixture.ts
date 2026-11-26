@@ -18,7 +18,11 @@ import { resolveEvidenceBucketName } from '../../src/lib/storage/evidence-bucket
 import mk from '../../src/messages/mk/staff-correspondence.json';
 import mkClaims from '../../src/messages/mk/claims.json';
 import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
-import { assertStoredDoorDocument, requireDoorActor } from '../fixtures/one-door-data.fixture';
+import {
+  assertStoredDoorDocument,
+  doorDocuments,
+  requireDoorActor,
+} from '../fixtures/one-door-data.fixture';
 import { expect, requestFromDoor } from '../fixtures/one-door.fixture';
 import { pdf } from '../fixtures/one-door-upload.fixture';
 import { gotoApp } from '../utils/navigation';

@@ -1,12 +1,13 @@
 import { E2E_PASSWORD, E2E_USER_IDS, E2E_USERS, type E2EUserKey } from '@interdomestik/database';
 import { test as base, expect, type Page, type TestInfo } from '@playwright/test';
+import { resolvePlaywrightNetwork } from '../../playwright-network';
 import { waitForTestSignal } from '../gate/signal-wait.fixture';
 import { gotoApp } from '../utils/navigation';
 import { requireDoorActor } from './one-door-data.fixture';
 
 export function doorLocation(info: TestInfo, secure = false): { origin: string; locale: string } {
   const baseUrl = new URL(info.project.use.baseURL?.toString() ?? 'http://localhost:3000');
-  const host = secure ? process.env.PW_SECURE_IDA_HOST : process.env.IDA_HOST;
+  const host = secure ? `ida.localhost:${resolvePlaywrightNetwork().PORT}` : process.env.IDA_HOST;
   if (!host) throw new Error('One-door proof requires a configured IDA host');
   const door = new URL(host.includes('://') ? host : `${baseUrl.protocol}//${host}`);
   return { origin: door.origin, locale: baseUrl.pathname.split('/').find(Boolean) ?? 'en' };

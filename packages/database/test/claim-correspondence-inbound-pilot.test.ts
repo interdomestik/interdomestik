@@ -280,7 +280,7 @@ test('WP-12.1 restricted runtime publication and receipt proofs', async t => {
         proveDirectPublicationBranch(connections)
       );
       await t.test(
-        'expiry blocks first publication and preserves an authorized committed replay',
+        'the authority wrapper refuses expired unpublished decisions and allows only assigned staff to replay a committed decision',
         () => proveDecisionExpiry(connections)
       );
       await t.test(
