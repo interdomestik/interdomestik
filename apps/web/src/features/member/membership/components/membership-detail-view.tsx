@@ -149,12 +149,16 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
         if (isCancelPendingRef.current) return;
         isCancelPendingRef.current = true;
         setIsCancelPending(true);
-        const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
-        cancellationKeyRef.current = idempotencyKey;
-        const result = await cancelSubscription(subscription.id, idempotencyKey).finally(() => {
+        let result: Awaited<ReturnType<typeof cancelSubscription>>;
+        try {
+          // Key creation sits inside the pending scope: if it throws, the button is restored too.
+          const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
+          cancellationKeyRef.current = idempotencyKey;
+          result = await cancelSubscription(subscription.id, idempotencyKey);
+        } finally {
           isCancelPendingRef.current = false;
           if (isMountedRef.current) setIsCancelPending(false);
-        });
+        }
         if (result.error || !result.success) {
           cancellationKeyRef.current = null;
           toast.error(

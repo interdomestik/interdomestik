@@ -48,4 +48,30 @@ describe('MembershipOpsPage cancellation pending state', () => {
     const { toast } = await import('sonner');
     expect(toast.error).toHaveBeenCalledWith('errors.action_failed');
   });
+
+  it('restores cancellation when creating its request key fails before the request', async () => {
+    actionMocks.getMembershipActions.mockReturnValue({
+      primary: undefined,
+      secondary: [{ id: 'cancel', label: 'Cancel membership' }],
+    });
+    vi.stubGlobal(
+      'confirm',
+      vi.fn(() => true)
+    );
+    vi.stubGlobal('crypto', {
+      randomUUID: () => {
+        throw new Error('randomUUID unavailable');
+      },
+    });
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    render(<MembershipOpsPage subscriptions={[record]} documents={[]} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel membership' }));
+
+    expect(await screen.findByRole('button', { name: 'Cancel membership' })).toBeEnabled();
+    expect(actionMocks.cancelSubscription).not.toHaveBeenCalled();
+    const { toast } = await import('sonner');
+    expect(toast.error).toHaveBeenCalledWith('errors.action_failed');
+    consoleError.mockRestore();
+  });
 });

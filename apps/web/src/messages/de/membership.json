@@ -95,11 +95,11 @@
     "ops": {
       "title": "Abonnements",
       "empty_list": "Keine Abonnements",
-      "no_membership_title": "Schließen Sie Ihre Mitgliedschaft ab",
+      "no_membership_title": "Keine aktive Mitgliedschaft",
       "no_membership_body": "Sie haben noch keine aktive Mitgliedschaft. Sie können die Pläne ansehen und was jeder umfasst.",
       "membership_not_active_title": "Diese Mitgliedschaft ist inaktiv",
       "membership_not_active_body": "Diese Mitgliedschaft ist nicht aktiv. Solange sie inaktiv ist, gibt sie keinen Zugang zu neuen Fällen.",
-      "complete_membership": "Mitgliedschaft abschließen",
+      "complete_membership": "Pläne ansehen",
       "choose_plan": "Pläne ansehen",
       "select_subscription": "Abonnement auswählen",
       "back_to_list": "Zurück zur Liste",

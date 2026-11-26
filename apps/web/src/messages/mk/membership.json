@@ -95,11 +95,11 @@
     "ops": {
       "title": "Претплати",
       "empty_list": "Нема претплати",
-      "no_membership_title": "Завршете го членството",
+      "no_membership_title": "Нема активно членство",
       "no_membership_body": "Сè уште немате активно членство. Можете да ги видите плановите и што опфаќа секој од нив.",
       "membership_not_active_title": "Ова членство е неактивно",
       "membership_not_active_body": "Ова членство не е активно. Додека е неактивно, не дава пристап до нови случаи.",
-      "complete_membership": "Заврши го членството",
+      "complete_membership": "Видете ги плановите",
       "choose_plan": "Видете ги плановите",
       "select_subscription": "Изберете претплата",
       "back_to_list": "Назад до списокот",

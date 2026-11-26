@@ -39,10 +39,8 @@ export function MembershipOpsPage({
   const t = useTranslations('membership');
   // The read returns at most one effective record today; with no selection the newest one opens.
   // A selection that names no returned record (an old link) never falls through to another record.
-  const isStaleSelection =
-    selectedId !== null &&
-    subscriptions.length > 0 &&
-    !subscriptions.some(s => s.id === selectedId);
+  // It takes precedence over the empty state too, whose leave action may belong to another programme.
+  const isStaleSelection = selectedId !== null && !subscriptions.some(s => s.id === selectedId);
   const selectedSubscription = isStaleSelection
     ? undefined
     : (subscriptions.find(s => s.id === selectedId) ?? subscriptions[0]);
@@ -131,7 +129,7 @@ export function MembershipOpsPage({
           />
         </div>
       ) : null}
-      {subscriptions.length === 0 ? (
+      {subscriptions.length === 0 && !isStaleSelection ? (
         <section
           aria-labelledby="membership-empty-title"
           className={MEMBERSHIP_REGION}

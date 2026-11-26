@@ -21,8 +21,14 @@ test.describe('Member membership screen on concept A', () => {
     await expect(status.getByRole('heading', { level: 2 })).toHaveText(/Golden Basic/);
     await expect(status.getByText(text('plan.status_label'), { exact: true })).toBeVisible();
     await expect(visible(page.getByTestId('membership-current-period-end'))).toHaveText(/\d{4}/);
+    // The seeded plan is active and offers its payment update; nothing here clicks it.
+    await expect(status.getByTestId('ops-status-badge')).toHaveText(
+      copy(locale, 'common', 'membershipStatus.active')
+    );
     const actions = visible(page.getByTestId('membership-actions'));
-    await expect(actions.getByRole('button').first()).toBeEnabled();
+    await expect(
+      actions.getByRole('button', { name: text('dunning.update_payment_button'), exact: true })
+    ).toBeEnabled();
     await expect(page.getByTestId('ops-table')).toHaveCount(0);
     // The history and documents the old ops detail showed stay on the screen.
     await expect(visible(page.getByTestId('ops-timeline'))).toBeVisible();

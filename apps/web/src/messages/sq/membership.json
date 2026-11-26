@@ -95,11 +95,11 @@
     "ops": {
       "title": "Abonimet",
       "empty_list": "Nuk ka abonime",
-      "no_membership_title": "Përfundo anëtarësinë",
+      "no_membership_title": "Nuk keni anëtarësim aktiv",
       "no_membership_body": "Ende nuk keni anëtarësim aktiv. Mund të shihni planet dhe çfarë mbulon secili.",
       "membership_not_active_title": "Ky anëtarësim është joaktiv",
       "membership_not_active_body": "Ky anëtarësim nuk është aktiv. Ndërsa është joaktiv, nuk jep qasje në raste të reja.",
-      "complete_membership": "Përfundo anëtarësinë",
+      "complete_membership": "Shiko planet",
       "choose_plan": "Shiko planet",
       "select_subscription": "Zgjidhni një abonim",
       "back_to_list": "Kthehu te lista",

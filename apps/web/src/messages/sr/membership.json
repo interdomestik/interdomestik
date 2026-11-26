@@ -95,11 +95,11 @@
     "ops": {
       "title": "Pretplate",
       "empty_list": "Nema pretplata",
-      "no_membership_title": "Dovršite članstvo",
+      "no_membership_title": "Nema aktivnog članstva",
       "no_membership_body": "Još nemate aktivno članstvo. Možete videti planove i šta svaki obuhvata.",
       "membership_not_active_title": "Ovo članstvo je neaktivno",
       "membership_not_active_body": "Ovo članstvo nije aktivno. Dok je neaktivno, ne daje pristup novim predmetima.",
-      "complete_membership": "Dovrši članstvo",
+      "complete_membership": "Pogledajte planove",
       "choose_plan": "Pogledajte planove",
       "select_subscription": "Izaberite pretplatu",
       "back_to_list": "Nazad na listu",

@@ -148,4 +148,28 @@ describe('MembershipOpsPage concept A layout', () => {
     ]);
     for (const button of buttons) expect(button).toHaveClass('whitespace-normal');
   });
+
+  it('gives a stale selection precedence over the empty state and its leave action', () => {
+    selectionMocks.selectedId = 'old';
+    const view = render(
+      <MembershipOpsPage subscriptions={[]} documents={[]} leaveEntryId="entry-future" />
+    );
+
+    expect(screen.getByRole('alert')).toHaveTextContent('ops.selection_unavailable');
+    expect(screen.queryByTestId('membership-empty')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'sponsorCoverage.leave' })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'ops.open_current' }));
+    expect(selectionMocks.setSelectedId).toHaveBeenCalledWith(null);
+
+    // Once the selection is cleared, the member's own empty state and leave action return.
+    selectionMocks.selectedId = null;
+    view.rerender(
+      <MembershipOpsPage subscriptions={[]} documents={[]} leaveEntryId="entry-future" />
+    );
+    expect(screen.getByTestId('membership-empty')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'sponsorCoverage.leave' })).toHaveAttribute(
+      'data-entry-id',
+      'entry-future'
+    );
+  });
 });

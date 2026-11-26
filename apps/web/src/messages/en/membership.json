@@ -95,11 +95,11 @@
     "ops": {
       "title": "Subscriptions",
       "empty_list": "No subscriptions",
-      "no_membership_title": "Finish your membership",
+      "no_membership_title": "No active membership",
       "no_membership_body": "You do not have an active membership yet. You can see the plans and what each one covers.",
       "membership_not_active_title": "This membership is inactive",
       "membership_not_active_body": "This membership is not active. It does not give access to new cases while it is inactive.",
-      "complete_membership": "Complete membership",
+      "complete_membership": "See the plans",
       "choose_plan": "See the plans",
       "select_subscription": "Select a subscription",
       "back_to_list": "Back to list",
