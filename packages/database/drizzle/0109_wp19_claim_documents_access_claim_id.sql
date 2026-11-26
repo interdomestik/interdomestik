@@ -1,0 +1,1 @@
+CREATE INDEX "claim_documents_access_claim_id_idx" ON "claim_documents" USING btree ("access_tenant_id","claim_id","id") WHERE "claim_documents"."access_tenant_id" is not null;

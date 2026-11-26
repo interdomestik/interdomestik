@@ -1,36 +1,17 @@
 'use client';
 
-import {
-  Activity,
-  AlertTriangle,
-  Building2,
-  ChevronRight,
-  Clock,
-  Copy,
-  Link as LinkIcon,
-  UserRound,
-  UserX,
-} from 'lucide-react';
-import { useTranslations } from 'next-intl';
-import { Link } from '@/i18n/routing';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { toast } from 'sonner';
 
 import type { NextActionsResult } from '../../components/detail/getNextActions';
 import type { ClaimOpsDetail } from '../../types';
-import { ClaimOriginBadges } from '../shared/ClaimOriginBadges';
-import { InfoPill } from '../shared/InfoPill';
-import { copyText } from './clipboard';
+import { ClaimHeaderBreadcrumb } from './ClaimHeaderBreadcrumb';
+import { ClaimHeaderSummary } from './ClaimHeaderSummary';
 import { buildAdminUserProfileHref } from './claim-header-links';
-import { formatClaimCreatedDate } from './claim-header-date';
-
-// 44px copy targets on phones; the compact 24px icon buttons return from `sm` up.
-const COPY_TARGET = 'inline-flex size-11 items-center justify-center sm:inline-block sm:size-auto';
 
 interface ClaimHeaderProps {
   claim: ClaimOpsDetail;
   nextActions: NextActionsResult;
-  allStaff: { id: string; name: string | null; email: string }[];
+  showAssignee?: boolean;
   locale: string;
 }
 
@@ -43,255 +24,43 @@ function resolveRouteLocale(pathname: string | null, fallbackLocale: string): st
   return fallbackLocale;
 }
 
-export function ClaimHeader({ claim, allStaff, locale }: Omit<ClaimHeaderProps, 'nextActions'>) {
-  const tCategory = useTranslations('claims.category');
-  const tBadge = useTranslations('admin.claims_page.next_actions.risk');
-  const tSource = useTranslations('admin.claims_page.source');
-  const tLifecycle = useTranslations('admin.claims_page.lifecycle_tabs');
-  const tFilters = useTranslations('admin.claims_page.filters');
-  const tPage = useTranslations('admin.claims_page');
-  const tHeader = useTranslations('admin.claims_page.header');
+export function ClaimHeader({
+  claim,
+  showAssignee = false,
+  locale,
+}: Readonly<Omit<ClaimHeaderProps, 'nextActions'>>) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const memberProfileHref = buildAdminUserProfileHref(claim.memberId, searchParams);
   const activeLocale = resolveRouteLocale(pathname, locale);
-  const claimResolverHref = claim.claimNumber
-    ? `/admin/claims/number/${claim.claimNumber}`
-    : `/admin/claims/${claim.id}`;
-  const memberResolverHref = claim.memberNumber
-    ? `/admin/members/number/${claim.memberNumber}`
-    : memberProfileHref;
 
   // Construct smart back URL: preserve filters/page, but drop poolAnchor to force refresh
   const createBackUrl = () => {
     const params = new URLSearchParams(searchParams.toString());
     params.delete('poolAnchor');
+    params.delete('documentsAfter');
+    params.delete('staffAfter');
+    params.delete('staffSearch');
     const queryString = params.toString();
     return queryString ? `/admin/claims?${queryString}` : '/admin/claims';
   };
 
-  const copyToClipboard = async (text: string, label: string) => {
-    const copied = await copyText(text);
-
-    if (!copied) {
-      toast.error(tHeader('copy_failed'));
-      return;
-    }
-
-    toast.success(tHeader('copy_success', { label }));
-  };
-
-  const domain = typeof window !== 'undefined' ? window.location.origin : '';
-  const canonicalUrl = `${domain}/${activeLocale}/admin/claims/${claim.id}`;
-  const resolverUrl = claim.claimNumber
-    ? `${domain}/${activeLocale}/admin/claims/number/${claim.claimNumber}`
-    : canonicalUrl;
-
   return (
     <div className="sticky top-0 z-10 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 border-b pb-4 pt-2 -mx-4 px-4 sm:-mx-8 sm:px-8 mb-6 transition-all">
       <div className="flex flex-col gap-4">
-        <nav
-          className="flex flex-wrap items-center gap-1.5 text-sm"
-          aria-label={tHeader('breadcrumb')}
-        >
-          <Link
-            href={createBackUrl()}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {tPage('title')}
-          </Link>
+        <ClaimHeaderBreadcrumb
+          claim={claim}
+          backHref={createBackUrl()}
+          memberProfileHref={memberProfileHref}
+          activeLocale={activeLocale}
+        />
 
-          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
-
-          <Link
-            href={`/admin/claims?lifecycle=${claim.lifecycleStage}`}
-            className="text-muted-foreground hover:text-foreground transition-colors"
-          >
-            {tLifecycle(claim.lifecycleStage)}
-          </Link>
-
-          <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />
-
-          <div className="flex items-center gap-1 group/claim">
-            <Link
-              href={claimResolverHref}
-              className="font-mono font-medium text-foreground bg-slate-100 px-1.5 py-0.5 rounded text-xs border border-slate-200 hover:bg-slate-200 transition-colors"
-              title={tHeader('claim_number_link')}
-            >
-              {claim.claimNumber ?? claim.code}
-            </Link>
-
-            <div className="flex items-center gap-1">
-              <button
-                type="button"
-                onClick={() => copyToClipboard(resolverUrl, tHeader('claim_number_link'))}
-                className={`${COPY_TARGET} p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600`}
-                title={tHeader('copy_traceable_link')}
-                aria-label={tHeader('copy_traceable_link')}
-              >
-                <LinkIcon className="w-3 h-3" />
-              </button>
-              <button
-                type="button"
-                onClick={() => copyToClipboard(canonicalUrl, tHeader('canonical_url'))}
-                className={`${COPY_TARGET} p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600`}
-                title={tHeader('copy_canonical_link')}
-                aria-label={tHeader('copy_canonical_link')}
-              >
-                <Copy className="w-3 h-3" />
-              </button>
-            </div>
-          </div>
-
-          {claim.memberNumber && (
-            <div className="flex items-center gap-1 group/member ml-2 border-l pl-2 border-slate-200">
-              <Link
-                href={memberResolverHref}
-                className="font-mono font-medium text-amber-900 bg-amber-50 px-1.5 py-0.5 rounded text-xs border border-amber-200"
-                title={tPage('member_number')}
-              >
-                {claim.memberNumber}
-              </Link>
-
-              <div className="flex items-center gap-1">
-                <button
-                  type="button"
-                  onClick={() => copyToClipboard(claim.memberNumber!, tHeader('member_number'))}
-                  className={`${COPY_TARGET} p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700`}
-                  title={tPage('copy_member_number')}
-                  aria-label={tPage('copy_member_number')}
-                >
-                  <Copy className="w-3 h-3" />
-                </button>
-                <button
-                  type="button"
-                  onClick={() =>
-                    copyToClipboard(
-                      `${domain}/${activeLocale}/admin/members/number/${claim.memberNumber}`,
-                      tHeader('member_link')
-                    )
-                  }
-                  className={`${COPY_TARGET} p-1 hover:bg-amber-100 rounded text-amber-600/70 hover:text-amber-700`}
-                  title={tPage('copy_member_link')}
-                  aria-label={tPage('copy_member_link')}
-                >
-                  <LinkIcon className="w-3 h-3" />
-                </button>
-              </div>
-            </div>
-          )}
-        </nav>
-
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-2 flex-wrap sm:gap-3">
-              <h1 className="text-xl sm:text-2xl font-bold tracking-tight mr-1">{claim.title}</h1>
-
-              <InfoPill
-                label={tCategory(claim.category || 'other')}
-                variant="premium"
-                className="bg-blue-50 text-blue-700 border-blue-200"
-                separatorClassName="bg-blue-200"
-              />
-
-              {claim.companyName && (
-                <InfoPill
-                  icon={Building2}
-                  label={claim.companyName}
-                  variant="premium"
-                  className="bg-slate-50 text-slate-700 border-slate-200"
-                  separatorClassName="bg-slate-200"
-                />
-              )}
-
-              {claim.assigneeId && (
-                <InfoPill
-                  icon={UserRound}
-                  label={tFilters('handler_label')}
-                  value={(() => {
-                    const staff = allStaff.find(s => s.id === claim.assigneeId);
-                    return staff?.name || staff?.email || tSource('unknown');
-                  })()}
-                  variant="premium"
-                  className="bg-indigo-50 text-indigo-700 border-indigo-200 shadow-sm"
-                  separatorClassName="bg-indigo-200"
-                />
-              )}
-
-              <InfoPill
-                icon={Activity}
-                label={tBadge('status')}
-                value={tLifecycle(claim.lifecycleStage)}
-                variant="premium"
-                className="bg-slate-50 text-slate-700 border-slate-200"
-                separatorClassName="bg-slate-200"
-              />
-
-              {claim.hasSlaBreach && (
-                <InfoPill
-                  icon={AlertTriangle}
-                  label={tBadge('sla')}
-                  value={tBadge('breach')}
-                  variant="danger"
-                />
-              )}
-
-              {claim.isStuck && (
-                <InfoPill
-                  icon={Clock}
-                  label={tBadge('stuck')}
-                  value={`${claim.daysInStage} ${tBadge('days')}`}
-                  variant="warning"
-                />
-              )}
-
-              {claim.isUnassigned && (
-                <InfoPill
-                  icon={UserX}
-                  label={tBadge('status')}
-                  value={tBadge('unassigned')}
-                  variant="ghost"
-                />
-              )}
-            </div>
-
-            <div className="flex flex-col gap-2 mt-1">
-              <div className="flex items-center gap-2 flex-wrap">
-                <ClaimOriginBadges
-                  originType={claim.originType}
-                  originDisplayName={claim.originDisplayName}
-                  branchCode={claim.branchCode}
-                  diasporaCountry={claim.diasporaCountry}
-                  variant="detail"
-                />
-
-                <span className="text-muted-foreground/30 hidden sm:inline">•</span>
-
-                <div className="inline-flex items-center rounded-md border shadow-sm select-none bg-sky-50 text-sky-700 border-sky-200 hover:bg-sky-100 transition-colors h-[22px]">
-                  <div className="flex items-center gap-1.5 px-2 py-0.5">
-                    <UserRound className="w-3 h-3" strokeWidth={2.5} />
-                    <span className="text-[10px] uppercase tracking-wider font-bold">
-                      {tSource('member')}
-                    </span>
-                  </div>
-                  <div className="w-[1px] h-3 self-center bg-sky-200" />
-                  <Link
-                    href={memberProfileHref}
-                    className="flex items-center gap-1 px-2 py-0.5 hover:underline decoration-sky-700/50"
-                  >
-                    <span className="text-[10px] font-medium max-w-[150px] truncate">
-                      {claim.memberName}
-                    </span>
-                  </Link>
-                </div>
-              </div>
-
-              <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-medium opacity-70 pl-0.5">
-                {tSource('created')} {formatClaimCreatedDate(claim.createdAt, activeLocale)}
-              </span>
-            </div>
-          </div>
-        </div>
+        <ClaimHeaderSummary
+          claim={claim}
+          showAssignee={showAssignee}
+          memberProfileHref={memberProfileHref}
+          activeLocale={activeLocale}
+        />
       </div>
     </div>
   );

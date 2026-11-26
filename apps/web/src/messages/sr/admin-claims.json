@@ -3,7 +3,9 @@
     "claims_page": {
       "title": "Upravljanje zahtevima",
       "description": "Pregledaj i upravljaj svim zahtevima korisnika.",
+      "first_page": "Prva stranica",
       "assignment": {
+        "search_staff": "Pretraži osoblje",
         "label": "Dodeljeno osoblje",
         "placeholder": "Izaberi osoblje",
         "unassigned": "Nedodeljeno",
