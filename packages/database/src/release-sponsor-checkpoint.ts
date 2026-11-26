@@ -2,6 +2,8 @@ import type { MigrationExecutionSql } from './migration-execution-contracts';
 
 export const sponsorRuntimeRole = 'interdomestik_runtime_rls';
 export const sponsorCheckpointTag = '0104_wp07_rate_verification_age';
+export const sponsorPrerequisiteTag = '0105_wp11_notification_deliveries';
+export const sponsorTrailingTag = '0110_wp16_1_sponsor_runtime_grants';
 export const sponsorCheckpointGrants = [
   ['claim', 'updatedAt'],
   ['user', 'updatedAt'],
@@ -30,6 +32,8 @@ export type CheckpointCheck = {
   unexpectedEffective: boolean;
   direct: DirectUpdateGrant[];
 };
+
+export class SponsorCheckpointRefusal extends Error {}
 
 export async function inspectSponsorCheckpoint(sql: ReleaseSql): Promise<CheckpointCheck[]> {
   const relations = sponsorCheckpointGrants.map(([table]) => table);
@@ -88,7 +92,8 @@ export function verifySponsorCheckpoint(checks: CheckpointCheck[], owner: string
     }
     return issues.map(issue => `public.${relation}.${column}: ${issue}`);
   });
-  if (issues.length) throw new Error(`0105 prerequisites rejected:\n${issues.join('\n')}`);
+  if (issues.length)
+    throw new SponsorCheckpointRefusal(`0105 prerequisites rejected:\n${issues.join('\n')}`);
 }
 
 export async function restoreSponsorCheckpointGrant(

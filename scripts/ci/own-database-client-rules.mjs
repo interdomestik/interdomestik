@@ -208,7 +208,7 @@ const PINNED_GUARDED = Object.freeze({
 // The release entry point applies journaled migrations through admin connection preflight.
 const PINNED_RELEASE_MIGRATIONS = Object.freeze({
   'scripts/ci/migration-phase/run.mjs':
-    '15b7ae4cb684dbc942124488b3b99efa848d5c280f29b2633cdca3944f887c5c',
+    '09f88e7b814396d6833be750fe05c221857b759f306b7eda7daa2948dcc0d00f',
 });
 
 const pinnedCheck = (pins, what) => (entry, source) => {

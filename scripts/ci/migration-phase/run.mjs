@@ -22,6 +22,7 @@ import {
   verificationKey,
   verifyDrainReceipt,
 } from './proof.mjs';
+import { sponsorEvidence } from './sponsor-evidence.mjs';
 
 const CHECKOUT = new URL('../../../', import.meta.url);
 const POLICY_ROOT = fileURLToPath(CHECKOUT);
@@ -159,6 +160,21 @@ async function main() {
   const context = { version: 1, environment: config.environment, commitSha: config.commitSha };
 
   let request = { mode };
+  const evidence =
+    mode === 'expand' &&
+    sponsorEvidence(runnerRoot, config.attemptDirectory, {
+      ...context,
+      journalSha256: journal.journalSha256,
+      ledgerSha256: journal.ledgerSha256,
+      backendMarkerSha256: config.backendMarkerSha256,
+    });
+  if (evidence) {
+    request.sponsor = {
+      baselineAclSha256: config.sponsorBaselineAclSha256,
+      finalAclSha256: config.sponsorFinalAclSha256,
+      record: evidence.record,
+    };
+  }
   if (mode !== 'expand') {
     const manifestBytes = readBytes(runnerRoot, env.RELEASE_PHASE_MANIFEST, 'MANIFEST');
     const manifest = readObject(manifestBytes, 'MANIFEST');
@@ -194,7 +210,8 @@ async function main() {
   }
 
   const result = await runWithAdminConnection(env, config, journal, request, scratch);
-  return { ...context, ...result };
+  const reference = evidence && evidence.reference();
+  return { ...context, ...result, ...(reference && { sponsorEvidence: reference }) };
 }
 
 try {

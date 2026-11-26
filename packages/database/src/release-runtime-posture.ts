@@ -1,6 +1,8 @@
 import { sponsorRuntimeRole, type ReleaseSql } from './release-sponsor-checkpoint';
 
 export async function inspectReleaseRuntime(sql: ReleaseSql) {
+  // The owner expand can inspect the live target several times in one transaction.
+  await sql`select pg_catalog.pg_stat_clear_snapshot()`;
   const [posture] = await sql<
     {
       owner: string;

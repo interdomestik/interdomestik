@@ -99,7 +99,7 @@
     {
       "path": "scripts/ci/migration-phase/run.mjs",
       "kind": "pinned-release-migration",
-      "reason": "Owner CLI for journaled release migrations. It passes the enrolled database target to withPreflightedAdminConnection, then hands its verified client to the phase runner."
+      "reason": "Owner CLI for journaled release migrations. It passes the enrolled target to withPreflightedAdminConnection, hands the verified client to the phase runner, and retains WP-16.1 evidence in the owner attempt store."
     },
     {
       "path": "scripts/ci/pr-e2e-evidence-workflow-contracts.mjs",

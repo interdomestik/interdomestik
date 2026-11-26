@@ -5,6 +5,7 @@ import { readReleaseJournal, sha256, type JournalEntry } from './release-migrati
 import { verifyReleaseShape } from './release-migration-shape';
 import type { MigrationExecutionSql } from './migration-execution-contracts';
 import { assertTransactionalMigration } from './release-migration-sql';
+import { expandWithSponsor, type SponsorExpandOptions } from './release-sponsor-expand';
 
 export { readReleaseJournal, sha256 };
 
@@ -22,7 +23,7 @@ type Plan = {
 };
 
 type Request =
-  | { mode: 'expand' }
+  | { mode: 'expand'; sponsor?: SponsorExpandOptions }
   | { mode: 'recover'; plan: Plan }
   | {
       mode: 'contract';
@@ -227,7 +228,16 @@ export async function runReleaseMigrations(
     await checkShape(ledger.count);
     const expand = planFrom(journal, backendMarkerSha256, ledger.count);
     await bootstrapMigrationLedger(sql, ledger.catalog);
-    await apply(sql, journal, ledger.count, expand.expandCount);
+    const applyRange = (from: number, through: number) => apply(sql, journal, from, through);
+    const usedSponsor = await expandWithSponsor(
+      sql,
+      journal,
+      expand,
+      scratch,
+      request.mode === 'expand' ? request.sponsor : undefined,
+      applyRange
+    );
+    if (!usedSponsor) await applyRange(ledger.count, expand.expandCount);
     if ((await inspect()).count !== expand.expandCount) throw new Error('LEDGER_WRITE_MISMATCH');
     await checkShape(expand.expandCount);
     return { plan: expand, status: 'expanded' };

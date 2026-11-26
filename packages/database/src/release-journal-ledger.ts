@@ -32,7 +32,10 @@ export function readReleaseJournal(migrationsFolder: string) {
   return journal;
 }
 
-export async function verifiedReleaseLedger(sql: ReleaseSql, journal: readonly MigrationMeta[]) {
+export async function verifiedReleaseLedger(
+  sql: ReleaseSql,
+  journal: readonly Pick<MigrationMeta, 'hash' | 'folderMillis'>[]
+) {
   const catalog = await inspectMigrationLedgerCatalog(sql);
   if (catalog === 'table_absent') throw new Error('Incomplete Drizzle ledger catalog');
   // Preserve integer key order when returning text IDs for evidence.

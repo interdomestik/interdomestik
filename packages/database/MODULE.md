@@ -14,6 +14,8 @@ The WP-15 evidence store must durably append each pending intent before its reve
 
 The runner records the ACL and guards at the verified journal boundaries immediately before and after migration `0110`, which owns the sponsor runtime ACL, legacy ID-grant reconciliation, and the three runtime ID-update guards. Journal parity exercises the release path on a disposable PostgreSQL 16 database.
 
+The owner CLI supplies its confined journal, locked transaction and expand boundary to the sponsor runner. The checkpoint and the journal entries commit together on this path. The CLI retains checkpoint and ACL records in the owner evidence store and binds their digest to the expand manifest.
+
 For the DATA-03 pilot, staging and production schema migrations run only through the owner-operated [release migration CLI](../../docs/release/migration-phase.md). Reserve the shared migration credential for that entry point. Run it from an independently pinned, reviewed checkout with its verifier, registry and trusted dependencies. Supply the reviewed candidate journal and SQL as data. The owner runner durably reserves the authenticated nonce before checking the candidate, manifest or database. It also records attempts reaching the locked database in `drizzle.__release_contract_attempts` alongside the migration ledger. Disposable migration uses `src/migrate.ts`. The PG16 journal-parity lane exercises the owner CLI against disposable databases.
 
 The release runner's internal `scripts/ci/migration-phase/safe-codes.json` lists the only error messages it may print verbatim. Other errors are reported as `MIGRATION_PHASE_FAILED`.
