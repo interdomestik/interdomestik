@@ -99,6 +99,7 @@ test('historical pooler proofs still pass after a table append in the working tr
   for (const file of [
     entry,
     'scripts/ci/db-access-required-git.mjs',
+    'scripts/ci/verification-evidence/worker-profile.mjs',
     'scripts/ci/tenant-guard',
     'scripts/ci/tests/fixtures/pooler-transition',
     'packages/database/src',

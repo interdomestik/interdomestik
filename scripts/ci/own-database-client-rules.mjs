@@ -185,7 +185,7 @@ export function checkContainerLocal(entry, source) {
 // machine's Docker probe: one fixed catalogue read in a local container, over a local socket.
 export const PINNED_READ_PROBES = Object.freeze({
   'scripts/ci/verify-machine-docker.mjs':
-    '1b1adf7337d711e8b16a6fa154163cee4eb99fca9ffedd0d0172c58c4aa7dbbe',
+    '8a0d0ab5980d59a056e3cfc3073a49f46eff4a3df30d9a78d08492a3d59f88d5',
 });
 
 // Adapters pinned the same way: each wraps the guarded client it is given and opens none, and

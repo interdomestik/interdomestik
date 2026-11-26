@@ -191,13 +191,12 @@ test('repo size audit rejects budget paths outside the repository', () => {
 });
 
 test('repo size check excludes untracked files while report mode can include them', t => {
-  const untrackedPath = path.join(repoRoot, '.repo-size-untracked-large.txt');
-  const untrackedRelPath = path.relative(repoRoot, untrackedPath);
+  const { root, budgetPath } = ordinaryFixture(t);
+  const untrackedRelPath = 'untracked-large.txt';
   const untrackedBytes = 1_100_000;
-  fs.writeFileSync(untrackedPath, 'x'.repeat(untrackedBytes));
-  t.after(() => fs.rmSync(untrackedPath, { force: true }));
+  fs.writeFileSync(path.join(root, untrackedRelPath), 'x'.repeat(untrackedBytes));
 
-  const defaultResult = runAudit(['--json', '--no-disk', '--top=50']);
+  const defaultResult = runAudit(['--json', '--no-disk', '--top=50'], root);
   assert.equal(defaultResult.status, 0, defaultResult.stderr);
   const defaultReport = JSON.parse(defaultResult.stdout);
   assert.equal(
@@ -205,40 +204,32 @@ test('repo size check excludes untracked files while report mode can include the
     false
   );
 
-  const includeResult = runAudit(['--json', '--no-disk', '--include-untracked', '--top=50']);
+  const includeResult = runAudit(['--json', '--no-disk', '--include-untracked', '--top=50'], root);
   assert.equal(includeResult.status, 0, includeResult.stderr);
   const includeReport = JSON.parse(includeResult.stdout);
   assert.equal(
     includeReport.tracked.largestFiles.some(file => file.path === untrackedRelPath),
     true
   );
-  assert.equal(
-    includeReport.tracked.total.bytes >= defaultReport.tracked.total.bytes + untrackedBytes,
-    true
-  );
+  assert.equal(includeReport.tracked.total.bytes, defaultReport.tracked.total.bytes + untrackedBytes);
 
-  const budgetPath = createPassingBudget(t);
-  const checkResult = runAudit(['--check', '--json', `--budget=${budgetPath}`]);
+  const checkResult = runAudit(['--check', '--json', `--budget=${budgetPath}`], root);
   assert.equal(checkResult.status, 0, checkResult.stderr);
   assert.equal(JSON.parse(checkResult.stdout).options.includeUntracked, false);
 });
 
 test('repo size audit does not over-count a trailing newline as an extra source line', t => {
-  const untrackedPath = path.join(repoRoot, '.repo-size-line-count.js');
-  const untrackedRelPath = path.relative(repoRoot, untrackedPath);
+  const { root } = ordinaryFixture(t);
+  const untrackedRelPath = 'line-count.js';
   fs.writeFileSync(
-    untrackedPath,
+    path.join(root, untrackedRelPath),
     ['const a = 1;', 'const b = 2;', 'const c = 3;', 'const d = 4;'].join('\n') + '\n'
   );
-  t.after(() => fs.rmSync(untrackedPath, { force: true }));
 
-  const belowThresholdResult = runAudit([
-    '--json',
-    '--no-disk',
-    '--include-untracked',
-    '--min-lines=5',
-    '--top=100000',
-  ]);
+  const belowThresholdResult = runAudit(
+    ['--json', '--no-disk', '--include-untracked', '--min-lines=5', '--top=100000'],
+    root
+  );
   assert.equal(belowThresholdResult.status, 0, belowThresholdResult.stderr);
   const belowThresholdReport = JSON.parse(belowThresholdResult.stdout);
   assert.equal(
@@ -246,13 +237,10 @@ test('repo size audit does not over-count a trailing newline as an extra source 
     false
   );
 
-  const atThresholdResult = runAudit([
-    '--json',
-    '--no-disk',
-    '--include-untracked',
-    '--min-lines=4',
-    '--top=100000',
-  ]);
+  const atThresholdResult = runAudit(
+    ['--json', '--no-disk', '--include-untracked', '--min-lines=4', '--top=100000'],
+    root
+  );
   assert.equal(atThresholdResult.status, 0, atThresholdResult.stderr);
   const atThresholdReport = JSON.parse(atThresholdResult.stdout);
   const hotspot = atThresholdReport.tracked.sourceHotspots.find(

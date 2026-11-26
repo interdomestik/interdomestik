@@ -3,6 +3,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { delegatedGitEnvironment } from './verification-evidence/worker-profile.mjs';
 
 // Fixed system Git only; PATH, environment and candidate configuration never select the binary.
 // macOS /usr/bin/git is an xcrun shim steered by DEVELOPER_DIR/TOOLCHAINS, so name Apple's binaries.
@@ -126,11 +127,11 @@ export function runGit(args, { input, encoding } = {}) {
     ...(encoding && { encoding }),
     maxBuffer: 96 * 1024 * 1024,
     stdio: ['pipe', 'pipe', 'pipe'],
-    env: {
+    env: delegatedGitEnvironment({
       ...Object.fromEntries(Object.entries(process.env).filter(([key]) => !key.startsWith('GIT_'))),
       GIT_CONFIG_GLOBAL: '/dev/null',
       GIT_CONFIG_NOSYSTEM: '1',
       PATH: '/usr/bin:/bin',
-    },
+    }),
   });
 }
