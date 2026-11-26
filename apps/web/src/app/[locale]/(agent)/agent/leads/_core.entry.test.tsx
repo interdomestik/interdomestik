@@ -49,6 +49,7 @@ vi.mock('./_core', () => ({
 }));
 
 import AgentLeadsEntry from './_core.entry';
+import AgentLeadsPage from './page';
 import AgentWorkspaceLeadsPage from '../workspace/leads/page';
 
 const authority = mintTestTenantAuthority('tenant-1');
@@ -83,20 +84,22 @@ function expectNoLeadRead() {
   expect(hoisted.withTenantContextMock).not.toHaveBeenCalled();
 }
 
-describe('the workspace leads page is the agent leads entry', () => {
+describe('both leads pages are the agent leads entry', () => {
   it('renders the same function, so both URLs share one visibility rule', () => {
+    expect(AgentLeadsPage).toBe(AgentLeadsEntry);
     expect(AgentWorkspaceLeadsPage).toBe(AgentLeadsEntry);
   });
 });
 
 describe.each([
-  ['/agent/leads', AgentLeadsEntry],
+  ['/agent/leads', AgentLeadsPage as Page],
   ['/agent/workspace/leads', AgentWorkspaceLeadsPage as Page],
 ])('%s', (_route, page) => {
   beforeEach(() => {
     vi.clearAllMocks();
     hoisted.withTenantContextMock.mockImplementation(
-      async (_context: unknown, callback: (tx: unknown) => unknown) => callback({ tx: true })
+      (_context: unknown, callback: (tx: unknown) => unknown) =>
+        Promise.resolve(callback({ tx: true }))
     );
     hoisted.getAgentLeadsCoreMock.mockResolvedValue([]);
   });
