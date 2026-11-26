@@ -114,6 +114,12 @@
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },
   {
+    "file": "apps/web/e2e/gate/agent-members-list.spec.ts",
+    "reason": "The gate/agent-members-list browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
     "file": "apps/web/e2e/gate/agent-message-visibility.spec.ts",
     "reason": "The gate/agent-message-visibility browser spec requires a running web application and Playwright project fixtures.",
     "owner": "Web E2E",
@@ -390,32 +396,8 @@
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },
   {
-    "file": "apps/web/e2e/golden/agent-lead-detail.spec.ts",
-    "reason": "The golden/agent-lead-detail browser spec requires a running web application and Playwright project fixtures.",
-    "owner": "Web E2E",
-    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
-  },
-  {
-    "file": "apps/web/e2e/golden/agent-members-list.spec.ts",
-    "reason": "The golden/agent-members-list browser spec requires a running web application and Playwright project fixtures.",
-    "owner": "Web E2E",
-    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
-  },
-  {
-    "file": "apps/web/e2e/golden/agent-members-search.spec.ts",
-    "reason": "The golden/agent-members-search browser spec requires a running web application and Playwright project fixtures.",
-    "owner": "Web E2E",
-    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
-  },
-  {
     "file": "apps/web/e2e/golden/cash-ops.regressions.spec.ts",
     "reason": "The golden/cash-ops.regressions browser spec requires a running web application and Playwright project fixtures.",
-    "owner": "Web E2E",
-    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
-  },
-  {
-    "file": "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts",
-    "reason": "The golden/member-dashboard-empty-state browser spec requires a running web application and Playwright project fixtures.",
     "owner": "Web E2E",
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },
