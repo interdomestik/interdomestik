@@ -188,11 +188,22 @@ export const PINNED_READ_PROBES = Object.freeze({
     '1b1adf7337d711e8b16a6fa154163cee4eb99fca9ffedd0d0172c58c4aa7dbbe',
 });
 
-// Adapters pinned the same way: each wraps the guarded client it is given and opens none, and
+// Adapters pinned the same way: each uses the guarded client it is given and opens none.
 // Drizzle's string and config overloads would connect, so the reviewed text is the promise.
 export const PINNED_ADAPTERS = Object.freeze({
   'packages/database/test/pg16/journal-migrator.ts':
     '2fca263a0d67cf0b779f76ed6679c71f32ea5cace4e31c6611f4633b995d5ad4',
+  'packages/database/test/pg16/wp16-1-runtime-grants-access.ts':
+    'e04d5bbb15a0cca6ad7a205caa6f90fda9315cb4d59eab7c6ff03b9b0fe771f7',
+  'packages/database/test/pg16/wp16-1-runtime-grants-rollback.ts':
+    'b04b6a3f23d7c568f624a0a5296e307c79206375f837eec87b8851626626ea36',
+});
+
+const PINNED_GUARDED = Object.freeze({
+  'packages/database/test/pg16/wp16-1-runtime-grants-opt-out.ts':
+    '65fa7da2bd9d0ebc1579a3cc4adda11687e81d553ab17ec9655b8a9668d5d770',
+  'packages/database/test/pg16/wp16-1-runtime-grants.test-support.ts':
+    'c79400e5d690b468c06a30c5188ba3f583226f78dfde1a5a8836ddb3fbfcae8b',
 });
 
 const pinnedCheck = (pins, what) => (entry, source) => {
@@ -201,6 +212,7 @@ const pinnedCheck = (pins, what) => (entry, source) => {
 };
 export const checkPinnedReadProbe = pinnedCheck(PINNED_READ_PROBES, 'probe');
 export const checkClientAdapter = pinnedCheck(PINNED_ADAPTERS, 'adapter');
+const checkGuardedPin = pinnedCheck(PINNED_GUARDED, 'guarded script');
 
 function checkOwnerOperation(entry) {
   const pinned = OWNER_OPERATIONS.find(operation => operation.path === entry.path);
@@ -232,6 +244,16 @@ export function checkGuarded(entry, source) {
   assert.deepEqual(commands(source), [], entry.path);
 }
 
+// These files open clients through the factory and name a driver for types or for wrapping an
+// existing guarded client. Check the complete pin before discounting the single reviewed import.
+const PINNED_GUARDED_IMPORT =
+  /^import (?:type postgres from ['"]postgres['"]|\{ drizzle \} from ['"]drizzle-orm\/postgres-js['"]);$/mu;
+
+function checkPinnedGuarded(entry, source) {
+  checkGuardedPin(entry, source);
+  checkGuarded(entry, source.replace(PINNED_GUARDED_IMPORT, ''));
+}
+
 // Each kind's promise, checked against the file itself; an unknown kind is refused.
 function checkKind(entry, source) {
   switch (entry.kind) {
@@ -250,6 +272,8 @@ function checkKind(entry, source) {
       return checkOwnerOperation(entry);
     case 'guarded':
       return checkGuarded(entry, source);
+    case 'pinned-guarded':
+      return checkPinnedGuarded(entry, source);
     case 'client-adapter':
       return checkClientAdapter(entry, source);
     default:

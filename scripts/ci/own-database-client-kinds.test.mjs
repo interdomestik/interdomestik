@@ -189,6 +189,34 @@ test('a guarded script opens clients only through the factory', () => {
   );
 });
 
+test('the pinned guarded files require both their reviewed bytes and the guarded kind checks', () => {
+  const dir = 'packages/database/test/pg16';
+  const cases = [
+    [
+      'wp16-1-runtime-grants-opt-out.ts',
+      source => source.replace('import type postgres', 'import postgres'),
+    ],
+    [
+      'wp16-1-runtime-grants.test-support.ts',
+      source => source.replace('drizzle(sql)', 'drizzle(url)'),
+    ],
+  ];
+  for (const [file, change] of cases) {
+    const path = `${dir}/${file}`;
+    const kind = entry('pinned-guarded', { path });
+    const source = readFileSync(join(root, path), 'utf8');
+    assert.doesNotThrow(() => checkEntry(kind, source));
+    const changed = change(source);
+    assert.notEqual(changed, source);
+    assert.throws(() => checkEntry(kind, changed), /changed since its review/u);
+    assert.throws(
+      () => checkEntry(entry('pinned-guarded'), source),
+      /not a pinned guarded script/u
+    );
+    assert.throws(() => checkEntry(entry('guarded', { path }), source), /loads no driver/u);
+  }
+});
+
 test('the factory is imported only in its two reviewed forms; a near miss of either is refused', () => {
   const role = "import { openGuardedClient } from '../e2e-runtime-role.mjs'";
   const module = "'../../src/disposable-client'";
