@@ -1,6 +1,7 @@
 import ts from 'typescript';
 import { originKey } from './modules.mjs';
 import { sha256 } from './rules-digest.mjs';
+import { storageReceiptPrerequisiteProblem } from './storage-receipt-prerequisite.mjs';
 import { fingerprint } from './syntax.mjs';
 
 const DB = 'packages/database/src';
@@ -113,8 +114,8 @@ export function storageReceiptAdmission(ctx, candidate) {
   if (binding) return refuse(`storage receipt binding mismatch: ${binding}`);
   const sites = commandSites(graph.sourceFileOf(VERIFIER));
   if (!sites) return refuse('storage receipt command fingerprint mismatch');
-  if (!schemaAdmission?.storageReceiptBase)
-    return refuse('storage receipt requires exact WP-12.1 schema and 0114 on the protected base');
+  const prerequisite = storageReceiptPrerequisiteProblem(schemaAdmission);
+  if (prerequisite) return refuse(`storage receipt ${prerequisite}`);
   const caller = graph
     .sourceFileOf(RECEIPT_CALLER)
     .statements.find(

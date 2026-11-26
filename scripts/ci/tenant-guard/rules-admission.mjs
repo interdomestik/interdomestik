@@ -3,6 +3,7 @@
 
 import { C1_ADMISSIONS } from './c1-admissions.mjs';
 import { sha256 } from './rules-digest.mjs';
+import { storageReceiptPrerequisiteProblem } from './storage-receipt-prerequisite.mjs';
 import { unitName } from './syntax.mjs';
 
 /** Installs `c1Admitted(fact, unit)` and `c1AdmittedEdge(fact, caller, sinkKey)` on `ctx`. */
@@ -12,14 +13,17 @@ export function installAdmission(ctx, admissions = C1_ADMISSIONS) {
   const active = [];
   for (const admission of admissions) {
     if (!bundleMatches(ctx.graph, admission)) continue;
-    if (admission.requiresStorageReceiptBase && !ctx.schemaAdmission?.storageReceiptBase) {
+    const prerequisite = admission.requiresStorageReceiptBase
+      ? storageReceiptPrerequisiteProblem(ctx.schemaAdmission)
+      : null;
+    if (prerequisite) {
       const { file } = admission.files[0];
       ctx.violations.push({
         file,
         line: 1,
         rule: 'C1',
         unit: admission.id,
-        detail: 'storage reader requires exact WP-12.1 schema and 0114 on the protected base',
+        detail: `storage reader ${prerequisite}`,
       });
       continue;
     }

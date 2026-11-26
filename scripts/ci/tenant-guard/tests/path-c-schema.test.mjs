@@ -40,9 +40,33 @@ test('D cannot skip W or return to W', () => {
   assert.equal(prove(dark, wp07).reason, `candidate: changed kernel module ${INBOUND}`);
 });
 
+test('an ordinary claim-inbound-documents-history table passes on M', () => {
+  const name = 'claim-inbound-documents-history';
+  const candidate = edit(main, [
+    [BARREL, `${main.sources.get(BARREL)}export * from './${name}';\n`],
+    [
+      `${SCHEMA}/${name}.ts`,
+      "import { pgTable, text } from 'drizzle-orm/pg-core';\n" +
+        "export const claimInboundDocumentsHistory = pgTable('claim_inbound_documents_history', " +
+        "{ id: text('id').primaryKey() }).enableRLS();\n",
+    ],
+  ]);
+  for (const base of [main, candidate]) {
+    const proof = prove(base, candidate);
+    assert.equal(proof.ok, true, proof.reason);
+  }
+});
+
 for (const [label, changes] of [
   ['file only', [[BARREL, wp07.sources.get(BARREL)]]],
   ['barrel only', [[INBOUND, null]]],
+  [
+    'a changed export of the exact inbound specifier without its module',
+    [
+      [BARREL, `${wp07.sources.get(BARREL)}export * from "./claim-inbound-documents";\n`],
+      [INBOUND, null],
+    ],
+  ],
   ['reordered barrel', [[BARREL, INBOUND_EXPORT + wp07.sources.get(BARREL)]]],
   ['one extra byte', [[INBOUND, `${dark.sources.get(INBOUND)} `]]],
   ['changed inbound binding', [[`${SCHEMA}/auth.js`, 'export const users = {};\n']]],

@@ -7,6 +7,7 @@ import { RATE_BOOK_TRANSITION } from './tenant-guard/schema-rate-book-transition
 import { gitIdentity, readSchemaTree, schemaTreeFromBlobs } from './tenant-guard/sources.mjs';
 import './tenant-guard/tests/path-c-schema.test.mjs';
 import './tenant-guard/tests/path-c-storage.test.mjs';
+import './tenant-guard/tests/path-c-storage-scan.test.mjs';
 
 const ROOT = new URL('../../', import.meta.url);
 const SCHEMA = 'packages/database/src/schema';

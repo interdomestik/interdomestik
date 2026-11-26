@@ -290,10 +290,11 @@ export function proveSchemaAdmission(
     checkoutProblem(candidate, scanGraph, sources);
   if (reason) return fail(reason);
   const storageReceiptBase = base.transition === 'inbound' && hasReceiptMigration(base);
+  const storageReceiptCandidate = storageReceiptBase && hasReceiptMigration(candidate);
   return {
     version: 2,
     ok: true,
     reason: 'anchor and protected base verified',
-    ...(storageReceiptBase && { storageReceiptBase }),
+    ...(storageReceiptBase && { storageReceiptBase, storageReceiptCandidate }),
   };
 }

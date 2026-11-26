@@ -29,3 +29,11 @@ export function hasReceiptMigration({ blobs }) {
     Object.entries(ENTRY).every(([key, value]) => matches[0][key] === value)
   );
 }
+
+export function storageReceiptPrerequisiteProblem(schemaAdmission) {
+  if (!schemaAdmission?.storageReceiptBase)
+    return 'requires exact WP-12.1 schema and 0114 on the protected base';
+  if (!schemaAdmission.storageReceiptCandidate)
+    return 'requires exact 0114 SQL and journal entry on the candidate';
+  return null;
+}

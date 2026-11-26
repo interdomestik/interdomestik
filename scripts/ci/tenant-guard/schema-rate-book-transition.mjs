@@ -1,6 +1,7 @@
 // The owner-reviewed WP-07 edge, measured on 7a461f277 → cc2b4f444.
 // Keep this record in the statically loaded protected guard source.
 
+import ts from 'typescript';
 import { LEGACY } from './manifest.mjs';
 import { sha256 } from './rules-digest.mjs';
 import { SCHEMA_DIR } from './schema-builder-imports.mjs';
@@ -50,7 +51,8 @@ const VERIFICATIONS = `${SCHEMA_DIR}exchange-rate-verifications.ts`;
 const CHECKS = `${SCHEMA_DIR}exchange-rate-checks.ts`;
 const BARREL = `${SCHEMA_DIR}index.ts`;
 const INBOUND = `${SCHEMA_DIR}claim-inbound-documents.ts`;
-const INBOUND_EXPORT = "export * from './claim-inbound-documents';\n";
+const INBOUND_SPECIFIER = './claim-inbound-documents';
+const INBOUND_EXPORT = `export * from '${INBOUND_SPECIFIER}';\n`;
 const FILES = [RATES, VERIFICATIONS, CHECKS, BARREL];
 const IMPORT = [VERIFICATIONS, './exchange-rate-checks', CHECKS];
 const V2 = /^v2:[a-f0-9]{64}$/u;
@@ -159,7 +161,16 @@ function matchesRateBook(tree, record, side) {
 
 export function schemaTransitionImage(tree, rateBook, inbound) {
   const barrel = tree.sources.get(BARREL);
-  if (tree.files.has(INBOUND) || barrel.includes('./claim-inbound-documents')) {
+  const inboundExport = tree.graph
+    .sourceFileOf(BARREL)
+    .statements.some(
+      node =>
+        ts.isExportDeclaration(node) &&
+        node.moduleSpecifier &&
+        ts.isStringLiteral(node.moduleSpecifier) &&
+        node.moduleSpecifier.text === INBOUND_SPECIFIER
+    );
+  if (tree.files.has(INBOUND) || inboundExport) {
     const exact =
       [...tree.walks].every(([key, walk]) => walk.versioned === inbound.entries[key]) &&
       Object.entries(inbound.files).every(([file, hash]) => matchesFile(tree, file, hash)) &&

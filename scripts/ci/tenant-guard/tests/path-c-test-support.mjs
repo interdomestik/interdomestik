@@ -57,7 +57,7 @@ export const readerRecord = C1_ADMISSIONS.find(
   ({ id }) => id === 'storage-read-and-inbound-receipt'
 );
 const readerEdits = [READER, MODEL, SPLITTER];
-const anchor = focusedTree(KERNEL_ANCHOR, 'anchor');
+export const anchor = focusedTree(KERNEL_ANCHOR, 'anchor');
 export const main = focusedTree(gitIdentity(ROOT, '2dc457070'), 'base', [
   ...readerRecord.files.map(({ file }) => file).filter(file => !readerEdits.includes(file)),
   READER,
