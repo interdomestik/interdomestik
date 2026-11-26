@@ -35,7 +35,7 @@ const updates: Record<string, string> = {
 
 type SponsorAcl = Awaited<ReturnType<typeof inspectReleaseSponsorAcl>>;
 
-const compareAclCodes = (a: string, b: string) => a.charCodeAt(0) - b.charCodeAt(0);
+const compareAclCodes = (a: string, b: string) => a.codePointAt(0)! - b.codePointAt(0)!;
 
 function proveColumnAcl(
   relation: string,
@@ -43,7 +43,7 @@ function proveColumnAcl(
   sponsor: boolean,
   owner: string
 ) {
-  const expected = [];
+  const expected: ('SELECT' | 'INSERT' | 'UPDATE')[] = [];
   const reads = selections[relation];
   if (reads === 'all' || reads?.split(' ').includes(column.name)) expected.push('SELECT');
   if (sponsor) expected.push('INSERT');

@@ -127,7 +127,7 @@ export async function proveSponsorJourneys(owner: ScratchClient, a: Scope) {
   const provisioned = await provisionEntry(staffAuthority, {
     entryId: a.sponsor_roster_entries,
     now,
-    hasCredential: async () => true,
+    hasCredential: () => Promise.resolve(true),
   });
   assert.equal(provisioned.outcome, 'awaiting_paid_end');
   result(
@@ -135,7 +135,7 @@ export async function proveSponsorJourneys(owner: ScratchClient, a: Scope) {
       staffAuthority,
       staff,
       {
-        hasCredential: async () => true,
+        hasCredential: () => Promise.resolve(true),
       },
       {
         intentId: a.sponsor_handover_intents,

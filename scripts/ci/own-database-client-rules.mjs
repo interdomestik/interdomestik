@@ -194,9 +194,9 @@ export const PINNED_ADAPTERS = Object.freeze({
   'packages/database/test/pg16/journal-migrator.ts':
     '2fca263a0d67cf0b779f76ed6679c71f32ea5cace4e31c6611f4633b995d5ad4',
   'packages/database/test/pg16/wp16-1-runtime-grants-access.ts':
-    'f3aeae7532cc4219eae1f33f3031f1f7dbbd71fb96da844e74967acc9eb4d990',
+    '03096d35d222789259e561d44bdbff09591bd708ea787c9b62f056842bb22871',
   'packages/database/test/pg16/wp16-1-runtime-grants-rollback.ts':
-    '07d75713e75a7cc945c7d2cfc79ff42c5b1135875131f010c0e24d7130fe0c62',
+    '49675a2ae561d82951da1e92416190de6f7eca5442ad30396f60274cdd8cc1f6',
 });
 
 const PINNED_GUARDED = Object.freeze({

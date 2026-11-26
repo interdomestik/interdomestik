@@ -44,12 +44,8 @@ export async function verifiedReleaseLedger(sql: ReleaseSql, journal: readonly M
   `
       : [];
   for (const [index, row] of rows.entries()) {
-    const expected = journal[index];
-    if (
-      !expected ||
-      row.hash !== expected.hash ||
-      row.created_at !== String(expected.folderMillis)
-    ) {
+    const expected = journal.at(index);
+    if (row.hash !== expected?.hash || row.created_at !== String(expected.folderMillis)) {
       throw new Error(`Drizzle ledger differs from the journal at position ${index}`);
     }
   }

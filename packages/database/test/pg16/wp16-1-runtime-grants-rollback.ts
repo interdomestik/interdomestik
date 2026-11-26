@@ -72,7 +72,7 @@ export async function proveForwardAclRollback(
       tag: 'wp16_fixture_acl_rollback',
       sql: statements,
       hash: createHash('sha256').update(statements.join(';\n')).digest('hex'),
-      folderMillis: journal[journal.length - 1].folderMillis + 1,
+      folderMillis: journal.at(-1)!.folderMillis + 1,
       bps: true,
     };
     const rollbackJournal = [...journal, forward];
