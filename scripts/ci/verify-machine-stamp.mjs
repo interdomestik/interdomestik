@@ -10,7 +10,9 @@ import {
   ONLY_ISOLATED_CHILDREN,
   PREFIX,
 } from './verify-machine-output.mjs';
-import { MODES, PENDING_VERSION } from './verify-machine-records.mjs';
+import { gateRoleErrors, MODES, PENDING_VERSION } from './verify-machine-records.mjs';
+import { EVIDENCE_DIR_ENV } from './verification-evidence/m4.mjs';
+import { same } from './verification-evidence/ticket.mjs';
 
 export function probeLive(deps, repoRoot, marker) {
   try {
@@ -48,6 +50,7 @@ function gateProblems(lane, deps, repoRoot, pending, markerResult) {
   if (markerResult.status !== 'trusted' || markerResult.sha256 !== pending.markerSha256) {
     return [...problems, 'the verification marker changed during the run'];
   }
+  problems.push(...gateRoleErrors(markerResult.marker));
   const live = probeLive(deps, repoRoot, markerResult.marker);
   if (!live) return [...problems, 'this machine could not be probed'];
   problems.push(...compareMachine(markerResult.marker, live, { phase: 'stamp' }));
@@ -69,7 +72,7 @@ function writeFinalRecord(lane, deps, pending, pendingPath, directory) {
     }
     // A pre-check record is optional: a full disk must not fail a command that passed. Without
     // its record a gate run has no evidence, so the command fails.
-    if (record.mode === MODES.gate) throw error;
+    if (record.mode !== MODES.preCheck) throw error;
     deps.error(`${PREFIX} pre-check record not written (${error?.code ?? 'error'}); continuing.`);
     return 0;
   }
@@ -81,8 +84,11 @@ function writeFinalRecord(lane, deps, pending, pendingPath, directory) {
     deps.error(`${PREFIX} pending record not removed (${error?.code ?? 'error'}); continuing.`);
   }
   // The evidence line starts with its mode, with no prefix: `GATE-EVIDENCE lane=…` or `PRE-CHECK …`.
+  const scope = record.composition;
+  const composedIdentity = scope ? `run=${record.runId} base=${scope.base} tree=${scope.tree} ` : '';
   deps.log(
     `${record.mode} lane=${lane} head=${record.head} ` +
+      composedIdentity +
       `marker=${record.markerSha256 ?? 'none'} record=${finalPath} record_sha256=${recordSha256}`
   );
   return 0;
@@ -92,15 +98,29 @@ function finish(lane, deps, repoRoot, match, directory) {
   const { record: pending, path: pendingPath } = match;
   const moved = headProblems(deps, repoRoot, pending);
   if (moved.length > 0) return fail(deps, moved);
-  if (pending.mode !== MODES.gate) {
+  if (Boolean(pending.composition) !== Boolean(deps.composed)) {
+    return fail(deps, ['the composed verification scope changed during the run']);
+  }
+  if (pending.mode === MODES.preCheck) {
     return writeFinalRecord(lane, deps, pending, pendingPath, directory);
   }
   const markerResult = deps.readMarker();
   const problems = gateProblems(lane, deps, repoRoot, pending, markerResult);
+  if (deps.composed) {
+    if (problems.length > 0) return fail(deps, problems);
+    try {
+      const scope = deps.verifyComposition(repoRoot, deps.env[EVIDENCE_DIR_ENV], 'accept');
+      if (!same(scope, pending.composition)) {
+        return fail(deps, ['M4 composed evidence changed during the run']);
+      }
+    } catch {
+      return fail(deps, ['M4 composed evidence was refused at stamp']);
+    }
+  }
   if (problems.length === 0) return writeFinalRecord(lane, deps, pending, pendingPath, directory);
   if (problems.includes('HEAD changed during the run')) return fail(deps, problems);
   logPreCheck(deps, 'the run stopped matching the verification marker', problems);
-  const { markerSha256, configuration, ...unmarked } = pending;
+  const { markerSha256, configuration, machineRole, ...unmarked } = pending;
   const downgraded = { ...unmarked, mode: MODES.preCheck, reasons: problems };
   return writeFinalRecord(lane, deps, downgraded, pendingPath, directory);
 }
@@ -137,11 +157,14 @@ export function stampRun(lane, deps, shell, exceptional) {
   try {
     repoRoot = deps.exec('git', ['rev-parse', '--show-toplevel'], deps.cwd);
   } catch {
-    if (matches.length > 0) return fail(deps, ["this shell's begin has no git repository here"]);
+    if (deps.composed || matches.length > 0) {
+      return fail(deps, ["this shell's begin has no git repository here"]);
+    }
     deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no git repository found; nothing is recorded.`);
     return 0;
   }
   if (matches.length === 0) {
+    if (deps.composed) return fail(deps, ['composed verification has no begin record']);
     deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no begin record in this shell; nothing recorded.`);
     return 0;
   }

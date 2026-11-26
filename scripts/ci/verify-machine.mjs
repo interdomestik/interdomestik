@@ -26,6 +26,8 @@ import { gitState, probeMachine, runCommand } from './verify-machine-probe.mjs';
 import * as records from './verify-machine-records.mjs';
 import { probeLive, rootErrors, stampRun } from './verify-machine-stamp.mjs';
 import { readTrustedMarker } from './verify-machine-trust.mjs';
+import { EVIDENCE_DIR_ENV, verifyStampComposition } from './verification-evidence/m4.mjs';
+import { M4_SCRIPT } from './verification-evidence/manifest.mjs';
 
 const USAGE = 'usage: verify-machine.mjs begin|stamp <pr-verify|security-guard> | describe';
 
@@ -40,6 +42,7 @@ export function defaultDependencies() {
     chain: defaultChainProbe(process.ppid),
     exec: runCommand,
     readMarker: readTrustedMarker,
+    verifyComposition: verifyStampComposition,
     probe: probeMachine,
     gitState,
     realpath: realpathSync,
@@ -102,11 +105,15 @@ function begin(lane, deps, repoRoot, shell) {
   const pendingPath = deps.records.pendingRecordPath(directory, repoRoot, lane, shell.id);
   deps.records.pruneStalePending(directory, Date.parse(deps.now()));
   const context = { repoRoot, pendingPath, shell, startedAt: deps.now() };
-  const downgrade = (reason, problems) => preCheck(lane, deps, context, reason, problems);
+  const downgrade = (reason, problems = []) => deps.composed
+    ? fail(deps, [reason, ...problems])
+    : preCheck(lane, deps, context, reason, problems);
   const markerResult = deps.readMarker();
   if (markerResult.status === 'absent') return downgrade('no verification-machine marker');
   if (deps.platform !== 'darwin') return downgrade('a marker is present on a non-macOS host');
   const { marker, sha256 } = markerResult;
+  const roleProblems = records.gateRoleErrors(marker);
+  if (roleProblems.length > 0) return downgrade('machine role refused', roleProblems);
   const live = probeLive(deps, repoRoot, marker);
   if (!live) return downgrade('this machine could not be probed');
   const problems = [
@@ -117,15 +124,28 @@ function begin(lane, deps, repoRoot, shell) {
   if (problems.length > 0) {
     return downgrade('this run does not match the verification marker', problems);
   }
+  let composition;
+  if (deps.composed) {
+    try {
+      composition = deps.verifyComposition(repoRoot, deps.env[EVIDENCE_DIR_ENV], 'dispatch');
+      if (composition.markerSha256 !== sha256 || composition.head !== live.git.head) {
+        return fail(deps, ['the M4 stamp scope differs from the verified evidence']);
+      }
+    } catch {
+      return fail(deps, ['M4 composed evidence was refused at begin']);
+    }
+  }
+  const mode = composition?.method === 'composed-trial' ? records.MODES.trial : records.MODES.gate;
   deps.records.writeRecord(pendingPath, {
     ...pendingBase(lane, deps, shell, context.startedAt),
-    mode: records.MODES.gate,
+    mode,
     head: live.git.head,
     cleanTree: true,
     markerSha256: sha256,
+    ...records.gateRecordRole(marker, composition),
     configuration: records.recordedConfiguration(marker, live),
   });
-  deps.log(`${PREFIX} GATE-EVIDENCE candidate: machine matches marker ${sha256.slice(0, 12)}.`);
+  deps.log(`${PREFIX} ${mode} candidate: machine matches marker ${sha256.slice(0, 12)}.`);
   return 0;
 }
 
@@ -147,6 +167,8 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
   }
   const [command, lane] = argv;
   const unexpected = unexpectedEnvNames(deps.env);
+  const composed = deps.env.npm_lifecycle_event === M4_SCRIPT ||
+    Object.hasOwn(deps.env, EVIDENCE_DIR_ENV);
   if (command === 'describe') {
     if (unexpected.length === 0) return describeMachine(argv.slice(1), deps);
     return fail(deps, [
@@ -165,7 +187,10 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
   let exceptional = null;
   if (hosted) exceptional = 'hosted';
   else if (unexpected.length > 0) exceptional = unexpected;
-  const run = { ...deps, readMarker: () => markerResult };
+  if (composed && (exceptional || !deps.env[EVIDENCE_DIR_ENV])) {
+    return fail(deps, ['composed verification requires marked M4 and collected M5 evidence']);
+  }
+  const run = { ...deps, composed, readMarker: () => markerResult };
   if (command === 'stamp') return stampRun(lane, run, shellIdentity(deps), exceptional);
   if (hosted) {
     deps.log(
@@ -185,6 +210,7 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
   try {
     repoRoot = deps.exec('git', ['rev-parse', '--show-toplevel'], deps.cwd);
   } catch {
+    if (composed) return fail(deps, ['composed verification requires a repository checkout']);
     deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no git repository found; nothing is recorded.`);
     return 0;
   }
