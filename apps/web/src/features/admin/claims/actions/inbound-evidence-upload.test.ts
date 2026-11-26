@@ -90,6 +90,8 @@ describe('inbound PDF publication', () => {
   beforeEach(() => {
     vi.resetAllMocks();
     vi.stubEnv('CLAIM_UPLOAD_INTENT_SECRET', 'synthetic-upload-intent-test-secret');
+    // The fixture's stored path names this bucket; pin it against a configured override.
+    vi.stubEnv('NEXT_PUBLIC_SUPABASE_EVIDENCE_BUCKET', 'claim-evidence');
     mocks.authorize.mockResolvedValue(authorizedSession(STAFF_A));
     mocks.confirm.mockResolvedValue('created');
     mocks.upload.mockResolvedValue({ error: null });
