@@ -110,12 +110,13 @@ async function main() {
     });
 
     // 📩 Insert Document Evidence during Evaluation
+    const documentId = crypto.randomUUID();
     await db.insert(claimDocuments).values({
-      id: crypto.randomUUID(),
+      id: documentId,
       tenantId,
       claimId: c.id,
       name: `damage_report_${c.category}.pdf`,
-      filePath: `/tmp/damage_report_${c.id}.pdf`,
+      filePath: `pii/tenants/${tenantId}/claims/${c.id}/${documentId}.pdf`,
       fileType: 'application/pdf',
       fileSize: 1024 * 350, // 350KB
       uploadedBy: staff.id,

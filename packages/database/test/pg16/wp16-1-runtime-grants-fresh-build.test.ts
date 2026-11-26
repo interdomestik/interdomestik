@@ -59,11 +59,11 @@ test('WP-16.1 release builds and reconciles the PG16 runtime grant journal', asy
               async recordAcl({ phase, target }) {
                 if (phase === 'before-trailing') {
                   assert.equal(target.ledger.length, journal.length - 1);
-                  throw new Error('pre-0110 recording failed');
+                  throw new Error('pre-0111 recording failed');
                 }
               },
             }),
-            /pre-0110 recording failed/u
+            /pre-0111 recording failed/u
           );
           const [, , retryBefore, retryVerified] = checkpoint;
           assert.notEqual(retryBefore.attemptId, before.attemptId);

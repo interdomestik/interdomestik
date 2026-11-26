@@ -119,7 +119,7 @@ export async function proveSponsorRuntimeDenials(client: ScratchClient, a: Scope
   });
 
   // Read dependencies for the two non-sponsor locks belong to WP-15. This transaction uses
-  // scratch-only read ACLs to exercise the 0110 trigger behavior without a release ACL manifest.
+  // scratch-only read ACLs to exercise the 0111 trigger behavior without a release ACL manifest.
   const claim = uid();
   const evidence = uid();
   await client`insert into claim (id, tenant_id, "userId", title, category, "companyName", case_lifecycle_state)

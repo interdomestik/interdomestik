@@ -116,7 +116,7 @@ export async function stageJournal(
       );
       assert.equal((await verifiedReleaseLedger(sql, journal)).length, prefix);
     } else {
-      // One replacement was independently present before 0110. Rollback must retain it.
+      // One replacement was independently present before 0111. Rollback must retain it.
       await sql`grant update ("updatedAt") on public.claim to ${sql(sponsorRuntimeRole)}`;
       await applyReleaseJournal(drizzle(sql)._.session, migrationsFolder, journal.slice(0, -1));
       assert.equal((await verifiedReleaseLedger(sql, journal)).length, journal.length - 1);

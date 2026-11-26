@@ -194,7 +194,7 @@ export const PINNED_ADAPTERS = Object.freeze({
   'packages/database/test/pg16/journal-migrator.ts':
     '2fca263a0d67cf0b779f76ed6679c71f32ea5cace4e31c6611f4633b995d5ad4',
   'packages/database/test/pg16/wp16-1-runtime-grants-access.ts':
-    '03096d35d222789259e561d44bdbff09591bd708ea787c9b62f056842bb22871',
+    '059252a08e8a8f6fcde0eb4d97e01dbb7d56fdfae316763e246746d7b2064333',
   'packages/database/test/pg16/wp16-1-runtime-grants-rollback.ts':
     '49675a2ae561d82951da1e92416190de6f7eca5442ad30396f60274cdd8cc1f6',
 });
@@ -203,7 +203,7 @@ const PINNED_GUARDED = Object.freeze({
   'packages/database/test/pg16/wp16-1-runtime-grants-opt-out.ts':
     '0696b586fb32ff7921edce55a8c8924e3129c78b4070aa0f48e3b5101bd038b0',
   'packages/database/test/pg16/wp16-1-runtime-grants.test-support.ts':
-    'cad4b93a0e1390b8364756f7050baf18904c142d782455777630663f4dd803c6',
+    'ebff8886f3c17af16a91bb78c97ecb0398508d49bfdfa26a134ec8dd42c647cc',
 });
 // The release entry point applies journaled migrations through admin connection preflight.
 const PINNED_RELEASE_MIGRATIONS = Object.freeze({

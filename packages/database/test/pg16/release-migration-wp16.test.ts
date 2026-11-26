@@ -98,7 +98,7 @@ test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidenc
       }
     );
 
-    await t.test('forward target retains the ACL on both sides of 0110', async t => {
+    await t.test('forward target retains the ACL on both sides of 0111', async t => {
       await withReleaseDatabase(
         'interdomestik_admin_config_wp16_forward',
         { t, dir: folder, registry: policy, prepare: runner => stageJournal(runner, 'legacy') },
@@ -157,7 +157,7 @@ test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidenc
     );
 
     for (const [candidate, dir, overbroadRelation] of [
-      ['with 0110', folder, 'user'],
+      ['with 0111', folder, 'user'],
       // Granting UPDATE on claim fills the last privilege that 0105 checks.
       ['through 0109', through0109, 'claim'],
     ]) {

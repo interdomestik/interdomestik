@@ -3,7 +3,7 @@ import type { MigrationExecutionSql } from './migration-execution-contracts';
 export const sponsorRuntimeRole = 'interdomestik_runtime_rls';
 export const sponsorCheckpointTag = '0104_wp07_rate_verification_age';
 export const sponsorPrerequisiteTag = '0105_wp11_notification_deliveries';
-export const sponsorTrailingTag = '0110_wp16_1_sponsor_runtime_grants';
+export const sponsorTrailingTag = '0111_wp16_1_sponsor_runtime_grants';
 export const sponsorCheckpointGrants = [
   ['claim', 'updatedAt'],
   ['user', 'updatedAt'],
