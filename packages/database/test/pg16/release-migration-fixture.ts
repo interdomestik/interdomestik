@@ -35,16 +35,18 @@ export async function withReleaseDatabase<T>(
   inputs: { t: TestContext; dir: string; registry: string; commitSha?: string },
   work: (client: ScratchClient, fixture: ReturnType<typeof releaseFixture>) => Promise<T>
 ): Promise<T> {
-  const adminUrl = new URL(process.env.DATABASE_URL ?? '');
-  if (adminUrl.hostname !== '127.0.0.1' || !adminUrl.port || adminUrl.search || adminUrl.hash)
-    throw new Error('Release fixture requires an explicit loopback PostgreSQL endpoint');
-  const owner = `release_phase_${randomBytes(6).toString('hex')}`;
-  const role = quoteIdentifier(owner);
-  const password = randomBytes(24).toString('hex');
+  const rawAdminUrl = process.env.DATABASE_URL ?? '';
   return withDisposableClient(
-    adminUrl.toString(),
+    rawAdminUrl,
     { applicationName: 'release_phase_setup' },
     async admin => {
+      const { hostname, port, search, hash } = new URL(rawAdminUrl);
+      if (hostname !== '127.0.0.1' || !port || search || hash)
+        throw new Error('Release fixture requires an explicit loopback PostgreSQL endpoint');
+
+      const owner = `release_phase_${randomBytes(6).toString('hex')}`;
+      const role = quoteIdentifier(owner);
+      const password = randomBytes(24).toString('hex');
       // The real journal installs btree_gist. Its public objects must also belong to the runner.
       await admin.unsafe(
         `CREATE ROLE ${role} LOGIN SUPERUSER NOBYPASSRLS NOREPLICATION PASSWORD '${password}'`

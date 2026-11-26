@@ -6,18 +6,33 @@ const REQUIRE_CHECK_SOURCE = 'b8762e83121e8a162bc41908c03dd59bbd5c04050baf9bf966
 const WP07 = '0112_wp07_rate_check_contract';
 
 async function verifyWp07(sql: MigrationExecutionSql, contracted: boolean) {
-  const [shape] = await sql<{ expanded: boolean; weekly_count: number; named_weekly: boolean }[]>`
+  // 0101 creates the primary key and the three original unique constraints. The
+  // reviewed expand adds date/revision uniqueness, and contract removes the weekly key.
+  const [shape] = await sql<{ valid: boolean }[]>`
     WITH rates AS (
       SELECT pg_catalog.to_regclass('public.exchange_rates') AS oid
     ), verifications AS (
       SELECT pg_catalog.to_regclass('public.exchange_rate_verifications') AS oid
+    ), expected_uniqueness(conname, constraint_type, key_names) AS (
+      VALUES
+        ('exchange_rates_pkey', 'p', ARRAY['id']),
+        ('exchange_rates_tenant_id_book_date_uq', 'u', ARRAY['tenant_id', 'id', 'book_id', 'effective_on']),
+        ('exchange_rates_tenant_id_book_pair_rate_date_uq', 'u',
+          ARRAY['tenant_id', 'id', 'book_id', 'base', 'quote', 'rate', 'effective_on']),
+        ('exchange_rates_tenant_book_date_revision_uq', 'u', ARRAY['tenant_id', 'book_id', 'effective_on', 'revision'])
+      UNION ALL
+      SELECT 'exchange_rates_tenant_book_week_revision_uq', 'u', ARRAY['tenant_id', 'book_id', 'week_starts_on', 'revision']
+      WHERE NOT ${contracted}
     ), uniqueness AS (
-      SELECT i.*, c.conname, c.convalidated,
+      SELECT i.*, c.conname::text AS conname, c.contype::text AS constraint_type,
+        c.convalidated, c.condeferrable,
         ARRAY(SELECT a.attname::text FROM pg_catalog.unnest(i.indkey::smallint[]) WITH ORDINALITY AS k(num, pos)
           JOIN pg_catalog.pg_attribute a ON a.attrelid = i.indrelid AND a.attnum = k.num
           WHERE k.pos <= i.indnkeyatts ORDER BY k.pos) AS key_names
-      FROM rates r JOIN pg_catalog.pg_index i ON i.indrelid = r.oid AND i.indisunique
+      FROM rates r JOIN pg_catalog.pg_index i ON i.indrelid = r.oid
+        AND (i.indisunique OR i.indisexclusion)
       LEFT JOIN pg_catalog.pg_constraint c ON c.conindid = i.indexrelid AND c.conrelid = r.oid
+        AND c.contype IN ('p', 'u')
     )
     SELECT (
       EXISTS (SELECT 1 FROM verifications v JOIN pg_catalog.pg_attribute a ON a.attrelid = v.oid
@@ -42,18 +57,14 @@ async function verifyWp07(sql: MigrationExecutionSql, contracted: boolean) {
             JOIN pg_catalog.pg_attribute a ON a.attrelid = c.confrelid AND a.attnum = k.num
             ORDER BY k.pos
           ) = ARRAY['tenant_id', 'book_id', 'id', 'legal_entity_id', 'actor_id', 'rate_id'])
-      AND EXISTS (SELECT 1 FROM uniqueness WHERE conname = 'exchange_rates_tenant_book_date_revision_uq'
-        AND key_names = ARRAY['tenant_id', 'book_id', 'effective_on', 'revision']
-        AND convalidated AND indisvalid AND indisready AND indislive AND indpred IS NULL)
-    ) AS expanded,
-    (SELECT count(*)::int FROM uniqueness
-      WHERE conname = 'exchange_rates_tenant_book_week_revision_uq'
-        OR (cardinality(key_names) = indnkeyatts AND 'week_starts_on' = ANY(key_names)
-          AND key_names <@ ARRAY['tenant_id', 'book_id', 'week_starts_on', 'revision']))
-      AS weekly_count,
-    EXISTS (SELECT 1 FROM uniqueness WHERE conname = 'exchange_rates_tenant_book_week_revision_uq'
-      AND key_names = ARRAY['tenant_id', 'book_id', 'week_starts_on', 'revision']
-      AND convalidated AND indisvalid AND indisready AND indislive AND indpred IS NULL) AS named_weekly
+      AND NOT EXISTS (
+        SELECT 1 FROM expected_uniqueness e FULL JOIN uniqueness u USING (conname)
+        WHERE (u.constraint_type = e.constraint_type AND u.key_names = e.key_names
+          AND u.indnatts = cardinality(u.key_names) AND u.convalidated AND NOT u.condeferrable
+          AND u.indisunique AND u.indisvalid AND u.indisready AND u.indislive AND u.indpred IS NULL
+        ) IS NOT TRUE
+      )
+    ) AS valid
   `;
   const [fn] = await sql<{ source: string; valid: boolean }[]>`
     SELECT p.prosrc AS source, (
@@ -80,12 +91,7 @@ async function verifyWp07(sql: MigrationExecutionSql, contracted: boolean) {
     / WHEN \(+new\.check_id IS NULL\)+ EXECUTE FUNCTION public\.exchange_rate_verifications_require_check_fn\(\)$/u.test(
       trigger.definition
     );
-  if (
-    !shape?.expanded ||
-    (contracted
-      ? shape.weekly_count !== 0 || !guard
-      : shape.weekly_count !== 1 || !shape.named_weekly || fn || trigger)
-  )
+  if (!shape?.valid || (contracted ? !guard : fn || trigger))
     throw new Error('PHASE_SCHEMA_DIVERGENT');
 }
 

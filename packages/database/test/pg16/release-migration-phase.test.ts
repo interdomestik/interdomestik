@@ -390,6 +390,13 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
           await client`DROP INDEX alternate_weekly_index`;
         }
       );
+      await t.test('recovery rejects a weekly unique index with source in its key', async () => {
+        await client`CREATE UNIQUE INDEX weekly_source_index
+          ON exchange_rates (tenant_id, book_id, week_starts_on, revision, source)`;
+        await assertLedger(client, journal, 113);
+        assertRefusal(await fixture.run('recover'), 'PHASE_SCHEMA_DIVERGENT');
+        await client`DROP INDEX weekly_source_index`;
+      });
       await client`INSERT INTO exchange_rates
       (id, tenant_id, book_id, base, quote, rate, effective_on, revision, source, caller_kind)
       VALUES ('new-rate', ${lastTenant}, ${lastBook}, 'EUR', 'MKD', 61.6, '2026-11-24', 1, 'nbrm', 'inngest')`;
