@@ -5,6 +5,13 @@
  * All storage paths MUST include tenantId for security.
  */
 
+type StoragePathParams = {
+  tenantId: string;
+  entityType: string;
+  entityId: string;
+  fileName: string;
+};
+
 /**
  * Build a tenant-isolated storage path for a document.
  * Format: {tenantId}/{entityType}/{entityId}/{timestamp}_{filename}
@@ -14,13 +21,25 @@
  * // => 'tenant_ks/claim/claim123/1705186800000_invoice.pdf'
  */
 export function buildStoragePath(
-  params: {
-    tenantId: string;
-    entityType: string;
-    entityId: string;
-    fileName: string;
-  },
+  params: StoragePathParams,
   { preserveLegacyKey = false }: { preserveLegacyKey?: boolean } = {}
+): string {
+  return formatStoragePath(params, Date.now(), preserveLegacyKey);
+}
+
+export function assertAllocatedStoragePath(storagePath: string, params: StoragePathParams): void {
+  const fileSegment = storagePath.slice(storagePath.lastIndexOf('/') + 1);
+  const [timestampPart] = fileSegment.split('_', 1);
+  const timestamp = Number(timestampPart);
+  if (!Number.isSafeInteger(timestamp) || storagePath !== formatStoragePath(params, timestamp)) {
+    throw new Error('The storage path must match the allocated canonical upload key.');
+  }
+}
+
+function formatStoragePath(
+  params: StoragePathParams,
+  timestamp: number,
+  preserveLegacyKey = false
 ): string {
   const { tenantId, entityType, entityId, fileName } = params;
 
@@ -40,9 +59,6 @@ export function buildStoragePath(
   if (preserveLegacyKey && sanitizedFileName !== legacyFileName) {
     throw new Error('The existing upload key contains noncanonical characters.');
   }
-
-  // Unique timestamp prefix to prevent collisions
-  const timestamp = Date.now();
 
   // Path MUST include tenantId for isolation
   return `${tenantId}/${entityType}/${entityId}/${timestamp}_${sanitizedFileName}`;

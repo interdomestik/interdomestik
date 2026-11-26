@@ -3,6 +3,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import postgres from 'postgres';
 
 import { withDisposableClient } from '../src/disposable-client';
 import {
@@ -10,7 +11,6 @@ import {
   foreignTenant,
   homeTenant,
   insertClaim,
-  insertDocument,
   restricted,
   seedActors,
   type Case,
@@ -66,30 +66,56 @@ const constraints = {
 } as const;
 const tables = ['claim_documents', 'documents'] as const;
 type Table = (typeof tables)[number];
-type Sql = Parameters<typeof insertDocument>[0];
+type Sql = postgres.Sql | postgres.TransactionSql;
 
-async function insertPath(sql: Sql, table: Table, claim: Case, path: string) {
-  const id = randomUUID();
-  if (table === 'claim_documents') {
-    await insertDocument(sql, documentInput(claim, id, path));
-  } else {
-    await sql`insert into public.documents
-      (id, tenant_id, entity_type, entity_id, file_name, mime_type, file_size, storage_path, uploaded_by)
-      values (${id}, ${claim.tenant}, 'claim', ${claim.id}, 'Display name.pdf',
-              'application/pdf', 120, ${path}, ${claim.user})`;
-  }
+function pathColumn(table: Table) {
+  return table === 'claim_documents' ? 'file_path' : 'storage_path';
+}
+
+async function insertPath(
+  sql: Sql,
+  table: Table,
+  claim: Case,
+  path: string,
+  conflict?: { id: string; updatePath: string }
+) {
+  const id = conflict?.id ?? randomUUID();
+  const row =
+    table === 'claim_documents'
+      ? documentInput(claim, id, path)
+      : {
+          id,
+          tenant_id: claim.tenant,
+          entity_type: 'claim',
+          entity_id: claim.id,
+          file_name: 'Display name.pdf',
+          mime_type: 'application/pdf',
+          file_size: 120,
+          storage_path: path,
+          uploaded_by: claim.user,
+        };
+  const onConflict = conflict
+    ? sql`on conflict (id) do update set ${sql(pathColumn(table))} = ${conflict.updatePath}`
+    : sql``;
+  await sql`insert into public.${sql(table)} ${sql(row)} ${onConflict}`;
   return id;
 }
 
 async function readPath(sql: Sql, table: Table, id: string): Promise<string | undefined> {
-  const column = table === 'claim_documents' ? 'file_path' : 'storage_path';
   const [row] = await sql<{ path: string }[]>`
-    select ${sql(column)} as path from public.${sql(table)} where id = ${id}`;
+    select ${sql(pathColumn(table))} as path from public.${sql(table)} where id = ${id}`;
   return row?.path;
 }
 
 function pathViolation(table: Table) {
-  return { code: '23514', constraint_name: constraints[table] };
+  return (error: unknown) => {
+    assert.ok(error instanceof Error);
+    const cause = error.cause ?? error;
+    assert.ok(cause instanceof postgres.PostgresError);
+    assert.equal(cause.code, '23514');
+    assert.equal(cause.constraint_name, constraints[table]);
+    return true;
+  };
 }
 
 async function assertRestrictedRole(tx: Sql, role: string, table: Table) {
@@ -178,10 +204,9 @@ test('storage paths under the restricted runtime role', async t => {
               async () => {
                 const path = 'local/original.pdf';
                 const id = await restricted(runtime, tx => insertPath(tx, table, claim, path));
-                const column = table === 'claim_documents' ? 'file_path' : 'storage_path';
                 await assert.rejects(
                   restricted(runtime, async tx => {
-                    await tx`update public.${tx(table)} set ${tx(column)} = 'local/new name.pdf'
+                    await tx`update public.${tx(table)} set ${tx(pathColumn(table))} = 'local/new name.pdf'
                     where id = ${id}`;
                   }),
                   pathViolation(table)
@@ -191,6 +216,30 @@ test('storage paths under the restricted runtime role', async t => {
                 });
               }
             );
+            for (const [phase, proposedPath, updatePath] of [
+              ['insert proposal', 'local/invalid proposal.pdf', undefined],
+              ['conflict update', 'local/proposal.pdf', 'local/invalid update.pdf'],
+            ] as const) {
+              await t.test(`${table} rejects a noncanonical upsert ${phase}`, async () => {
+                const originalPath = `local/${randomUUID()}.pdf`;
+                const id = await restricted(runtime, tx =>
+                  insertPath(tx, table, claim, originalPath)
+                );
+                await assert.rejects(
+                  restricted(runtime, tx =>
+                    insertPath(tx, table, claim, proposedPath, {
+                      id,
+                      updatePath: updatePath ?? originalPath,
+                    })
+                  ),
+                  pathViolation(table)
+                );
+                assert.equal(
+                  await restricted(runtime, tx => readPath(tx, table, id)),
+                  originalPath
+                );
+              });
+            }
             await t.test(`${table} denies valid coordinates in another tenant`, async () => {
               const path = `foreign/${randomUUID()}.pdf`;
               const id = await insertPath(admin, table, foreignClaim, path);
@@ -298,21 +347,15 @@ for (const table of tables) {
       const before = await snapshot(admin);
       const beforeJournal =
         await admin`select count(*)::int as size from drizzle.__drizzle_migrations`;
-      await assert.rejects(migrateJournal(admin, migrations), error => {
-        assert.ok(error instanceof Error);
-        assert.partialDeepStrictEqual(error.cause ?? error, pathViolation(table));
-        return true;
-      });
+      await assert.rejects(migrateJournal(admin, migrations), pathViolation(table));
       assert.deepEqual(await snapshot(admin), before);
       assert.deepEqual(
         await admin`select count(*)::int as size from drizzle.__drizzle_migrations`,
         beforeJournal
       );
-      assert.deepEqual(
-        await admin`
-        select conname from pg_constraint where conname in ${admin(Object.values(constraints))}`,
-        []
-      );
+      const checks = await admin`
+        select conname from pg_constraint where conname in ${admin(Object.values(constraints))}`;
+      assert.equal(checks.length, 0);
     });
   });
 }

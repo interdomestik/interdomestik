@@ -3,6 +3,7 @@ import { createHash } from 'node:crypto';
 
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { POLICIES_BUCKET } from '@/lib/storage/tenant-prefix';
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 
 import { queuePolicyAnalysisService, uploadPolicyFileService } from './_services';
@@ -40,6 +41,7 @@ describe('uploadPolicyFileService', () => {
   );
 
   it('uploads the canonical allocated key and returns it for persistence', async () => {
+    const bucket = process.env.NEXT_PUBLIC_SUPABASE_POLICY_BUCKET || POLICIES_BUCKET;
     const clock = vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
     const upload = vi.fn().mockResolvedValue({ error: null });
     const from = vi.fn().mockReturnValue({ upload });
@@ -57,7 +59,7 @@ describe('uploadPolicyFileService', () => {
           safeName: 'Display_name.pdf',
         })
       ).resolves.toEqual({ ok: true, filePath });
-      expect(from).toHaveBeenCalledExactlyOnceWith('policies');
+      expect(from).toHaveBeenCalledExactlyOnceWith(bucket);
       expect(upload).toHaveBeenCalledExactlyOnceWith(filePath, buffer, {
         contentType: 'application/pdf',
         upsert: false,

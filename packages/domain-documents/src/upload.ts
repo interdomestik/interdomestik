@@ -7,7 +7,7 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { captureAudit, logAuditEvent } from './audit';
-import { buildStoragePath, validateTenantOwnership } from './storage';
+import { assertAllocatedStoragePath, buildStoragePath, validateTenantOwnership } from './storage';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export { softDeleteDocument } from './document-lifecycle';
@@ -17,6 +17,8 @@ export interface UploadParams {
   entityType: 'claim' | 'member' | 'policy' | 'thread' | 'share_pack';
   entityId: string;
   fileName: string;
+  /** The exact key returned by buildStoragePath and used for the completed upload. */
+  storagePath?: string;
   mimeType: string;
   fileSize: number;
   category?:
@@ -46,7 +48,7 @@ export interface UploadResult {
  * MUST be called AFTER the file is successfully uploaded to storage.
  * This ensures we don't have orphaned database records.
  *
- * @throws Error if tenant validation fails
+ * @throws Error if storage path or tenant validation fails
  */
 export async function recordUpload(params: UploadParams): Promise<UploadResult> {
   const {
@@ -62,10 +64,13 @@ export async function recordUpload(params: UploadParams): Promise<UploadResult> 
   } = params;
   const { tenantId } = readTenantAuthority(authority);
 
-  const storagePath = buildStoragePath(
-    { tenantId, entityType, entityId, fileName },
-    { preserveLegacyKey: true }
-  );
+  const pathParams = { tenantId, entityType, entityId, fileName };
+  let storagePath = params.storagePath;
+  if (storagePath === undefined) {
+    storagePath = buildStoragePath(pathParams, { preserveLegacyKey: true });
+  } else {
+    assertAllocatedStoragePath(storagePath, pathParams);
+  }
 
   // Defense-in-depth: verify path includes correct tenant
   if (!validateTenantOwnership(storagePath, tenantId)) {

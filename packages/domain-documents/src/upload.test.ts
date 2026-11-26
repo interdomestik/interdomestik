@@ -56,6 +56,7 @@ vi.mock('./audit', () => ({
   logAuditEvent: mocks.logAuditEvent,
 }));
 
+import { buildStoragePath } from './storage';
 import { getDocumentsForEntity, recordUpload } from './upload';
 
 describe('document upload helpers', () => {
@@ -158,6 +159,61 @@ describe('document upload helpers', () => {
         uploadedBy: 'user-1',
       })
     ).rejects.toThrow('The existing upload key contains noncanonical characters.');
+    expect(mocks.insert).not.toHaveBeenCalled();
+    expect(mocks.logAuditEvent).not.toHaveBeenCalled();
+  });
+
+  it('records the exact allocated key and preserves the original filename', async () => {
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1_700_000_000_000);
+    const fileName = 'Invoice Final.pdf';
+    const storagePath = buildStoragePath({
+      tenantId: 'tenant-1',
+      entityType: 'claim',
+      entityId: 'claim-1',
+      fileName,
+    });
+    expect(storagePath).toBe('tenant-1/claim/claim-1/1700000000000_Invoice_Final.pdf');
+    clock.mockReturnValue(1_700_000_000_001);
+
+    await expect(
+      recordUpload({
+        authority: mintTestTenantAuthority('tenant-1'),
+        entityType: 'claim',
+        entityId: 'claim-1',
+        fileName,
+        storagePath,
+        mimeType: 'application/pdf',
+        fileSize: 512,
+        uploadedBy: 'user-1',
+      })
+    ).resolves.toEqual({ documentId: 'doc-123', storagePath });
+
+    expect(mocks.insertValues).toHaveBeenCalledWith(
+      expect.objectContaining({ storagePath, fileName })
+    );
+  });
+
+  it.each([
+    'tenant-2/claim/claim-1/1700000000000_Invoice_Final.pdf',
+    'tenant-1/policy/claim-1/1700000000000_Invoice_Final.pdf',
+    'tenant-1/claim/claim-2/1700000000000_Invoice_Final.pdf',
+    'tenant-1/claim/claim-1/1700000000000_Other_File.pdf',
+    'tenant-1/claim/claim-1/1700000000000_Invoice Final.pdf',
+    'tenant-1/claim/claim-1/nested/1700000000000_Invoice_Final.pdf',
+    'tenant-1/claim/claim-1/01700000000000_Invoice_Final.pdf',
+  ])('rejects an allocated key that does not match the upload: %s', async storagePath => {
+    await expect(
+      recordUpload({
+        authority: mintTestTenantAuthority('tenant-1'),
+        entityType: 'claim',
+        entityId: 'claim-1',
+        fileName: 'Invoice Final.pdf',
+        storagePath,
+        mimeType: 'application/pdf',
+        fileSize: 512,
+        uploadedBy: 'user-1',
+      })
+    ).rejects.toThrow('The storage path must match the allocated canonical upload key.');
     expect(mocks.insert).not.toHaveBeenCalled();
     expect(mocks.logAuditEvent).not.toHaveBeenCalled();
   });
