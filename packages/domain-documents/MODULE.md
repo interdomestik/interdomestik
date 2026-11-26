@@ -26,11 +26,13 @@ may use `hasClaimEvidenceDocument` before taking locks to avoid reading stored b
 
 ## Storage metadata
 
-`./storage` allocates canonical relative keys with ASCII-safe filename labels.
-After uploading a new object, pass the exact `buildStoragePath` result as
-`recordUpload({ ..., storagePath })`. The writer checks the allocated key
-against the authorized tenant, entity coordinates, and filename and preserves
-the display name verbatim. When `storagePath` is omitted, the legacy format
-still applies and the writer rejects keys the canonical formatter would change.
+`allocateStoragePath` from `./storage` returns an immutable server-side allocation
+record with a canonical relative `storagePath` and an ASCII-safe filename label.
+Use that key for the upload, then pass the original record to
+`recordUpload({ ..., allocation })` in the same server process. The writer checks
+the record against the authorized tenant, entity coordinates, and filename,
+and preserves the display name verbatim. It rejects raw keys and copied records.
+When `allocation` is omitted, the legacy format still applies and the writer
+rejects keys the canonical formatter would change.
 PostgreSQL enforces canonical spelling on
 `documents.storage_path` and `claim_documents.file_path`.

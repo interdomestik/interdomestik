@@ -7,7 +7,12 @@ import { and, eq, isNull } from 'drizzle-orm';
 import { nanoid } from 'nanoid';
 
 import { captureAudit, logAuditEvent } from './audit';
-import { assertAllocatedStoragePath, buildStoragePath, validateTenantOwnership } from './storage';
+import {
+  buildStoragePath,
+  readAllocatedStoragePath,
+  validateTenantOwnership,
+  type StoragePathAllocation,
+} from './storage';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export { softDeleteDocument } from './document-lifecycle';
@@ -17,8 +22,8 @@ export interface UploadParams {
   entityType: 'claim' | 'member' | 'policy' | 'thread' | 'share_pack';
   entityId: string;
   fileName: string;
-  /** The exact key returned by buildStoragePath and used for the completed upload. */
-  storagePath?: string;
+  /** The original server-side allocation used for the completed upload. */
+  allocation?: StoragePathAllocation;
   mimeType: string;
   fileSize: number;
   category?:
@@ -56,6 +61,7 @@ export async function recordUpload(params: UploadParams): Promise<UploadResult> 
     entityType,
     entityId,
     fileName,
+    allocation,
     mimeType,
     fileSize,
     category = 'other',
@@ -64,13 +70,15 @@ export async function recordUpload(params: UploadParams): Promise<UploadResult> 
   } = params;
   const { tenantId } = readTenantAuthority(authority);
 
-  const pathParams = { tenantId, entityType, entityId, fileName };
-  let storagePath = params.storagePath;
-  if (storagePath === undefined) {
-    storagePath = buildStoragePath(pathParams, { preserveLegacyKey: true });
-  } else {
-    assertAllocatedStoragePath(storagePath, pathParams);
+  if ('storagePath' in params && params.storagePath !== undefined) {
+    throw new Error('Pass the original storage allocation when recording an allocated key.');
   }
+
+  const pathParams = { tenantId, entityType, entityId, fileName };
+  const storagePath =
+    allocation === undefined
+      ? buildStoragePath(pathParams, { preserveLegacyKey: true })
+      : readAllocatedStoragePath(allocation, pathParams);
 
   // Defense-in-depth: verify path includes correct tenant
   if (!validateTenantOwnership(storagePath, tenantId)) {

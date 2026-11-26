@@ -12,6 +12,10 @@ type StoragePathParams = {
   fileName: string;
 };
 
+export type StoragePathAllocation = Readonly<StoragePathParams & { storagePath: string }>;
+
+const issuedAllocations = new WeakSet<StoragePathAllocation>();
+
 /**
  * Build a tenant-isolated storage path for a document.
  * Format: {tenantId}/{entityType}/{entityId}/{timestamp}_{filename}
@@ -24,23 +28,7 @@ export function buildStoragePath(
   params: StoragePathParams,
   { preserveLegacyKey = false }: { preserveLegacyKey?: boolean } = {}
 ): string {
-  return formatStoragePath(params, Date.now(), preserveLegacyKey);
-}
-
-export function assertAllocatedStoragePath(storagePath: string, params: StoragePathParams): void {
-  const fileSegment = storagePath.slice(storagePath.lastIndexOf('/') + 1);
-  const [timestampPart] = fileSegment.split('_', 1);
-  const timestamp = Number(timestampPart);
-  if (!Number.isSafeInteger(timestamp) || storagePath !== formatStoragePath(params, timestamp)) {
-    throw new Error('The storage path must match the allocated canonical upload key.');
-  }
-}
-
-function formatStoragePath(
-  params: StoragePathParams,
-  timestamp: number,
-  preserveLegacyKey = false
-): string {
+  const timestamp = Date.now();
   const { tenantId, entityType, entityId, fileName } = params;
 
   for (const component of [tenantId, entityType, entityId]) {
@@ -62,6 +50,31 @@ function formatStoragePath(
 
   // Path MUST include tenantId for isolation
   return `${tenantId}/${entityType}/${entityId}/${timestamp}_${sanitizedFileName}`;
+}
+
+/** Allocate a key and retain the original record on the server through metadata recording. */
+export function allocateStoragePath(params: StoragePathParams): StoragePathAllocation {
+  const { tenantId, entityType, entityId, fileName } = params;
+  const coordinates = { tenantId, entityType, entityId, fileName };
+  const allocation = Object.freeze({ ...coordinates, storagePath: buildStoragePath(coordinates) });
+  issuedAllocations.add(allocation);
+  return allocation;
+}
+
+export function readAllocatedStoragePath(
+  allocation: StoragePathAllocation,
+  params: StoragePathParams
+): string {
+  if (
+    !issuedAllocations.has(allocation) ||
+    allocation.tenantId !== params.tenantId ||
+    allocation.entityType !== params.entityType ||
+    allocation.entityId !== params.entityId ||
+    allocation.fileName !== params.fileName
+  ) {
+    throw new Error('The storage allocation must be issued for this upload.');
+  }
+  return allocation.storagePath;
 }
 
 /**
