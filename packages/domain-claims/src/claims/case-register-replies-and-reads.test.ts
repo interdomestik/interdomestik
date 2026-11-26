@@ -22,6 +22,12 @@ const invalid = { ok: false, code: 'invalid' };
 const conflict = { ok: false, code: 'conflict' };
 
 describe('correspondence replies, follow-ups and reads', () => {
+  it('rejects duplicate received document IDs before querying the case', async () => {
+    const input = { ...inboundInput, receivedDocumentIds: ['doc-a', 'doc-a'] };
+    expect(await recordInboundCorrespondence(caller(), authority, input)).toEqual(invalid);
+    expect(db.statements).toHaveLength(0);
+  });
+
   it('refuses inbound bases and replies outside the case or to inbound correspondence', async () => {
     const session = caller();
     expect(await recordInboundCorrespondence(session, authority, outboundInput)).toEqual(invalid);

@@ -41,12 +41,11 @@ import type { ClaimsSession } from './types';
 
 export const recordInboundCorrespondenceInputSchema = correspondenceInput.extend({
   inReplyToId: registerUuid.nullish(),
-  receivedDocumentIds: z
-    .array(registerId.max(128))
-    .max(20)
-    .refine(ids => new Set(ids).size === ids.length)
-    .optional(),
+  receivedDocumentIds: z.array(registerId.max(128)).max(20).optional(),
 });
+const inboundDecisionSchema = recordInboundCorrespondenceInputSchema.refine(
+  ({ receivedDocumentIds = [] }) => new Set(receivedDocumentIds).size === receivedDocumentIds.length
+);
 
 type Inbound = z.infer<typeof recordInboundCorrespondenceInputSchema>;
 
@@ -169,12 +168,7 @@ export async function recordInboundCorrespondence(
   authority: TenantAuthority | null,
   input: unknown
 ) {
-  const access = resolveRegisterWrite(
-    session,
-    authority,
-    input,
-    recordInboundCorrespondenceInputSchema
-  );
+  const access = resolveRegisterWrite(session, authority, input, inboundDecisionSchema);
   if (!access.ok) return access;
   const { tenantId, actor } = access;
   const data = normalizeRegisterInput(access.data);

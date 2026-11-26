@@ -131,6 +131,7 @@ describe('SharedEvidenceUploadDialog uncertain confirmation retry', () => {
     prepareDraft();
     clickUpload();
     await waitFor(() => expect(mocks.toastError).toHaveBeenCalledWith('failed'));
+    expect(within(screen.getByRole('dialog')).getByRole('status')).toHaveTextContent('failed');
     expect(mocks.toastSuccess).not.toHaveBeenCalled();
     expect(mocks.refresh).not.toHaveBeenCalled();
     expect(mocks.onUploadSuccess).not.toHaveBeenCalled();
