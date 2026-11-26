@@ -1009,6 +1009,6 @@ d5d87c787ba34c5c22f2dca750c014035fa756b5:sonar-project.properties:generic-api-ke
 # The current file uses a short literal; this pins only the historical commit.
 adf40f853ef90caca9d7abac12ba0c1feb7250e4:packages/domain-communications/src/email-outcome.test.ts:generic-api-key:15
 
-# Narrowed gate (PR 2164): a shell install command in the adoption runbook, not a credential.
+# Narrowed gate (PR 2164): an allowed-signers example with a public-key placeholder.
 # The current file rephrases the line; this pins only the historical commit.
 ab6d56d6a2fd24a808231c1a1afb305bd305a82a:docs/plans/2026-11-26-narrowed-mac-gate-adoption.md:generic-api-key:124

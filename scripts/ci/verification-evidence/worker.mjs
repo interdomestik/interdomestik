@@ -34,8 +34,9 @@ export function validatePath(value, directory, options = REQUIRED) {
     requireThat(options.allowMissing && current !== directory);
     current = path.dirname(current);
   }
-  const resolved = realpathSync(current);
-  const physicalRelative = path.relative(directory, resolved);
+  // Resolve symlink targets in filesystem order before checking containment.
+  const resolved = realpathSync.native(current);
+  const physicalRelative = path.relative(realpathSync.native(directory), resolved);
   if (
     physicalRelative === '..' ||
     physicalRelative.startsWith('..' + path.sep) ||

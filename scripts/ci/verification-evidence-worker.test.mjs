@@ -55,3 +55,27 @@ test('worker paths refuse traversal, sibling prefixes and symlink escapes', t =>
   }
   assert.throws(() => validatePath('dangling', root, optional), { code: 'ENOENT' });
 });
+
+test('worker paths refuse a compound symlink that resolves outside the checkout', t => {
+  const { root, sibling } = checkoutFixture(t);
+  const nested = path.join(sibling, 'nested');
+  const compound = path.join(root, 'compound');
+  mkdirSync(nested);
+  symlinkSync(nested, path.join(root, 'intermediate'));
+  symlinkSync('intermediate/..', compound);
+
+  assert.equal(realpathSync.native(compound), sibling);
+  assert.throws(() => validatePath(compound, root), /worker isolation/u);
+});
+
+test('worker paths compare against the resolved checkout root', t => {
+  const { root, sibling, temp } = checkoutFixture(t);
+  const alias = path.join(temp, 'checkout-link');
+  symlinkSync(root, alias);
+  mkdirSync(path.join(root, 'tmp'));
+  symlinkSync(sibling, path.join(root, 'outside'));
+
+  assert.equal(validatePath('tmp', alias), path.join(alias, 'tmp'));
+  assert.throws(() => validatePath('tmp', alias, { canonical: true }), /worker isolation/u);
+  assert.throws(() => validatePath('outside', alias), /worker isolation/u);
+});
