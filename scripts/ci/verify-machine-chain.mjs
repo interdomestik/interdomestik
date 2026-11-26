@@ -8,6 +8,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 
 import { runCommand } from './verify-machine-probe.mjs';
+import { COMPOSED_CHAIN, M4_SCRIPT } from './verification-evidence/manifest.mjs';
 
 export const LANE_SCRIPTS = Object.freeze({
   'pr-verify': 'pr:verify',
@@ -41,8 +42,8 @@ function lifecycleErrors(scriptName, scripts, repoRoot, chain) {
   return errors;
 }
 
-export function chainErrors(lane, { env, repoRoot, chain }) {
-  const scriptName = LANE_SCRIPTS[lane];
+export function chainErrors(lane, { env, repoRoot, chain, composed = false }) {
+  const scriptName = lane === 'pr-verify' && composed ? M4_SCRIPT : LANE_SCRIPTS[lane];
   const errors = [];
   if (env.npm_lifecycle_event !== scriptName) {
     errors.push(`gate evidence comes only from \`pnpm ${scriptName}\``);
@@ -60,6 +61,9 @@ export function chainErrors(lane, { env, repoRoot, chain }) {
   const script = scripts[scriptName];
   if (!script || parent !== `sh -c ${script}`) {
     errors.push(`this step is not running inside the unchanged ${scriptName} chain`);
+  }
+  if (scriptName === M4_SCRIPT && script !== COMPOSED_CHAIN) {
+    errors.push('the composed chain does not match the evidence manifest');
   }
   return [...errors, ...lifecycle];
 }

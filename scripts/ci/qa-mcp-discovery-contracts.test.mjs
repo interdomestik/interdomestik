@@ -3,6 +3,7 @@ import { spawn } from 'node:child_process';
 import path from 'node:path';
 import test from 'node:test';
 import { fileURLToPath } from 'node:url';
+import { contractBash } from './verification-evidence/worker-profile.mjs';
 
 const scriptDir = path.dirname(fileURLToPath(import.meta.url));
 const rootDir = path.resolve(scriptDir, '../..');
@@ -10,11 +11,11 @@ const rootDir = path.resolve(scriptDir, '../..');
 const MCP_RESPONSE_TIMEOUT_MS = process.env.QA_MCP_CONTRACT_TIMEOUT_MS === '60000' ? 60000 : 30000;
 
 async function createMcpClient() {
-  const child = spawn('/bin/bash', ['scripts/start-repo-qa.sh'], {
+  const child = spawn(contractBash(), ['scripts/start-repo-qa.sh'], {
     cwd: rootDir,
     detached: true,
     stdio: ['pipe', 'pipe', 'inherit'],
-    env: { ...process.env, MCP_REPO_ROOT: rootDir },
+    env: { ...process.env, CI: 'true', MCP_REPO_ROOT: rootDir },
   });
 
   let stdout = '';

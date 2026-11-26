@@ -3,7 +3,7 @@ import { linkSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } 
 import os from 'node:os';
 import path from 'node:path';
 
-import { sha256Hex } from './verify-machine-marker.mjs';
+import { MACHINE_ROLES, machineRole, sha256Hex } from './verify-machine-marker.mjs';
 
 export {
   PENDING_VERSION,
@@ -13,7 +13,17 @@ export {
 } from './verify-machine-pending.mjs';
 
 export const LANES = Object.freeze(['pr-verify', 'security-guard']);
-export const MODES = Object.freeze({ gate: 'GATE-EVIDENCE', preCheck: 'PRE-CHECK' });
+export const MODES = Object.freeze({
+  gate: 'GATE-EVIDENCE', preCheck: 'PRE-CHECK', trial: 'TRIAL-EVIDENCE',
+});
+
+export function gateRoleErrors(marker) {
+  return machineRole(marker) === MACHINE_ROLES.m4 ? [] : ['the marker is limited to delegated M5 lanes'];
+}
+
+export function gateRecordRole(marker, composition) {
+  return { machineRole: machineRole(marker), ...(composition ? { composition } : {}) };
+}
 
 const DEFAULT_FS = { linkSync, mkdirSync, readFileSync, renameSync, rmSync, writeFileSync };
 
