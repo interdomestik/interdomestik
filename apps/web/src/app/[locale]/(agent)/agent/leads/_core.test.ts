@@ -28,7 +28,7 @@ describe('getAgentLeadsCore', () => {
     expect(mockDb.query.memberLeads.findMany).toHaveBeenCalledWith(
       expect.objectContaining({
         where: expect.any(Function),
-        with: { branch: true },
+        with: { branch: { columns: { name: true } } },
       })
     );
 
