@@ -52,6 +52,6 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   );
   assert.equal(
     billingScripts['test:rls'],
-    'BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts src/port/individual-sale-age-boundary.rls.test.ts src/port/individual-sale-weekly-rate.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test test/exchange-rates-port.test.ts'
+    'BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts src/port/individual-sale-age-boundary.rls.test.ts src/port/individual-sale-weekly-rate.rls.test.ts src/sponsors/sponsor-privacy.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test test/exchange-rates-port.test.ts'
   );
 });

@@ -11,12 +11,12 @@ import {
   MID,
   START,
   insert,
-  seedSponsorFixture,
+  seedSponsorScope,
   uid,
   type Row,
   type Scope,
   type Tx,
-} from './sponsor-test-fixture';
+} from './sponsor-seed.test-support';
 
 export const tables = [
   'membership_import_assignments',
@@ -216,8 +216,8 @@ export async function withWp09Fixture(t: TestContext, run: (fixture: Fixture) =>
           await migrateJournal(db, migrations);
           // Exercise the migration's table ACLs directly. Both roles can use the schema.
           await db.unsafe(`grant usage on schema public to ${runtimeRole}, ${otherRole}`);
-          const a = await seedSponsorFixture(db);
-          const b = await seedSponsorFixture(db);
+          const a = await seedSponsorScope(db);
+          const b = await seedSponsorScope(db);
           const home = records(a);
           const away = records(b);
           await insertRecords(db, a, home);

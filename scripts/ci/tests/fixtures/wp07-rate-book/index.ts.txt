@@ -1,0 +1,64 @@
+// Schema index - re-exports all tables, enums, and relations
+// This modular structure keeps each file under 150 lines
+
+// Enums
+export * from './enums';
+
+// Tables by domain
+export * from './agents';
+export * from './ai';
+export * from './auth';
+export * from './automation';
+export * from './billing';
+export * from './case-scoped-access-grants';
+export * from './commercial-action-idempotency';
+export * from './claim-commercial';
+export * from './claim-document-ai-consents';
+export * from './claim-information-requests';
+export * from './claim-recovery-no-fee';
+export * from './claim-transition-evidence';
+export * from './claim-threads';
+export * from './claims';
+export * from './counters';
+export * from './crm';
+export * from './documents';
+export * from './domain-event-deliveries';
+export * from './domain-event-keys';
+export * from './domain-events';
+export * from './event-pii-references';
+export * from './exchange-rates';
+export * from './free-start-drafts';
+export * from './leads';
+export * from './member-counters';
+export * from './memberships';
+export * from './notes';
+export * from './notifications';
+export * from './policies';
+export * from './rbac';
+export * from './services';
+export * from './tenant-entity-decomposition';
+export * from './tenants';
+export * from './webhooks';
+
+// Relations
+export * from './relations';
+export * from './tracking';
+
+// Seed infrastructure
+export * from './seed-meta';
+export * from './sponsors';
+export * from './sponsor-handover';
+export * from './sponsor-roster';
+export * from './membership-plan-versions';
+export * from './membership-sales';
+export * from './exchange-rate-verifications';
+export * from './notification-deliveries';
+export * from './claim-response-requests';
+export * from './user-locale-preferences';
+export * from './support-handoff-first-responses';
+export * from './notification-preview-restrictions';
+export * from './claim-correspondence';
+export * from './claim-case-fields';
+export * from './legal-acceptance';
+export * from './legal-document-versions';
+export * from './exchange-rate-checks';

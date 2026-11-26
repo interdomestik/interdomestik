@@ -1415,7 +1415,7 @@
   "app/api/cron/sponsors/route.ts#GET": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/app/api/cron/_auth.ts:20",
-    "proof": "e90bd134077c"
+    "proof": "17d5597aa9ec"
   },
   "app/api/csp-report/route.ts#GET": {
     "disposition": "exempt",

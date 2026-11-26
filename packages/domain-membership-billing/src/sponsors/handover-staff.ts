@@ -215,7 +215,7 @@ export async function closeHandoverByStaff(
     if (revokeIds.length > 0) {
       await tx
         .update(sponsorRosterEntries)
-        .set({ revokedAt: now, revokedReason: 'staff', optoutTokenHash: null })
+        .set({ revokedAt: now, revokedReason: 'staff' })
         .where(
           and(
             eq(sponsorRosterEntries.tenantId, tenantId),
