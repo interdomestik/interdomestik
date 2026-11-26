@@ -13,6 +13,15 @@ import {
   withGrantsScratch,
 } from './wp16-1-runtime-grants.test-support';
 
+async function inspectScratchCheckpoint(client: DisposableClient) {
+  const reserved = await client.reserve();
+  try {
+    return await inspectSponsorCheckpoint(reserved);
+  } finally {
+    reserved.release();
+  }
+}
+
 export async function testCheckpointAbandonment(
   t: TestContext,
   maintenance: DisposableClient
@@ -85,7 +94,7 @@ export async function testCheckpointAbandonment(
                   select pg_catalog.pg_xact_status(${rolledBack.reversalId}::text::pg_catalog.xid8) as status
                 `;
         assert.equal(aborted.status, 'aborted');
-        assert.deepEqual(await inspectSponsorCheckpoint(client), verified.checks);
+        assert.deepEqual(await inspectScratchCheckpoint(client), verified.checks);
 
         const delayedEvidence: typeof checkpoint = [];
         await assert.rejects(
@@ -135,7 +144,7 @@ export async function testCheckpointAbandonment(
           checkpoint.some(evidence => evidence.phase === 'checkpoint-reversed'),
           false
         );
-        assert.deepEqual(await inspectSponsorCheckpoint(client), before.checks);
+        assert.deepEqual(await inspectScratchCheckpoint(client), before.checks);
 
         // Recreate the same ACL, with an independent grant the later attempt must preserve.
         await client`grant update ("updatedAt") on public."user" to ${client(sponsorRuntimeRole)}`;
@@ -152,7 +161,7 @@ export async function testCheckpointAbandonment(
           abandonSponsorCheckpoint(client, options, { before, verified }),
           /Checkpoint attempt was already reversed/u
         );
-        assert.deepEqual(await inspectSponsorCheckpoint(client), laterChecked.checks);
+        assert.deepEqual(await inspectScratchCheckpoint(client), laterChecked.checks);
 
         // The older aborted reversal's intent arrives after the committed reversal's intent.
         await options.recordCheckpoint(delayedIntent);
@@ -160,7 +169,7 @@ export async function testCheckpointAbandonment(
           abandonSponsorCheckpoint(client, options, { before, verified }),
           /Checkpoint attempt was already reversed/u
         );
-        assert.deepEqual(await inspectSponsorCheckpoint(client), laterChecked.checks);
+        assert.deepEqual(await inspectScratchCheckpoint(client), laterChecked.checks);
 
         await abandonSponsorCheckpoint(client, options, {
           before: laterBefore,
@@ -174,7 +183,7 @@ export async function testCheckpointAbandonment(
         assert.notEqual(reversed.reversalId, laterBefore.attemptId);
         assert.equal(reversed.reversalId, pending.reversalId);
         assert.deepEqual(reversed.checks, laterBefore.checks);
-        assert.deepEqual(await inspectSponsorCheckpoint(client), laterBefore.checks);
+        assert.deepEqual(await inspectScratchCheckpoint(client), laterBefore.checks);
         assert.deepEqual(reversed.target.ledger, laterBefore.target.ledger);
         await assert.rejects(
           abandonSponsorCheckpoint(client, options, {
