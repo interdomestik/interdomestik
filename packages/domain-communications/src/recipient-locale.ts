@@ -16,6 +16,9 @@ export const recipientLocales = ['sq', 'en', 'sr', 'mk', 'de'] as const;
 type RecipientLocale = (typeof recipientLocales)[number];
 
 declare const VERIFIED_RECIPIENT: unique symbol;
+// The handle is process-local and valid within one short lease on the same database.
+// Its (xmin, ctid) pairs detect row rewrites within that window. Transaction IDs wrap
+// and physical tuple locations can be reused, so these pairs are short-lived version checks.
 export type VerifiedRecipientHandle = Readonly<{ [VERIFIED_RECIPIENT]: true }>;
 export type VerifiedRecipient = Readonly<{ email: string; locale: RecipientLocale }>;
 export type VerifiedRecipientRefusal = Readonly<{

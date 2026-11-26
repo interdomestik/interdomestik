@@ -1,3 +1,4 @@
+import type { VerifiedRecipient } from '@interdomestik/domain-communications/recipient-locale';
 import { expect, it, vi } from 'vitest';
 
 import {
@@ -11,6 +12,8 @@ import {
   staffId,
   withExpiryFixture,
 } from './expiry-deliveries.rls.fixture';
+
+vi.mock(import('./delivery-queries'), () => import('./expiry-deliveries.rls.fixture'));
 
 vi.mock('@interdomestik/database/tenant-authority-context', async importOriginal => {
   const actual =
@@ -26,19 +29,20 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
 
     await withExpiryFixture(
       1,
-      async ({ admin, authority, email, enqueue, record, store, appPoolSize }) => {
+      async ({ admin, authority, email, enqueue, record, appPoolSize }) => {
         const [{ createExpiryDeliveryWorker }, { withTenantAuthority }] = await Promise.all([
           import('./index'),
           import('@interdomestik/database/tenant-authority-context'),
         ]);
         expect(appPoolSize()).toBe(1);
         const accepted = () => Response.json({ id: 'provider-private-ref' });
-        const provider = vi.fn(() => Promise.resolve(accepted()));
-        const render = vi.fn(() => ({
+        const provider = vi.fn((_url: string, _request: RequestInit) => Promise.resolve(accepted()));
+        const message = {
           subject: 'Private subject',
           html: '<p>Private body</p>',
           text: 'Private body',
-        }));
+        };
+        const render = vi.fn((_periodId: string, _recipient: VerifiedRecipient) => message);
         vi.stubGlobal('fetch', provider);
         vi.stubEnv('RESEND_API_KEY', 'synthetic-test-key');
         vi.stubEnv('INTERDOMESTIK_AUTOMATED', '0');
@@ -52,7 +56,7 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
           render,
           now: () => now,
         } as const;
-        const worker = createExpiryDeliveryWorker(store, options);
+        const worker = createExpiryDeliveryWorker(options);
         async function claim(period: string) {
           const result = await worker.claim(authority, period);
           expect(result).toMatchObject({ ok: true });
@@ -70,6 +74,12 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
             handle: {},
           });
           const sent = { ok: true, state: 'sent' };
+          let originalRecipient: VerifiedRecipient | undefined;
+          render.mockImplementationOnce((_periodId, recipient) => {
+            originalRecipient = { ...recipient };
+            Object.assign(recipient, { email: 'other@example.test' });
+            return message;
+          });
           expect(await worker.dispatch(authority, first)).toEqual(sent);
           expect(provider).toHaveBeenCalledOnce();
           expect(provider).toHaveBeenCalledWith(
@@ -78,7 +88,12 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
               headers: expect.objectContaining({ 'Idempotency-Key': 'opaque-normal' }),
             })
           );
-          expect(render).toHaveBeenCalledExactlyOnceWith('normal', { email, locale: 'sq' });
+          expect(JSON.parse(String(provider.mock.calls[0][1].body))).toMatchObject({ to: [email] });
+          expect(render).toHaveBeenCalledExactlyOnceWith('normal', {
+            email: 'other@example.test',
+            locale: 'sq',
+          });
+          expect(originalRecipient).toEqual({ email, locale: 'sq' });
           expect(await record('normal')).toMatchObject({
             state: 'sent',
             attempts: 1,
@@ -156,20 +171,22 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
 
           await enqueue('rolled-back');
           const rolledBack = await claim('rolled-back');
-          const rollbackWorker = createExpiryDeliveryWorker(
-            {
-              ...store,
-              async saveDeliveryInTx(tx, old, next) {
-                const changed = await store.saveDeliveryInTx(tx, old, next);
-                if (next.authorization) throw new Error('private rolled-back SQL parameters');
-                return changed;
-              },
-            },
-            options
+          const transaction = vi.mocked(withTenantAuthority);
+          const realTransaction = transaction.getMockImplementation()!;
+          let rolledBackResult: unknown;
+          transaction.mockImplementationOnce((scope, action) =>
+            realTransaction(scope, async tx => {
+              rolledBackResult = await action(tx);
+              throw new Error('private rolled-back SQL parameters');
+            })
           );
-          expect(await rollbackWorker.dispatch(authority, rolledBack)).toEqual({
+          expect(await worker.dispatch(authority, rolledBack)).toEqual({
             ok: false,
             code: 'expiry_operational_failure',
+          });
+          expect(rolledBackResult).toMatchObject({
+            ok: true,
+            authorization: { leaseToken: rolledBack.leaseToken },
           });
           expect(await record('rolled-back')).toMatchObject({
             state: 'claimed',
@@ -179,8 +196,6 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
 
           await enqueue('unconfirmed');
           const unconfirmed = await claim('unconfirmed');
-          const transaction = vi.mocked(withTenantAuthority);
-          const realTransaction = transaction.getMockImplementation()!;
           transaction.mockImplementationOnce(async (scope, action) => {
             await realTransaction(scope, action);
             throw new Error('private response after commit');
@@ -192,7 +207,7 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
           const committed = await record('unconfirmed');
           expect(committed.authorization).toMatchObject({ leaseToken: unconfirmed.leaseToken });
           now += 10 * 60_000;
-          const restarted = createExpiryDeliveryWorker(store, options);
+          const restarted = createExpiryDeliveryWorker(options);
           expect(await restarted.claim(authority, 'unconfirmed')).toEqual({
             ok: false,
             code: 'reconciliation_required',

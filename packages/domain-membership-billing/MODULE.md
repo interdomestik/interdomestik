@@ -49,9 +49,9 @@ Every write takes a `TenantTransaction` opened by `withTenantAuthority` and carr
 
 ## Expiry notice recipient authorization (WP-11)
 
-`./expiry-deliveries` composes a tenant gate and a locked eligible period with the verified recipient contract. The delivery store locks the exact period's row after the member and locale reads. Claim commits the lease before handing its process-local recipient handle to dispatch. Dispatch checks the period, lease, deadline and empty authorization under that final lock, then either records a bounded pre-send failure or commits the lease-bound authorization and transport deadline. Only the invocation that receives a confirmed commit renders and sends. Provider acceptance records sent, and unresolved authorizations survive deadlines for audited reconciliation.
+`./expiry-deliveries` exports `createExpiryDeliveryWorker(options)`. The worker calls named helpers on its tenant transaction to compose the gate and locked eligible period with the verified recipient contract. It locks the exact period's delivery row after the member and locale reads. Claim commits the lease before handing its process-local recipient handle to dispatch. Dispatch checks the period, lease, deadline and empty authorization under that final lock, then either records a bounded pre-send failure or commits the lease-bound authorization and transport deadline. Only the invocation that receives a confirmed commit renders and sends to the address captured before rendering. Provider acceptance records sent, and unresolved authorizations survive deadlines for audited reconciliation.
 
-The store and gate interfaces are the WP-11 integration point for WP-14 PR 2, which supplies the delivery table and gate and integrates the WP-07 period lock. A restricted database fixture exercises the interfaces in the billing `test:rls` lane.
+The transaction helpers in `src/expiry-deliveries/delivery-queries.ts` keep the gate closed until WP-14 PR 2 supplies the gate and delivery table and integrates the WP-07 period lock. The billing `test:rls` lane binds those helpers to scratch relations and exercises the worker under the restricted role.
 
 ## Live and not live
 

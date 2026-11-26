@@ -1,4 +1,3 @@
-import type { TenantTransaction } from '@interdomestik/database';
 import type { sendEmailOutcome } from '@interdomestik/domain-communications/email';
 import type {
   VerifiedRecipient,
@@ -31,25 +30,6 @@ export type ClaimedExpiryDelivery = Readonly<{
   leaseToken: string;
   handle: VerifiedRecipientHandle;
 }>;
-
-/** All operations use the caller's transaction. Locks are held through its commit. */
-export interface ExpiryDeliveryStore {
-  gateInTx(tx: TenantTransaction, tenantId: string): Promise<boolean>;
-  lockEligiblePeriodInTx(
-    tx: TenantTransaction,
-    key: ExpiryDeliveryKey
-  ): Promise<{ memberId: string | null } | null>;
-  lockDeliveryInTx(
-    tx: TenantTransaction,
-    key: ExpiryDeliveryKey
-  ): Promise<ExpiryDeliveryRecord | null>;
-  /** Updates the locked key, comparing the prior state, lease and authorization. */
-  saveDeliveryInTx(
-    tx: TenantTransaction,
-    locked: ExpiryDeliveryRecord,
-    next: ExpiryDeliveryState
-  ): Promise<boolean>;
-}
 
 export type ExpiryDeliveryOptions = Readonly<{
   transport: Parameters<typeof sendEmailOutcome>[0];

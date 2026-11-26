@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 
+import type { TenantTransaction } from '@interdomestik/database';
 import { sql } from 'drizzle-orm';
 
 import { role } from '../../../database/test/wp11-notification-deliveries-rls.fixture';
@@ -10,7 +11,7 @@ import {
   withVerifiedRecipientDatabase,
 } from '../../../database/test/wp11-verified-recipient-rls.fixture';
 import { paymentPortTestScheduledAuthority } from '../../../database/test/exchange-rates.fixture';
-import type { ExpiryDeliveryState, ExpiryDeliveryStore } from './types';
+import type { ExpiryDeliveryKey, ExpiryDeliveryRecord, ExpiryDeliveryState } from './types';
 
 const queued: ExpiryDeliveryState = {
   state: 'queued',
@@ -46,7 +47,7 @@ async function expiryFixture(
   const email = await seedRecipient(admin, tenantA, recipientId);
   await seedRecipient(admin, tenantA, staffId, { roleName: 'staff' });
   await seedRecipient(admin, tenantB, foreignId);
-  // These scratch relations implement the transaction port for the proof.
+  // These scratch relations supply the transaction helpers for the proof.
   await admin.unsafe(`
     create table expiry_fixture_gate (tenant_id text primary key, enabled boolean not null);
     create table expiry_fixture_period (
@@ -79,40 +80,50 @@ async function expiryFixture(
     return row.metadata;
   }
 
-  const store: ExpiryDeliveryStore = {
-    async gateInTx(tx, tenantId) {
-      const [row] = await tx.execute<{ enabled: boolean }>(sql`
-        select enabled from expiry_fixture_gate where tenant_id = ${tenantId} for share`);
-      return row?.enabled === true;
-    },
-    async lockEligiblePeriodInTx(tx, { tenantId, periodId }) {
-      const [row] = await tx.execute<{ memberId: string | null }>(sql`
-        select member_id as "memberId" from expiry_fixture_period
-        where tenant_id = ${tenantId} and period_id = ${periodId} for share`);
-      return row ?? null;
-    },
-    async lockDeliveryInTx(tx, { tenantId, periodId }) {
-      const [row] = await tx.execute<{ reference: string; metadata: ExpiryDeliveryState }>(sql`
-        select reference, metadata from expiry_fixture_delivery
-        where tenant_id = ${tenantId} and period_id = ${periodId} for update`);
-      return row ? { tenantId, periodId, ...row } : null;
-    },
-    async saveDeliveryInTx(tx, locked, next) {
-      const rows = await tx.execute(sql`
-        update expiry_fixture_delivery set metadata = ${JSON.stringify(next)}::jsonb
-        where tenant_id = ${locked.tenantId} and period_id = ${locked.periodId}
-        and metadata = ${JSON.stringify(locked.metadata)}::jsonb
-        returning period_id`);
-      return rows.length === 1;
-    },
-  };
-
   return {
     admin,
     email,
     enqueue,
     record,
-    store,
     authority: paymentPortTestScheduledAuthority(tenantA),
   };
+}
+
+export async function gateInTx(tx: TenantTransaction, tenantId: string) {
+  const [row] = await tx.execute<{ enabled: boolean }>(sql`
+    select enabled from expiry_fixture_gate where tenant_id = ${tenantId} for share`);
+  return row?.enabled === true;
+}
+
+export async function lockEligiblePeriodInTx(
+  tx: TenantTransaction,
+  { tenantId, periodId }: ExpiryDeliveryKey
+) {
+  const [row] = await tx.execute<{ memberId: string | null }>(sql`
+    select member_id as "memberId" from expiry_fixture_period
+    where tenant_id = ${tenantId} and period_id = ${periodId} for share`);
+  return row ?? null;
+}
+
+export async function lockDeliveryInTx(
+  tx: TenantTransaction,
+  { tenantId, periodId }: ExpiryDeliveryKey
+) {
+  const [row] = await tx.execute<{ reference: string; metadata: ExpiryDeliveryState }>(sql`
+    select reference, metadata from expiry_fixture_delivery
+    where tenant_id = ${tenantId} and period_id = ${periodId} for update`);
+  return row ? { tenantId, periodId, ...row } : null;
+}
+
+export async function saveDeliveryInTx(
+  tx: TenantTransaction,
+  locked: ExpiryDeliveryRecord,
+  next: ExpiryDeliveryState
+) {
+  const rows = await tx.execute(sql`
+    update expiry_fixture_delivery set metadata = ${JSON.stringify(next)}::jsonb
+    where tenant_id = ${locked.tenantId} and period_id = ${locked.periodId}
+    and metadata = ${JSON.stringify(locked.metadata)}::jsonb
+    returning period_id`);
+  return rows.length === 1;
 }

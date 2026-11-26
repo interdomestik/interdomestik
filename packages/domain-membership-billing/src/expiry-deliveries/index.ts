@@ -11,6 +11,12 @@ import {
   captureVerifiedRecipientInTx,
 } from '@interdomestik/domain-communications/recipient-locale';
 
+import {
+  gateInTx,
+  lockDeliveryInTx,
+  lockEligiblePeriodInTx,
+  saveDeliveryInTx,
+} from './delivery-queries';
 import type {
   ClaimedExpiryDelivery,
   ExpiryAuthorization,
@@ -18,7 +24,6 @@ import type {
   ExpiryDeliveryOptions,
   ExpiryDeliveryRecord,
   ExpiryDeliveryState,
-  ExpiryDeliveryStore,
 } from './types';
 
 export type {
@@ -28,7 +33,6 @@ export type {
   ExpiryDeliveryOptions,
   ExpiryDeliveryRecord,
   ExpiryDeliveryState,
-  ExpiryDeliveryStore,
 } from './types';
 
 const LEASE_MS = 10 * 60_000;
@@ -82,10 +86,7 @@ function failureState(
   };
 }
 
-export function createExpiryDeliveryWorker(
-  store: ExpiryDeliveryStore,
-  options: ExpiryDeliveryOptions
-) {
+export function createExpiryDeliveryWorker(options: ExpiryDeliveryOptions) {
   const { transport, timeoutMs, finishReserveMs, render, now = Date.now } = options;
   if (![timeoutMs, finishReserveMs].every(value => Number.isSafeInteger(value) && value > 0)) {
     throw new Error('Invalid expiry delivery timeout');
@@ -97,14 +98,14 @@ export function createExpiryDeliveryWorker(
 
     try {
       return await withTenantAuthority(authority, async tx => {
-        if (!(await store.gateInTx(tx, key.tenantId))) return refusal('gate_closed');
-        const period = await store.lockEligiblePeriodInTx(tx, key);
+        if (!(await gateInTx(tx, key.tenantId))) return refusal('gate_closed');
+        const period = await lockEligiblePeriodInTx(tx, key);
         if (!period) return refusal('period_unavailable');
         const leaseToken = randomUUID();
         const recipient = period.memberId
           ? await captureVerifiedRecipientInTx(tx, authority, period.memberId, leaseToken)
           : refusal('recipient_missing');
-        const locked = await store.lockDeliveryInTx(tx, key);
+        const locked = await lockDeliveryInTx(tx, key);
         if (!matchesKey(locked, key)) return refusal('lease_unavailable');
         const row = locked.metadata;
         if (row.authorization !== null) return refusal('reconciliation_required');
@@ -120,7 +121,7 @@ export function createExpiryDeliveryWorker(
         if (row.attempts >= MAX_ATTEMPTS || !recipient.ok) {
           const code =
             recipient.ok || row.attempts >= MAX_ATTEMPTS ? 'lease_expired' : recipient.code;
-          const changed = await store.saveDeliveryInTx(
+          const changed = await saveDeliveryInTx(
             tx,
             locked,
             failureState(Math.min(attempts, MAX_ATTEMPTS), mark, code)
@@ -128,7 +129,7 @@ export function createExpiryDeliveryWorker(
           return changed ? refusal(code) : refusal('lease_lost');
         }
 
-        const changed = await store.saveDeliveryInTx(tx, locked, {
+        const changed = await saveDeliveryInTx(tx, locked, {
           state: 'claimed',
           attempts,
           nextAttemptAt: null,
@@ -151,8 +152,8 @@ export function createExpiryDeliveryWorker(
     claim: ClaimedExpiryDelivery
   ) {
     return withTenantAuthority(authority, async tx => {
-      if (!(await store.gateInTx(tx, key.tenantId))) return refusal('gate_closed');
-      const period = await store.lockEligiblePeriodInTx(tx, key);
+      if (!(await gateInTx(tx, key.tenantId))) return refusal('gate_closed');
+      const period = await lockEligiblePeriodInTx(tx, key);
       if (!period) return refusal('period_unavailable');
       const recipient = period.memberId
         ? await authorizeVerifiedRecipientInTx(
@@ -164,7 +165,7 @@ export function createExpiryDeliveryWorker(
           )
         : refusal('recipient_missing');
 
-      const locked = await store.lockDeliveryInTx(tx, key);
+      const locked = await lockDeliveryInTx(tx, key);
       if (!matchesKey(locked, key)) return refusal('lease_lost');
       const row = locked.metadata;
       const mark = now();
@@ -180,16 +181,12 @@ export function createExpiryDeliveryWorker(
       const transportDeadline = Math.min(mark + timeoutMs, row.lease.expiresAt - finishReserveMs);
       if (!recipient.ok || transportDeadline <= mark) {
         const code = recipient.ok ? 'transport_deadline_elapsed' : recipient.code;
-        const changed = await store.saveDeliveryInTx(
-          tx,
-          locked,
-          failureState(row.attempts, mark, code)
-        );
+        const changed = await saveDeliveryInTx(tx, locked, failureState(row.attempts, mark, code));
         return changed ? refusal(code) : refusal('lease_lost');
       }
 
       const authorization = { leaseToken: claim.leaseToken, authorizedAt: mark, transportDeadline };
-      const changed = await store.saveDeliveryInTx(tx, locked, { ...row, authorization });
+      const changed = await saveDeliveryInTx(tx, locked, { ...row, authorization });
       if (!changed) return refusal('lease_lost');
       return {
         ok: true,
@@ -207,7 +204,7 @@ export function createExpiryDeliveryWorker(
     outcome: Awaited<ReturnType<typeof sendEmailOutcome>>
   ) {
     return withTenantAuthority(authority, async tx => {
-      const locked = await store.lockDeliveryInTx(tx, key);
+      const locked = await lockDeliveryInTx(tx, key);
       if (!matchesKey(locked, key)) return refusal('lease_lost');
       const row = locked.metadata;
       if (
@@ -227,7 +224,7 @@ export function createExpiryDeliveryWorker(
         : outcome.ambiguous
           ? { ...row, code: outcome.code }
           : failureState(row.attempts, mark, outcome.code, outcome.retryable);
-      if (!(await store.saveDeliveryInTx(tx, locked, next))) return refusal('lease_lost');
+      if (!(await saveDeliveryInTx(tx, locked, next))) return refusal('lease_lost');
       return outcome.ok ? ({ ok: true, state: 'sent' } as const) : refusal(outcome.code);
     });
   }
@@ -249,6 +246,7 @@ export function createExpiryDeliveryWorker(
           beforeSendFailure('transport_deadline_elapsed')
         );
       }
+      const verifiedEmail = recipient.email;
       let message: ReturnType<ExpiryDeliveryOptions['render']>;
       try {
         message = render(key.periodId, recipient);
@@ -258,7 +256,7 @@ export function createExpiryDeliveryWorker(
       const remaining = authorization.transportDeadline - now();
       const outcome =
         remaining > 0
-          ? await sendEmailOutcome(transport, recipient.email, message, {
+          ? await sendEmailOutcome(transport, verifiedEmail, message, {
               idempotencyKey: reference,
               timeoutMs: remaining,
             })

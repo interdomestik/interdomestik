@@ -76,14 +76,17 @@ const RESEND_PRE_REQUEST_CODES = new Set([
 ]);
 const resendReceipt = z.object({ id: z.string().min(1) });
 const RESEND_EMAILS_URL = 'https://api.resend.com/emails';
-const resendUnknown: DeliveryFailure = {
-  ok: false,
-  retryable: true,
-  ambiguous: true,
-  preAcceptance: false,
-  code: 'resend_unknown',
-  detail: 'resend',
-};
+
+function resendUnknown(): DeliveryFailure {
+  return {
+    ok: false,
+    retryable: true,
+    ambiguous: true,
+    preAcceptance: false,
+    code: 'resend_unknown',
+    detail: 'resend',
+  };
+}
 
 export async function sendResendOutcome(
   apiKey: string,
@@ -134,9 +137,9 @@ export async function sendResendOutcome(
             code: 'resend_pre_acceptance',
             detail: `resend ${code}`,
           }
-        : resendUnknown;
+        : resendUnknown();
     console.error({ code: failure.code });
     return failure;
   }
-  return resendUnknown;
+  return resendUnknown();
 }

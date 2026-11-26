@@ -92,7 +92,25 @@ test('verified recipient reads and locks under the deployment-equivalent runtime
       'reads the exact verified address and stored locale only in matching scope',
       async () => {
         const handle = await snapshot();
-        assert.deepEqual(await prepare(handle), { ok: true, recipient: { email, locale: 'sq' } });
+        await scoped(async tx => {
+          const [posture] = await tx.execute(sql`
+            select session_user as login, current_user as role, rolsuper, rolbypassrls,
+                   row_security_active('public."user"'::regclass) as account_rls,
+                   row_security_active('public.user_locale_preferences'::regclass) as preference_rls
+            from pg_roles where rolname = current_user`);
+          assert.deepEqual(posture, {
+            login: loginName,
+            role: runtimeRole,
+            rolsuper: false,
+            rolbypassrls: false,
+            account_rls: true,
+            preference_rls: true,
+          });
+          assert.deepEqual(await authorize(tx, scheduled, member, lease, handle), {
+            ok: true,
+            recipient: { email, locale: 'sq' },
+          });
+        });
 
         for (const [home, access] of [
           [tenantB, tenantB],

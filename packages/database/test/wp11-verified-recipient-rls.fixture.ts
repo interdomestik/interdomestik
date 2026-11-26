@@ -66,7 +66,9 @@ export function withVerifiedRecipientDatabase(
         try {
           const migration = await migrateJournalBeforeNotificationDeliveries(admin, migrations);
           assert.ok(migration);
-          // Reproduce the account SELECT grant and the existing row-lock prerequisite in scratch.
+          // The reviewed deployment snapshot (db-config-staging-prod-2026-11-16b.md, Q-M2)
+          // records SELECT on every public table for interdomestik_runtime_rls, including public."user".
+          // Reproduce that read privilege and migration 0105's row-lock prerequisite in scratch.
           await admin.unsafe(`grant usage on schema public to ${role}`);
           await admin.unsafe(`grant select on public."user" to ${role}`);
           await grantNotificationDeliveryRowLocks(admin);

@@ -7,6 +7,8 @@ import {
 } from '../../../database/test/wp11-verified-recipient-rls.fixture';
 import { recipientId, withExpiryFixture } from './expiry-deliveries.rls.fixture';
 
+vi.mock(import('./delivery-queries'), () => import('./expiry-deliveries.rls.fixture'));
+
 it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
   'commits one authorization when two workers race the same live lease',
   async context => {
@@ -15,7 +17,7 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
 
     await withExpiryFixture(
       2,
-      async ({ admin, authority, enqueue, record, store, appPoolSize }) => {
+      async ({ admin, authority, enqueue, record, appPoolSize }) => {
         const { createExpiryDeliveryWorker } = await import('./index');
         expect(appPoolSize()).toBe(2);
         const entered = signal();
@@ -36,7 +38,7 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
         vi.stubEnv('PLAYWRIGHT', '0');
         const timeoutMs = 30_000;
         let now = Date.now();
-        const worker = createExpiryDeliveryWorker(store, {
+        const worker = createExpiryDeliveryWorker({
           transport: 'resend',
           timeoutMs,
           finishReserveMs: 1000,
