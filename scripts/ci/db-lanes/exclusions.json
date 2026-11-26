@@ -72,6 +72,12 @@
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },
   {
+    "file": "apps/web/e2e/gate/admin-claim-detail-paging.spec.ts",
+    "reason": "The gate/admin-claim-detail-paging browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
     "file": "apps/web/e2e/gate/admin-claim-detail-read-consistency.spec.ts",
     "reason": "The gate/admin-claim-detail-read-consistency browser spec requires a running web application and Playwright project fixtures.",
     "owner": "Web E2E",

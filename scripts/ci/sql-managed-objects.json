@@ -372,6 +372,11 @@
       "migration": "0106_wp12_claim_correspondence"
     },
     {
+      "key": "index [\"public\",\"claim_documents\",\"claim_documents_access_claim_id_idx\"]",
+      "value": "btree (access_tenant_id, claim_id, id) WHERE (access_tenant_id IS NOT NULL)",
+      "migration": "0109_wp19_claim_documents_access_claim_id"
+    },
+    {
       "key": "index [\"public\",\"claim_documents\",\"idx_claim_documents_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
@@ -1772,6 +1777,11 @@
       "migration": "0106_wp12_claim_correspondence"
     },
     {
+      "key": "trigger [\"public\",\"claim_transition_evidence\",\"wp16_claim_transition_evidence_runtime_id_guard\"]",
+      "value": "CREATE TRIGGER wp16_claim_transition_evidence_runtime_id_guard BEFORE UPDATE OF id ON public.claim_transition_evidence FOR EACH STATEMENT WHEN ((CURRENT_USER = 'interdomestik_runtime_rls'::name)) EXECUTE FUNCTION sponsor_reject_update_fn()",
+      "migration": "0110_wp16_1_sponsor_runtime_grants"
+    },
+    {
       "key": "trigger [\"public\",\"exchange_rate_books\",\"exchange_rate_books_append_only\"]",
       "value": "CREATE TRIGGER exchange_rate_books_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_books FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
       "migration": "0101_wp07_exchange_rates"
@@ -1840,6 +1850,11 @@
       "key": "trigger [\"public\",\"membership_plan_versions\",\"membership_plan_versions_no_delete\"]",
       "value": "CREATE TRIGGER membership_plan_versions_no_delete BEFORE DELETE OR TRUNCATE ON public.membership_plan_versions FOR EACH STATEMENT EXECUTE FUNCTION membership_port_reject_mutation_fn()",
       "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_plans\",\"wp16_membership_plans_runtime_id_guard\"]",
+      "value": "CREATE TRIGGER wp16_membership_plans_runtime_id_guard BEFORE UPDATE OF id ON public.membership_plans FOR EACH STATEMENT WHEN ((CURRENT_USER = 'interdomestik_runtime_rls'::name)) EXECUTE FUNCTION sponsor_reject_update_fn()",
+      "migration": "0110_wp16_1_sponsor_runtime_grants"
     },
     {
       "key": "trigger [\"public\",\"membership_sale_claims\",\"membership_claims_require_sale\"]",
@@ -1920,6 +1935,11 @@
       "key": "trigger [\"public\",\"sponsor_terms\",\"sponsor_terms_guard\"]",
       "value": "CREATE TRIGGER sponsor_terms_guard BEFORE UPDATE ON public.sponsor_terms FOR EACH ROW EXECUTE FUNCTION sponsor_terms_guard_fn()",
       "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "trigger [\"public\",\"sponsors\",\"wp16_sponsors_runtime_id_guard\"]",
+      "value": "CREATE TRIGGER wp16_sponsors_runtime_id_guard BEFORE UPDATE OF id ON public.sponsors FOR EACH STATEMENT WHEN ((CURRENT_USER = 'interdomestik_runtime_rls'::name)) EXECUTE FUNCTION sponsor_reject_update_fn()",
+      "migration": "0110_wp16_1_sponsor_runtime_grants"
     },
     {
       "key": "view-definition [\"public\",\"tenant_entity_boundaries\"]",

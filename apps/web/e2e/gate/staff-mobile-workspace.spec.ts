@@ -48,6 +48,8 @@ test('staff queues stay inside the shared mobile shell', async ({ staffPage: pag
   test.setTimeout(180_000);
   await initializeConsent(page);
   await gotoApp(page, routes.staffClaims(info), info, { marker: 'staff-page-ready' });
+  const claimsQueue = page.getByTestId('staff-claims-queue');
+  const shellMain = page.getByTestId('role-shell').getByRole('main');
   for (const width of [360, 390, 430, 320]) {
     await page.setViewportSize({ width, height: 844 });
     const nav = page.getByTestId('role-shell-bottom-nav');
@@ -64,7 +66,9 @@ test('staff queues stay inside the shared mobile shell', async ({ staffPage: pag
     await expect(page.getByTestId('staff-support-handoffs-queue')).toBeVisible();
     await expectReflow(page);
     await nav.locator('a[href$="/staff/claims"]').click();
-    await expect(page.getByTestId('staff-claims-queue')).toBeVisible();
+    // React can briefly retain a hidden streamed copy outside the shell.
+    await expect(claimsQueue).toHaveCount(1);
+    await expect(shellMain.locator(claimsQueue)).toBeVisible();
     await expectReflow(page);
   }
 });

@@ -8,7 +8,11 @@ Declares the schema (46 schema files, 99 `pgTable` calls — MEASURED, `rg -c 'p
 
 The seed runner uses the internal `src/seed-receipt.ts` module to build and print receipts. The module uses no database client.
 
+The WP-16.1 release journal path splits the owner migration run at `0104_wp07_rate_verification_age` to verify the ten direct column grants required by migration 0105. Migration `0110` owns the sponsor runtime ACL, legacy ID-grant reconciliation, and the three runtime ID-update guards. Journal parity exercises the release path on a disposable PostgreSQL 16 database.
+
 ## Public API
+
+Under test runners, `./testing/tenant-authority` can mint a synthetic session authority with a branch and access tenant for restricted-role integration tests. The default remains a test-purpose authority.
 
 `package.json:7-30` declares 22 subpath exports (recounted in R3) (root `./src/index.ts`, plus `./schema`, `./db`, `./tenant-authority`, `./tenant-security`, `./ingress`, `./testing/tenant-authority`, …). The entries other code should use: `withTenantAuthority` (`src/tenant-authority-context.ts:12-18`), `withTenantContext` / `withTenantDb` (`src/tenant.ts:23-55`), `dbAdmin` and `dbRls` (`src/db.ts:244-251`), `withTenant` (`src/tenant-security.ts:22-37`). Transaction-scoped advisory locks live here so their raw statements stay inside the database package: `./branch-policy-lock`, `./sponsor-locks` and `./claim-evidence-object-lock` (`lockClaimEvidenceObjects`, one lock per stored evidence object of a tenant, taken in ascending order of the 64-bit lock ids; it refuses a transaction that is not READ COMMITTED, since its callers' re-read must see the previous holder's commit).
 
@@ -23,6 +27,8 @@ The lead-approved `@interdomestik/database/seed-target-classification` export ex
 ## Owned tables
 
 Migration `0106` adds the WP-12 tables declared at the schema barrel tail. `claim-correspondence` declares `claim_authorities`, `claim_correspondence` and `claim_correspondence_documents`, and `claim-case-fields` declares `claim_case_fields`. Their composite foreign keys to `claim` use the unique `(tenant_id, id)` index created by WP-11's migration `0105`. The correspondence integration suites cover these tables under the restricted role.
+
+Custom SQL migration `0109` adds `claim_documents_access_claim_id_idx`, a partial B-tree on `(access_tenant_id, claim_id, id)` for rows with `access_tenant_id IS NOT NULL`. The index is tracked in `scripts/ci/sql-managed-objects.json` and supports WP-19's explicit-access document listing, cursor pagination and count by claim.
 
 This package _declares_ every table — the schema module is the only declaration site for the 97 tables, and R1 names 91 as tenant tables (`A/modules/tenancy.md:213-218`, TEN-01) — and it carries the migrations, the seeds and the row policies. Declaring is stewardship of the schema; the owner of a table is the domain package named in that package's `MODULE.md`, and the owner map of CHK-16 is the list (R-16). The R2b text said "all of them", which made every table owned twice (review comment R2b-C03). Two tables that no contract named are assigned by this review: `share_packs` to the documents area, and `case_scoped_access_grants` to `domain-claims` (TEN-03: the only code that inserts a grant, `packages/domain-claims/src/claims/jurisdiction-handoff-store-insert.ts:31`, has no production caller today; the claims contract lists the table since the closing pass). Every domain package and `apps/web` write through the exported transaction handle (902 of 996 Drizzle call sites take a transaction handle; 52 take `db`/`dbRls`, 42 take `dbAdmin` — MEASURED in `A/modules/tenancy.md:84-100`). The schema is not the whole truth: 33 indexes, 11 triggers, 12 functions and 1 exclusion constraint exist only in SQL (DATA-05; recounted in R3, `A/raw/R3/corrections/c13-recounts.json`), which is why the build check compares with the schema **and** a registry of those objects (R-12, CHK-12).
 
@@ -94,6 +100,8 @@ Their foreign keys and the composite unique indexes they target, on `claim`, `cl
 The five tables force RLS. The runtime role has no `DELETE` on any of them. It has no `UPDATE` on first responses or preview restrictions, so a restriction never changes once written.
 
 ## Tests to run
+
+`test/sponsor-test-fixture.ts` provides the restricted-role sponsor fixture. `test/sponsor-seed.test-support.ts` owns the synthetic sponsor rows and tenant seeding shared with the billing and web RLS proofs.
 
 `test/pilot-switch.test.ts` covers the reader and command with a fake transaction. `test/pilot-switch-rls.test.ts` is in the `test:rls` lane and proves tenant isolation, revision conflicts and atomic audits under the restricted role.
 

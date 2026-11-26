@@ -3,7 +3,9 @@
     "claims_page": {
       "title": "Verwaltung der Schadensfälle",
       "description": "Alle Schadensfälle der Benutzer ansehen und verwalten.",
+      "first_page": "Erste Seite",
       "assignment": {
+        "search_staff": "Mitarbeitende suchen",
         "label": "Zugewiesene Mitarbeitende",
         "placeholder": "Mitarbeitende auswählen",
         "unassigned": "Nicht zugewiesen",

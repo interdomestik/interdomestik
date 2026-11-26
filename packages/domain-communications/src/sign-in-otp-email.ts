@@ -42,6 +42,7 @@ export type EmailSendOptions = {
   automatedCatcher?: boolean;
   idempotencyKey?: string;
   telemetryPolicy?: EmailTelemetryPolicy;
+  canDispatch?: () => boolean;
 };
 
 type SignInOtpCopy = Readonly<{
@@ -114,6 +115,9 @@ export async function sendViaResend(
     };
   };
   try {
+    if (options.canDispatch?.() === false) {
+      return { success: false, error: 'email_dispatch_blocked' };
+    }
     const response = await client.emails.send(
       {
         from,

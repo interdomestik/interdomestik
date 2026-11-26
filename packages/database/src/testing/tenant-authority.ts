@@ -17,6 +17,7 @@ export function mintTestTenantAuthority(
     userId?: string;
     role?: string | null;
     branchId?: string | null;
+    purpose?: 'test' | 'session';
   } = {}
 ): TenantAuthority {
   if (!isTestRunner()) {
@@ -25,7 +26,7 @@ export function mintTestTenantAuthority(
   return mintTenantAuthority({
     tenantId,
     accessTenantId: options.accessTenantId,
-    purpose: 'test',
+    purpose: options.purpose ?? 'test',
     principal: options.userId
       ? {
           userId: options.userId,
