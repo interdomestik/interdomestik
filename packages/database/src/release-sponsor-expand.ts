@@ -29,13 +29,11 @@ export async function expandWithSponsor(
   options: SponsorExpandOptions | undefined,
   apply: ApplySponsorRange
 ): Promise<boolean> {
-  const trailing = journal.entries.findIndex(entry => entry.tag === sponsorTrailingTag);
   const firstDependent = journal.entries.findIndex(entry => entry.tag === sponsorPrerequisiteTag);
-  if (
-    trailing < beforeCount ||
-    (trailing >= expandCount && (firstDependent < beforeCount || firstDependent >= expandCount))
-  )
-    return false;
+  const trailing = journal.entries.findIndex(entry => entry.tag === sponsorTrailingTag);
+  const checkpointPending = firstDependent >= beforeCount && firstDependent < expandCount;
+  const trailingPending = trailing >= beforeCount && trailing < expandCount;
+  if (!checkpointPending && !trailingPending) return false;
 
   if (scratch) {
     const [role] =
@@ -70,7 +68,7 @@ export async function expandWithSponsor(
     through: expandCount,
     apply,
     database,
-    path: beforeCount <= firstDependent ? 'fresh' : 'forward',
+    path: checkpointPending ? 'fresh' : 'forward',
     assertClosedTargetAndBaseline: (_sql, target) =>
       checkAcl('baseline', target, options.baselineAclSha256),
     attestFinal: (_sql, target) => checkAcl('final', target, options.finalAclSha256),

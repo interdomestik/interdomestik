@@ -97,7 +97,7 @@ export async function runSponsorReleaseMigrations(
       client.sql,
       client,
       client.journal,
-      sponsorPositions(client.journal),
+      sponsorPositions(client.journal, { allowMissingTrailing: true }),
       client.through,
       () => client.apply,
       async work => {

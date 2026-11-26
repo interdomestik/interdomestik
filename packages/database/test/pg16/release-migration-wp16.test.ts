@@ -1,16 +1,31 @@
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
-import test from 'node:test';
+import test, { type TestContext } from 'node:test';
 import { sha256 } from '../../src/release-migrations';
-import { sponsorRuntimeRole, sponsorTrailingTag } from '../../src/release-sponsor-checkpoint';
+import {
+  inspectSponsorCheckpoint,
+  sponsorRuntimeRole,
+  sponsorTrailingTag,
+} from '../../src/release-sponsor-checkpoint';
 import type { SponsorExpandOptions } from '../../src/release-sponsor-expand';
 import { assertLedger, assertRefusal, withReleaseDatabase } from './release-migration-fixture';
-import { folder, policy } from './release-migration-journal.fixture';
+import { folder, policy, workspace } from './release-migration-journal.fixture';
 import { prefix, stageJournal, withGrantsRole } from './wp16-1-runtime-grants.test-support';
 
 type Fixture = Parameters<Parameters<typeof withReleaseDatabase>[2]>[1];
 type EvidenceRecord = Parameters<SponsorExpandOptions['record']>[1] & { transactionId: string };
+
+function candidateThrough0109(t: TestContext) {
+  const dir = workspace(t);
+  const journal = JSON.parse(readFileSync(join(folder, 'meta/_journal.json'), 'utf8'));
+  const entries: { tag: string }[] = journal.entries.slice(0, 110);
+  assert.equal(entries.at(-1)?.tag, '0109_wp19_claim_documents_access_claim_id');
+  mkdirSync(join(dir, 'meta'));
+  writeFileSync(join(dir, 'meta/_journal.json'), JSON.stringify({ ...journal, entries }));
+  for (const { tag } of entries) copyFileSync(join(folder, `${tag}.sql`), join(dir, `${tag}.sql`));
+  return dir;
+}
 
 async function expand(fixture: Fixture) {
   const result = await fixture.run();
@@ -26,6 +41,11 @@ async function expand(fixture: Fixture) {
     .trimEnd()
     .split('\n')
     .map(line => JSON.parse(line));
+  return { manifest, records };
+}
+
+async function expandWithTrailing(fixture: Fixture) {
+  const { manifest, records } = await expand(fixture);
   const trailing = fixture.journal.entries.findIndex(entry => entry.tag === sponsorTrailingTag);
   const acl = records.filter(record => record.type === 'acl').map(record => record.evidence);
   const before = acl.find(record => record.phase === 'before-trailing');
@@ -39,6 +59,23 @@ async function expand(fixture: Fixture) {
   return { manifest, records, before, after, trailing };
 }
 
+function assertCheckpoint(records: EvidenceRecord[]) {
+  const checkpoint = records.filter(record => record.type === 'checkpoint');
+  assert.deepEqual(
+    checkpoint.map(record => record.evidence.phase),
+    ['before-checkpoint', 'checkpoint-checked']
+  );
+  const [before, checked] = checkpoint;
+  assert.equal(before.evidence.target.ledger.length, prefix);
+  assert.equal(checked.evidence.target.ledger.length, prefix);
+  assert.equal(before.evidence.checks.find(row => row.relation === 'claim')?.matches0105, false);
+  assert.equal(checked.evidence.checks.length, 10);
+  assert.ok(checked.evidence.checks.every(row => row.namedEffective && row.matches0105));
+  assert.equal(before.evidence.attemptId, checked.evidence.attemptId);
+  assert.ok(records.every(row => row.transactionId === checked.evidence.attemptId));
+  return checked;
+}
+
 test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidence', async t => {
   await withGrantsRole(t, async () => {
     await t.test(
@@ -48,24 +85,9 @@ test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidenc
           'interdomestik_admin_config_wp16_fresh',
           { t, dir: folder, registry: policy },
           async (client, fixture) => {
-            const { manifest, records } = await expand(fixture);
+            const { manifest, records } = await expandWithTrailing(fixture);
             assert.equal(manifest.plan.beforeCount, 0);
-            const checkpoint = records.filter(record => record.type === 'checkpoint');
-            assert.deepEqual(
-              checkpoint.map(record => record.evidence.phase),
-              ['before-checkpoint', 'checkpoint-checked']
-            );
-            const [before, checked] = checkpoint;
-            assert.equal(before.evidence.target.ledger.length, prefix);
-            assert.equal(checked.evidence.target.ledger.length, prefix);
-            assert.equal(
-              before.evidence.checks.find(row => row.relation === 'claim')?.matches0105,
-              false
-            );
-            assert.equal(checked.evidence.checks.length, 10);
-            assert.ok(checked.evidence.checks.every(row => row.namedEffective && row.matches0105));
-            assert.equal(before.evidence.attemptId, checked.evidence.attemptId);
-            assert.ok(records.every(row => row.transactionId === checked.evidence.attemptId));
+            const checked = assertCheckpoint(records);
             const [{ status }] = await client`
             SELECT pg_catalog.pg_xact_status(${checked.transactionId}::text::xid8) AS status
           `;
@@ -81,7 +103,7 @@ test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidenc
         'interdomestik_admin_config_wp16_forward',
         { t, dir: folder, registry: policy, prepare: runner => stageJournal(runner, 'legacy') },
         async (client, fixture) => {
-          const { manifest, records, before, after, trailing } = await expand(fixture);
+          const { manifest, records, before, after, trailing } = await expandWithTrailing(fixture);
           assert.equal(manifest.plan.beforeCount, trailing);
           assert.deepEqual(
             records.filter(record => record.type === 'checkpoint'),
@@ -107,30 +129,69 @@ test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidenc
       );
     });
 
+    const through0109 = candidateThrough0109(t);
     await t.test(
-      'an overbroad grant makes the checkpoint refuse and preserves the prefix',
+      '0109 candidate supplies missing 0105 grants at the verified checkpoint',
       async t => {
         await withReleaseDatabase(
-          'interdomestik_admin_config_wp16_refusal',
+          'interdomestik_admin_config_wp16_0109_missing',
           {
             t,
-            dir: folder,
+            dir: through0109,
             registry: policy,
-            async prepare(runner) {
-              await stageJournal(runner, 'missing');
-              await runner`GRANT UPDATE ("updatedAt") ON public."user"
-              TO ${runner(sponsorRuntimeRole)} WITH GRANT OPTION`;
-            },
+            prepare: runner => stageJournal(runner, 'missing'),
           },
           async (client, fixture) => {
-            assertRefusal(await fixture.run(), 'SPONSOR_CHECKPOINT_REJECTED');
-            await assertLedger(client, fixture.journal, prefix);
-            const [{ granted }] = await client`SELECT pg_catalog.has_column_privilege(
-            ${sponsorRuntimeRole}, 'public.claim', 'updatedAt', 'UPDATE') AS granted`;
-            assert.equal(granted, false);
+            const { manifest, records } = await expand(fixture);
+            assert.equal(manifest.plan.beforeCount, prefix);
+            assert.equal(manifest.plan.expandCount, 110);
+            assertCheckpoint(records);
+            assert.deepEqual(
+              records.flatMap(record => (record.type === 'acl' ? [record.evidence.phase] : [])),
+              ['before-checkpoint']
+            );
+            await assertLedger(client, fixture.journal, 110);
           }
         );
       }
     );
+
+    for (const [candidate, dir, overbroadRelation] of [
+      ['with 0110', folder, 'user'],
+      // Granting UPDATE on claim fills the last privilege that 0105 checks.
+      ['through 0109', through0109, 'claim'],
+    ]) {
+      const claimGranted = overbroadRelation === 'claim';
+      await t.test(
+        `an overbroad grant makes the checkpoint refuse and preserves the prefix (${candidate})`,
+        async t => {
+          await withReleaseDatabase(
+            'interdomestik_admin_config_wp16_refusal',
+            {
+              t,
+              dir,
+              registry: policy,
+              async prepare(runner) {
+                await stageJournal(runner, 'missing');
+                await runner`GRANT UPDATE ("updatedAt") ON public.${runner(overbroadRelation)}
+                TO ${runner(sponsorRuntimeRole)} WITH GRANT OPTION`;
+                const checks = await inspectSponsorCheckpoint(runner);
+                assert.equal(
+                  checks.every(row => row.matches0105),
+                  claimGranted
+                );
+              },
+            },
+            async (client, fixture) => {
+              assertRefusal(await fixture.run(), 'SPONSOR_CHECKPOINT_REJECTED');
+              await assertLedger(client, fixture.journal, prefix);
+              const [{ granted }] = await client`SELECT pg_catalog.has_column_privilege(
+            ${sponsorRuntimeRole}, 'public.claim', 'updatedAt', 'UPDATE') AS granted`;
+              assert.equal(granted, claimGranted);
+            }
+          );
+        }
+      );
+    }
   });
 });

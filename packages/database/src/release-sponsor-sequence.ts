@@ -77,9 +77,10 @@ export function checkpointPosition(journal: SponsorJournal) {
   return checkpoint;
 }
 
-export function sponsorPositions(journal: SponsorJournal) {
+export function sponsorPositions(journal: SponsorJournal, { allowMissingTrailing = false } = {}) {
   const checkpoint = checkpointPosition(journal);
   const trailing = journal.findIndex(entry => entry.tag === sponsorTrailingTag);
+  if (trailing === -1 && allowMissingTrailing) return { checkpoint, trailing: undefined };
   if (trailing <= checkpoint)
     throw new Error('Sponsor grants migration is missing or out of order');
   return { checkpoint, trailing };
@@ -145,7 +146,8 @@ export async function runSponsorSequence(
     });
   }
 
-  if (through > trailing && target.ledger.length <= trailing) {
+  const appliesTrailing = trailing !== undefined && through > trailing;
+  if (appliesTrailing && target.ledger.length <= trailing) {
     if (target.ledger.length < trailing) {
       await apply(target.ledger.length, trailing);
       target = await inspectTarget(sql, options.database, journal);
@@ -158,7 +160,7 @@ export async function runSponsorSequence(
     if (target.ledger.length !== trailing + 1)
       throw new Error('Sponsor grants migration did not apply');
   }
-  if (through > trailing && target.ledger.length === trailing + 1) {
+  if (appliesTrailing && target.ledger.length === trailing + 1) {
     await recordAcl('after-trailing');
   }
   if (target.ledger.length < through) {
