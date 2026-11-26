@@ -175,6 +175,33 @@ function usageErrors(command, lane, argv) {
   ];
 }
 
+function beginVerification(lane, deps, exceptional) {
+  if (exceptional === 'hosted') {
+    deps.log(
+      `${PREFIX} hosted run: the machine marker does not apply; hosted checks count apart; ` +
+        `${ONLY_ISOLATED_CHILDREN}.`
+    );
+    return 0;
+  }
+  if (exceptional) {
+    deps.log(
+      `${PREFIX} PRE-CHECK lane=${lane}: variables a gate run does not take are set ` +
+        `(${nameList(exceptional)}); ${ONLY_ISOLATED_CHILDREN}.`
+    );
+    return 0;
+  }
+  let repoRoot;
+  try {
+    repoRoot = deps.exec('git', ['rev-parse', '--show-toplevel'], deps.cwd);
+  } catch {
+    if (deps.composed) return fail(deps, ['composed verification requires a repository checkout']);
+    deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no git repository found; nothing is recorded.`);
+    return 0;
+  }
+  const shell = shellIdentity(deps);
+  return begin(lane, { ...deps, shellKnown: shell.start !== null }, repoRoot, shell);
+}
+
 export function runVerifyMachine(argv, deps = defaultDependencies()) {
   // Under Node's permission model a child can receive variables the verifier did not give it.
   if (deps.permissionModel) {
@@ -209,30 +236,7 @@ export function runVerifyMachine(argv, deps = defaultDependencies()) {
   }
   const run = { ...deps, composed, readMarker: () => markerResult };
   if (command === 'stamp') return stampRun(lane, run, shellIdentity(deps), exceptional);
-  if (hosted) {
-    deps.log(
-      `${PREFIX} hosted run: the machine marker does not apply; hosted checks count apart; ` +
-        `${ONLY_ISOLATED_CHILDREN}.`
-    );
-    return 0;
-  }
-  if (exceptional) {
-    deps.log(
-      `${PREFIX} PRE-CHECK lane=${lane}: variables a gate run does not take are set ` +
-        `(${nameList(unexpected)}); ${ONLY_ISOLATED_CHILDREN}.`
-    );
-    return 0;
-  }
-  let repoRoot;
-  try {
-    repoRoot = deps.exec('git', ['rev-parse', '--show-toplevel'], deps.cwd);
-  } catch {
-    if (composed) return fail(deps, ['composed verification requires a repository checkout']);
-    deps.log(`${PREFIX} PRE-CHECK lane=${lane}: no git repository found; nothing is recorded.`);
-    return 0;
-  }
-  const shell = shellIdentity(deps);
-  return begin(lane, { ...run, shellKnown: shell.start !== null }, repoRoot, shell);
+  return beginVerification(lane, run, exceptional);
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href) {

@@ -1,18 +1,50 @@
 // Installed by the owner as gate-m5-worker.mjs. This bridge uses only Node built-ins.
 import { execFileSync, spawn } from 'node:child_process';
-import { accessSync, constants, existsSync, readdirSync, realpathSync } from 'node:fs';
+import { accessSync, constants, existsSync, lstatSync, readdirSync, realpathSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { setTimeout } from 'node:timers/promises';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 
 const WORKER = '_interdomestik_gate_worker';
 const BASE_ENV = { PATH: '/usr/bin:/bin:/usr/sbin:/sbin', LANG: 'C', NODE_V8_COVERAGE: undefined };
 const VERIFIED_TOOLS = ['node', 'pnpm', 'bash'];
 const sudo = ['-n', '-u', WORKER, '--'];
-const [action, ticketId, root, toolPath, bashPath, ...rest] = process.argv.slice(2);
+const toolPath = process.env.PATH;
+const bashPath = process.env.INTERDOMESTIK_M5_BASH;
+const CANONICAL = { canonical: true };
+const OPTIONAL = { allowMissing: true };
+const OPTIONAL_CANONICAL = { ...OPTIONAL, ...CANONICAL };
+const REQUIRED = {};
 
 function requireThat(condition) {
   if (!condition) throw new Error('worker isolation');
+}
+
+export function validatePath(value, directory, options = REQUIRED) {
+  const candidate = path.resolve(directory, value);
+  const relative = path.relative(directory, candidate);
+  if (relative === '..' || relative.startsWith('..' + path.sep) || path.isAbsolute(relative)) {
+    throw new Error('worker isolation');
+  }
+
+  // Check the nearest existing ancestor as well, including for a missing leaf below a symlink.
+  let current = candidate;
+  while (!lstatSync(current, { throwIfNoEntry: false })) {
+    requireThat(options.allowMissing && current !== directory);
+    current = path.dirname(current);
+  }
+  const resolved = realpathSync(current);
+  const physicalRelative = path.relative(directory, resolved);
+  if (
+    physicalRelative === '..' ||
+    physicalRelative.startsWith('..' + path.sep) ||
+    path.isAbsolute(physicalRelative)
+  ) {
+    throw new Error('worker isolation');
+  }
+  requireThat(!options.canonical || resolved === current);
+  return candidate;
 }
 
 function output(command, args, env = BASE_ENV) {
@@ -53,14 +85,16 @@ async function drain(attempt = 0) {
 }
 
 function workerEnvironment() {
+  const home = validatePath('tmp/m5-home', root, OPTIONAL_CANONICAL);
+  const tmp = validatePath('tmp/m5-tmp', root, OPTIONAL_CANONICAL);
   return [
     ...sudo,
     '/usr/bin/env',
     '-i',
     `PATH=${toolPath}`,
     'LANG=C',
-    `HOME=${root}/tmp/m5-home`,
-    `TMPDIR=${root}/tmp/m5-tmp`,
+    `HOME=${home}`,
+    `TMPDIR=${tmp}`,
     `INTERDOMESTIK_M5_CHECKOUT=${root}`,
     `INTERDOMESTIK_M5_BASH=${bashPath}`,
     'GIT_CONFIG_COUNT=1',
@@ -110,19 +144,15 @@ function readOnlyTree(directory) {
 }
 
 function checkReadOnlyCheckout() {
-  const gitDir = path.join(root, '.git');
-  requireThat(
-    realpathSync(gitDir) === gitDir &&
-      readOnlyTree(gitDir) &&
-      !existsSync(path.join(gitDir, 'objects/info/alternates'))
-  );
+  const gitDir = validatePath('.git', root, CANONICAL);
+  requireThat(readOnlyTree(gitDir) && !existsSync(path.join(gitDir, 'objects/info/alternates')));
   const tracked = execFileSync('/usr/bin/git', ['ls-files', '-z'], { cwd: root })
     .toString()
     .split('\0')
     .filter(Boolean);
   const protectedPaths = new Set([root]);
   for (const name of tracked) {
-    for (let file = path.join(root, name); file !== root; file = path.dirname(file)) {
+    for (let file = validatePath(name, root, OPTIONAL); file !== root; file = path.dirname(file)) {
       if (protectedPaths.has(file)) break;
       protectedPaths.add(file);
     }
@@ -132,40 +162,41 @@ function checkReadOnlyCheckout() {
   );
 }
 
-function checkWorkspaceDirectories(stage) {
-  const workspaces = [
-    root,
-    ...['apps', 'packages'].flatMap(parent =>
-      readdirSync(path.join(root, parent), { withFileTypes: true })
-        .filter(entry => entry.isDirectory())
-        .map(entry => path.join(root, parent, entry.name))
-    ),
-  ];
-  const dependencyPaths = workspaces.map(dir => path.join(dir, 'node_modules'));
+function workspacePaths(parent) {
+  const directory = validatePath(parent, root);
+  return readdirSync(directory, { withFileTypes: true })
+    .filter(entry => entry.isDirectory())
+    .map(entry => path.join(directory, entry.name));
+}
+
+function checkDependencyDirectories(stage) {
+  const workspaces = [root, ...workspacePaths('apps'), ...workspacePaths('packages')];
   const controlledTools = [...VERIFIED_TOOLS, 'git', 'docker', 'sh'];
-  for (const dir of dependencyPaths) {
+  for (const workspace of workspaces) {
+    const dir = validatePath(path.join(workspace, 'node_modules'), root, OPTIONAL_CANONICAL);
     if (!existsSync(dir)) continue;
-    requireThat(realpathSync(dir) === dir);
     if (stage === 'start') requireThat(readdirSync(dir).length === 0);
-    requireThat(controlledTools.every(tool => !existsSync(path.join(dir, '.bin', tool))));
+    requireThat(
+      controlledTools.every(
+        tool => !existsSync(validatePath(path.join(dir, '.bin', tool), root, OPTIONAL))
+      )
+    );
   }
-  if (stage === 'start') {
-    requireThat(!existsSync(path.join(root, 'tmp/m5-pnpm-store')));
-    for (const name of ['m5-home', 'm5-tmp']) {
-      const dir = path.join(root, 'tmp', name);
-      requireThat(
-        realpathSync(dir) === dir &&
-          readdirSync(dir).length === 0 &&
-          accessible(dir, constants.W_OK)
-      );
-    }
+}
+
+function checkScratchDirectories() {
+  requireThat(!existsSync(validatePath('tmp/m5-pnpm-store', root, OPTIONAL_CANONICAL)));
+  for (const name of ['m5-home', 'm5-tmp']) {
+    const dir = validatePath(path.join('tmp', name), root, CANONICAL);
+    requireThat(readdirSync(dir).length === 0 && accessible(dir, constants.W_OK));
   }
 }
 
 function inspectWorker(stage) {
-  requireThat(os.userInfo().username === WORKER && process.env.PATH === toolPath);
+  requireThat(os.userInfo().username === WORKER);
   checkReadOnlyCheckout();
-  checkWorkspaceDirectories(stage);
+  checkDependencyDirectories(stage);
+  if (stage === 'start') checkScratchDirectories();
   const directories = toolPath.split(':');
   for (const directory of directories) {
     requireThat(
@@ -191,7 +222,7 @@ function inspectWorker(stage) {
       ['true', 'undefined'].includes(
         output(executables.pnpm, ['config', 'get', 'bail'], process.env)
       ) &&
-      !existsSync(path.join(root, 'node_modules/.hooks'))
+      !existsSync(validatePath('node_modules/.hooks', root, OPTIONAL))
   );
   return {
     isolated: true,
@@ -209,7 +240,12 @@ function inspectWorker(stage) {
 async function run(args) {
   requireThat(noWorkerProcesses() && args[0] === 'pnpm');
   // The repo's prepare hook configures Git hooks. The worker's protected Git config is immutable.
-  const installEnv = args[1] === 'install' ? ['HUSKY=0'] : [];
+  const installEnv = [];
+  if (args[1] === 'install') {
+    const store = validatePath('tmp/m5-pnpm-store', root, OPTIONAL_CANONICAL);
+    requireThat(args.length === 5 && args[3] === '--store-dir' && args[4] === store);
+    installEnv.push('HUSKY=0');
+  }
   const child = spawn('/usr/bin/sudo', [...workerEnvironment(), ...installEnv, ...args], {
     cwd: root,
     env: BASE_ENV,
@@ -228,9 +264,28 @@ async function run(args) {
   }
 }
 
+export function checkInvocation([checkout, requestedPath, requestedBash], context) {
+  const { root, toolPath, bashPath } = context;
+  // The supervisor passes its enrolled checkout and tools separately as process context.
+  requireThat(checkout === root);
+  validatePath(root, root, CANONICAL);
+  requireThat(
+    toolPath &&
+      requestedPath === toolPath &&
+      toolPath.split(':').every(directory => path.isAbsolute(directory)) &&
+      bashPath &&
+      requestedBash === bashPath &&
+      path.resolve(bashPath) === bashPath
+  );
+}
+
+let root;
 let workerUid;
-try {
-  requireThat(/^[0-9a-f-]{36}$/u.test(ticketId ?? '') && realpathSync(root) === root);
+async function main([action, ticketId, ...args]) {
+  requireThat(/^[0-9a-f-]{36}$/u.test(ticketId ?? ''));
+  root = process.cwd();
+  checkInvocation(args, { root, toolPath, bashPath });
+  const rest = args.slice(3);
   workerUid = output('/usr/bin/id', ['-u', WORKER]);
   requireThat(/^[1-9]\d*$/u.test(workerUid));
   if (action === 'run' && rest[0] === '--') {
@@ -243,7 +298,7 @@ try {
     const data = output('/usr/bin/sudo', [
       ...workerEnvironment(),
       process.execPath,
-      process.argv[1],
+      fileURLToPath(import.meta.url),
       ...argv,
     ]);
     requireThat(noWorkerProcesses());
@@ -253,7 +308,13 @@ try {
   } else {
     throw new Error('worker action');
   }
-} catch {
-  console.error('M5 worker operation failed.');
-  process.exitCode = 1;
+}
+
+if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
+  try {
+    await main(process.argv.slice(2));
+  } catch {
+    console.error('M5 worker operation failed.');
+    process.exitCode = 1;
+  }
 }

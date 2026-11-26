@@ -74,28 +74,34 @@ function shapeErrors(value, shape, prefix) {
   return errors;
 }
 
+function delegatedMarkerErrors(marker) {
+  const errors = [];
+  if (marker.role !== MACHINE_ROLES.m5 || marker.slot !== 'A') {
+    errors.push('delegated role requires M5 slot A');
+  }
+  const absolute = value => /^\/[^\r\n\0:]+$/u.test(value);
+  if (
+    !marker.tool_path.split(':').every(absolute) ||
+    !Object.values(marker.executables).every(absolute)
+  ) {
+    errors.push('tool paths must be absolute');
+  }
+  if (!isSupportedBash(marker.bash_version)) errors.push('Bash 4 or later is required');
+  if (!/^unix:\/\/\/[^\r\n\0]+$/u.test(marker.container_runtime.socket)) {
+    errors.push('container runtime must use its enrolled local socket');
+  }
+  if (marker.database.host !== '127.0.0.1' || marker.database.port === marker.app_port) {
+    errors.push('delegate ports must be distinct and use IPv4 loopback');
+  }
+  return errors;
+}
+
 export function validateMarker(marker) {
   const delegated = marker?.schema === DELEGATED_MARKER_SCHEMA;
   const errors = shapeErrors(marker, delegated ? DELEGATED_SHAPE : MARKER_SHAPE, '');
   if (errors.length > 0) return errors;
   if (!delegated && marker.schema !== MARKER_SCHEMA) errors.push(`schema must be ${MARKER_SCHEMA}`);
-  if (delegated) {
-    if (marker.role !== MACHINE_ROLES.m5 || marker.slot !== 'A') {
-      errors.push('delegated role requires M5 slot A');
-    }
-    const absolute = value => /^\/[^\r\n\0:]+$/u.test(value);
-    if (!marker.tool_path.split(':').every(absolute) ||
-        !Object.values(marker.executables).every(absolute)) {
-      errors.push('tool paths must be absolute');
-    }
-    if (!isSupportedBash(marker.bash_version)) errors.push('Bash 4 or later is required');
-    if (!/^unix:\/\/\/[^\r\n\0]+$/u.test(marker.container_runtime.socket)) {
-      errors.push('container runtime must use its enrolled local socket');
-    }
-    if (marker.database.host !== '127.0.0.1' || marker.database.port === marker.app_port) {
-      errors.push('delegate ports must be distinct and use IPv4 loopback');
-    }
-  }
+  if (delegated) errors.push(...delegatedMarkerErrors(marker));
   if (Number.isNaN(Date.parse(marker.created_at))) errors.push('created_at is not a date');
   for (const port of REQUIRED_FORBIDDEN_PORTS) {
     if (!marker.forbidden_ports.includes(port)) errors.push(`forbidden_ports must include ${port}`);

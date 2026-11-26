@@ -50,11 +50,15 @@ export function runnerDigest() {
   );
 }
 
+function workerOptions([, cwd, PATH, bash]) {
+  return { cwd, env: { ...cleanHostEnv, PATH, INTERDOMESTIK_M5_BASH: bash } };
+}
+
 // Only the supervisor owns the log descriptors. The worker gets pipes and clean credentials-free
 // execution from the host bridge. The bridge drains the worker before each next step.
 async function runWorker(worker, invocation, command, output, signal) {
   const child = spawn(process.execPath, [worker, 'run', ...invocation, '--', ...command], {
-    env: cleanHostEnv,
+    ...workerOptions(invocation),
     stdio: ['ignore', 'pipe', 'pipe'],
     signal,
   });
@@ -78,12 +82,18 @@ async function runWorker(worker, invocation, command, output, signal) {
     return exit;
   } finally {
     if (child.exitCode === null && child.signalCode === null) child.kill();
-    hostCommand(process.execPath, [worker, 'drain', ...invocation]);
+    hostCommand(process.execPath, [worker, 'drain', ...invocation], workerOptions(invocation));
   }
 }
 
 function auditWorker(worker, invocation, stage, probe) {
-  const audit = JSON.parse(hostCommand(process.execPath, [worker, 'audit', ...invocation, stage]));
+  const audit = JSON.parse(
+    hostCommand(
+      process.execPath,
+      [worker, 'audit', ...invocation, stage],
+      workerOptions(invocation)
+    )
+  );
   assertEvidence(
     audit.isolated === true &&
       audit.processesDrained === true &&
@@ -151,7 +161,6 @@ export async function runEvidence(input, checkout, output, signal) {
     Object.assign(active, { exit: result.code, signal: result.killed });
     const bytes = readBytes(file);
     if (jobError) throw jobError;
-    if (jobError) throw jobError;
     await new Promise((resolve, reject) => {
       job.write(Buffer.concat([Buffer.from(`\n=== ${id} ===\n`), bytes]), error =>
         error ? reject(error) : resolve()
@@ -159,6 +168,21 @@ export async function runEvidence(input, checkout, output, signal) {
     });
     assertEvidence(result.code === 0 && !result.killed, 'm5-step-exit');
     return sha256Hex(bytes);
+  };
+  const runLanes = async (index = 0) => {
+    if (index === DELEGATED.length) return;
+    const [, id, command, report] = DELEGATED[index];
+    signal?.throwIfAborted();
+    auditWorker(worker, invocation, 'installed', start);
+    const startedAt = Date.now();
+    if (report) assertEvidence(!existsSync(path.join(checkout, report)), 'report-already-present');
+    const transcript = `${id}.log`;
+    const reports = { [transcript]: await step(id, command.split(' '), transcript) };
+    const finishedAt = Date.now();
+    if (report)
+      reports[PURITY_REPORT] = nativeReport(checkout, report, startedAt, finishedAt, output);
+    lanes.push({ id, command, startedAt, finishedAt, exit: 0, reports });
+    return runLanes(index + 1);
   };
   try {
     const installLogSha256 = await step(
@@ -172,23 +196,7 @@ export async function runEvidence(input, checkout, output, signal) {
       ],
       INSTALL_LOG
     );
-    await DELEGATED.reduce(
-      (previous, [, id, command, report]) =>
-        previous.then(async () => {
-          signal?.throwIfAborted();
-          auditWorker(worker, invocation, 'installed', start);
-          const startedAt = Date.now();
-          if (report)
-            assertEvidence(!existsSync(path.join(checkout, report)), 'report-already-present');
-          const transcript = `${id}.log`;
-          const reports = { [transcript]: await step(id, command.split(' '), transcript) };
-          const finishedAt = Date.now();
-          if (report)
-            reports[PURITY_REPORT] = nativeReport(checkout, report, startedAt, finishedAt, output);
-          lanes.push({ id, command, startedAt, finishedAt, exit: 0, reports });
-        }),
-      Promise.resolve()
-    );
+    await runLanes();
     await new Promise((resolve, reject) => {
       job.once('error', reject);
       job.end(resolve);

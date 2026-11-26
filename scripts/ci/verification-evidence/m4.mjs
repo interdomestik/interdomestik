@@ -100,6 +100,15 @@ function issue(root, repo, subject, attempt, output) {
   console.log(JSON.stringify(job));
 }
 
+const compositionDependencies = {
+  approval: m4Approval,
+  authority,
+  checkManifest,
+  checkReceipt,
+  checkGitInputs,
+  now: Date.now,
+};
+
 // The protected queue identifies the job before any collected bytes are read.
 export function verifyComposition(
   root,
@@ -107,14 +116,7 @@ export function verifyComposition(
   job,
   stage,
   mode = 'gate',
-  deps = {
-    approval: m4Approval,
-    authority,
-    checkManifest,
-    checkReceipt,
-    checkGitInputs,
-    now: Date.now,
-  }
+  deps = compositionDependencies
 ) {
   job = checkQueueJob(job);
   const approved = deps.approval();
@@ -186,7 +188,13 @@ function launch(approval, args, signal, observeLine) {
   });
 }
 
-async function dispatch(root, jobFile, evidence, checkout, grantDir, records, captureDir, signal) {
+async function dispatch(
+  root,
+  jobFile,
+  evidence,
+  { checkout, grantDir, records, captureDir },
+  signal
+) {
   const approved = m4Approval();
   const job = queueJob(jobFile);
   assertEvidence(
@@ -270,7 +278,14 @@ if (path.resolve(process.argv[1] ?? '') === fileURLToPath(import.meta.url)) {
         command === 'trial-verify' ? 'trial' : 'gate'
       );
     } else if (command === 'dispatch' && args.length === 7) {
-      process.exitCode = await dispatch(...args, abort.signal);
+      const [root, jobFile, evidence, checkout, grantDir, records, captureDir] = args;
+      process.exitCode = await dispatch(
+        root,
+        jobFile,
+        evidence,
+        { checkout, grantDir, records, captureDir },
+        abort.signal
+      );
     } else if (command === 'publish' && args.length === 5) {
       writeInvocation(args[4], checkedInvocation(...args.slice(0, 4)));
     } else if (command === 'merge-check' && args.length === 4) {

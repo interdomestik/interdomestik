@@ -150,10 +150,10 @@ approved text in its binding locations only after the adoption decision.
    to the authority's paths. The verification account runs the reviewed head using the
    marked M4 setup and its isolated database, with no authority or GitHub credentials.
 
-   ```text
-   interdomestik-gate-m4 namespaces="interdomestik-gate-v1" ssh-ed25519 <M4 public key body>
-   interdomestik-gate-m5 namespaces="interdomestik-gate-v1" ssh-ed25519 <M5 public key body>
-   ```
+   Write one allowed-signers line per host. Begin with the principal `interdomestik-gate-m4` or
+   `interdomestik-gate-m5`, then add the option `namespaces="interdomestik-gate-v1"`. Finish the
+   line with the key type `ssh-ed25519` and the corresponding host's public key body. Separate
+   the four fields with spaces.
 
 6. Once the rule wording is approved, prepare identical `gate-evidence-approval.json` bytes for
    both hosts in trial mode. Install the file as root with owner `root:wheel` and mode `0644`.

@@ -8,7 +8,10 @@ machine and signer identities, current gate authority, and worker isolation.
 - `ticket.mjs` binds an attempt to the reviewed head, current main and tested merge.
 - `host.mjs` checks protected enrollment and authenticates byte artifacts.
 - `machine.mjs` and `m5.mjs` observe the enrolled slot and run the fixed delegated commands.
-- `worker.mjs` provides the separate macOS worker account bridge for the enrolled slot.
+- `worker.mjs` provides the separate macOS worker account bridge for the enrolled slot. The
+  supervisor sets its checkout as the working directory and supplies the probed tool profile.
+  The bridge checks the command-line paths against that context and confines checkout paths
+  to the checkout, including when checking paths that may not exist yet.
 - `receipt.mjs` validates the complete collected attempt. `m4.mjs` issues tickets, binds them
   to the authority's queue, and implements collection, locked dispatch, publication and merge
   recheck. `m4-dispatch.mjs` defines the signed invocation grant consumed by the verifier stamps,

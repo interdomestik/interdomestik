@@ -1,7 +1,6 @@
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
 import http from 'node:http';
-import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { contractBash } from './verification-evidence/worker-profile.mjs';

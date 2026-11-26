@@ -10,8 +10,15 @@ import { assertEvidence, isSha256 } from './ticket.mjs';
 const SUPPORT = '/Library/Application Support/Interdomestik';
 const NAMESPACE = 'interdomestik-gate-v1';
 const APPROVAL_FIELDS = [
-  'rulesSha256', 'm4MarkerSha256', 'm5MarkerSha256', 'm5RunnerSha256', 'manifestSha256',
-  'allowedSignersSha256', 'm4ResolverSha256', 'm4LauncherSha256', 'm5WorkerSha256',
+  'rulesSha256',
+  'm4MarkerSha256',
+  'm5MarkerSha256',
+  'm5RunnerSha256',
+  'manifestSha256',
+  'allowedSignersSha256',
+  'm4ResolverSha256',
+  'm4LauncherSha256',
+  'm5WorkerSha256',
 ];
 
 export const cleanHostEnv = Object.freeze({
@@ -23,7 +30,10 @@ export const cleanHostEnv = Object.freeze({
 export function protectedFile(name, digest) {
   const file = path.join(SUPPORT, name);
   const result = readTrustedBytes(file);
-  assertEvidence(result.status === 'trusted' && (!digest || result.sha256 === digest), 'host-trust');
+  assertEvidence(
+    result.status === 'trusted' && (!digest || result.sha256 === digest),
+    'host-trust'
+  );
   return { ...result, file };
 }
 
@@ -32,9 +42,11 @@ export function readApproval() {
   const config = JSON.parse(bytes);
   assertEvidence(
     config?.schema === 'interdomestik.gate-evidence-approval/1' &&
-      config.approved === true && ['trial', 'gate'].includes(config.mode) &&
+      config.approved === true &&
+      ['trial', 'gate'].includes(config.mode) &&
       APPROVAL_FIELDS.every(field => isSha256(config[field])) &&
-      config.manifestSha256 === MANIFEST_SHA256 && config.m4MarkerSha256 !== config.m5MarkerSha256,
+      config.manifestSha256 === MANIFEST_SHA256 &&
+      config.m4MarkerSha256 !== config.m5MarkerSha256,
     'owner-approval'
   );
   return { ...config, sha256 };
@@ -43,7 +55,9 @@ export function readApproval() {
 export function checkJobDirectory(directory) {
   const stat = lstatSync(directory);
   assertEvidence(
-    stat.isDirectory() && stat.uid === process.getuid() && (stat.mode & 0o077) === 0 &&
+    stat.isDirectory() &&
+      stat.uid === process.getuid() &&
+      (stat.mode & 0o077) === 0 &&
       path.resolve(directory) === directory,
     'job-directory'
   );
@@ -69,14 +83,27 @@ export function sign(payload, role) {
 
 export function authenticate(payload, signature, role, approved) {
   const signerFile = protectedFile('gate-evidence-allowed-signers', approved.allowedSignersSha256);
+  // mkdtemp creates a fresh mode-0700 directory atomically in the host's sticky /tmp.
   const temp = mkdtempSync('/tmp/interdomestik-signature-');
   const file = path.join(temp, 'signature');
   try {
     writeFileSync(file, signature, { flag: 'wx', mode: 0o600 });
-    hostCommand('/usr/bin/ssh-keygen', [
-      '-Y', 'verify', '-f', signerFile.file, '-I', `interdomestik-gate-${role}`,
-      '-n', NAMESPACE, '-s', file,
-    ], { input: payload, stdio: ['pipe', 'pipe', 'pipe'] });
+    hostCommand(
+      '/usr/bin/ssh-keygen',
+      [
+        '-Y',
+        'verify',
+        '-f',
+        signerFile.file,
+        '-I',
+        `interdomestik-gate-${role}`,
+        '-n',
+        NAMESPACE,
+        '-s',
+        file,
+      ],
+      { input: payload, stdio: ['pipe', 'pipe', 'pipe'] }
+    );
   } catch {
     throw new Error('authentication');
   } finally {
