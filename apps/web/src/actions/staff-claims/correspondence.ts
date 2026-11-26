@@ -4,6 +4,7 @@ import { isClaimUploadPaused } from '@/features/claims/upload/server/claim-uploa
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { actionFailure, defineAction } from '@/lib/safe-action';
 import {
+  hasUniqueReceivedDocumentIds,
   recordInboundCorrespondence as recordInbound,
   recordInboundCorrespondenceInputSchema,
   recordOutboundCorrespondence as recordOutbound,
@@ -42,6 +43,8 @@ export const recordInboundCorrespondence = defineAction({
   subject: { type: 'claim', from: 'claimId' },
   input: recordInboundCorrespondenceInputSchema,
   async handler(input, { authority, session }) {
+    if (!hasUniqueReceivedDocumentIds(input)) return actionFailure('VALIDATION_ERROR');
+
     const { tenantId } = readTenantAuthority(authority);
     if (
       input.receivedDocumentIds?.length &&

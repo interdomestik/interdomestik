@@ -36,6 +36,7 @@ export {
   setCorrespondenceFollowUpInputSchema,
 } from './correspondence-follow-up';
 export {
+  hasUniqueReceivedDocumentIds,
   recordInboundCorrespondence,
   recordInboundCorrespondenceInputSchema,
 } from './correspondence-inbound';

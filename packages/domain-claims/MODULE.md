@@ -131,6 +131,8 @@ CASE-01…CASE-12 (`A/modules/case-handoff.md:252-265`), DATA-06, DATA-09. Work 
 
 Design v4, Astra rounds 3–7, and the owner's November 26 authorization govern this pilot. A case-home visibility decision reserves the exact PDF, recipient, assigned uploader, document ID and object key before upload. Assigned staff can record intended-for-member; a home tenant administrator can record approved-to-show. Received links cite approved ordinary documents and use an immutable per-entry seal for the exact received set. They confer no sharing authority.
 
+The correspondence API exports `hasUniqueReceivedDocumentIds` so the staff action can reject duplicate IDs before reading the case's upload-pause state. The domain command applies the same check before querying the case.
+
 Staff writes intersect the branch on the staff row with any branch restriction carried by the session. The upload action reads back the approved private object and checks its byte count and digest. Publication in the restricted tenant transaction requires the database receipt.
 
 **Activation preconditions**

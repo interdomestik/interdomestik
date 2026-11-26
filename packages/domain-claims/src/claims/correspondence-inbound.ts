@@ -43,11 +43,18 @@ export const recordInboundCorrespondenceInputSchema = correspondenceInput.extend
   inReplyToId: registerUuid.nullish(),
   receivedDocumentIds: z.array(registerId.max(128)).max(20).optional(),
 });
-const inboundDecisionSchema = recordInboundCorrespondenceInputSchema.refine(
-  ({ receivedDocumentIds = [] }) => new Set(receivedDocumentIds).size === receivedDocumentIds.length
-);
 
 type Inbound = z.infer<typeof recordInboundCorrespondenceInputSchema>;
+
+export function hasUniqueReceivedDocumentIds({
+  receivedDocumentIds = [],
+}: Pick<Inbound, 'receivedDocumentIds'>): boolean {
+  return new Set(receivedDocumentIds).size === receivedDocumentIds.length;
+}
+
+const inboundDecisionSchema = recordInboundCorrespondenceInputSchema.refine(
+  hasUniqueReceivedDocumentIds
+);
 
 async function replayEntry({ actorId, tx, tenantId }: LockedRegister, input: Inbound, row: Entry) {
   const conflict = { ok: false, code: 'conflict' } as const;
