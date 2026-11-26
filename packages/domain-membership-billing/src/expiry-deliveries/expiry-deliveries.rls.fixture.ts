@@ -67,8 +67,9 @@ async function expiryFixture(
   async function enqueue(periodId: string, memberId: string | null = recipientId) {
     await admin`insert into expiry_fixture_period values (${tenantA}, ${periodId}, ${memberId})
       on conflict do nothing`;
+    // The Drizzle migrator leaves the admin client expecting serialized JSON parameters.
     await admin`insert into expiry_fixture_delivery
-      values (${tenantA}, ${periodId}, ${`opaque-${periodId}`}, ${admin.json(queued)})
+      values (${tenantA}, ${periodId}, ${`opaque-${periodId}`}, ${JSON.stringify(queued)}::jsonb)
       on conflict do nothing`;
   }
 
