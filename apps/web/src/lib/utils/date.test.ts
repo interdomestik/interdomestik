@@ -6,6 +6,7 @@ import {
   formatPilotTime,
   pilotDateKey,
   resolveDateLocale,
+  toPilotDateTimeAttribute,
 } from './date';
 
 const originalZone = process.env.TZ;
@@ -35,6 +36,25 @@ describe('shared presentation dates', () => {
       process.env.TZ = zone;
       expect(formatPilotDateTime('2026-11-11T23:30:00', 'sq', '')).toBe('12.11.2026 00:30');
     }
+  });
+});
+
+describe('time element attribute', () => {
+  it('reads an offsetless timestamp as UTC in any host zone, like the formatters', () => {
+    for (const zone of ['UTC', 'America/Los_Angeles', 'Asia/Tokyo']) {
+      process.env.TZ = zone;
+      expect(toPilotDateTimeAttribute('2026-04-14T00:30:00')).toBe('2026-04-14T00:30:00.000Z');
+      expect(formatPilotDate('2026-04-14T00:30:00', 'sq', '')).toBe('14.04.2026');
+    }
+  });
+
+  it('keeps an explicit instant and refuses what cannot be read', () => {
+    expect(toPilotDateTimeAttribute(new Date('2026-04-14T09:00:00Z'))).toBe(
+      '2026-04-14T09:00:00.000Z'
+    );
+    expect(toPilotDateTimeAttribute('2026-04-14T09:00:00+02:00')).toBe('2026-04-14T07:00:00.000Z');
+    expect(toPilotDateTimeAttribute('unknown')).toBeUndefined();
+    expect(toPilotDateTimeAttribute(null)).toBeUndefined();
   });
 });
 

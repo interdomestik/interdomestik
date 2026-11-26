@@ -2,7 +2,7 @@
 
 import { MemberCaseMessages } from './member-case-messages';
 import { localizeMemberRecoveryPublicNote } from './member-recovery-public-note';
-import { OpsTimeline } from '@/components/ops';
+import { OUTLINED_LINK } from '@/components/dashboard/member-portal-link-styles';
 import {
   getClaimActions,
   OpsActionConfig,
@@ -13,7 +13,13 @@ import { Link } from '@/i18n/routing';
 import { formatPilotDateTime } from '@/lib/utils/date';
 import { MemberClaimFactsCard } from './member-claim-facts-card';
 import { MemberClaimMatterAllowanceCard } from './member-claim-matter-allowance-card';
-import { Button, Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
+import {
+  DETAIL_CARD,
+  DETAIL_DIVIDER,
+  DETAIL_HEADING,
+  DETAIL_TERM,
+} from './member-claim-detail-styles';
+import { MemberClaimTimeline } from './member-claim-timeline';
 import { LifeBuoy } from 'lucide-react';
 import { useLocale, useTranslations } from 'next-intl';
 import { useRef, type ReactNode } from 'react';
@@ -83,11 +89,7 @@ export function MemberClaimDetailOpsPage({
         block: 'start',
       });
       messagingSectionRef.current?.focus();
-      return;
     }
-
-    // 10C: Safe wiring
-    console.log('[Claim Action]', id, claim.id);
   };
 
   const mapAction = (config: OpsActionConfig) => ({
@@ -110,7 +112,7 @@ export function MemberClaimDetailOpsPage({
       : claim.slaPhase;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto p-4 md:p-8" data-testid="member-claim-detail-page">
+    <div className="mx-auto max-w-5xl space-y-6 p-4 md:p-8" data-testid="member-claim-detail-page">
       <MemberClaimDetailHeader
         claimId={claim.id}
         localizedStatusLabel={localizedStatusLabel}
@@ -136,65 +138,52 @@ export function MemberClaimDetailOpsPage({
       </section>
 
       {/* Help and handling summary stay visible before secondary case content. */}
-      <div className="min-w-0 space-y-6" data-testid="member-claim-help-summary">
+      <div className="grid min-w-0 gap-6" data-testid="member-claim-help-summary">
         {hasMemberSlaStatus ? (
-          <Card data-testid="member-claim-sla-status">
-            <CardHeader>
-              <CardTitle>{tTrackingSla('title')}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm font-medium" data-testid="member-claim-sla-status-phase">
-                {tTrackingSla(memberSlaCopyKey)}
-              </p>
-            </CardContent>
-          </Card>
+          <div className={`${DETAIL_CARD} space-y-2`} data-testid="member-claim-sla-status">
+            <h2 className={DETAIL_HEADING}>{tTrackingSla('title')}</h2>
+            <p
+              className="text-sm font-medium leading-6"
+              data-testid="member-claim-sla-status-phase"
+            >
+              {tTrackingSla(memberSlaCopyKey)}
+            </p>
+          </div>
         ) : null}
 
-        <Card data-testid="member-claim-trust-sla-panel">
-          <CardHeader>
-            <CardTitle>{translateAssurance(claim.memberTrustSummary.titleKey)}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid gap-4 md:grid-cols-3">
-              <div className="min-w-0">
-                <span className="text-xs uppercase text-muted-foreground">
-                  {tAssurance('stateLabel')}
-                </span>
-                <p className="mt-1 font-semibold" data-testid="member-claim-trust-sla-state">
-                  {translateAssurance(claim.memberTrustSummary.stateLabelKey)}
-                </p>
-              </div>
-              <div className="min-w-0">
-                <span className="text-xs uppercase text-muted-foreground">
-                  {tAssurance('latestUpdateLabel')}
-                </span>
-                <p className="mt-1 font-semibold" data-testid="member-claim-trust-sla-latest">
-                  {latestUpdateDate}
-                </p>
-              </div>
-              <div className="min-w-0">
-                <span className="text-xs uppercase text-muted-foreground">
-                  {tAssurance('supportLabel')}
-                </span>
-                <Button className="mt-2 w-full justify-start" size="sm" variant="outline" asChild>
-                  <Link
-                    href={claim.memberTrustSummary.supportHref}
-                    data-testid="member-claim-trust-sla-support-link"
-                  >
-                    <LifeBuoy className="mr-2 h-4 w-4" />
-                    {tAssurance('supportCta')}
-                  </Link>
-                </Button>
-              </div>
+        <div className={`${DETAIL_CARD} space-y-5`} data-testid="member-claim-trust-sla-panel">
+          <h2 className={DETAIL_HEADING}>
+            {translateAssurance(claim.memberTrustSummary.titleKey)}
+          </h2>
+          <dl className="grid min-w-0 gap-4 text-sm md:grid-cols-2">
+            <div className="min-w-0 space-y-1">
+              <dt className={DETAIL_TERM}>{tAssurance('stateLabel')}</dt>
+              <dd className="font-semibold" data-testid="member-claim-trust-sla-state">
+                {translateAssurance(claim.memberTrustSummary.stateLabelKey)}
+              </dd>
             </div>
-            <p
-              className="mt-4 text-sm text-muted-foreground"
-              data-testid="member-claim-trust-sla-body"
+            <div className="min-w-0 space-y-1">
+              <dt className={DETAIL_TERM}>{tAssurance('latestUpdateLabel')}</dt>
+              <dd className="font-semibold" data-testid="member-claim-trust-sla-latest">
+                {latestUpdateDate}
+              </dd>
+            </div>
+          </dl>
+          <p className="max-w-prose text-sm leading-6" data-testid="member-claim-trust-sla-body">
+            {translateAssurance(claim.memberTrustSummary.bodyKey)}
+          </p>
+          <div className={`${DETAIL_DIVIDER} flex min-w-0 flex-wrap items-center gap-3`}>
+            <p className={DETAIL_TERM}>{tAssurance('supportLabel')}</p>
+            <Link
+              className={OUTLINED_LINK}
+              data-testid="member-claim-trust-sla-support-link"
+              href={claim.memberTrustSummary.supportHref}
             >
-              {translateAssurance(claim.memberTrustSummary.bodyKey)}
-            </p>
-          </CardContent>
-        </Card>
+              <LifeBuoy aria-hidden="true" className="size-4 shrink-0" />
+              <span className="min-w-0">{tAssurance('supportCta')}</span>
+            </Link>
+          </div>
+        </div>
       </div>
 
       <section
@@ -242,12 +231,7 @@ export function MemberClaimDetailOpsPage({
           aria-label={tContinuity('history')}
           className="min-w-0 scroll-mt-24 lg:col-span-1"
         >
-          <OpsTimeline
-            title={t('timeline.title')}
-            events={opsEvents}
-            emptyLabel={t('timeline.empty')}
-            formatTimestamp={value => formatPilotDateTime(value, locale, String(value))}
-          />
+          <MemberClaimTimeline events={opsEvents} />
         </aside>
       </div>
     </div>
