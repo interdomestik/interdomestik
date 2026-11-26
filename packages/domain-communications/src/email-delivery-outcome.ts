@@ -1,4 +1,3 @@
-import { reportServerError } from './server-error';
 import { z } from 'zod';
 import type { EmailTemplate } from './email/templates/types';
 import type { DeliveryFailure, DeliveryOutcome } from './delivery-outcome';
@@ -77,6 +76,14 @@ const RESEND_PRE_REQUEST_CODES = new Set([
 ]);
 const resendReceipt = z.object({ id: z.string().min(1) });
 const RESEND_EMAILS_URL = 'https://api.resend.com/emails';
+const resendUnknown: DeliveryFailure = {
+  ok: false,
+  retryable: true,
+  ambiguous: true,
+  preAcceptance: false,
+  code: 'resend_unknown',
+  detail: 'resend',
+};
 
 export async function sendResendOutcome(
   apiKey: string,
@@ -115,26 +122,21 @@ export async function sendResendOutcome(
     }
   } catch (error) {
     signal.throwIfAborted();
-    reportServerError('Resend delivery failed', error);
     const code =
       providerField(providerField(error, 'cause'), 'code') ?? providerField(error, 'code');
-    if (typeof code === 'string' && RESEND_PRE_REQUEST_CODES.has(code)) {
-      return {
-        ok: false,
-        retryable: true,
-        ambiguous: false,
-        preAcceptance: true,
-        code: 'resend_pre_acceptance',
-        detail: `resend ${code}`,
-      };
-    }
+    const failure: DeliveryFailure =
+      typeof code === 'string' && RESEND_PRE_REQUEST_CODES.has(code)
+        ? {
+            ok: false,
+            retryable: true,
+            ambiguous: false,
+            preAcceptance: true,
+            code: 'resend_pre_acceptance',
+            detail: `resend ${code}`,
+          }
+        : resendUnknown;
+    console.error({ code: failure.code });
+    return failure;
   }
-  return {
-    ok: false,
-    retryable: true,
-    ambiguous: true,
-    preAcceptance: false,
-    code: 'resend_unknown',
-    detail: 'resend',
-  };
+  return resendUnknown;
 }
