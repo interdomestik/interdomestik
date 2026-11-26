@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 
 import {
   ClaimDocumentUploadConflictError,
+  ClaimDocumentActorRoleError,
   persistClaimDocumentMetadata,
 } from './claim-document-write';
 import { buildEvidenceStoragePath } from './storage-path';
@@ -32,7 +33,8 @@ const newerId = copy.id(E2E_DOCUMENT_FIXTURES.KS_OTHER_MEMBER.id);
 const foreign = E2E_DOCUMENT_FIXTURES.MK_FOREIGN_TENANT;
 const foreignTenantId = copy.id(foreign.tenantId);
 const foreignOwnerId = copy.id(foreign.uploadedBy);
-const authority = mintTestTenantAuthority(tenantId);
+const authority = mintTestTenantAuthority(tenantId, { userId: ownerId, role: 'member' });
+const OWNED_CLAIM = { id: claimId, tenantId, userId: ownerId };
 const REQUEST_ID = copy.id(`${source.id}:information-request`);
 const evidencePath = (fileId: string): string =>
   buildEvidenceStoragePath({
@@ -83,7 +85,7 @@ const consentDocumentIds = () =>
   rowsOf('claim_document_ai_extraction_consents').map(row => row.documentId);
 
 beforeEach(() => {
-  fake.state.committed = {};
+  fake.state.committed = { claims: [OWNED_CLAIM] };
   fake.state.contexts.length = 0;
   fake.state.faults.insertTable = null;
   fake.state.faults.selectTable = null;
@@ -130,16 +132,19 @@ describe('persistClaimDocumentMetadata uncertain-response replay', () => {
   });
 
   it('keeps the trusted admin role on replay', async () => {
+    const userId = copy.id(E2E_USER_IDS.KS_ADMIN);
+    const adminAuthority = mintTestTenantAuthority(tenantId, { userId, role: 'admin' });
     const admin = params({
+      authority: adminAuthority,
       actorRole: 'admin',
       aiExtractionConsent: undefined,
-      userId: copy.id(E2E_USER_IDS.KS_ADMIN),
+      userId,
     });
 
     expect(await persistClaimDocumentMetadata(admin)).toBe(true);
     expect(await persistClaimDocumentMetadata(admin)).toBe(false);
     expect(fake.state.contexts).toHaveLength(2);
-    for (const context of fake.state.contexts) expect(context).toBe(authority);
+    for (const context of fake.state.contexts) expect(context).toBe(adminAuthority);
     expect(rowsOf('claim_documents')).toHaveLength(1);
   });
 });
@@ -151,7 +156,8 @@ describe('persistClaimDocumentMetadata conflicting replay', () => {
     ['category', { category: 'legal' as const }],
     ['mime type', { mimeType: 'image/png' }],
     ['bucket', { resolvedBucket: 'other-bucket' }],
-    ['uploader', { userId: copy.id(E2E_USER_IDS.KS_MEMBER_A2) }],
+    ['consent grant', { aiExtractionConsent: { ...CONSENT, granted: false } }],
+    ['consent locale', { aiExtractionConsent: { ...CONSENT, locale: 'sq' } }],
   ])('rejects a different %s for the original id without overwriting', async (_label, change) => {
     await persistClaimDocumentMetadata(params());
     const before = rowsOf('claim_documents').map(row => ({ ...row }));
@@ -163,8 +169,17 @@ describe('persistClaimDocumentMetadata conflicting replay', () => {
     expect(consentDocumentIds()).toEqual([document.id]);
   });
 
+  it('rejects an uploader different from the verified principal', async () => {
+    await persistClaimDocumentMetadata(params());
+    await expect(
+      persistClaimDocumentMetadata(params({ userId: copy.id(E2E_USER_IDS.KS_MEMBER_A2) }))
+    ).rejects.toBeInstanceOf(ClaimDocumentActorRoleError);
+    expect(documentIds()).toEqual([document.id]);
+  });
+
   it('fails closed on an id held by another tenant without reading outside its scope', async () => {
     fake.state.committed = {
+      claims: [OWNED_CLAIM],
       claim_documents: [
         {
           id: document.id,
@@ -182,15 +197,15 @@ describe('persistClaimDocumentMetadata conflicting replay', () => {
     expect((error as Error).message).not.toMatch(/foreign/);
     expect((error as Error).message).not.toContain(foreignTenantId);
     expect((error as Error).message).not.toContain(foreignOwnerId);
-    expect(fake.state.reads).toEqual([
+    expect(fake.state.reads.filter(read => read.table === 'claim_documents')).toEqual([
       {
         table: 'claim_documents',
         predicate: {
           all: [
-            { column: 'id', value: document.id },
             { column: 'tenantId', value: tenantId },
             { column: 'claimId', value: claimId },
             { column: 'uploadedBy', value: ownerId },
+            { column: 'id', value: document.id },
           ],
         },
       },
@@ -226,5 +241,18 @@ describe('persistClaimDocumentMetadata request-linked replay', () => {
     expect(consentDocumentIds()).toEqual([document.id]);
     expect(fake.state.contexts).toHaveLength(2);
     for (const context of fake.state.contexts) expect(context).toBe(authority);
+  });
+
+  it('conflicts when a replay drops the information request', async () => {
+    fake.state.committed.claim_information_requests = [
+      { id: REQUEST_ID, claimId, tenantId, status: 'open' },
+    ];
+    const linked = params({ actorRole: undefined, informationRequestId: REQUEST_ID });
+    await persistClaimDocumentMetadata(linked);
+    await expect(persistClaimDocumentMetadata(params())).rejects.toBeInstanceOf(
+      ClaimDocumentUploadConflictError
+    );
+    expect(rowsOf('claim_information_request_evidence')).toHaveLength(1);
+    expect(rowsOf('audit_log')).toHaveLength(1);
   });
 });

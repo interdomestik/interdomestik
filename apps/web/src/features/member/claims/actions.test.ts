@@ -126,16 +126,13 @@ describe('member claim upload actions', () => {
     });
   });
 
-  it('preserves upload and skips AI dispatch when member consent is unchecked', async () => {
+  it('preserves upload with AI queueing and dispatch dormant when consent is unchecked', async () => {
     const result = await confirmUpload(
       createConfirmUploadParams({ originalName: 'demand-letter.pdf', category: 'legal' })
     );
 
     expect(result).toEqual({ success: true });
-    // The AI queue now runs on its own tenant context; no ambient transaction remains.
     expect(hoisted.transaction).not.toHaveBeenCalled();
-    // The metadata write and the AI queue both run under the session tenant authority, never a
-    // caller-built { tenantId, role } context.
     const contexts = hoisted.withTenantContext.mock.calls.map(([context]) => context);
     expect(contexts.length).toBeGreaterThan(0);
     for (const context of contexts) {
@@ -144,21 +141,7 @@ describe('member claim upload actions', () => {
     }
     expect(hoisted.insert).toHaveBeenCalledWith('claim_documents');
     expect(hoisted.insert).not.toHaveBeenCalledWith('claim_document_ai_extraction_consents');
-    expect(hoisted.queueClaimDocumentAiWorkflows).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        claimId: 'claim-1',
-        tenantId: 'tenant-1',
-        userId: 'member-1',
-        files: [
-          expect.objectContaining({
-            documentId: 'uuid-1',
-            category: 'legal',
-            name: 'demand-letter.pdf',
-          }),
-        ],
-      })
-    );
+    expect(hoisted.queueClaimDocumentAiWorkflows).not.toHaveBeenCalled();
     expect(hoisted.emitClaimAiRunRequestedService).not.toHaveBeenCalled();
     expect(hoisted.revalidatePath).toHaveBeenCalledWith('/en/member/claims/claim-1');
   });
@@ -172,6 +155,8 @@ describe('member claim upload actions', () => {
     );
 
     expect(result).toEqual({ success: true });
+    expect(hoisted.queueClaimDocumentAiWorkflows).not.toHaveBeenCalled();
+    expect(hoisted.emitClaimAiRunRequestedService).not.toHaveBeenCalled();
     expect(hoisted.insert).toHaveBeenCalledWith('claim_document_ai_extraction_consents');
     expect(hoisted.insertValues).toHaveBeenCalledWith(
       expect.objectContaining({

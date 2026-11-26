@@ -3,11 +3,12 @@ import { getReplayFixture } from './claim-document-write-replay-fixture';
 import { beforeEach, describe, expect, it } from 'vitest';
 import {
   ClaimDocumentUploadConflictError,
+  ClaimDocumentActorRoleError,
   persistClaimDocumentMetadata,
 } from './claim-document-write';
 
 const fake = getReplayFixture();
-const authority = mintTestTenantAuthority('tenant-1');
+const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
 const params = {
   authority,
   actorRole: 'member',
@@ -34,12 +35,19 @@ beforeEach(() => {
 });
 
 describe('ordinary member-surface write-time ownership', () => {
-  it('rechecks the trusted owner in the metadata transaction while retaining an admin actor', async () => {
-    expect(await persistClaimDocumentMetadata({ ...params, actorRole: 'admin' })).toBe(true);
+  it('rechecks the verified member owner in the metadata transaction', async () => {
+    expect(await persistClaimDocumentMetadata(params)).toBe(true);
     expect(fake.state.contexts).toHaveLength(1);
     expect(fake.state.contexts[0]).toBe(authority);
     expect(fake.state.committed.claim_documents).toHaveLength(1);
     expect(fake.state.reads[0]?.table).toBe('claims');
+  });
+
+  it('rejects an admin role injected into a member confirmation', async () => {
+    await expect(
+      persistClaimDocumentMetadata({ ...params, actorRole: 'admin' })
+    ).rejects.toBeInstanceOf(ClaimDocumentActorRoleError);
+    expect(fake.state.contexts).toHaveLength(0);
   });
 
   it.each(['other-member', undefined])(
@@ -67,11 +75,12 @@ describe('ordinary member-surface write-time ownership', () => {
     expect(
       await persistClaimDocumentMetadata({
         ...params,
+        authority: mintTestTenantAuthority('tenant-1', { userId: 'admin-1', role: 'admin' }),
         actorRole: 'admin',
         expectedClaimOwnerId: undefined,
         userId: 'admin-1',
       })
     ).toBe(true);
-    expect(fake.state.reads).toEqual([]);
+    expect(fake.state.reads.map(read => read.table)).toEqual(['claims']);
   });
 });
