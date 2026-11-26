@@ -12,6 +12,12 @@ The admin claim detail `ClaimHeader` composes private breadcrumb and summary com
 
 ## Public API
 
+WP-19 signed and direct evidence confirmations share the upload adapter under
+`features/claims/upload/server/`. Intent and stored-object checks run before the write
+transaction. A metadata replay hint can skip object reads, and replay success still requires
+the same locked claims and documents checks. Confirmation records applicable consent, and
+AI queueing and dispatch for this path are dormant.
+
 Password sign-up and unknown-address door OTP send require `pilot/public_intake` for the ingress tenant. Better Auth disables public sign-up unless `IDENTITY_PUBLIC_SIGN_UP` is exactly `open`. Door OTP checks the request host and forwarded host, then requires exact door ingress and an explicit default tenant before applying the IP limit or parsing the body. The OTP host check accepts `staging.interdomestik.com` without a port only in the staging release class. Known accounts must belong to the door tenant and still have pending tenant classification. Door verify also requires a verified email and returns `INVALID_OTP` for an absent account before calling Better Auth, regardless of the intake phase. Tenant classification confirmation returns `EMAIL_NOT_PROVEN` until the account holder has proven their email.
 
 Different-email recovery requires a valid `DEFAULT_PUBLIC_TENANT_ID` that matches the fresh session's access tenant. All three actions return `CLOSED` before proof, mail or rate-limit work when `pilot/public_intake` is closed or unreadable. Replacement confirmation also holds a shared lock on the tenant's switch row through the address update and commit. A close that commits first prevents the update. If recovery locks the switch first, the close waits for recovery to commit.

@@ -9,7 +9,8 @@
     "./storage": "./src/storage.ts",
     "./claim-documents": "./src/claim-documents.ts",
     "./upload": "./src/upload.ts",
-    "./audit": "./src/audit.ts"
+    "./audit": "./src/audit.ts",
+    "./claim-evidence": "./src/claim-evidence.ts"
   },
   "scripts": {
     "type-check": "tsc --noEmit",
