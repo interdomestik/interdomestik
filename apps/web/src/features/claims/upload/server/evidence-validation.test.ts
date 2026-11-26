@@ -31,12 +31,12 @@ vi.mock('./persisted-evidence', () => ({
   assertEvidenceTenantAuthority: vi.fn(),
 }));
 vi.mock('./claim-document-replay', () => ({
-  isPersistedClaimDocumentReplay: vi.fn().mockResolvedValue(false),
+  hasPersistedClaimDocument: vi.fn().mockResolvedValue(false),
 }));
 
 const MB = 1024 * 1024;
 const context = {
-  authority: mintTestTenantAuthority('tenant-1'),
+  authority: mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' }),
   actorId: 'member-1',
   bucket: 'claim-evidence',
   tenantId: 'tenant-1',

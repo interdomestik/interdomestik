@@ -1,15 +1,24 @@
-import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
+import {
+  readTenantAuthority,
+  type TenantAuthority,
+} from '@interdomestik/database/tenant-authority';
 import { validateEvidenceFile } from '../evidence-file-policy';
 import { validateEvidenceContent } from './validate-evidence-content';
 import { validateStoredObject } from './stored-object-validation';
-import { isPersistedClaimDocumentReplay } from './claim-document-replay';
+import { hasPersistedClaimDocument } from './claim-document-replay';
+import { persistClaimDocumentMetadata } from './claim-document-write';
+import { isMemberUploadRole } from './member-upload-role';
+import { buildMemberAiExtractionConsent, type ConfirmUploadParams } from './upload-consent';
 import {
   expectedUploadPath,
   verifyClaimUploadIntentToken,
   type ConfirmedUploadValidationResult,
 } from './claim-upload-intent';
 
-export type ClaimUploadConfirmationInput = {
+export type ClaimUploadConfirmationInput = Pick<
+  ConfirmUploadParams,
+  'aiExtractionConsentGranted' | 'aiExtractionConsentLocale'
+> & {
   claimId: string;
   fileId: string;
   originalName?: string;
@@ -84,23 +93,52 @@ export async function validateConfirmedClaimUpload(params: {
     return intentResult;
   }
 
+  const { principal, tenantId: authorityTenantId } = readTenantAuthority(params.authority);
+  if (principal?.userId !== actorId || authorityTenantId !== tenantId) {
+    return {
+      success: false,
+      error: 'Upload confirmation expired. Please retry upload.',
+      status: 409,
+    };
+  }
+  const memberSurface = isMemberUploadRole(principal.role);
+  if (informationRequestId !== undefined && !memberSurface) {
+    return { success: false, error: 'Information request not found', status: 409 };
+  }
+
   if (
-    await isPersistedClaimDocumentReplay({
+    await hasPersistedClaimDocument({
       authority: params.authority,
       tenantId,
       claimId,
+      actorId,
       fileId,
-      fileSize,
-      mimeType,
-      originalName: confirmation.originalName ?? '',
-      resolvedBucket: bucket,
-      storagePath,
-      category: confirmation.category ?? 'evidence',
-      userId: actorId,
-      informationRequestId,
     })
-  )
+  ) {
+    await persistClaimDocumentMetadata(
+      {
+        authority: params.authority,
+        tenantId,
+        claimId,
+        fileId,
+        fileSize,
+        mimeType,
+        originalName: confirmation.originalName ?? '',
+        resolvedBucket: bucket,
+        storagePath,
+        category: confirmation.category ?? 'evidence',
+        logPrefix,
+        userId: actorId,
+        actorRole: memberSurface ? 'member' : (principal.role ?? undefined),
+        informationRequestId,
+        aiExtractionConsent: memberSurface
+          ? buildMemberAiExtractionConsent(confirmation)
+          : undefined,
+      },
+      true
+    );
     return { success: true, replayed: true };
+  }
 
   const stored = await validateStoredObject({
     bucket,
