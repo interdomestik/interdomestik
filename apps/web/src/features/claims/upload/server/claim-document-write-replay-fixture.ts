@@ -126,7 +126,16 @@ const fake = vi.hoisted(() => {
         'bucket',
       ]),
       claims: table('claims', ['id', 'tenantId', 'userId']),
-      consents: table('claim_document_ai_extraction_consents', []),
+      consents: table('claim_document_ai_extraction_consents', [
+        'tenantId',
+        'claimId',
+        'subjectId',
+        'documentId',
+        'consentType',
+        'processingPurpose',
+        'status',
+        'supersedesConsentId',
+      ]),
       requestEvidence: table('claim_information_request_evidence', [
         'requestId',
         'documentId',
@@ -147,6 +156,7 @@ vi.mock('@interdomestik/database', () => ({
   claimInformationRequests: fake.tables.requests,
   claims: fake.tables.claims,
   eq: (column: { name: string }, value: unknown) => ({ column: column.name, value }),
+  isNull: (column: { name: string }) => ({ column: column.name, value: undefined }),
   withTenantContext: fake.withTenantContext,
 }));
 

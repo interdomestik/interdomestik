@@ -64,7 +64,15 @@ test('ordinary member evidence remains downloadable only by the assigned staff a
         mimeType: 'application/pdf',
         buffer: originalBytes,
       });
-      await dialog.getByRole('button', { name: 'Ngarko dëshmi', exact: true }).click();
+      const [confirmation] = await Promise.all([
+        member.page.waitForRequest(
+          request =>
+            request.method() === 'POST' &&
+            Boolean(request.headers()['next-action']) &&
+            Boolean(request.postData()?.includes('"aiExtractionConsentGranted":false'))
+        ),
+        dialog.getByRole('button', { name: 'Ngarko dëshmi', exact: true }).click(),
+      ]);
       await expect(dialog).toHaveCount(0, { timeout: 30_000 });
       await expect(evidence.getByTestId('ops-document-row')).toHaveCount(1);
       await expect(evidence).toContainText(fileName);
@@ -77,6 +85,32 @@ test('ordinary member evidence remains downloadable only by the assigned staff a
         claimId: fixture.claimId,
         category: 'evidence',
       });
+      const originalConfirmation = confirmation.postData()!;
+      const replayHeaders = {
+        'next-action': confirmation.headers()['next-action'],
+        'content-type': confirmation.headers()['content-type'],
+        Origin: new URL(confirmation.url()).origin,
+      };
+      const exactReplay = await member.page.request.post(confirmation.url(), {
+        headers: replayHeaders,
+        data: originalConfirmation,
+        maxRedirects: 0,
+      });
+      expect(exactReplay.status()).toBe(200);
+      expect(await exactReplay.text()).toContain('"success":true');
+      const changedConsent = await member.page.request.post(confirmation.url(), {
+        headers: replayHeaders,
+        data: originalConfirmation.replace(
+          '"aiExtractionConsentGranted":false',
+          '"aiExtractionConsentGranted":true'
+        ),
+        maxRedirects: 0,
+      });
+      expect(changedConsent.status()).toBe(200);
+      expect(await changedConsent.text()).toContain(
+        'Upload changed. Reload the case and check its documents.'
+      );
+      expect(await db.select().from(claimDocuments).where(documentScope)).toEqual([document]);
       expect(
         await db
           .select()

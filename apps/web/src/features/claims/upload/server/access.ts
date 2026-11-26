@@ -5,9 +5,11 @@ import {
 } from '@interdomestik/database/tenant-authority';
 import { and, eq } from 'drizzle-orm';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { isMemberUploadRole } from './member-upload-role';
+import { canAccessClaimFromAdminUploadSurface } from '@interdomestik/domain-claims/claims/evidence-confirmation';
 import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
-import { isAdmin } from '@/lib/roles.core';
+import { isMemberUploadRole } from './member-upload-role';
+
+export { canAccessClaimFromAdminUploadSurface } from '@interdomestik/domain-claims/claims/evidence-confirmation';
 
 type ClaimScopeRecord = {
   branchId?: string | null;
@@ -16,40 +18,6 @@ type ClaimScopeRecord = {
 type MemberClaimOwnershipRecord = {
   id: string;
 };
-
-export function canAccessClaimFromAdminUploadSurface(args: {
-  branchId?: string | null;
-  // The lifecycle is required so the staff check always sees it: a member draft is not staff work.
-  claim: ClaimScopeRecord & { caseLifecycleState: string | null };
-  role: string | null | undefined;
-  userId: string;
-}): boolean {
-  const { claim, role, userId } = args;
-  const branchId = args.branchId ?? null;
-
-  if (!role || deniesClaimDocumentContent(role)) {
-    return false;
-  }
-
-  if (isAdmin(role)) {
-    return true;
-  }
-
-  // Fail closed: a missing lifecycle is denied like a member draft.
-  if (
-    role !== 'staff' ||
-    claim.caseLifecycleState == null ||
-    claim.caseLifecycleState === 'draft'
-  ) {
-    return false;
-  }
-
-  if (branchId !== null) {
-    return claim.branchId === branchId || claim.staffId === userId;
-  }
-
-  return claim.staffId === userId || claim.staffId == null;
-}
 
 export async function findAccessibleAdminUploadClaim(args: {
   branchId?: string | null;
