@@ -131,7 +131,11 @@ CASE-01…CASE-12 (`A/modules/case-handoff.md:252-265`), DATA-06, DATA-09. Work 
 
 Design v4, Astra rounds 3–7, and the owner's November 26 authorization govern this pilot. A case-home visibility decision reserves the exact PDF, recipient, assigned uploader, document ID and object key before upload. Assigned staff can record intended-for-member; a home tenant administrator can record approved-to-show. Received links cite approved ordinary documents and use an immutable per-entry seal for the exact received set. They confer no sharing authority.
 
-**Activation preconditions.** Merge and deploy with pilot enrollment empty. Before activation, all four prerequisite PRs must land and pass their release proofs.
+Staff writes intersect the branch on the staff row with any branch restriction carried by the session. The upload action reads back the approved private object and checks its byte count and digest. Publication in the restricted tenant transaction requires the database receipt.
+
+**Activation preconditions**
+
+Keep pilot enrollment empty until all four prerequisites have landed and passed their release proofs. Before the first case is enrolled, storage-path PR B must deliver its read-side checks and a tenant- and principal-bound PostgreSQL receipt verifier that works with the Supabase Data API disabled. The guard admission must explicitly cover both uses, receive independent R-37 review and have explicit owner authorization. After server readback of the exact private bucket and key, the verifier may record a receipt only when the stored byte count and SHA-256 match the immutable decision. PostgreSQL must refuse first publication without the receipt for that decision. The restricted writer must be unable to create or alter a receipt or assume the verifier role. Prove refusal for a missing or mismatched receipt under the actual restricted role and successful publication through the actual verifier with the Data API disabled. Keep the release-controlled issuance pause, drain and per-case legacy-credential disposition before enrollment.
 
 1. Durable-grant authority and the case-tenant foreign key.
 2. Assignment and agent-link write integrity.

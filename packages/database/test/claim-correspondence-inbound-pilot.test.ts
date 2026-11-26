@@ -10,6 +10,7 @@ import {
   enroll,
   enrolledCase,
   ownerA,
+  proveDarkPublication,
   proveDecisionDenials,
   proveDecisionExpiry,
   proveDecisionGrants,
@@ -259,6 +260,10 @@ test('WP-12.1 restricted runtime publication and receipt proofs', async t => {
     await setup(connections);
     await withDomainPools(connections.admin, connections.runtime, async () => {
       await t.test(
+        'empty enrollment blocks reserved evidence under the runtime role and permits ordinary evidence',
+        () => proveDarkPublication(connections)
+      );
+      await t.test(
         'the database refuses a direct unenrolled seal and ordinary correspondence still works',
         () => proveUnenrolledSeals(connections)
       );
@@ -279,7 +284,7 @@ test('WP-12.1 restricted runtime publication and receipt proofs', async t => {
         () => proveDecisionExpiry(connections)
       );
       await t.test(
-        'only the trusted storage verifier can authorize exact approved publication',
+        'only the PostgreSQL verifier can attest the exact approved object for publication',
         () => proveStorageVerification(connections)
       );
       await t.test('refuses decisions outside the assigned home-tenant role and case scope', () =>

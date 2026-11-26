@@ -150,6 +150,26 @@ test('late E2E role provisioning preserves the WP-12.1 column grants and trigger
         { ...guard },
         { login: false, bypass: false, owner_lookup: false, home_lookup: false, attest: false }
       );
+      const [verifier] = await admin`select rolcanlogin as login, rolbypassrls as bypass,
+        rolsuper as superuser, pg_has_role(${role}::name, oid, 'MEMBER') as runtime_member,
+        has_function_privilege(oid, 'public.record_claim_inbound_object_verification(uuid,text,text,integer,text)', 'EXECUTE') as attest,
+        has_any_column_privilege(oid, 'public.claim_inbound_object_verifications', 'INSERT') as direct_insert
+        from pg_roles where rolname = 'interdomestik_wp12_verifier'`;
+      assert.deepEqual(
+        { ...verifier },
+        {
+          login: false,
+          bypass: false,
+          superuser: false,
+          runtime_member: false,
+          attest: true,
+          direct_insert: false,
+        }
+      );
+      const apiVerifiers = await admin`select rolname from pg_roles
+        where rolname in ('anon', 'authenticated', 'service_role')
+          and has_function_privilege(oid, 'public.record_claim_inbound_object_verification(uuid,text,text,integer,text)', 'EXECUTE')`;
+      assert.deepEqual(apiVerifiers, []);
     } finally {
       const [exists] = await admin`select 1 from pg_roles where rolname = ${role}`;
       if (exists) {

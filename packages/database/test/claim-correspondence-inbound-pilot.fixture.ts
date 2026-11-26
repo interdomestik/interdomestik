@@ -6,7 +6,7 @@ import { sql } from 'drizzle-orm';
 import { mintTenantAuthority } from '../src/tenant-authority';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import * as schema from '../src/schema';
-import { importDomain } from './claim-correspondence-domain.fixture';
+import { importDomain, runtimePid, waitUntilBlocked } from './claim-correspondence-domain.fixture';
 import {
   assignedPath,
   documentInput,
@@ -30,8 +30,9 @@ const assignedBranch = 'wp12-staff-branch';
 const otherBranch = 'wp12-other-branch';
 const fixtureDigest = 'a'.repeat(64);
 export async function setup({ admin }: Connection) {
-  await admin`insert into branches (id, tenant_id, name) values
-    (${assignedBranch}, ${homeTenant}, 'Assigned branch'), (${otherBranch}, ${homeTenant}, 'Other branch')`;
+  await admin`insert into branches (id, tenant_id, name, slug) values
+    (${assignedBranch}, ${homeTenant}, 'Assigned branch', 'assigned'),
+    (${otherBranch}, ${homeTenant}, 'Other branch', 'other')`;
   for (const [id, role] of [
     [ownerA, 'member'],
     [ownerB, 'member'],
@@ -135,17 +136,35 @@ function recordVerification(
   ) as verified`;
 }
 
+function asVerifier<T>(
+  admin: postgres.Sql,
+  run: (tx: postgres.TransactionSql) => Promise<T>,
+  { home = homeTenant, access = home, actor = homeActor, branch = '' } = {}
+) {
+  return restricted(
+    admin,
+    async tx => {
+      await tx`set local role interdomestik_wp12_verifier`;
+      const [{ role }] = await tx`select current_user as role`;
+      assert.equal(role, 'interdomestik_wp12_verifier');
+      await setActor(tx, actor, 'staff', branch);
+      return run(tx);
+    },
+    { home, access }
+  );
+}
+
 export async function attest(admin: postgres.Sql, document: Document, digest = fixtureDigest) {
   const [{ id }] = await admin<{ id: string }[]>`select id from claim_inbound_upload_decisions
     where document_id = ${document.id}`;
-  const [{ present }] = await admin`select exists (
-    select 1 from pg_roles where rolname = 'service_role'
-  ) as present`;
-  return admin.begin(async tx => {
-    if (present) await tx`set local role service_role`;
-    const [{ verified }] = await recordVerification(tx, id, document, digest);
-    return verified;
-  });
+  return asVerifier(
+    admin,
+    async tx => {
+      const [{ verified }] = await recordVerification(tx, id, document, digest);
+      return verified;
+    },
+    { home: document.tenant_id, actor: document.uploaded_by }
+  );
 }
 
 export async function proveStorageVerification(connections: Connection) {
@@ -169,9 +188,37 @@ export async function proveStorageVerification(connections: Connection) {
     { code: '42501' }
   );
   await assert.rejects(
-    restricted(runtime, tx => recordVerification(tx, decisionId, document, fixtureDigest)),
+    restricted(runtime, async tx => {
+      await setActor(tx, homeActor, 'staff', '');
+      return recordVerification(tx, decisionId, document, fixtureDigest);
+    }),
     { code: '42501' }
   );
+  await assert.rejects(
+    restricted(runtime, tx => tx`set local role interdomestik_wp12_verifier`),
+    { code: '42501' }
+  );
+  await assert.rejects(
+    asVerifier(
+      admin,
+      tx => tx`insert into claim_inbound_object_verifications (decision_id)
+      values (${decisionId})`
+    ),
+    { code: '42501' }
+  );
+  for (const scope of [
+    { home: foreignTenant },
+    { access: foreignTenant },
+    { actor: staffPeer },
+    { branch: assignedBranch },
+  ]) {
+    const [{ verified }] = await asVerifier(
+      admin,
+      tx => recordVerification(tx, decisionId, document, fixtureDigest),
+      scope
+    );
+    assert.equal(verified, false);
+  }
   assert.equal(await attest(admin, document, 'b'.repeat(64)), false);
   assert.equal(
     await attest(admin, { ...document, file_path: document.file_path + '.other' }),
@@ -186,6 +233,34 @@ export async function proveStorageVerification(connections: Connection) {
   assert.equal(await attest(admin, document), true);
   await restricted(runtime, tx => publish(tx, document));
   assert.equal((await admin`select id from claim_documents where id = ${document.id}`).length, 1);
+
+  const approved = await approve(connections, claim, 'approved-to-show');
+  assert.equal(await attest(admin, approved), true);
+  await restricted(runtime, tx => publish(tx, approved));
+}
+
+export async function proveDarkPublication({ admin, runtime }: Connection) {
+  assert.equal((await admin`select 1 from claim_inbound_pilot_cases`).length, 0);
+  const claim = await insertClaim(admin);
+  const reserved = decisionDocument(claim);
+  const ordinary = documentInput(claim);
+  const write = (document: Document) =>
+    restricted(runtime, tx => publish(tx, { ...document, category: 'evidence' }));
+
+  for (const document of [
+    reserved,
+    { ...reserved, file_path: ordinary.file_path },
+    { ...ordinary, file_path: reserved.file_path },
+  ]) {
+    await assert.rejects(write(document), {
+      code: 'P1211',
+      message: 'Reserved pilot document requires active enrollment',
+    });
+  }
+
+  await write(ordinary);
+  const rows = await admin`select id, file_path from claim_documents where claim_id = ${claim.id}`;
+  assert.deepEqual([...rows], [{ id: ordinary.id, file_path: ordinary.file_path }]);
 }
 
 export async function proveDecisionGrants(connections: Connection) {
@@ -267,19 +342,69 @@ export async function provePendingDecisionVisibility(connections: Connection) {
   }
 }
 
-export async function proveDirectDecisionBranch({ admin, runtime }: Connection) {
-  const claim = await enrolledCase(admin, otherBranch);
-  await admin`update "user" set branch_id = ${assignedBranch} where id = ${homeActor}`;
+// The case is in otherBranch. Exercise omission, forgery and narrower sessions against the live row.
+const refusedBranchScopes = [
+  [assignedBranch, undefined],
+  [assignedBranch, otherBranch],
+  [otherBranch, assignedBranch],
+  [null, assignedBranch],
+] as const;
+
+async function proveStaleStaffBranch(
+  { admin, runtime, peer }: Connection,
+  write: (tx: postgres.TransactionSql) => Promise<unknown>,
+  refusal: { code: string; message: string }
+) {
+  let denial: Promise<unknown> | undefined;
   try {
-    for (const branchHint of [undefined, otherBranch]) {
+    await admin.begin(async tx => {
+      const [{ pid }] = await tx<{ pid: number }[]>`select pg_backend_pid() as pid`;
+      await tx`update "user" set branch_id = ${assignedBranch} where id = ${homeActor}`;
+      denial = assert.rejects(
+        restricted(runtime, async writer => {
+          await setActor(writer, homeActor, 'staff', otherBranch);
+          await write(writer);
+        }),
+        refusal
+      );
+      void denial.catch(() => {});
+      await waitUntilBlocked(peer, () => runtimePid(peer), pid);
+    });
+  } finally {
+    await denial;
+  }
+}
+
+export async function proveDirectDecisionBranch(connections: Connection) {
+  const { admin, runtime } = connections;
+  const claim = await enrolledCase(admin, otherBranch);
+  const write = (tx: postgres.TransactionSql) =>
+    insertDecision(tx, decisionDocument(claim), 'intended-for-member', ownerA);
+  const refusal = { code: 'P1210', message: 'Pilot visibility decision refused' };
+  await assert.rejects(
+    restricted(
+      runtime,
+      tx => tx`select public.claim_inbound_lock_staff_branch(${homeTenant}, ${otherBranch})`
+    ),
+    { code: '42501' }
+  );
+  try {
+    for (const [staffBranch, sessionBranch] of refusedBranchScopes) {
+      await admin`update "user" set branch_id = ${staffBranch} where id = ${homeActor}`;
       await assert.rejects(
         restricted(runtime, async tx => {
-          await setActor(tx, homeActor, 'staff', branchHint);
-          await insertDecision(tx, decisionDocument(claim), 'intended-for-member', ownerA);
+          await setActor(tx, homeActor, 'staff', sessionBranch);
+          await write(tx);
         }),
-        { code: 'P1210' }
+        refusal
       );
     }
+    await admin`update "user" set branch_id = ${otherBranch} where id = ${homeActor}`;
+    await restricted(runtime, async tx => {
+      await setActor(tx, homeActor, 'staff', otherBranch);
+      assert.equal((await write(tx)).length, 1);
+    });
+    await proveStaleStaffBranch(connections, write, refusal);
   } finally {
     await admin`update "user" set branch_id = null where id = ${homeActor}`;
   }
@@ -288,6 +413,10 @@ export async function proveDirectDecisionBranch({ admin, runtime }: Connection) 
 export async function proveDirectPublicationBranch(connections: Connection) {
   const { admin, runtime } = connections;
   const claim = await enrolledCase(admin, assignedBranch);
+  const refusal = {
+    code: 'P1211',
+    message: 'Reserved pilot document is outside assigned staff scope',
+  };
   await admin`update "user" set branch_id = ${assignedBranch} where id = ${homeActor}`;
   try {
     const { document, decisionId } = await createDecision(
@@ -297,9 +426,12 @@ export async function proveDirectPublicationBranch(connections: Connection) {
     );
     assert.equal(await attest(admin, document), true);
     await admin`update claim set branch_id = ${otherBranch} where id = ${claim.id}`;
-    for (const branchHint of [undefined, otherBranch]) {
+    const write = (tx: postgres.TransactionSql) =>
+      insertDocument(tx, { ...document, category: 'evidence' });
+    for (const [staffBranch, sessionBranch] of refusedBranchScopes) {
+      await admin`update "user" set branch_id = ${staffBranch} where id = ${homeActor}`;
       await restricted(runtime, async tx => {
-        await setActor(tx, homeActor, 'staff', branchHint);
+        await setActor(tx, homeActor, 'staff', sessionBranch);
         assert.equal(
           (await tx`select id from claim_inbound_upload_decisions where id = ${decisionId}`).length,
           0
@@ -307,14 +439,19 @@ export async function proveDirectPublicationBranch(connections: Connection) {
       });
       await assert.rejects(
         restricted(runtime, async tx => {
-          await setActor(tx, homeActor, 'staff', branchHint);
-          await insertDocument(tx, document);
+          await setActor(tx, homeActor, 'staff', sessionBranch);
+          await write(tx);
         }),
-        { code: 'P1211', message: 'Reserved pilot document is outside assigned staff scope' }
+        refusal
       );
     }
-    await admin`update claim set branch_id = ${assignedBranch} where id = ${claim.id}`;
-    await restricted(runtime, tx => publish(tx, document));
+    await admin`update "user" set branch_id = ${otherBranch} where id = ${homeActor}`;
+    await proveStaleStaffBranch(connections, write, refusal);
+    await admin`update "user" set branch_id = ${otherBranch} where id = ${homeActor}`;
+    await restricted(runtime, async tx => {
+      await setActor(tx, homeActor, 'staff', otherBranch);
+      await write(tx);
+    });
   } finally {
     await admin`update "user" set branch_id = null where id = ${homeActor}`;
   }
@@ -347,6 +484,7 @@ export async function proveDecisionExpiry(connections: Connection) {
       await tx`alter table claim_inbound_upload_decisions enable trigger claim_inbound_decisions_immutable`;
     });
   await expire(decisionId);
+  assert.equal(await attest(admin, document), false);
   await assert.rejects(
     restricted(runtime, tx => publish(tx, document)),
     { code: 'P1211' }

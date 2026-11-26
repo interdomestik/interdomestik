@@ -141,19 +141,6 @@ export async function downloadTenantObject(args: TenantStorageTarget) {
   return createAdminClient().storage.from(args.bucket).download(args.path);
 }
 
-export async function recordInboundObjectVerification(
-  args: TenantStorageTarget & { decisionId: string; fileSize: number; sha256: string }
-) {
-  assertTenantStoragePath(args);
-  return createAdminClient().rpc('record_claim_inbound_object_verification', {
-    p_decision_id: args.decisionId,
-    p_bucket: args.bucket,
-    p_path: args.path,
-    p_file_size: args.fileSize,
-    p_sha256: args.sha256,
-  });
-}
-
 export async function listTenantObjectsForSingleFile(args: TenantStorageTarget) {
   assertTenantStoragePath(args);
   const { fileName, folder } = splitStorageFolderAndName(args.path);

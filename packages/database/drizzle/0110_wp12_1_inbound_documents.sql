@@ -154,16 +154,22 @@ ALTER TABLE public.claim_correspondence_received_seals ADD CONSTRAINT claim_rece
   DEFERRABLE INITIALLY DEFERRED;
 --> statement-breakpoint
 DO $$
+DECLARE
+  capability_role name;
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'interdomestik_wp12_guard') THEN
-    CREATE ROLE interdomestik_wp12_guard NOLOGIN NOINHERIT NOBYPASSRLS;
-  END IF;
-  IF EXISTS (
-    SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'interdomestik_wp12_guard'
-      AND (rolcanlogin OR rolinherit OR rolbypassrls OR rolsuper OR rolcreaterole OR rolcreatedb)
-  ) THEN
-    RAISE EXCEPTION 'WP-12.1 guard role has unexpected authority';
-  END IF;
+  FOREACH capability_role IN ARRAY ARRAY[
+    'interdomestik_wp12_guard', 'interdomestik_wp12_receipt_writer', 'interdomestik_wp12_verifier'
+  ] LOOP
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = capability_role) THEN
+      EXECUTE format('CREATE ROLE %I NOLOGIN NOINHERIT NOBYPASSRLS', capability_role);
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = capability_role
+        AND (rolcanlogin OR rolinherit OR rolbypassrls OR rolsuper OR rolcreaterole OR rolcreatedb OR rolreplication)
+    ) THEN
+      RAISE EXCEPTION 'WP-12.1 capability role % has unexpected authority', capability_role;
+    END IF;
+  END LOOP;
 END;
 $$;
 --> statement-breakpoint
@@ -171,18 +177,19 @@ GRANT USAGE, CREATE ON SCHEMA public TO interdomestik_wp12_guard;
 --> statement-breakpoint
 GRANT SELECT (tenant_id, claim_id, enrolled_at) ON public.claim_inbound_pilot_cases TO interdomestik_wp12_guard;
 --> statement-breakpoint
-GRANT SELECT (id, tenant_id, claim_id, document_id, bucket, file_path, decided_at, file_size, sha256)
+GRANT SELECT (tenant_id, claim_id, document_id, bucket, file_path)
   ON public.claim_inbound_upload_decisions TO interdomestik_wp12_guard;
 --> statement-breakpoint
-GRANT INSERT ON public.claim_inbound_object_verifications TO interdomestik_wp12_guard;
---> statement-breakpoint
 GRANT SELECT (tenant_id, id, role, branch_id) ON public."user" TO interdomestik_wp12_guard;
+--> statement-breakpoint
+-- A row lock requires UPDATE privilege on one column. The guard only locks staff rows.
+GRANT UPDATE ("updatedAt") ON public."user" TO interdomestik_wp12_guard;
 --> statement-breakpoint
 GRANT SELECT (tenant_id, claim_id, id, bucket, file_path)
   ON public.claim_documents TO interdomestik_wp12_guard;
 --> statement-breakpoint
 -- The public enrollment policy checks the visible case's access tenant.
-GRANT SELECT (tenant_id, id, access_tenant_id) ON public.claim TO interdomestik_wp12_guard;
+GRANT SELECT (tenant_id, id, access_tenant_id, branch_id) ON public.claim TO interdomestik_wp12_guard;
 --> statement-breakpoint
 CREATE POLICY claim_inbound_pilot_cases_guard ON public.claim_inbound_pilot_cases
   FOR SELECT TO interdomestik_wp12_guard USING (true);
@@ -210,14 +217,37 @@ CREATE FUNCTION public.claim_inbound_staff_branch_allowed(p_tenant text, p_branc
 LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
   SELECT p_tenant = current_setting('app.current_tenant_id', true)
     AND p_tenant = current_setting('app.current_access_tenant_id', true)
+    AND current_setting('app.current_actor_role', true) = 'staff'
+    AND (nullif(current_setting('app.current_actor_branch_id', true), '') IS NULL
+      OR p_branch IS NOT DISTINCT FROM current_setting('app.current_actor_branch_id', true))
     AND EXISTS (
       SELECT 1 FROM public."user" AS staff
       WHERE staff.tenant_id = p_tenant AND staff.id = current_setting('app.current_actor_id', true)
-        AND staff.role = 'staff' AND (staff.branch_id IS NULL OR staff.branch_id = p_branch)
+        AND staff.role = 'staff' AND (staff.branch_id IS NULL OR staff.branch_id IS NOT DISTINCT FROM p_branch)
     );
 $$;
 --> statement-breakpoint
-ALTER FUNCTION public.claim_inbound_staff_branch_allowed(text, text) OWNER TO interdomestik_wp12_guard;
+CREATE FUNCTION public.claim_inbound_lock_staff_branch(p_tenant text, p_branch text) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  session_branch text := nullif(current_setting('app.current_actor_branch_id', true), '');
+BEGIN
+  IF p_tenant IS DISTINCT FROM current_setting('app.current_tenant_id', true)
+    OR p_tenant IS DISTINCT FROM current_setting('app.current_access_tenant_id', true)
+    OR current_setting('app.current_actor_role', true) IS DISTINCT FROM 'staff'
+    OR (session_branch IS NOT NULL AND session_branch IS DISTINCT FROM p_branch) THEN
+    RETURN false;
+  END IF;
+
+  PERFORM staff.id FROM public."user" AS staff
+    WHERE staff.tenant_id = p_tenant AND staff.id = current_setting('app.current_actor_id', true)
+      AND staff.role = 'staff' AND (staff.branch_id IS NULL OR staff.branch_id IS NOT DISTINCT FROM p_branch)
+    FOR SHARE OF staff;
+  RETURN FOUND;
+END;
+$$;
+--> statement-breakpoint
+REVOKE ALL ON FUNCTION public.claim_inbound_lock_staff_branch(text, text) FROM PUBLIC;
 --> statement-breakpoint
 CREATE FUNCTION public.claim_inbound_decision_visible(
   p_tenant text, p_case text, p_decider text, p_uploader text, p_recipient text,
@@ -227,6 +257,10 @@ LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path = pg_catalog, pg_temp A
 BEGIN
   -- Return before the principal query is planned and its column grants are checked.
   IF CURRENT_USER = 'interdomestik_wp12_guard' THEN RETURN true; END IF;
+  IF CURRENT_USER = 'interdomestik_wp12_receipt_writer' THEN
+    RETURN current_setting('app.current_actor_role', true) = 'staff'
+      AND p_uploader = current_setting('app.current_actor_id', true);
+  END IF;
   IF current_setting('app.current_actor_role', true) = 'tenant_admin' THEN
     RETURN p_decider = current_setting('app.current_actor_id', true);
   END IF;
@@ -265,20 +299,64 @@ CREATE POLICY claim_inbound_object_verifications_read ON public.claim_inbound_ob
     WHERE d.id = claim_inbound_object_verifications.decision_id
   ));
 --> statement-breakpoint
+-- The receipt owner remains subject to decision RLS. Only the fixed verifier command can use it.
+GRANT USAGE, CREATE ON SCHEMA public TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
+GRANT SELECT (id, tenant_id, claim_id, uploader_id, recipient_id,
+  bucket, file_path, decided_at, file_size, sha256)
+  ON public.claim_inbound_upload_decisions TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
+GRANT SELECT (tenant_id, id, access_tenant_id, branch_id, case_lifecycle_state, "staffId", "userId"),
+  UPDATE (id) ON public.claim TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
+CREATE POLICY claim_inbound_receipt_writer_no_case_update ON public.claim
+  AS RESTRICTIVE FOR UPDATE TO interdomestik_wp12_receipt_writer USING (true) WITH CHECK (false);
+--> statement-breakpoint
+GRANT SELECT (tenant_id, claim_id, enrolled_at, paused) ON public.claim_inbound_pilot_cases
+  TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION public.claim_inbound_lock_staff_branch(text, text)
+  TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
+GRANT INSERT (decision_id) ON public.claim_inbound_object_verifications TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
 CREATE POLICY claim_inbound_object_verifications_record ON public.claim_inbound_object_verifications
-  FOR INSERT TO interdomestik_wp12_guard WITH CHECK (true);
+  FOR INSERT TO interdomestik_wp12_receipt_writer WITH CHECK (EXISTS (
+    SELECT 1 FROM public.claim_inbound_upload_decisions AS d
+    WHERE d.id = claim_inbound_object_verifications.decision_id
+  ));
 --> statement-breakpoint
 CREATE FUNCTION public.record_claim_inbound_object_verification(
   p_decision_id uuid, p_bucket text, p_path text, p_file_size integer, p_sha256 text
 ) RETURNS boolean
-LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp SET row_security = on AS $$
+DECLARE
+  tenant text := nullif(current_setting('app.current_tenant_id', true), '');
+  actor text := nullif(current_setting('app.current_actor_id', true), '');
+  approved_case text;
+  approved_at timestamptz;
+  case_branch text;
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM public.claim_inbound_upload_decisions AS d
-    WHERE d.id = p_decision_id AND d.bucket = p_bucket AND d.file_path = p_path
-      AND d.file_size = p_file_size AND d.sha256 = p_sha256
-      AND public.claim_inbound_decision_deadline(d.decided_at) > clock_timestamp()
-  ) THEN
+  IF tenant IS NULL OR tenant IS DISTINCT FROM current_setting('app.current_access_tenant_id', true)
+    OR actor IS NULL OR current_setting('app.current_actor_role', true) IS DISTINCT FROM 'staff' THEN
+    RETURN false;
+  END IF;
+
+  SELECT d.claim_id, d.decided_at, c.branch_id INTO approved_case, approved_at, case_branch
+  FROM public.claim_inbound_upload_decisions AS d
+  JOIN public.claim AS c ON c.tenant_id = d.tenant_id AND c.id = d.claim_id
+  WHERE d.tenant_id = tenant AND d.id = p_decision_id AND d.uploader_id = actor
+    AND d.bucket = p_bucket AND d.file_path = p_path AND d.file_size = p_file_size AND d.sha256 = p_sha256
+    AND coalesce(c.access_tenant_id, c.tenant_id) = tenant AND c.case_lifecycle_state <> 'draft'
+    AND c."staffId" = actor AND c."userId" = d.recipient_id
+  FOR SHARE OF c;
+
+  IF NOT FOUND OR public.claim_inbound_lock_staff_branch(tenant, case_branch) IS NOT TRUE
+    OR NOT EXISTS (
+      SELECT 1 FROM public.claim_inbound_pilot_cases AS e
+      WHERE e.tenant_id = tenant AND e.claim_id = approved_case AND e.enrolled_at IS NOT NULL AND NOT e.paused
+    )
+    OR public.claim_inbound_decision_deadline(approved_at) <= clock_timestamp() THEN
     RETURN false;
   END IF;
   INSERT INTO public.claim_inbound_object_verifications (decision_id) VALUES (p_decision_id)
@@ -286,9 +364,6 @@ BEGIN
   RETURN true;
 END;
 $$;
---> statement-breakpoint
-ALTER FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text)
-  OWNER TO interdomestik_wp12_guard;
 --> statement-breakpoint
 REVOKE ALL ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text) FROM PUBLIC;
 --> statement-breakpoint
@@ -302,12 +377,16 @@ BEGIN
     EXECUTE format('REVOKE ALL ON public.claim_inbound_object_verifications FROM %I', api_role);
     EXECUTE format('REVOKE ALL ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text) FROM %I', api_role);
   END LOOP;
-  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'service_role') THEN
-    GRANT EXECUTE ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text)
-      TO service_role;
-  END IF;
 END;
 $$;
+--> statement-breakpoint
+GRANT USAGE ON SCHEMA public TO interdomestik_wp12_verifier;
+--> statement-breakpoint
+GRANT EXECUTE ON FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text)
+  TO interdomestik_wp12_verifier;
+--> statement-breakpoint
+-- The direct pool uses the database admin login. Require an explicit SET ROLE for attestation.
+GRANT interdomestik_wp12_verifier TO CURRENT_USER WITH INHERIT FALSE, SET TRUE;
 --> statement-breakpoint
 CREATE FUNCTION public.claim_inbound_enrollment_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
@@ -363,8 +442,6 @@ CREATE TRIGGER claim_inbound_document_home_guard AFTER INSERT ON public.claim_do
   FOR EACH ROW EXECUTE FUNCTION public.claim_inbound_document_home_guard_fn();
 --> statement-breakpoint
 REVOKE ALL ON FUNCTION public.claim_inbound_document_home_guard_fn() FROM PUBLIC;
---> statement-breakpoint
-ALTER FUNCTION public.claim_inbound_document_home_guard_fn() OWNER TO interdomestik_wp12_guard;
 --> statement-breakpoint
 CREATE FUNCTION public.claim_inbound_decision_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
@@ -431,6 +508,14 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document is outside assigned staff scope';
   END IF;
 
+  IF NOT EXISTS (
+    SELECT 1 FROM public.claim_inbound_pilot_cases AS e
+    WHERE e.tenant_id = NEW.tenant_id AND e.claim_id = NEW.claim_id
+      AND e.enrolled_at IS NOT NULL AND NOT e.paused
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document requires active enrollment';
+  END IF;
+
   SELECT d.* INTO approval FROM public.claim_inbound_upload_decisions AS d
     WHERE d.document_id = NEW.id AND d.bucket = NEW.bucket AND d.file_path = NEW.file_path
       AND d.tenant_id = NEW.tenant_id AND d.claim_id = NEW.claim_id;
@@ -442,12 +527,7 @@ BEGIN
     RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document refused';
   END IF;
 
-  IF NOT EXISTS (
-      SELECT 1 FROM public.claim_inbound_pilot_cases AS e
-      WHERE e.tenant_id = NEW.tenant_id AND e.claim_id = NEW.claim_id
-        AND e.enrolled_at IS NOT NULL AND NOT e.paused
-    )
-    OR public.claim_inbound_decision_deadline(approval.decided_at) <= clock_timestamp()
+  IF public.claim_inbound_decision_deadline(approval.decided_at) <= clock_timestamp()
     OR recipient IS DISTINCT FROM approval.recipient_id
     OR uploader IS DISTINCT FROM approval.uploader_id THEN
     RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document refused';
@@ -467,6 +547,45 @@ $$;
 --> statement-breakpoint
 CREATE TRIGGER claim_inbound_document_publication_guard AFTER INSERT ON public.claim_documents
   FOR EACH ROW EXECUTE FUNCTION public.claim_inbound_document_publication_guard_fn();
+--> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_staff_scope_guard_fn() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  case_branch text;
+BEGIN
+  -- The preceding guards hold the case lock. Hold the actor's staff row through commit too.
+  SELECT c.branch_id INTO case_branch FROM public.claim AS c
+    WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id;
+  IF NOT FOUND OR public.claim_inbound_lock_staff_branch(NEW.tenant_id, case_branch) IS NOT TRUE THEN
+    IF TG_TABLE_NAME = 'claim_inbound_upload_decisions' THEN
+      RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot visibility decision refused';
+    END IF;
+    RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document is outside assigned staff scope';
+  END IF;
+  RETURN NULL;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER claim_inbound_staff_scope_guard AFTER INSERT ON public.claim_inbound_upload_decisions
+  FOR EACH ROW WHEN (NEW.role_basis = 'staff') EXECUTE FUNCTION public.claim_inbound_staff_scope_guard_fn();
+--> statement-breakpoint
+CREATE TRIGGER claim_inbound_staff_scope_guard AFTER INSERT ON public.claim_documents
+  FOR EACH ROW WHEN (NEW.id LIKE 'wp12-inbound-%' OR public.claim_inbound_reserved_path(NEW.file_path))
+  EXECUTE FUNCTION public.claim_inbound_staff_scope_guard_fn();
+--> statement-breakpoint
+REVOKE ALL ON FUNCTION public.claim_inbound_staff_scope_guard_fn() FROM PUBLIC;
+--> statement-breakpoint
+DO $$
+DECLARE
+  runtime_role name;
+BEGIN
+  FOR runtime_role IN SELECT rolname FROM pg_catalog.pg_roles
+    WHERE rolname IN ('anon', 'authenticated', 'service_role', 'interdomestik_runtime_rls') LOOP
+    EXECUTE format('REVOKE ALL ON FUNCTION public.claim_inbound_lock_staff_branch(text, text),
+      public.claim_inbound_staff_scope_guard_fn() FROM %I', runtime_role);
+  END LOOP;
+END;
+$$;
 --> statement-breakpoint
 CREATE FUNCTION public.claim_inbound_document_scope_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
@@ -518,10 +637,6 @@ CREATE TRIGGER claim_inbound_owner_guard AFTER UPDATE ON public.claim
   FOR EACH ROW EXECUTE FUNCTION public.claim_inbound_owner_guard_fn();
 --> statement-breakpoint
 REVOKE ALL ON FUNCTION public.claim_inbound_owner_guard_fn() FROM PUBLIC;
---> statement-breakpoint
-ALTER FUNCTION public.claim_inbound_owner_guard_fn() OWNER TO interdomestik_wp12_guard;
---> statement-breakpoint
-REVOKE CREATE ON SCHEMA public FROM interdomestik_wp12_guard;
 --> statement-breakpoint
 CREATE FUNCTION public.claim_received_seal_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
@@ -635,3 +750,36 @@ BEGIN
   END IF;
 END;
 $$;
+--> statement-breakpoint
+-- A CREATEROLE migrator receives ADMIN on newly created roles, so it can temporarily grant SET
+-- for the owner transfer. Keep the existing membership if SET was already available.
+DO $$
+DECLARE
+  guard_set boolean := pg_has_role(CURRENT_USER, 'interdomestik_wp12_guard', 'SET');
+  receipt_writer_set boolean := pg_has_role(CURRENT_USER, 'interdomestik_wp12_receipt_writer', 'SET');
+BEGIN
+  IF NOT guard_set THEN
+    GRANT interdomestik_wp12_guard TO CURRENT_USER WITH INHERIT FALSE, SET TRUE;
+  END IF;
+  IF NOT receipt_writer_set THEN
+    GRANT interdomestik_wp12_receipt_writer TO CURRENT_USER WITH INHERIT FALSE, SET TRUE;
+  END IF;
+
+  ALTER FUNCTION public.claim_inbound_staff_branch_allowed(text, text) OWNER TO interdomestik_wp12_guard;
+  ALTER FUNCTION public.claim_inbound_lock_staff_branch(text, text) OWNER TO interdomestik_wp12_guard;
+  ALTER FUNCTION public.claim_inbound_document_home_guard_fn() OWNER TO interdomestik_wp12_guard;
+  ALTER FUNCTION public.claim_inbound_staff_scope_guard_fn() OWNER TO interdomestik_wp12_guard;
+  ALTER FUNCTION public.claim_inbound_owner_guard_fn() OWNER TO interdomestik_wp12_guard;
+  ALTER FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text)
+    OWNER TO interdomestik_wp12_receipt_writer;
+
+  IF NOT guard_set THEN
+    REVOKE interdomestik_wp12_guard FROM CURRENT_USER GRANTED BY CURRENT_USER;
+  END IF;
+  IF NOT receipt_writer_set THEN
+    REVOKE interdomestik_wp12_receipt_writer FROM CURRENT_USER GRANTED BY CURRENT_USER;
+  END IF;
+END;
+$$;
+--> statement-breakpoint
+REVOKE CREATE ON SCHEMA public FROM interdomestik_wp12_guard, interdomestik_wp12_receipt_writer;

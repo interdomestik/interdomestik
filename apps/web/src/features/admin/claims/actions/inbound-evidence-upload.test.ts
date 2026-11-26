@@ -7,7 +7,6 @@ const mocks = vi.hoisted(() => ({
   load: vi.fn(),
   upload: vi.fn(),
   download: vi.fn(),
-  attest: vi.fn(),
   confirm: vi.fn(),
 }));
 
@@ -23,7 +22,6 @@ vi.mock('@/features/claims/upload/server/shared-upload', () => ({
 vi.mock('@/lib/storage/service-role', () => ({
   uploadTenantObject: mocks.upload,
   downloadTenantObject: mocks.download,
-  recordInboundObjectVerification: mocks.attest,
 }));
 vi.mock('@interdomestik/domain-documents/claim-evidence', () => ({
   confirmClaimEvidence: mocks.confirm,
@@ -87,7 +85,6 @@ describe('inbound PDF publication', () => {
     mocks.authorize.mockResolvedValue(authorizedSession(STAFF_A));
     mocks.confirm.mockResolvedValue('created');
     mocks.upload.mockResolvedValue({ error: null });
-    mocks.attest.mockResolvedValue({ data: true, error: null });
   });
   afterEach(() => {
     vi.useRealTimers();
@@ -111,32 +108,43 @@ describe('inbound PDF publication', () => {
     expect(await issueAndSubmit()).toMatchObject({ success: false });
     expect(mocks.upload).toHaveBeenCalledOnce();
     expect(mocks.download).toHaveBeenCalledOnce();
-    expect(mocks.attest).not.toHaveBeenCalled();
     expect(mocks.confirm).not.toHaveBeenCalled();
   });
 
-  it('confirms after exact readback and a decision-bound verification receipt', async () => {
+  it('submits the publication only after reading back the approved private object', async () => {
     mocks.download.mockResolvedValue({ data: new Blob([bytes]), error: null });
-    expect(await issueAndSubmit()).toMatchObject({ success: true, data: { documentId } });
-    expect(mocks.download).toHaveBeenCalledOnce();
-    expect(mocks.attest).toHaveBeenCalledWith(
-      expect.objectContaining({ decisionId, fileSize: bytes.length })
-    );
+    const { decision, form } = await issue();
+    expect(await uploadInboundEvidence(undefined, form)).toMatchObject({
+      success: true,
+      data: { documentId },
+    });
+    expect(mocks.download).toHaveBeenCalledExactlyOnceWith({
+      tenantId: decision.tenantId,
+      bucket: decision.bucket,
+      path: decision.filePath,
+      family: 'claims',
+    });
     expect(mocks.confirm).toHaveBeenCalledOnce();
     expect(mocks.download.mock.invocationCallOrder[0]).toBeLessThan(
-      mocks.attest.mock.invocationCallOrder[0]
-    );
-    expect(mocks.attest.mock.invocationCallOrder[0]).toBeLessThan(
       mocks.confirm.mock.invocationCallOrder[0]
     );
   });
 
-  it('leaves verified bytes unpublished when recording the receipt fails', async () => {
-    mocks.download.mockResolvedValue({ data: new Blob([bytes]), error: null });
-    mocks.attest.mockResolvedValue({ data: null, error: { message: 'Synthetic RPC failure' } });
+  it('refuses publication when storage readback fails', async () => {
+    mocks.download.mockResolvedValue({ data: null, error: new Error('Synthetic storage failure') });
     expect(await issueAndSubmit()).toMatchObject({ success: false });
-    expect(mocks.attest).toHaveBeenCalledOnce();
     expect(mocks.confirm).not.toHaveBeenCalled();
+  });
+
+  it('reports failure when PostgreSQL refuses publication without a receipt', async () => {
+    mocks.download.mockResolvedValue({ data: new Blob([bytes]), error: null });
+    mocks.confirm.mockRejectedValue(
+      Object.assign(new Error('Reserved pilot document requires verified storage'), {
+        code: 'P1211',
+      })
+    );
+    expect(await issueAndSubmit()).toMatchObject({ success: false });
+    expect(mocks.confirm).toHaveBeenCalledOnce();
   });
 
   it('acknowledges exact expired replay without touching storage or publishing again', async () => {
@@ -160,7 +168,6 @@ describe('inbound PDF publication', () => {
     });
     expect(mocks.upload).not.toHaveBeenCalled();
     expect(mocks.download).not.toHaveBeenCalled();
-    expect(mocks.attest).not.toHaveBeenCalled();
     expect(mocks.confirm).not.toHaveBeenCalled();
   });
 

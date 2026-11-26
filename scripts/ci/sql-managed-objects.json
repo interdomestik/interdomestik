@@ -213,7 +213,7 @@
     },
     {
       "key": "function [\"public\",\"claim_inbound_decision_visible(p_tenant text, p_case text, p_decider text, p_uploader text, p_recipient text, p_document text, p_bucket character varying, p_path character varying)\"]",
-      "value": "dbce8df44d2d7f405e93f01190fb14e3",
+      "value": "59d0d3ec3952608a1583c641a031c40f",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
@@ -223,7 +223,7 @@
     },
     {
       "key": "function [\"public\",\"claim_inbound_document_publication_guard_fn()\"]",
-      "value": "afda4bf04dab447d1836c6b08d09b23e",
+      "value": "581e90aa944f5d57c4b55995aad3fc3d",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
@@ -234,6 +234,11 @@
     {
       "key": "function [\"public\",\"claim_inbound_enrollment_guard_fn()\"]",
       "value": "40e0dabd1a48c6b024c4ebcdbe2b8838",
+      "migration": "0110_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_lock_staff_branch(p_tenant text, p_branch text)\"]",
+      "value": "206cd8048371b76c953c37c8a260533f",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
@@ -253,7 +258,12 @@
     },
     {
       "key": "function [\"public\",\"claim_inbound_staff_branch_allowed(p_tenant text, p_branch text)\"]",
-      "value": "4ee70dca361ebc3db8c15d58bb58221c",
+      "value": "8a63ba548759375dfa73cd33db0aa8c0",
+      "migration": "0110_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_staff_scope_guard_fn()\"]",
+      "value": "614b646005e25ffed96b20eac9c4e309",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
@@ -388,7 +398,7 @@
     },
     {
       "key": "function [\"public\",\"record_claim_inbound_object_verification(p_decision_id uuid, p_bucket text, p_path text, p_file_size integer, p_sha256 text)\"]",
-      "value": "aead56a819f776fd5f9c4869a1eda0e5",
+      "value": "85d9292eaa17743954a2491f6f515aa1",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
@@ -762,6 +772,11 @@
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
+      "key": "policy [\"public\",\"claim\",\"claim_inbound_receipt_writer_no_case_update\"]",
+      "value": "restrictive for update to [\"interdomestik_wp12_receipt_writer\"] using true check false",
+      "migration": "0110_wp12_1_inbound_documents"
+    },
+    {
       "key": "policy [\"public\",\"claim\",\"tenant_delete_claim\"]",
       "value": "permissive for delete to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
       "migration": "0086_access_tenant_divergent_tables"
@@ -838,7 +853,7 @@
     },
     {
       "key": "policy [\"public\",\"claim_inbound_object_verifications\",\"claim_inbound_object_verifications_record\"]",
-      "value": "permissive for insert to [\"interdomestik_wp12_guard\"] using - check true",
+      "value": "permissive for insert to [\"interdomestik_wp12_receipt_writer\"] using - check (EXISTS ( SELECT 1\n   FROM claim_inbound_upload_decisions d\n  WHERE (d.id = claim_inbound_object_verifications.decision_id)))",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
@@ -1938,7 +1953,7 @@
     },
     {
       "key": "trigger [\"public\",\"claim_correspondence_received_documents\",\"claim_received_documents_immutable\"]",
-      "value": "CREATE TRIGGER claim_received_documents_immutable BEFORE UPDATE OR DELETE ON public.claim_correspondence_received_documents FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
+      "value": "CREATE TRIGGER claim_received_documents_immutable BEFORE DELETE OR UPDATE ON public.claim_correspondence_received_documents FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
@@ -1953,7 +1968,7 @@
     },
     {
       "key": "trigger [\"public\",\"claim_correspondence_received_seals\",\"claim_received_seals_immutable\"]",
-      "value": "CREATE TRIGGER claim_received_seals_immutable BEFORE UPDATE OR DELETE ON public.claim_correspondence_received_seals FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
+      "value": "CREATE TRIGGER claim_received_seals_immutable BEFORE DELETE OR UPDATE ON public.claim_correspondence_received_seals FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
@@ -1977,6 +1992,11 @@
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
+      "key": "trigger [\"public\",\"claim_documents\",\"claim_inbound_staff_scope_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_staff_scope_guard AFTER INSERT ON public.claim_documents FOR EACH ROW WHEN (((new.id ~~ 'wp12-inbound-%'::text) OR claim_inbound_reserved_path(new.file_path))) EXECUTE FUNCTION claim_inbound_staff_scope_guard_fn()",
+      "migration": "0110_wp12_1_inbound_documents"
+    },
+    {
       "key": "trigger [\"public\",\"claim_inbound_pilot_cases\",\"claim_inbound_enrollment_guard\"]",
       "value": "CREATE TRIGGER claim_inbound_enrollment_guard AFTER INSERT OR DELETE OR UPDATE ON public.claim_inbound_pilot_cases FOR EACH ROW EXECUTE FUNCTION claim_inbound_enrollment_guard_fn()",
       "migration": "0110_wp12_1_inbound_documents"
@@ -1988,7 +2008,12 @@
     },
     {
       "key": "trigger [\"public\",\"claim_inbound_upload_decisions\",\"claim_inbound_decisions_immutable\"]",
-      "value": "CREATE TRIGGER claim_inbound_decisions_immutable BEFORE UPDATE OR DELETE ON public.claim_inbound_upload_decisions FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
+      "value": "CREATE TRIGGER claim_inbound_decisions_immutable BEFORE DELETE OR UPDATE ON public.claim_inbound_upload_decisions FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
+      "migration": "0110_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_inbound_upload_decisions\",\"claim_inbound_staff_scope_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_staff_scope_guard AFTER INSERT ON public.claim_inbound_upload_decisions FOR EACH ROW WHEN ((new.role_basis = 'staff'::text)) EXECUTE FUNCTION claim_inbound_staff_scope_guard_fn()",
       "migration": "0110_wp12_1_inbound_documents"
     },
     {
