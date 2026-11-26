@@ -9,6 +9,7 @@ import { useMemberCaseMessages } from './member-case-messages-state';
 import {
   DETAIL_BUTTON,
   DETAIL_CARD,
+  DETAIL_OUTLINE_BUTTON,
   DETAIL_HEADING,
   DETAIL_TERM,
 } from './member-claim-detail-styles';
@@ -38,7 +39,7 @@ function CaseMessages({ claimId, currentUser }: MemberCaseMessagesProps) {
       <div className="flex min-w-0 flex-wrap items-center justify-between gap-3">
         <h2 className={DETAIL_HEADING}>{t('title')}</h2>
         <Button
-          className={DETAIL_BUTTON}
+          className={DETAIL_OUTLINE_BUTTON}
           type="button"
           variant="outline"
           onClick={() => void state.refresh()}

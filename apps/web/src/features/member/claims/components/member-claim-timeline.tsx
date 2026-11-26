@@ -2,14 +2,9 @@
 
 import { OPS_TEST_IDS } from '@/components/ops/testids';
 import type { OpsTimelineEvent } from '@/components/ops/types';
-import { formatPilotDateTime } from '@/lib/utils/date';
+import { formatPilotDateTime, toPilotDateTimeAttribute } from '@/lib/utils/date';
 import { useLocale, useTranslations } from 'next-intl';
 import { DETAIL_CARD, DETAIL_HEADING, DETAIL_TERM } from './member-claim-detail-styles';
-
-function toDateTimeAttribute(value: string) {
-  const date = new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-}
 
 export function MemberClaimTimeline({ events }: Readonly<{ events: OpsTimelineEvent[] }>) {
   const t = useTranslations('claims.timeline');
@@ -36,7 +31,7 @@ export function MemberClaimTimeline({ events }: Readonly<{ events: OpsTimelineEv
               />
               <p className="font-semibold">{event.title}</p>
               <p className={DETAIL_TERM}>
-                <time dateTime={toDateTimeAttribute(event.date)}>
+                <time dateTime={toPilotDateTimeAttribute(event.date)}>
                   {formatPilotDateTime(event.date, locale, event.date)}
                 </time>
               </p>

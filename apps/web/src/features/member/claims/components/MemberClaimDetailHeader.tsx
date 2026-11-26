@@ -10,8 +10,9 @@ import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 import type { MemberClaimDetailOpsClaim } from './member-claim-detail-types';
 import {
   DETAIL_BUTTON,
-  DETAIL_CARD,
   DETAIL_DIVIDER,
+  DETAIL_HEADER_CARD,
+  DETAIL_OUTLINE_BUTTON,
   DETAIL_QUIET_LINK,
   DETAIL_TERM,
 } from './member-claim-detail-styles';
@@ -52,7 +53,7 @@ export function MemberClaimDetailHeader({
   ];
 
   return (
-    <div className={`${DETAIL_CARD} space-y-5`}>
+    <div className={`${DETAIL_HEADER_CARD} space-y-5`}>
       <header className="min-w-0 space-y-5">
         <Link href="/member" className={DETAIL_QUIET_LINK}>
           <ArrowLeft
@@ -89,7 +90,9 @@ export function MemberClaimDetailHeader({
                 claimId={claimId}
                 trigger={
                   <Button
-                    className={DETAIL_BUTTON}
+                    className={
+                      uploadAction.variant === 'outline' ? DETAIL_OUTLINE_BUTTON : DETAIL_BUTTON
+                    }
                     data-testid={uploadAction.testId}
                     disabled={uploadAction.disabled}
                     title={uploadAction.disabledReason}
@@ -110,7 +113,11 @@ export function MemberClaimDetailHeader({
               .map(action => (
                 <Button
                   key={action.id}
-                  className={DETAIL_BUTTON}
+                  className={
+                    (action.variant ?? 'outline') === 'outline'
+                      ? DETAIL_OUTLINE_BUTTON
+                      : DETAIL_BUTTON
+                  }
                   data-testid={action.testId}
                   disabled={action.disabled}
                   onClick={action.onClick}

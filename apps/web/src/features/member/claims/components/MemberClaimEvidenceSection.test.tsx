@@ -34,8 +34,8 @@ describe('MemberClaimEvidenceSection', () => {
     renderSection();
 
     const upload = screen.getByRole('button', { name: 'claimsPro.actions.uploadEvidence' });
-    expect(upload).toHaveClass('min-h-11');
-    expect(upload).not.toHaveClass('sm:h-9');
+    expect(upload).toHaveClass('min-h-11', 'text-foreground', 'bg-transparent');
+    expect(upload).not.toHaveClass('sm:h-9', 'text-slate-900', 'hover:bg-slate-100');
     expect(within(screen.getByTestId('ops-documents-panel')).getByRole('button')).toBe(upload);
     expect(screen.getByTestId('claim-evidence-upload-dialog')).toHaveAttribute(
       'data-claim-id',
@@ -53,7 +53,7 @@ describe('MemberClaimEvidenceSection', () => {
     expect(within(panel).queryAllByTestId('ops-document-row')).toHaveLength(0);
   });
 
-  it('lists each document with its upload date and a described inline view link', () => {
+  it('lists each document with its name and a described inline view link, without a date', () => {
     renderSection([
       {
         id: 'doc-1',
@@ -67,7 +67,7 @@ describe('MemberClaimEvidenceSection', () => {
         id: 'doc-2',
         name: 'receipt.png',
         category: 'evidence',
-        createdAt: 'not-a-date',
+        createdAt: '2026-04-15T09:00:00.000Z',
         fileType: 'image/png',
         fileSize: 512,
       },
@@ -79,10 +79,6 @@ describe('MemberClaimEvidenceSection', () => {
 
     const first = within(rows[0]);
     const name = first.getByText('boarding-pass-with-a-very-long-name.pdf');
-    expect(first.getByText(/documentUploaded/)).toBeInTheDocument();
-    const time = rows[0].querySelector('time');
-    expect(time).toHaveAttribute('dateTime', '2026-04-14T09:00:00.000Z');
-    expect(time).toHaveTextContent('14.04.2026');
     const view = first.getByRole('link', { name: 'viewDocument' });
     expect(view).toHaveAttribute('href', '/api/documents/doc-1/download?disposition=inline');
     expect(view).toHaveAttribute('target', '_blank');
@@ -90,12 +86,12 @@ describe('MemberClaimEvidenceSection', () => {
     expect(view).toHaveAttribute('aria-describedby', name.id);
     expect(view).toHaveAccessibleDescription('boarding-pass-with-a-very-long-name.pdf');
     expect(view).toHaveClass('min-h-11');
-
-    // An unparseable upload date is omitted rather than shown as a wrong date.
-    expect(rows[1].querySelector('time')).toBeNull();
-    expect(within(rows[1]).queryByText(/documentUploaded/)).not.toBeInTheDocument();
     expect(within(rows[1]).getByRole('link', { name: 'viewDocument' })).toHaveAccessibleDescription(
       'receipt.png'
     );
+
+    // The member mapper backfills a missing upload time with the read time, so no date is shown.
+    rows.forEach(row => expect(row.querySelector('time')).toBeNull());
+    expect(screen.queryByText('14.04.2026')).not.toBeInTheDocument();
   });
 });

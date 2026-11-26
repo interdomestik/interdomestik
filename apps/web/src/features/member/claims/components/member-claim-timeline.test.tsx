@@ -45,10 +45,21 @@ describe('MemberClaimTimeline', () => {
     expect(screen.queryByTestId('ops-timeline-empty')).not.toBeInTheDocument();
   });
 
-  it('shows the raw value without a dateTime attribute when an event date cannot be read', () => {
-    render(<MemberClaimTimeline events={[{ id: 'e1', title: 'Submitted', date: 'unknown' }]} />);
+  it('omits an unreadable dateTime and reads an offsetless one as UTC', () => {
+    render(
+      <MemberClaimTimeline
+        events={[
+          { id: 'e1', title: 'Submitted', date: 'unknown' },
+          { id: 'e2', title: 'Offsetless', date: '2026-04-14T00:30:00' },
+        ]}
+      />
+    );
+    expect(screen.getAllByTestId('ops-timeline-item')[1].querySelector('time')).toHaveAttribute(
+      'dateTime',
+      '2026-04-14T00:30:00.000Z'
+    );
 
-    const time = screen.getByTestId('ops-timeline-item').querySelector('time');
+    const time = screen.getAllByTestId('ops-timeline-item')[0].querySelector('time');
     expect(time).not.toHaveAttribute('dateTime');
     expect(time).toHaveTextContent('unknown');
   });

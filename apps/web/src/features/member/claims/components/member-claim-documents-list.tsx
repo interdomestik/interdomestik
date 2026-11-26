@@ -2,9 +2,8 @@
 
 import { OPS_TEST_IDS } from '@/components/ops/testids';
 import type { OpsDocument } from '@/components/ops/types';
-import { formatPilotDate } from '@/lib/utils/date';
 import { FileText } from 'lucide-react';
-import { useLocale, useTranslations } from 'next-intl';
+import { useTranslations } from 'next-intl';
 import { useId, type ReactNode } from 'react';
 import { DETAIL_CARD, DETAIL_HEADING, DETAIL_TERM } from './member-claim-detail-styles';
 
@@ -13,18 +12,11 @@ type MemberClaimDocumentsListProps = Readonly<{
   uploadAction: ReactNode;
 }>;
 
-function toDateTimeAttribute(value: OpsDocument['uploadedAt']) {
-  if (!value) return undefined;
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
-}
-
 export function MemberClaimDocumentsList({
   documents,
   uploadAction,
 }: MemberClaimDocumentsListProps) {
   const t = useTranslations('claims.detail');
-  const locale = useLocale();
   const idPrefix = useId();
 
   return (
@@ -42,7 +34,6 @@ export function MemberClaimDocumentsList({
         <ul className="grid min-w-0 gap-3">
           {documents.map(document => {
             const nameId = `${idPrefix}-${document.id}`;
-            const dateTime = toDateTimeAttribute(document.uploadedAt);
             return (
               <li
                 key={document.id}
@@ -51,19 +42,9 @@ export function MemberClaimDocumentsList({
               >
                 <div className="flex min-w-0 flex-1 items-start gap-3">
                   <FileText aria-hidden="true" className="mt-0.5 size-5 shrink-0" />
-                  <div className="min-w-0 space-y-0.5">
-                    <p className="font-medium [overflow-wrap:anywhere]" id={nameId}>
-                      {document.name}
-                    </p>
-                    {dateTime ? (
-                      <p className={DETAIL_TERM}>
-                        {t('documentUploaded')}{' '}
-                        <time dateTime={dateTime}>
-                          {formatPilotDate(dateTime, locale, dateTime)}
-                        </time>
-                      </p>
-                    ) : null}
-                  </div>
+                  <p className="min-w-0 font-medium [overflow-wrap:anywhere]" id={nameId}>
+                    {document.name}
+                  </p>
                 </div>
                 {document.url ? (
                   <a

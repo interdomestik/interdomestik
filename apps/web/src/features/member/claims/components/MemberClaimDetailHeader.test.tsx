@@ -96,6 +96,15 @@ describe('MemberClaimDetailHeader', () => {
     expect(statusTerm.nextElementSibling).toBe(screen.getByTestId('ops-status-badge'));
     expect(screen.getByRole('heading', { level: 1, name: 'Delayed flight' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Upload evidence' })).toHaveClass('min-h-11');
+    expect(screen.getByRole('button', { name: 'Upload evidence' })).not.toHaveClass(
+      'text-foreground'
+    );
+    expect(screen.getByRole('button', { name: 'Send message' })).toHaveClass('text-foreground');
+    expect(screen.getByRole('button', { name: 'Send message' })).not.toHaveClass('text-slate-900');
+    expect(backLink.closest('div')).toHaveClass('bg-card');
+    expect(backLink.closest('div')).toContainElement(
+      screen.getByRole('navigation', { name: 'Case sections' })
+    );
     expect(screen.getByTestId('ops-status-badge').textContent?.replace(/\s+/g, ' ').trim()).toBe(
       'Evaluation'
     );

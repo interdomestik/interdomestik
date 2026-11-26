@@ -1,6 +1,7 @@
 'use client';
 
 import { useTrackingLabelTranslator } from '@/features/claims/tracking/components/useTrackingLabelTranslator';
+import { toPilotDateTimeAttribute } from '@/lib/utils/date';
 import { useTranslations } from 'next-intl';
 import { localizeMemberRecoveryPublicNote } from './member-recovery-public-note';
 import type { MemberClaimDetailOpsClaim } from './member-claim-detail-types';
@@ -10,13 +11,6 @@ interface MemberClaimProgressSummaryProps {
   progressSummary: MemberClaimDetailOpsClaim['progressSummary'];
   /** Already localized latest public update timestamp, shared with the handling assurance panel. */
   latestUpdateDate: string;
-}
-
-function toDateTimeAttribute(
-  value: MemberClaimDetailOpsClaim['progressSummary']['latestUpdateAt']
-) {
-  const date = value instanceof Date ? value : new Date(value);
-  return Number.isNaN(date.getTime()) ? undefined : date.toISOString();
 }
 
 export function MemberClaimProgressSummary({
@@ -48,7 +42,7 @@ export function MemberClaimProgressSummary({
             <p className="text-foreground/70">
               <time
                 data-testid="member-claim-latest-update-date"
-                dateTime={toDateTimeAttribute(progressSummary.latestUpdateAt)}
+                dateTime={toPilotDateTimeAttribute(progressSummary.latestUpdateAt)}
               >
                 {latestUpdateDate}
               </time>

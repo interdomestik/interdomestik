@@ -73,4 +73,17 @@ describe('MemberClaimProgressSummary', () => {
     );
     expect(screen.getByTestId('member-claim-latest-update-date')).not.toHaveAttribute('dateTime');
   });
+
+  it('reads an offsetless update time as UTC, as the shared formatter does', () => {
+    render(
+      <MemberClaimProgressSummary
+        latestUpdateDate="14.04.2026 02:30"
+        progressSummary={summary({ latestUpdateAt: '2026-04-14T00:30:00' })}
+      />
+    );
+    expect(screen.getByTestId('member-claim-latest-update-date')).toHaveAttribute(
+      'dateTime',
+      '2026-04-14T00:30:00.000Z'
+    );
+  });
 });

@@ -7,7 +7,7 @@ import { useTranslations } from 'next-intl';
 import type { MemberClaimDetailOpsClaim } from './member-claim-detail-types';
 import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 import { MemberClaimDocumentsList } from './member-claim-documents-list';
-import { DETAIL_BUTTON } from './member-claim-detail-styles';
+import { DETAIL_OUTLINE_BUTTON } from './member-claim-detail-styles';
 import { MemberVaultConsentCard } from './MemberVaultConsentCard';
 
 interface MemberClaimEvidenceSectionProps {
@@ -31,7 +31,7 @@ export function MemberClaimEvidenceSection({
           <ClaimEvidenceUploadDialog
             claimId={claimId}
             trigger={
-              <Button className={DETAIL_BUTTON} variant="outline">
+              <Button className={DETAIL_OUTLINE_BUTTON} variant="outline">
                 <Upload aria-hidden="true" className="size-4 shrink-0" />
                 {t('claimsPro.actions.uploadEvidence')}
               </Button>
