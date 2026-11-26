@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { buildEvidenceStoragePath } from '@/features/claims/upload/server/storage-path';
 import { authorizedSession, STAFF_A } from '@/test/safe-action-harness';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -54,7 +55,14 @@ async function issue(content = bytes) {
     uploaderId: STAFF_A.id,
     documentId,
     bucket: 'claim-evidence',
-    filePath: `pii/tenants/${STAFF_A.tenantId}/claims/${claimId}/${documentId}.pdf`,
+    filePath: buildEvidenceStoragePath({
+      bucket: 'claim-evidence',
+      claimId,
+      fileId: documentId,
+      fileName,
+      shape: 'assigned',
+      tenantId: STAFF_A.tenantId,
+    }),
     fileName,
     mimeType,
     fileSize: file.size,
