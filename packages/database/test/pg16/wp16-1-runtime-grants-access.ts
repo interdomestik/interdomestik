@@ -2,11 +2,12 @@ import assert from 'node:assert/strict';
 import type postgres from 'postgres';
 import type { inspectReleaseSponsorAcl } from '../../src/release-sponsor-acl';
 import { sponsorCheckpointGrants, sponsorRuntimeRole } from '../../src/release-sponsor-checkpoint';
+import { runSequentially } from '../in-order';
 import { insert, row, TABLES, uid, type Scope } from '../sponsor-seed.test-support';
 import type { ScratchClient } from './scratch-database';
 
-const guards = ['sponsors', 'membership_plans', 'claim_transition_evidence'];
-const selections: Record<string, string | 'all'> = {
+const guards = new Set(['sponsors', 'membership_plans', 'claim_transition_evidence']);
+const selections: Record<string, string> = {
   sponsors: 'id tenant_id branch_id source_lead_id legal_name',
   sponsor_terms: 'all',
   sponsor_term_revisions:
@@ -32,10 +33,36 @@ const updates: Record<string, string> = {
   sponsor_mail_outbox: 'state lease_until attempts next_attempt_at terminal_at last_error_code',
 };
 
-export function proveSponsorRuntimeAcl(
-  acl: Awaited<ReturnType<typeof inspectReleaseSponsorAcl>>,
+type SponsorAcl = Awaited<ReturnType<typeof inspectReleaseSponsorAcl>>;
+
+const compareAclCodes = (a: string, b: string) => a.charCodeAt(0) - b.charCodeAt(0);
+
+function proveColumnAcl(
+  relation: string,
+  column: SponsorAcl[number]['columns'][number],
+  sponsor: boolean,
   owner: string
 ) {
+  const expected = [];
+  const reads = selections[relation];
+  if (reads === 'all' || reads?.split(' ').includes(column.name)) expected.push('SELECT');
+  if (sponsor) expected.push('INSERT');
+  if (updates[relation]?.split(' ').includes(column.name)) expected.push('UPDATE');
+  assert.deepEqual(column.effective, expected, `${relation}.${column.name}`);
+  const codes = expected
+    .map(p => ({ SELECT: 'r', INSERT: 'a', UPDATE: 'w' })[p])
+    .sort(compareAclCodes);
+  if (expected.length) {
+    const direct = column.acl?.match(/interdomestik_runtime_rls=([raw*]+)\/([^,}]+)/u);
+    assert.ok(direct, `${relation}.${column.name} direct ACL`);
+    assert.deepEqual([...direct[1]].sort(compareAclCodes), codes);
+    assert.equal(direct[2], owner);
+  } else {
+    assert.ok(!column.acl?.includes(`${sponsorRuntimeRole}=`));
+  }
+}
+
+export function proveSponsorRuntimeAcl(acl: SponsorAcl, owner: string) {
   const sponsorTables = new Set<string>(TABLES);
   assert.deepEqual(
     new Set(acl.map(table => table.relation)),
@@ -46,23 +73,9 @@ export function proveSponsorRuntimeAcl(
     const sponsor = sponsorTables.has(table.relation);
     if (sponsor) assert.equal(table.forcedRls, true, table.relation);
     for (const column of table.columns) {
-      const expected = [];
-      const reads = selections[table.relation];
-      if (reads === 'all' || reads?.split(' ').includes(column.name)) expected.push('SELECT');
-      if (sponsor) expected.push('INSERT');
-      if (updates[table.relation]?.split(' ').includes(column.name)) expected.push('UPDATE');
-      assert.deepEqual(column.effective, expected, `${table.relation}.${column.name}`);
-      const codes = expected.map(p => ({ SELECT: 'r', INSERT: 'a', UPDATE: 'w' })[p]).sort();
-      if (expected.length) {
-        const direct = column.acl?.match(/interdomestik_runtime_rls=([raw*]+)\/([^,}]+)/u);
-        assert.ok(direct, `${table.relation}.${column.name} direct ACL`);
-        assert.deepEqual([...direct[1]].sort(), codes);
-        assert.equal(direct[2], owner);
-      } else {
-        assert.ok(!column.acl?.includes(`${sponsorRuntimeRole}=`));
-      }
+      proveColumnAcl(table.relation, column, sponsor, owner);
     }
-    if (guards.includes(table.relation)) {
+    if (guards.has(table.relation)) {
       const guard = table.triggers.find(t => t.name === `wp16_${table.relation}_runtime_id_guard`);
       assert.equal(guard?.enabled, 'O');
       assert.match(
@@ -91,7 +104,7 @@ async function asRuntime(
 }
 
 export async function proveSponsorRuntimeDenials(client: ScratchClient, a: Scope, b: Scope) {
-  for (const tenant of [null, b.tenant]) {
+  await runSequentially([null, b.tenant], async tenant => {
     await asRuntime(client, tenant, async tx => {
       const locked = await tx`select id from sponsors where id = ${a.sponsors} for update`;
       assert.equal(locked.length, 0);
@@ -103,7 +116,7 @@ export async function proveSponsorRuntimeDenials(client: ScratchClient, a: Scope
         state('42501')
       );
     });
-  }
+  });
 
   // Read dependencies for the two non-sponsor locks belong to WP-15. This transaction uses
   // scratch-only read ACLs to exercise the 0110 trigger behavior without a release ACL manifest.
@@ -115,11 +128,12 @@ export async function proveSponsorRuntimeDenials(client: ScratchClient, a: Scope
     values (${evidence}, ${a.tenant}, ${claim}, 'human_review', 'reviewed')`;
   await client`grant select (id) on membership_plans, claim_transition_evidence to ${client(sponsorRuntimeRole)}`;
   await asRuntime(client, a.tenant, async tx => {
-    for (const [relation, identifier] of [
+    const guardedRows = [
       ['sponsors', a.sponsors],
       ['membership_plans', a.plan],
       ['claim_transition_evidence', evidence],
-    ]) {
+    ];
+    await runSequentially(guardedRows, async ([relation, identifier]) => {
       const lock = relation === 'membership_plans' ? 'for share' : 'for update';
       const rows =
         await tx`select id from ${tx(relation)} where id = ${identifier} ${tx.unsafe(lock)}`;
@@ -136,7 +150,7 @@ export async function proveSponsorRuntimeDenials(client: ScratchClient, a: Scope
         tx.savepoint(sp => sp`update ${sp(relation)} set id = id where false`),
         state('23514')
       );
-    }
+    });
     const denied = [
       'select billing_contact_email from sponsors',
       'select invoice_reference from sponsor_revision_decisions',
@@ -148,13 +162,13 @@ export async function proveSponsorRuntimeDenials(client: ScratchClient, a: Scope
         `truncate ${relation}`,
       ]),
     ];
-    for (const statement of denied) {
+    await runSequentially(denied, async statement => {
       await assert.rejects(
         tx.savepoint(sp => sp.unsafe(statement)),
         state('42501'),
         statement
       );
-    }
+    });
   });
   await client`alter table sponsors add column future_wp16_test text`;
   await asRuntime(client, a.tenant, async tx => {

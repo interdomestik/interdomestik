@@ -34,7 +34,7 @@ export type CheckpointCheck = {
 export async function inspectSponsorCheckpoint(sql: ReleaseSql): Promise<CheckpointCheck[]> {
   const relations = sponsorCheckpointGrants.map(([table]) => table);
   const columns = sponsorCheckpointGrants.map(([, column]) => column);
-  return sql<CheckpointCheck[]>`
+  return await sql<CheckpointCheck[]>`
     select c.relname as relation, expected.column_name as column,
       has_column_privilege(r.oid, c.oid, expected.column_name, 'UPDATE') as "namedEffective",
       (has_table_privilege(r.oid, c.oid, 'UPDATE')
@@ -69,7 +69,7 @@ export async function inspectSponsorCheckpoint(sql: ReleaseSql): Promise<Checkpo
 export function verifySponsorCheckpoint(checks: CheckpointCheck[], owner: string): void {
   const issues = sponsorCheckpointGrants.flatMap(([relation, column], index) => {
     const row = checks[index];
-    if (!row || row.relation !== relation || row.column !== column)
+    if (row?.relation !== relation || row.column !== column)
       return [`public.${relation}.${column}: catalog row missing`];
     const issues = [];
     if (!row.namedEffective) issues.push('missing named effective UPDATE');
@@ -89,4 +89,23 @@ export function verifySponsorCheckpoint(checks: CheckpointCheck[], owner: string
     return issues.map(issue => `public.${relation}.${column}: ${issue}`);
   });
   if (issues.length) throw new Error(`0105 prerequisites rejected:\n${issues.join('\n')}`);
+}
+
+export async function restoreSponsorCheckpointGrant(
+  sql: ReleaseSql,
+  [table, column]: (typeof sponsorCheckpointGrants)[number],
+  preimage: CheckpointCheck | undefined
+): Promise<void> {
+  if (
+    preimage?.relation !== table ||
+    preimage.column !== column ||
+    preimage.unexpectedEffective ||
+    preimage.direct.length > 1
+  ) {
+    throw new Error('Invalid checkpoint preimage');
+  }
+  if (preimage.direct.length === 0) {
+    await sql`revoke update (${sql(column)}) on public.${sql(table)}
+            from ${sql(sponsorRuntimeRole)} restrict`;
+  }
 }

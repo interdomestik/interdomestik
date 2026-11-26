@@ -194,16 +194,16 @@ export const PINNED_ADAPTERS = Object.freeze({
   'packages/database/test/pg16/journal-migrator.ts':
     '2fca263a0d67cf0b779f76ed6679c71f32ea5cace4e31c6611f4633b995d5ad4',
   'packages/database/test/pg16/wp16-1-runtime-grants-access.ts':
-    'e04d5bbb15a0cca6ad7a205caa6f90fda9315cb4d59eab7c6ff03b9b0fe771f7',
+    'f3aeae7532cc4219eae1f33f3031f1f7dbbd71fb96da844e74967acc9eb4d990',
   'packages/database/test/pg16/wp16-1-runtime-grants-rollback.ts':
-    'b04b6a3f23d7c568f624a0a5296e307c79206375f837eec87b8851626626ea36',
+    '07d75713e75a7cc945c7d2cfc79ff42c5b1135875131f010c0e24d7130fe0c62',
 });
 
 const PINNED_GUARDED = Object.freeze({
   'packages/database/test/pg16/wp16-1-runtime-grants-opt-out.ts':
-    '65fa7da2bd9d0ebc1579a3cc4adda11687e81d553ab17ec9655b8a9668d5d770',
+    '0696b586fb32ff7921edce55a8c8924e3129c78b4070aa0f48e3b5101bd038b0',
   'packages/database/test/pg16/wp16-1-runtime-grants.test-support.ts':
-    'c79400e5d690b468c06a30c5188ba3f583226f78dfde1a5a8836ddb3fbfcae8b',
+    'cad4b93a0e1390b8364756f7050baf18904c142d782455777630663f4dd803c6',
 });
 
 const pinnedCheck = (pins, what) => (entry, source) => {

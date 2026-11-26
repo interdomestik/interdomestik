@@ -11,6 +11,7 @@ import { inspectReleaseRuntime } from './release-runtime-posture';
 import { inspectReleaseSponsorAcl } from './release-sponsor-acl';
 import {
   inspectSponsorCheckpoint,
+  restoreSponsorCheckpointGrant,
   sponsorCheckpointGrants,
   sponsorCheckpointTag,
   sponsorRuntimeRole,
@@ -114,9 +115,34 @@ async function withReleaseLock<T>(
         'Release migration and lock cleanup both failed'
       );
     },
-    async () => reserved.release(),
+    () => Promise.resolve(reserved.release()),
     'Release migration and connection release both failed'
   );
+}
+
+function runSequentially<T>(items: Iterable<T>, run: (item: T) => Promise<void>) {
+  const iterator = items[Symbol.iterator]();
+  function next(): Promise<void> {
+    const item = iterator.next();
+    return item.done ? Promise.resolve() : run(item.value).then(next);
+  }
+  return next();
+}
+
+async function applyFreshReleasePrefix(
+  sql: ReleaseSql,
+  options: Options,
+  session: PgSession,
+  journal: ReturnType<typeof readReleaseJournal>,
+  checkpoint: number
+): Promise<Target> {
+  const existing = await sql`select oid from pg_class
+        where relnamespace = 'public'::regnamespace and relkind in ('r', 'p', 'v', 'm', 'f', 'S')`;
+  if (existing.length) throw new Error('Fresh target has public relations but no applied ledger');
+  await applyReleaseJournal(session, options.migrationsFolder, journal.slice(0, checkpoint));
+  const target = await inspectTarget(sql, options.database, journal);
+  if (target.ledger.length !== checkpoint) throw new Error('Release prefix did not reach 0104');
+  return target;
 }
 
 export async function runSponsorReleaseMigrations(client: OwnerClient, options: Options) {
@@ -130,24 +156,17 @@ export async function runSponsorReleaseMigrations(client: OwnerClient, options: 
     await options.assertClosedTargetAndBaseline(sql, target);
     const applied = target.ledger.length;
     const session = options.createMigrationSession(sql);
+    const recordAcl = async (phase: Parameters<Options['recordAcl']>[0]['phase']) => {
+      await options.recordAcl({ phase, target, acl: await inspectReleaseSponsorAcl(sql) });
+    };
     if (options.path === 'fresh' && applied === 0) {
-      const existing = await sql`select oid from pg_class
-        where relnamespace = 'public'::regnamespace and relkind in ('r', 'p', 'v', 'm', 'f', 'S')`;
-      if (existing.length)
-        throw new Error('Fresh target has public relations but no applied ledger');
-      await applyReleaseJournal(session, options.migrationsFolder, journal.slice(0, checkpoint));
-      target = await inspectTarget(sql, options.database, journal);
-      if (target.ledger.length !== checkpoint) throw new Error('Release prefix did not reach 0104');
+      target = await applyFreshReleasePrefix(sql, options, session, journal, checkpoint);
     } else if (applied < checkpoint || (applied === checkpoint && options.path !== 'fresh')) {
       throw new Error('Ledger is outside the approved checkpoint or forward migration states');
     }
 
     if (target.ledger.length === checkpoint) {
-      await options.recordAcl({
-        phase: 'before-checkpoint',
-        target,
-        acl: await inspectReleaseSponsorAcl(sql),
-      });
+      await recordAcl('before-checkpoint');
       await inReleaseTransaction(sql, async tx => {
         const [{ attemptId }] = await tx<{ attemptId: string }[]>`
           select pg_catalog.pg_current_xact_id()::text as "attemptId"
@@ -159,9 +178,9 @@ export async function runSponsorReleaseMigrations(client: OwnerClient, options: 
           target,
           checks: before,
         });
-        for (const [table, column] of sponsorCheckpointGrants) {
+        await runSequentially(sponsorCheckpointGrants, async ([table, column]) => {
           await tx`grant update (${tx(column)}) on public.${tx(table)} to ${tx(sponsorRuntimeRole)}`;
-        }
+        });
         const checks = await inspectSponsorCheckpoint(tx);
         await options.recordCheckpoint({ phase: 'checkpoint-checked', attemptId, target, checks });
         verifySponsorCheckpoint(checks, target.owner);
@@ -175,22 +194,14 @@ export async function runSponsorReleaseMigrations(client: OwnerClient, options: 
       }
       if (target.ledger.length !== trailing)
         throw new Error('Release ledger is incomplete before sponsor grants');
-      await options.recordAcl({
-        phase: 'before-trailing',
-        target,
-        acl: await inspectReleaseSponsorAcl(sql),
-      });
+      await recordAcl('before-trailing');
       await applyReleaseJournal(session, options.migrationsFolder, journal.slice(0, trailing + 1));
       target = await inspectTarget(sql, options.database, journal);
       if (target.ledger.length !== trailing + 1)
         throw new Error('Sponsor grants migration did not apply');
     }
     if (target.ledger.length === trailing + 1) {
-      await options.recordAcl({
-        phase: 'after-trailing',
-        target,
-        acl: await inspectReleaseSponsorAcl(sql),
-      });
+      await recordAcl('after-trailing');
     }
     if (target.ledger.length < journal.length) {
       await applyReleaseJournal(session, options.migrationsFolder, journal);
@@ -243,11 +254,11 @@ export async function abandonSponsorCheckpoint(
     }
     const priorReversalIds = await options.readReversalIntents(target, before.attemptId);
     let allPriorReversalsAborted = true;
-    for (const reversalId of priorReversalIds) {
+    await runSequentially(priorReversalIds, async reversalId => {
       const status = await releaseTransactionStatus(sql, reversalId);
       if (status === 'committed') throw new Error('Checkpoint attempt was already reversed');
       if (status !== 'aborted') allPriorReversalsAborted = false;
-    }
+    });
     if (!allPriorReversalsAborted) {
       throw new Error('Cannot verify prior checkpoint reversal rollback');
     }
@@ -257,22 +268,9 @@ export async function abandonSponsorCheckpoint(
       if (JSON.stringify(live) !== JSON.stringify(verified.checks)) {
         throw new Error('Current checkpoint ACL differs from the recorded successful attempt');
       }
-      for (const [index, [table, column]] of sponsorCheckpointGrants.entries()) {
-        const preimage = before.checks[index];
-        if (
-          !preimage ||
-          preimage.relation !== table ||
-          preimage.column !== column ||
-          preimage.unexpectedEffective ||
-          preimage.direct.length > 1
-        ) {
-          throw new Error('Invalid checkpoint preimage');
-        }
-        if (preimage.direct.length === 0) {
-          await tx`revoke update (${tx(column)}) on public.${tx(table)}
-            from ${tx(sponsorRuntimeRole)} restrict`;
-        }
-      }
+      await runSequentially(sponsorCheckpointGrants.entries(), ([index, grant]) =>
+        restoreSponsorCheckpointGrant(tx, grant, before.checks[index])
+      );
       const checks = await inspectSponsorCheckpoint(tx);
       if (JSON.stringify(checks) !== JSON.stringify(before.checks)) {
         throw new Error('Abandonment did not restore the recorded checkpoint ACL');

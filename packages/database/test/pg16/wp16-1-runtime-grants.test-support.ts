@@ -25,6 +25,7 @@ import {
   abandonSponsorCheckpoint,
   runSponsorReleaseMigrations,
 } from '../../src/release-sponsor-migrations';
+import { runSequentially } from '../in-order';
 import { scratchServerMissing, withScratchDatabase, type ScratchClient } from './scratch-database';
 import { proveSponsorRuntimeAcl } from './wp16-1-runtime-grants-access';
 
@@ -96,10 +97,10 @@ export async function stageJournal(
   try {
     await applyReleaseJournal(drizzle(sql)._.session, migrationsFolder, journal.slice(0, prefix));
     const grants = path === 'missing' ? sponsorCheckpointGrants.slice(1) : sponsorCheckpointGrants;
-    for (const [table, column] of grants) {
+    await runSequentially(grants, async ([table, column]) => {
       await sql`grant update (${sql(path === 'legacy' ? 'id' : column)})
         on public.${sql(table)} to ${sql(sponsorRuntimeRole)}`;
-    }
+    });
     if (path === 'missing') {
       const [role] = await sql<{ owner: string }[]>`select current_user as owner`;
       const checks = await inspectSponsorCheckpoint(sql);

@@ -158,7 +158,8 @@ export async function proveSponsorOptOut(
             };
             let attempt: ReturnType<typeof optOutByToken> | undefined;
             await owner.begin(async tx => {
-              await tx`select pg_advisory_xact_lock(hashtext(${`sponsor-entry:${newEntry.email_hmac}`}))`;
+              const lockKey = `sponsor-entry:${newEntry.email_hmac}`;
+              await tx`select pg_advisory_xact_lock(hashtext(${lockKey}))`;
               attempt = optOutByToken(changedToken, new Date(MID));
               await Promise.race([
                 waitForLock,

@@ -9,10 +9,34 @@ import {
 } from '../../src/release-journal-ledger';
 import { inspectReleaseSponsorAcl } from '../../src/release-sponsor-acl';
 import { sponsorRuntimeRole } from '../../src/release-sponsor-checkpoint';
+import { runSequentially } from '../in-order';
 import { quoteIdentifier } from '../rls-test-connection';
 import type { ScratchClient } from './scratch-database';
 
 type Acl = Awaited<ReturnType<typeof inspectReleaseSponsorAcl>>;
+
+function columnRollbackStatements(
+  table: Acl[number],
+  migrated: Acl[number],
+  quoted: string,
+  runtime: string
+): string[] {
+  const statements = [];
+  for (const [position, column] of table.columns.entries()) {
+    const effective = migrated.columns[position].effective;
+    const name = quoteIdentifier(column.name);
+    for (const addition of effective.filter(p => !column.effective.includes(p))) {
+      statements.push(`REVOKE ${addition} (${name}) ON ${quoted} FROM ${runtime} RESTRICT`);
+    }
+    for (const removal of column.effective.filter(p => !effective.includes(p))) {
+      // The scratch preimage records only direct owner grants with no grant option.
+      assert.equal(removal, 'UPDATE');
+      assert.match(column.acl ?? '', /interdomestik_runtime_rls=w\//u);
+      statements.push(`GRANT UPDATE (${name}) ON ${quoted} TO ${runtime}`);
+    }
+  }
+  return statements;
+}
 
 export async function proveForwardAclRollback(
   client: ScratchClient,
@@ -28,19 +52,7 @@ export async function proveForwardAclRollback(
     assert.equal(table.relation, migrated.relation);
     assert.deepEqual(table.effectiveTable, migrated.effectiveTable);
     const quoted = `public.${quoteIdentifier(table.relation)}`;
-    for (const [position, column] of table.columns.entries()) {
-      const effective = migrated.columns[position].effective;
-      const name = quoteIdentifier(column.name);
-      for (const addition of effective.filter(p => !column.effective.includes(p))) {
-        statements.push(`REVOKE ${addition} (${name}) ON ${quoted} FROM ${runtime} RESTRICT`);
-      }
-      for (const removal of column.effective.filter(p => !effective.includes(p))) {
-        // The scratch preimage records only direct owner grants with no grant option.
-        assert.equal(removal, 'UPDATE');
-        assert.match(column.acl ?? '', /interdomestik_runtime_rls=w\//u);
-        statements.push(`GRANT UPDATE (${name}) ON ${quoted} TO ${runtime}`);
-      }
-    }
+    statements.push(...columnRollbackStatements(table, migrated, quoted, runtime));
     for (const trigger of migrated.triggers.filter(
       t => !table.triggers.some(x => x.name === t.name)
     )) {
@@ -94,11 +106,11 @@ export async function proveForwardAclRollback(
   }
   await client.begin(async tx => {
     await tx`set local role ${tx(sponsorRuntimeRole)}`;
-    for (const relation of ['membership_plans', 'claim_transition_evidence']) {
+    await runSequentially(['membership_plans', 'claim_transition_evidence'], async relation => {
       await assert.rejects(
         tx.savepoint(sp => sp`update ${sp(relation)} set id = 'unused-wp16-id' where false`),
         (error: unknown) => (error as { code?: string }).code === '23514'
       );
-    }
+    });
   });
 }

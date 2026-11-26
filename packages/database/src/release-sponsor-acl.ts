@@ -20,7 +20,7 @@ const relations = [
 ];
 
 export async function inspectReleaseSponsorAcl(sql: ReleaseSql) {
-  return sql<
+  return await sql<
     {
       relation: string;
       forcedRls: boolean;

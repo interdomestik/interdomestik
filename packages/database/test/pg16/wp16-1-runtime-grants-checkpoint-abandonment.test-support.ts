@@ -6,6 +6,7 @@ import {
   abandonSponsorCheckpoint,
   runSponsorReleaseMigrations,
 } from '../../src/release-sponsor-migrations';
+import { runSequentially } from '../in-order';
 import {
   migrationCause,
   scratchOptions,
@@ -34,12 +35,12 @@ export async function testCheckpointAbandonment(
         );
         await client`grant update ("updatedAt") on public.claim to ${client(sponsorRuntimeRole)}`;
         await client`create table public.notification_deliveries (test_blocker int)`;
-        for (let attempt = 0; attempt < 2; attempt += 1) {
+        await runSequentially([0, 1], async () => {
           await assert.rejects(
             runSponsorReleaseMigrations(client, options),
             (error: unknown) => migrationCause(error)?.code === '42P07'
           );
-        }
+        });
         const [abortedBefore, abortedChecked, before, verified, retryBefore, retryChecked] =
           checkpoint;
         assert.equal(before.attemptId, verified.attemptId);
