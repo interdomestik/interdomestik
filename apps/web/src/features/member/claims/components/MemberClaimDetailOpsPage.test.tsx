@@ -129,13 +129,16 @@ async function expectMessageScroll(
     removeEventListener: vi.fn(), dispatchEvent: vi.fn(),
   })) as typeof window.matchMedia;
   Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView });
+  const log = vi.spyOn(console, 'log').mockImplementation(() => undefined);
   try {
     renderPage(overrides);
     await user.click(screen.getByRole('button', { name: 'Send message' }));
+    expect(log).not.toHaveBeenCalled();
     expect(window.matchMedia).toHaveBeenCalledWith('(prefers-reduced-motion: reduce)');
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior, block: 'start' });
     expect(screen.getByTestId('member-claim-detail-messaging')).toHaveFocus();
   } finally {
+    log.mockRestore();
     restoreProperty(window, 'matchMedia', mediaDescriptor);
     restoreProperty(HTMLElement.prototype, 'scrollIntoView', scrollDescriptor);
   }
@@ -228,7 +231,14 @@ describe('MemberClaimDetailOpsPage', () => {
       expect(within(timeline[index]).getByText(note)).toBeInTheDocument();
     });
     expect(timeline[0].compareDocumentPosition(timeline[1])).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
-    expect(screen.getByTestId('member-claim-trust-sla-support-link')).toHaveAttribute('href', supportHref);
+    const support = screen.getByTestId('member-claim-trust-sla-support-link');
+    expect(support).toHaveAttribute('href', supportHref);
+    expect(support).toHaveAccessibleName('Contact support');
+    expect(support).toHaveClass('min-h-11');
+    expect(within(screen.getByRole('complementary', { name: 'History' })).getByTestId('ops-timeline'))
+      .toBeInTheDocument();
+    expect(within(screen.getByRole('region', { name: 'Evidence' })).getByTestId('ops-documents-panel'))
+      .toBeInTheDocument();
     expect(screen.getAllByTestId('ops-document-row')).toHaveLength(1);
     const uploads = screen.getAllByTestId('claim-evidence-upload-dialog');
     expect(uploads).toHaveLength(2);

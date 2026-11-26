@@ -229,7 +229,9 @@
         "progress": "Напредок",
         "evidence": "Докази",
         "history": "Хронологија",
-        "messages": "Пораки"
+        "messages": "Пораки",
+        "referenceLabel": "Референца",
+        "statusLabel": "Статус"
       },
       "caseDetails": "Детали за случајот",
       "description": "Опис",
@@ -238,6 +240,7 @@
       "evidence": "Приложени докази",
       "documentsEmpty": "Сè уште нема прикачени документи",
       "viewDocument": "Отвори",
+      "documentUploaded": "Прикачено на",
       "progress": {
         "title": "Преглед на напредокот",
         "currentState": "Тековна состојба",

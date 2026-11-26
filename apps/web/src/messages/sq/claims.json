@@ -229,7 +229,9 @@
         "progress": "Ecuria",
         "evidence": "Dëshmitë",
         "history": "Kronologjia",
-        "messages": "Mesazhet"
+        "messages": "Mesazhet",
+        "referenceLabel": "Referenca",
+        "statusLabel": "Statusi"
       },
       "caseDetails": "Detajet e Rastit",
       "description": "Përshkrimi",
@@ -238,6 +240,7 @@
       "evidence": "Dëshmi të bashkëngjitura",
       "documentsEmpty": "Ende nuk ka dokumente të ngarkuara",
       "viewDocument": "Shiko",
+      "documentUploaded": "Ngarkuar më",
       "progress": {
         "title": "Përmbledhje e progresit",
         "currentState": "Gjendja aktuale",

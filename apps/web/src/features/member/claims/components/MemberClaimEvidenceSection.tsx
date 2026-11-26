@@ -1,12 +1,13 @@
 'use client';
 
-import { OpsDocumentsPanel } from '@/components/ops';
 import { toOpsDocuments } from '@/components/ops/adapters/claims';
 import { Button } from '@interdomestik/ui';
 import { Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import type { MemberClaimDetailOpsClaim } from './member-claim-detail-types';
 import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
+import { MemberClaimDocumentsList } from './member-claim-documents-list';
+import { DETAIL_BUTTON } from './member-claim-detail-styles';
 import { MemberVaultConsentCard } from './MemberVaultConsentCard';
 
 interface MemberClaimEvidenceSectionProps {
@@ -19,24 +20,19 @@ export function MemberClaimEvidenceSection({
   claimId,
   documents,
   vaultConsentDisplay,
-}: MemberClaimEvidenceSectionProps) {
+}: Readonly<MemberClaimEvidenceSectionProps>) {
   const t = useTranslations('claims');
   return (
     <div className="min-w-0 space-y-4">
       <MemberVaultConsentCard display={vaultConsentDisplay} />
-      {/* Members read this detail at 320 CSS px, so the nowrap upload action wraps under the title. */}
-      <OpsDocumentsPanel
-        title={t('detail.evidence')}
+      <MemberClaimDocumentsList
         documents={toOpsDocuments(documents)}
-        emptyLabel={t('detail.documentsEmpty')}
-        viewLabel={t('detail.viewDocument')}
-        headerLayout="wrap"
-        headerActions={
+        uploadAction={
           <ClaimEvidenceUploadDialog
             claimId={claimId}
             trigger={
-              <Button size="sm" variant="outline" className="h-11 sm:h-9">
-                <Upload className="mr-2 h-4 w-4" aria-hidden="true" />
+              <Button className={DETAIL_BUTTON} variant="outline">
+                <Upload aria-hidden="true" className="size-4 shrink-0" />
                 {t('claimsPro.actions.uploadEvidence')}
               </Button>
             }

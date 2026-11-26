@@ -229,7 +229,9 @@
         "progress": "Napredak",
         "evidence": "Dokazi",
         "history": "Hronologija",
-        "messages": "Poruke"
+        "messages": "Poruke",
+        "referenceLabel": "Referenca",
+        "statusLabel": "Stanje"
       },
       "caseDetails": "Detalji Slučaja",
       "description": "Opis",
@@ -238,6 +240,7 @@
       "evidence": "Priloženi Dokazi",
       "documentsEmpty": "Još nema otpremljenih dokumenata",
       "viewDocument": "Otvori",
+      "documentUploaded": "Otpremljeno",
       "progress": {
         "title": "Pregled napretka",
         "currentState": "Trenutno stanje",

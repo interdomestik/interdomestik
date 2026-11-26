@@ -1,13 +1,20 @@
 'use client';
 
-import { OpsStatusBadge } from '@/components/ops';
-import { toOpsStatus, type OpsActionConfig } from '@/components/ops/adapters/claims';
+import { caseSummaryStatusPillClass } from '@/components/dashboard/case-summary/accident-case-summary';
+import type { OpsActionConfig } from '@/components/ops/adapters/claims';
 import { Link } from '@/i18n/routing';
-import { Button, Card, CardContent } from '@interdomestik/ui';
+import { Button } from '@interdomestik/ui';
 import { ArrowLeft, Upload } from 'lucide-react';
 import { useTranslations } from 'next-intl';
 import { ClaimEvidenceUploadDialog } from './ClaimEvidenceUploadDialog';
 import type { MemberClaimDetailOpsClaim } from './member-claim-detail-types';
+import {
+  DETAIL_BUTTON,
+  DETAIL_CARD,
+  DETAIL_DIVIDER,
+  DETAIL_QUIET_LINK,
+  DETAIL_TERM,
+} from './member-claim-detail-styles';
 
 export const MEMBER_CLAIM_DETAIL_SECTION_IDS = Object.freeze({
   progress: 'member-claim-detail-progress',
@@ -36,7 +43,6 @@ export function MemberClaimDetailHeader({
   secondaryActions,
 }: Readonly<MemberClaimDetailHeaderProps>) {
   const t = useTranslations('claims.detail.continuity');
-  const statusPresentation = toOpsStatus(status);
   // Section links follow the task-first page reading order.
   const sectionLinks = [
     { id: MEMBER_CLAIM_DETAIL_SECTION_IDS.progress, label: t('progress') },
@@ -46,94 +52,93 @@ export function MemberClaimDetailHeader({
   ];
 
   return (
-    <Card className="min-w-0 border-border/70 bg-card shadow-sm">
-      <CardContent className="min-w-0 p-5 sm:p-6">
-        <header className="min-w-0">
-          <Link
-            href="/member"
-            className="inline-flex min-h-11 items-center gap-2 rounded-md text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-          >
-            <ArrowLeft
-              aria-hidden="true"
-              className="size-4 shrink-0"
-              data-testid="member-claim-back-icon"
-            />
-            {t('backToWorkspace')}
-          </Link>
+    <div className={`${DETAIL_CARD} space-y-5`}>
+      <header className="min-w-0 space-y-5">
+        <Link href="/member" className={DETAIL_QUIET_LINK}>
+          <ArrowLeft
+            aria-hidden="true"
+            className="size-4 shrink-0"
+            data-testid="member-claim-back-icon"
+          />
+          {t('backToWorkspace')}
+        </Link>
 
-          <div className="mt-5 flex min-w-0 flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-            <div className="min-w-0">
-              <p className="text-xs font-semibold uppercase tracking-[0.16em] text-muted-foreground">
-                {t('caseLabel')}
-              </p>
-              <h1 className="mt-1 break-words text-2xl font-bold tracking-tight sm:text-3xl">
-                {title}
-              </h1>
-              <div className="mt-3 flex min-w-0 flex-wrap items-center gap-2">
-                <span className="min-w-0 break-all text-sm text-muted-foreground">{claimId}</span>
-                <OpsStatusBadge {...statusPresentation} label={localizedStatusLabel} />
+        <div className="flex min-w-0 flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+          <div className="min-w-0 space-y-3">
+            <div className="space-y-1">
+              <p className={DETAIL_TERM}>{t('caseLabel')}</p>
+              <h1 className="break-words text-2xl font-bold tracking-tight sm:text-3xl">{title}</h1>
+            </div>
+            <dl className="flex min-w-0 flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+              <div className="flex min-w-0 flex-wrap items-baseline gap-x-2">
+                <dt className="text-foreground/70">{t('referenceLabel')}</dt>
+                <dd className="min-w-0 break-all font-medium">{claimId}</dd>
               </div>
-            </div>
-
-            <div className="flex w-full flex-wrap gap-2 lg:w-auto lg:justify-end">
-              {uploadAction && uploadAction.visible !== false ? (
-                <ClaimEvidenceUploadDialog
-                  claimId={claimId}
-                  trigger={
-                    <Button
-                      className="h-auto min-h-11 whitespace-normal"
-                      data-testid={uploadAction.testId}
-                      disabled={uploadAction.disabled}
-                      size="sm"
-                      title={uploadAction.disabledReason}
-                      variant={uploadAction.variant ?? 'default'}
-                    >
-                      <Upload
-                        aria-hidden="true"
-                        className="size-4 shrink-0"
-                        data-testid="member-claim-upload-icon"
-                      />
-                      {uploadAction.label}
-                    </Button>
-                  }
-                />
-              ) : null}
-              {secondaryActions
-                .filter(action => action.visible !== false)
-                .map(action => (
-                  <Button
-                    key={action.id}
-                    className="h-auto min-h-11 whitespace-normal"
-                    data-testid={action.testId}
-                    disabled={action.disabled}
-                    onClick={action.onClick}
-                    size="sm"
-                    title={action.disabledReason}
-                    variant={action.variant ?? 'outline'}
-                  >
-                    {action.icon}
-                    {action.label}
-                  </Button>
-                ))}
-            </div>
+              <div className="flex min-w-0 flex-wrap items-center gap-x-2">
+                <dt className="sr-only">{t('statusLabel')}</dt>
+                <dd className={caseSummaryStatusPillClass(status)} data-testid="ops-status-badge">
+                  {localizedStatusLabel}
+                </dd>
+              </div>
+            </dl>
           </div>
-        </header>
 
-        <nav aria-label={t('sectionNavigation')} className="mt-6 border-t border-border/70 pt-4">
-          <ul className="flex flex-wrap gap-x-5 gap-y-1">
-            {sectionLinks.map(section => (
-              <li key={section.id}>
-                <a
-                  href={`#${section.id}`}
-                  className="inline-flex min-h-11 items-center rounded-md text-sm font-medium text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+          <div className="flex w-full flex-wrap gap-2 lg:w-auto lg:justify-end">
+            {uploadAction && uploadAction.visible !== false ? (
+              <ClaimEvidenceUploadDialog
+                claimId={claimId}
+                trigger={
+                  <Button
+                    className={DETAIL_BUTTON}
+                    data-testid={uploadAction.testId}
+                    disabled={uploadAction.disabled}
+                    title={uploadAction.disabledReason}
+                    variant={uploadAction.variant ?? 'default'}
+                  >
+                    <Upload
+                      aria-hidden="true"
+                      className="size-4 shrink-0"
+                      data-testid="member-claim-upload-icon"
+                    />
+                    {uploadAction.label}
+                  </Button>
+                }
+              />
+            ) : null}
+            {secondaryActions
+              .filter(action => action.visible !== false)
+              .map(action => (
+                <Button
+                  key={action.id}
+                  className={DETAIL_BUTTON}
+                  data-testid={action.testId}
+                  disabled={action.disabled}
+                  onClick={action.onClick}
+                  title={action.disabledReason}
+                  variant={action.variant ?? 'outline'}
                 >
-                  {section.label}
-                </a>
-              </li>
-            ))}
-          </ul>
-        </nav>
-      </CardContent>
-    </Card>
+                  {action.icon}
+                  {action.label}
+                </Button>
+              ))}
+          </div>
+        </div>
+      </header>
+
+      <nav aria-label={t('sectionNavigation')} className={DETAIL_DIVIDER}>
+        <ul className="flex flex-wrap gap-2">
+          {sectionLinks.map(section => (
+            <li key={section.id}>
+              <a
+                href={`#${section.id}`}
+                className="inline-flex min-h-11 items-center rounded-xl border border-[hsl(var(--border-strong))] px-4 text-sm font-semibold hover:bg-[hsl(var(--surface-strong))] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 forced-colors:border-[CanvasText] forced-colors:focus-visible:outline"
+              >
+                {section.label}
+              </a>
+            </li>
+          ))}
+        </ul>
+      </nav>
+    </div>
   );
 }

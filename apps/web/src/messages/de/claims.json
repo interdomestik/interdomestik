@@ -218,7 +218,9 @@
         "progress": "Fortschritt",
         "evidence": "Nachweise",
         "history": "Verlauf",
-        "messages": "Nachrichten"
+        "messages": "Nachrichten",
+        "referenceLabel": "Referenz",
+        "statusLabel": "Status"
       },
       "caseDetails": "Falldetails",
       "description": "Beschreibung",
@@ -227,6 +229,7 @@
       "evidence": "Beigefügte Nachweise",
       "documentsEmpty": "Noch keine Dokumente hochgeladen",
       "viewDocument": "Ansehen",
+      "documentUploaded": "Hochgeladen am",
       "progress": {
         "title": "Fortschrittsübersicht",
         "currentState": "Aktueller Stand",
