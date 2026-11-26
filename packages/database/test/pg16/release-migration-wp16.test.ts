@@ -45,7 +45,7 @@ test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidenc
       'fresh target supplies missing 0105 grants at the verified checkpoint',
       async t => {
         await withReleaseDatabase(
-          'release_wp16_fresh',
+          'interdomestik_admin_config_wp16_fresh',
           { t, dir: folder, registry: policy },
           async (client, fixture) => {
             const { manifest, records } = await expand(fixture);
@@ -78,7 +78,7 @@ test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidenc
 
     await t.test('forward target retains the ACL on both sides of 0110', async t => {
       await withReleaseDatabase(
-        'release_wp16_forward',
+        'interdomestik_admin_config_wp16_forward',
         { t, dir: folder, registry: policy, prepare: runner => stageJournal(runner, 'legacy') },
         async (client, fixture) => {
           const { manifest, records, before, after, trailing } = await expand(fixture);
@@ -111,7 +111,7 @@ test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidenc
       'an overbroad grant makes the checkpoint refuse and preserves the prefix',
       async t => {
         await withReleaseDatabase(
-          'release_wp16_refusal',
+          'interdomestik_admin_config_wp16_refusal',
           {
             t,
             dir: folder,
