@@ -35,14 +35,25 @@ async function readWithMemberScope<T>(
   );
 }
 
+/** The used slice of the domain-documents `./claim-evidence` export, loaded at runtime. */
+type MemberVaultEvidenceModule = {
+  readCurrentMemberVaultEvidence(
+    database: unknown,
+    tenantId: string,
+    claimId: string,
+    viewerId: string
+  ): Promise<Array<{ id: string; createdAt: unknown }>>;
+};
+
 export async function proveVaultRace(connections: Connection) {
   const { admin, runtime, peer } = connections;
   const claim = await enrolledCase(admin);
   const stale = await approve(connections, claim, 'intended-for-member');
   assert.equal(await attest(admin, stale), true);
-  const { readCurrentMemberVaultEvidence } = await importDomain<
-    typeof import('@interdomestik/domain-documents/claim-evidence')
-  >('/claim-evidence', 'domain-documents');
+  const { readCurrentMemberVaultEvidence } = await importDomain<MemberVaultEvidenceModule>(
+    '/claim-evidence',
+    'domain-documents'
+  );
   // Hold the former owner's real read transaction open after its first query.
   await readWithMemberScope(peer, ownerA, async former => {
     const [first] = await former.execute<{ id: string }>(sql`
