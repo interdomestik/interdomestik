@@ -8,7 +8,7 @@ Declares the schema (46 schema files, 99 `pgTable` calls — MEASURED, `rg -c 'p
 
 The seed runner uses the internal `src/seed-receipt.ts` module to build and print receipts. The module uses no database client.
 
-The WP-16.1 release journal path splits the owner migration run at `0104_wp07_rate_verification_age` to verify the ten direct column grants required by migration 0105. Checkpoint evidence carries the PostgreSQL transaction ID, which abandonment checks for a matching committed attempt. The runner records the ACL and guards at the verified journal boundaries immediately before and after migration `0110`, which owns the sponsor runtime ACL, legacy ID-grant reconciliation, and the three runtime ID-update guards. Journal parity exercises the release path on a disposable PostgreSQL 16 database.
+The WP-16.1 release journal path splits the owner migration run at `0104_wp07_rate_verification_age` to verify the ten direct column grants required by migration 0105. Abandonment verifies the original checkpoint transaction and reads the durable release evidence under the same target lock. A reversal's own committed transaction consumes the original attempt, and the runner publishes the reversal receipt after commit. The runner records the ACL and guards at the verified journal boundaries immediately before and after migration `0110`, which owns the sponsor runtime ACL, legacy ID-grant reconciliation, and the three runtime ID-update guards. Journal parity exercises the release path on a disposable PostgreSQL 16 database.
 
 ## Public API
 

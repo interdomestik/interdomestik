@@ -27,11 +27,13 @@ type Target = {
   posture: Awaited<ReturnType<typeof inspectReleaseRuntime>>;
 };
 type CheckpointEvidence = {
-  phase: 'before-checkpoint' | 'checkpoint-checked' | 'checkpoint-reversed';
   attemptId: string;
   target: Target;
   checks: CheckpointCheck[];
-};
+} & (
+  | { phase: 'before-checkpoint' | 'checkpoint-checked' }
+  | { phase: 'checkpoint-reversal-pending' | 'checkpoint-reversed'; reversalId: string }
+);
 
 type OwnerClient = Pick<ReleaseSql, 'reserve' | 'options'>;
 
@@ -50,6 +52,13 @@ type Options = {
     acl: Awaited<ReturnType<typeof inspectReleaseSponsorAcl>>;
   }) => Promise<void>;
   attestFinal: (sql: ReleaseSql, target: Target) => Promise<void>;
+};
+type AbandonOptions = Pick<
+  Options,
+  'migrationsFolder' | 'database' | 'assertClosedTargetAndBaseline' | 'recordCheckpoint'
+> & {
+  // Read the latest durable pending reversal ID for this target and grant attempt, or null if absent.
+  readReversalIntent: (target: Target, attemptId: string) => Promise<string | null>;
 };
 
 async function inspectTarget(
@@ -192,13 +201,17 @@ export async function runSponsorReleaseMigrations(client: OwnerClient, options: 
   });
 }
 
+async function releaseTransactionStatus(sql: ReleaseSql, transactionId: string) {
+  const [transaction] = await sql<{ status: string | null }[]>`
+    select pg_catalog.pg_xact_status(${transactionId}::text::pg_catalog.xid8) as status
+  `;
+  return transaction?.status;
+}
+
 /** R-12 permits only the additions recorded for the abandoned attempt, while still at 0104. */
 export async function abandonSponsorCheckpoint(
   client: OwnerClient,
-  options: Pick<
-    Options,
-    'migrationsFolder' | 'database' | 'assertClosedTargetAndBaseline' | 'recordCheckpoint'
-  >,
+  options: AbandonOptions,
   attempt: { before: CheckpointEvidence; verified: CheckpointEvidence }
 ) {
   const journal = readReleaseJournal(options.migrationsFolder);
@@ -224,14 +237,17 @@ export async function abandonSponsorCheckpoint(
     )
       throw new Error('Abandonment requires the recorded attempt and its verified 0104 ledger');
     // The evidence sink can retain records even if the grant transaction rolled back.
-    const [transaction] = await sql<{ status: string | null }[]>`
-      select pg_catalog.pg_xact_status(${before.attemptId}::text::pg_catalog.xid8) as status
-    `;
-    if (transaction?.status !== 'committed') {
+    if ((await releaseTransactionStatus(sql, before.attemptId)) !== 'committed') {
       throw new Error('Abandonment requires a committed checkpoint attempt');
     }
+    const priorReversalId = await options.readReversalIntent(target, before.attemptId);
+    if (priorReversalId !== null) {
+      const status = await releaseTransactionStatus(sql, priorReversalId);
+      if (status === 'committed') throw new Error('Checkpoint attempt was already reversed');
+      if (status !== 'aborted') throw new Error('Cannot verify prior checkpoint reversal rollback');
+    }
     verifySponsorCheckpoint(verified.checks, target.owner);
-    await inReleaseTransaction(sql, async tx => {
+    const receipt = await inReleaseTransaction(sql, async tx => {
       const live = await inspectSponsorCheckpoint(tx);
       if (JSON.stringify(live) !== JSON.stringify(verified.checks)) {
         throw new Error('Current checkpoint ACL differs from the recorded successful attempt');
@@ -256,12 +272,20 @@ export async function abandonSponsorCheckpoint(
       if (JSON.stringify(checks) !== JSON.stringify(before.checks)) {
         throw new Error('Abandonment did not restore the recorded checkpoint ACL');
       }
-      await options.recordCheckpoint({
-        phase: 'checkpoint-reversed',
-        attemptId: before.attemptId,
-        target,
-        checks,
-      });
+      const [{ reversalId }] = await tx<{ reversalId: string }[]>`
+        select pg_catalog.pg_current_xact_id()::text as "reversalId"
+      `;
+      const receipt = { attemptId: before.attemptId, reversalId, target, checks };
+      // A committed intent consumes the attempt even if publishing its receipt fails.
+      await options.recordCheckpoint({ phase: 'checkpoint-reversal-pending', ...receipt });
+      if ((await options.readReversalIntent(target, before.attemptId)) !== reversalId) {
+        throw new Error('Checkpoint reversal intent was not durably recorded');
+      }
+      return receipt;
     });
+    if ((await releaseTransactionStatus(sql, receipt.reversalId)) !== 'committed') {
+      throw new Error('Cannot verify checkpoint reversal commit');
+    }
+    await options.recordCheckpoint({ phase: 'checkpoint-reversed', ...receipt });
   });
 }
