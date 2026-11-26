@@ -22,6 +22,7 @@ import {
   verificationKey,
   verifyDrainReceipt,
 } from './proof.mjs';
+import { sponsorEvidence } from './sponsor-evidence.mjs';
 
 const CHECKOUT = new URL('../../../', import.meta.url);
 const POLICY_ROOT = fileURLToPath(CHECKOUT);
@@ -117,6 +118,40 @@ async function runWithAdminConnection(env, config, journal, request, scratch) {
   return result;
 }
 
+function addManifestPlanAndApproval(
+  request,
+  { env, runnerRoot, config, context, scratch, receipt }
+) {
+  const manifestBytes = readBytes(runnerRoot, env.RELEASE_PHASE_MANIFEST, 'MANIFEST');
+  const manifest = readObject(manifestBytes, 'MANIFEST');
+  if (!Object.keys(context).every(key => manifest[key] === context[key]) || !object(manifest.plan))
+    throw new Error('MANIFEST_PLAN_MISMATCH');
+  request.plan = manifest.plan;
+  if (request.mode === 'contract') {
+    if (!matches(HEX, env.RELEASE_PHASE_ATTEMPT)) throw new Error('ATTEMPT_INVALID');
+    const approval = verifyDrainReceipt(receipt, {
+      environment: config.environment,
+      manifestSha256: digest(manifestBytes),
+      attempt: env.RELEASE_PHASE_ATTEMPT,
+    });
+    request.approval = {
+      ...approval,
+      verifyLive: () =>
+        verifyDeployment(
+          approval.deployment,
+          manifest,
+          config,
+          scratch
+            ? readObject(
+                readBytes(runnerRoot, env.RELEASE_PHASE_TEST_DEPLOYMENT, 'FIXTURE'),
+                'FIXTURE'
+              )
+            : null
+        ),
+    };
+  }
+}
+
 async function main() {
   const env = process.env;
   const [folder, mode = 'expand', ...extra] = process.argv.slice(2);
@@ -158,43 +193,29 @@ async function main() {
     throw new Error('CANDIDATE_PIN_MISMATCH');
   const context = { version: 1, environment: config.environment, commitSha: config.commitSha };
 
-  let request = { mode };
+  const request = { mode };
+  const evidence =
+    mode === 'expand' &&
+    sponsorEvidence(runnerRoot, config.attemptDirectory, {
+      ...context,
+      journalSha256: journal.journalSha256,
+      ledgerSha256: journal.ledgerSha256,
+      backendMarkerSha256: config.backendMarkerSha256,
+    });
+  if (evidence) {
+    request.sponsor = {
+      baselineAclSha256: config.sponsorBaselineAclSha256,
+      finalAclSha256: config.sponsorFinalAclSha256,
+      record: evidence.record,
+    };
+  }
   if (mode !== 'expand') {
-    const manifestBytes = readBytes(runnerRoot, env.RELEASE_PHASE_MANIFEST, 'MANIFEST');
-    const manifest = readObject(manifestBytes, 'MANIFEST');
-    if (
-      !Object.keys(context).every(key => manifest[key] === context[key]) ||
-      !object(manifest.plan)
-    )
-      throw new Error('MANIFEST_PLAN_MISMATCH');
-    request.plan = manifest.plan;
-    if (mode === 'contract') {
-      if (!matches(HEX, env.RELEASE_PHASE_ATTEMPT)) throw new Error('ATTEMPT_INVALID');
-      const approval = verifyDrainReceipt(receipt, {
-        environment: config.environment,
-        manifestSha256: digest(manifestBytes),
-        attempt: env.RELEASE_PHASE_ATTEMPT,
-      });
-      request.approval = {
-        ...approval,
-        verifyLive: () =>
-          verifyDeployment(
-            approval.deployment,
-            manifest,
-            config,
-            scratch
-              ? readObject(
-                  readBytes(runnerRoot, env.RELEASE_PHASE_TEST_DEPLOYMENT, 'FIXTURE'),
-                  'FIXTURE'
-                )
-              : null
-          ),
-      };
-    }
+    addManifestPlanAndApproval(request, { env, runnerRoot, config, context, scratch, receipt });
   }
 
   const result = await runWithAdminConnection(env, config, journal, request, scratch);
-  return { ...context, ...result };
+  const reference = evidence && evidence.reference();
+  return { ...context, ...result, ...(reference && { sponsorEvidence: reference }) };
 }
 
 try {
