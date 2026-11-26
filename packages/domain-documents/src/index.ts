@@ -6,6 +6,7 @@
 
 // Storage utilities
 export {
+  allocateStoragePath,
   buildStoragePath,
   buildStorageUrl,
   extractTenantFromPath,
@@ -13,6 +14,7 @@ export {
   validateTenantOwnership,
   type StorageAuditContext,
   type StorageOperation,
+  type StoragePathAllocation,
 } from './storage';
 
 // Upload operations

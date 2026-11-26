@@ -12,6 +12,11 @@
       "migration": "0034_invoice_append_only_ledger_invariants"
     },
     {
+      "key": "check [\"public\",\"claim_documents\",\"claim_documents_file_path_canonical_ck\"]",
+      "value": "(((file_path COLLATE \"C\") ~ '^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$'::text) AND ((file_path COLLATE \"C\") !~ '(^|/)[.](/|$)'::text) AND ((file_path COLLATE \"C\") !~ '[.][.]'::text))",
+      "migration": "0110_storage_path_canonical"
+    },
+    {
       "key": "check [\"public\",\"claim_recovery_no_fee_evidence\",\"claim_recovery_no_fee_evidence_reason_code_check\"]",
       "value": "(reason_code = ANY (ARRAY['no_recovery'::text, 'not_billable_under_recovery_scope'::text]))",
       "migration": "0084_claim_recovery_no_fee_evidence"
@@ -25,6 +30,11 @@
       "key": "check [\"public\",\"claim_transition_evidence\",\"claim_transition_evidence_type_check\"]",
       "value": "(evidence_type = ANY (ARRAY['assignment_signed'::text, 'poa_signed'::text, 'airline_submission_consent'::text, 'vehicle_valuation_delta'::text, 'service_consent'::text, 'medical_consent'::text, 'human_review'::text]))",
       "migration": "0090_t002b_claim_transition_evidence"
+    },
+    {
+      "key": "check [\"public\",\"documents\",\"documents_storage_path_canonical_ck\"]",
+      "value": "(((storage_path COLLATE \"C\") ~ '^[A-Za-z0-9._-]+(/[A-Za-z0-9._-]+)*$'::text) AND ((storage_path COLLATE \"C\") !~ '(^|/)[.](/|$)'::text) AND ((storage_path COLLATE \"C\") !~ '[.][.]'::text))",
+      "migration": "0110_storage_path_canonical"
     },
     {
       "key": "exclusion [\"public\",\"sponsor_terms\",\"sponsor_terms_no_overlap\"]",

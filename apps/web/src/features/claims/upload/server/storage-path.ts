@@ -182,7 +182,9 @@ export function buildEvidenceStoragePath(params: BuildEvidenceStoragePathParams)
 
   const claimId = assertSafeSegment('claimId', params.claimId);
   const extension = sanitizeAssignedExtension(params.fileName);
-  return `${STORAGE_PREFIX[0]}/${STORAGE_PREFIX[1]}/${tenantId}/${CLAIMS_SEGMENT}/${claimId}/${fileId}.${extension}`;
+  const fileName = `${fileId}.${extension}`;
+  assertSafeGeneratedFileName(fileName);
+  return `${STORAGE_PREFIX[0]}/${STORAGE_PREFIX[1]}/${tenantId}/${CLAIMS_SEGMENT}/${claimId}/${fileName}`;
 }
 
 export function assertEvidenceStoragePath(params: AssertEvidenceStoragePathParams): void {
@@ -221,6 +223,7 @@ export function assertEvidenceStoragePath(params: AssertEvidenceStoragePathParam
   if (segments[4] !== claimId) invariant('assigned upload claim id mismatch');
 
   const fileName = segments[5];
+  assertSafeGeneratedFileName(fileName);
   const expectedFilePrefix = `${fileId}.`;
   if (!fileName.startsWith(expectedFilePrefix)) invariant('assigned upload file id mismatch');
 
