@@ -152,6 +152,9 @@ test('late E2E role provisioning preserves the WP-12.1 column grants and trigger
       );
       const [verifier] = await admin`select rolcanlogin as login, rolbypassrls as bypass,
         rolsuper as superuser, pg_has_role(${role}::name, oid, 'MEMBER') as runtime_member,
+        pg_has_role(${role}::name, oid, 'USAGE') as runtime_inherits,
+        pg_has_role(${role}::name, oid, case when current_setting('server_version_num')::integer >= 160000
+          then 'SET' else 'MEMBER' end) as runtime_can_set,
         has_function_privilege(oid, 'public.record_claim_inbound_object_verification(uuid,text,text,integer,text)', 'EXECUTE') as attest,
         has_any_column_privilege(oid, 'public.claim_inbound_object_verifications', 'INSERT') as direct_insert
         from pg_roles where rolname = 'interdomestik_wp12_verifier'`;
@@ -162,6 +165,8 @@ test('late E2E role provisioning preserves the WP-12.1 column grants and trigger
           bypass: false,
           superuser: false,
           runtime_member: false,
+          runtime_inherits: false,
+          runtime_can_set: false,
           attest: true,
           direct_insert: false,
         }

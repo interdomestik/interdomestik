@@ -386,7 +386,27 @@ GRANT EXECUTE ON FUNCTION public.record_claim_inbound_object_verification(uuid, 
   TO interdomestik_wp12_verifier;
 --> statement-breakpoint
 -- The direct pool uses the database admin login. Require an explicit SET ROLE for attestation.
-GRANT interdomestik_wp12_verifier TO CURRENT_USER WITH INHERIT FALSE, SET TRUE;
+DO $$
+BEGIN
+  IF pg_catalog.current_setting('server_version_num')::integer >= 160000 THEN
+    EXECUTE 'GRANT interdomestik_wp12_verifier TO CURRENT_USER WITH INHERIT FALSE, SET TRUE';
+  ELSIF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = CURRENT_USER AND rolsuper) THEN
+    -- PG15 stops inheritance at the intermediate NOINHERIT role but permits SET ROLE through it.
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'interdomestik_wp12_verifier_pg15') THEN
+      CREATE ROLE interdomestik_wp12_verifier_pg15 NOLOGIN NOINHERIT NOBYPASSRLS;
+      GRANT interdomestik_wp12_verifier TO interdomestik_wp12_verifier_pg15;
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'interdomestik_wp12_verifier_pg15'
+        AND NOT (rolcanlogin OR rolinherit OR rolbypassrls OR rolsuper OR rolcreaterole OR rolcreatedb OR rolreplication)
+        AND pg_catalog.pg_has_role(oid, 'interdomestik_wp12_verifier', 'MEMBER')
+    ) THEN
+      RAISE EXCEPTION 'WP-12.1 PG15 verifier membership role has unexpected authority';
+    END IF;
+    GRANT interdomestik_wp12_verifier_pg15 TO CURRENT_USER;
+  END IF;
+END;
+$$;
 --> statement-breakpoint
 CREATE FUNCTION public.claim_inbound_enrollment_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
@@ -751,18 +771,21 @@ BEGIN
 END;
 $$;
 --> statement-breakpoint
--- A CREATEROLE migrator receives ADMIN on newly created roles, so it can temporarily grant SET
--- for the owner transfer. Keep the existing membership if SET was already available.
+-- A CREATEROLE migrator can temporarily grant SET ROLE access for the owner transfer.
+-- Keep any existing access. PG15 checks SET ROLE through ordinary membership.
 DO $$
 DECLARE
-  guard_set boolean := pg_has_role(CURRENT_USER, 'interdomestik_wp12_guard', 'SET');
-  receipt_writer_set boolean := pg_has_role(CURRENT_USER, 'interdomestik_wp12_receipt_writer', 'SET');
+  set_privilege constant text := CASE WHEN pg_catalog.current_setting('server_version_num')::integer >= 160000
+    THEN 'SET' ELSE 'MEMBER' END;
+  grant_options constant text := CASE WHEN set_privilege = 'SET' THEN ' WITH INHERIT FALSE, SET TRUE' ELSE '' END;
+  guard_set boolean := pg_catalog.pg_has_role(CURRENT_USER, 'interdomestik_wp12_guard', set_privilege);
+  receipt_writer_set boolean := pg_catalog.pg_has_role(CURRENT_USER, 'interdomestik_wp12_receipt_writer', set_privilege);
 BEGIN
   IF NOT guard_set THEN
-    GRANT interdomestik_wp12_guard TO CURRENT_USER WITH INHERIT FALSE, SET TRUE;
+    EXECUTE 'GRANT interdomestik_wp12_guard TO CURRENT_USER' || grant_options;
   END IF;
   IF NOT receipt_writer_set THEN
-    GRANT interdomestik_wp12_receipt_writer TO CURRENT_USER WITH INHERIT FALSE, SET TRUE;
+    EXECUTE 'GRANT interdomestik_wp12_receipt_writer TO CURRENT_USER' || grant_options;
   END IF;
 
   ALTER FUNCTION public.claim_inbound_staff_branch_allowed(text, text) OWNER TO interdomestik_wp12_guard;
