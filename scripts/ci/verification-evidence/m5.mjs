@@ -132,17 +132,20 @@ export async function runEvidence(input, checkout, output, signal) {
     const installLogSha256 = await step('install', [
       'pnpm', 'install', '--frozen-lockfile', '--store-dir', path.join(checkout, 'tmp/m5-pnpm-store'),
     ], INSTALL_LOG);
-    for (const [, id, command, report] of DELEGATED) {
-      signal?.throwIfAborted();
-      auditWorker(worker, invocation, 'installed', start);
-      const startedAt = Date.now();
-      if (report) assertEvidence(!existsSync(path.join(checkout, report)), 'report-already-present');
-      const transcript = `${id}.log`;
-      const reports = { [transcript]: await step(id, command.split(' '), transcript) };
-      const finishedAt = Date.now();
-      if (report) reports[PURITY_REPORT] = nativeReport(checkout, report, startedAt, finishedAt, output);
-      lanes.push({ id, command, startedAt, finishedAt, exit: 0, reports });
-    }
+    await DELEGATED.reduce(
+      (previous, [, id, command, report]) => previous.then(async () => {
+        signal?.throwIfAborted();
+        auditWorker(worker, invocation, 'installed', start);
+        const startedAt = Date.now();
+        if (report) assertEvidence(!existsSync(path.join(checkout, report)), 'report-already-present');
+        const transcript = `${id}.log`;
+        const reports = { [transcript]: await step(id, command.split(' '), transcript) };
+        const finishedAt = Date.now();
+        if (report) reports[PURITY_REPORT] = nativeReport(checkout, report, startedAt, finishedAt, output);
+        lanes.push({ id, command, startedAt, finishedAt, exit: 0, reports });
+      }),
+      Promise.resolve()
+    );
     await new Promise((resolve, reject) => {
       job.once('error', reject);
       job.end(resolve);

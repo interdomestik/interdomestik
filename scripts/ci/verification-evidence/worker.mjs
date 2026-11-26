@@ -30,17 +30,19 @@ function noWorkerProcesses() {
   }
 }
 
-async function drain() {
-  for (let attempt = 0; attempt < 20; attempt += 1) {
-    if (noWorkerProcesses()) return;
-    try {
-      output('/usr/bin/sudo', [...sudo, '/usr/bin/pkill', '-KILL', '-U', workerUid]);
-    } catch (error) {
-      requireThat(error.status === 1);
-    }
-    await setTimeout(100);
+async function drain(attempt = 0) {
+  if (attempt === 20) {
+    requireThat(noWorkerProcesses());
+    return;
   }
-  requireThat(noWorkerProcesses());
+  if (noWorkerProcesses()) return;
+  try {
+    output('/usr/bin/sudo', [...sudo, '/usr/bin/pkill', '-KILL', '-U', workerUid]);
+  } catch (error) {
+    requireThat(error.status === 1);
+  }
+  await setTimeout(100);
+  return drain(attempt + 1);
 }
 
 function workerEnvironment() {
@@ -86,8 +88,7 @@ function readOnlyTree(directory) {
   });
 }
 
-function inspectWorker(stage) {
-  requireThat(os.userInfo().username === WORKER && process.env.PATH === toolPath);
+function checkReadOnlyCheckout() {
   const gitDir = path.join(root, '.git');
   requireThat(realpathSync(gitDir) === gitDir && readOnlyTree(gitDir) &&
     !existsSync(path.join(gitDir, 'objects/info/alternates')));
@@ -101,6 +102,9 @@ function inspectWorker(stage) {
     }
   }
   requireThat(tracked.length > 0 && [...protectedPaths].every(file => !accessible(file, constants.W_OK)));
+}
+
+function checkWorkspaceDirectories(stage) {
   const workspaces = [root, ...['apps', 'packages'].flatMap(parent =>
     readdirSync(path.join(root, parent), { withFileTypes: true })
       .filter(entry => entry.isDirectory()).map(entry => path.join(root, parent, entry.name))
@@ -122,6 +126,12 @@ function inspectWorker(stage) {
         accessible(dir, constants.W_OK));
     }
   }
+}
+
+function inspectWorker(stage) {
+  requireThat(os.userInfo().username === WORKER && process.env.PATH === toolPath);
+  checkReadOnlyCheckout();
+  checkWorkspaceDirectories(stage);
   const directories = toolPath.split(':');
   for (const directory of directories) {
     requireThat(path.isAbsolute(directory) && protectedToolPath(directory) &&
