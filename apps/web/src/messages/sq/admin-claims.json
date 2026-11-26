@@ -6,7 +6,9 @@
     "claims_page": {
       "title": "Qendra Operacionale",
       "description": "Monitoro rrjedhën e verifikimit, vlerësimit dhe mbylljes për çdo degë.",
+      "first_page": "Faqja e parë",
       "assignment": {
+        "search_staff": "Kërko stafin",
         "label": "Përgjegjësia e stafit",
         "placeholder": "Zgjidh përgjegjësin",
         "unassigned": "Pa përgjegjës",

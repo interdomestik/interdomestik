@@ -4,19 +4,18 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import {
   hoisted,
   mockSelectChains,
-  opsAuthority,
   readContexts,
   resetOpsClaimDetailMocks,
+  visibleClaimSql,
 } from './getOpsClaimDetail.test-fixtures';
 import { getOpsClaimDetail } from './getOpsClaimDetail';
 
 const ENV_KEYS = ['IDA_HOST', 'NEXT_PUBLIC_APP_URL', 'BETTER_AUTH_URL', 'VERCEL_URL'] as const;
 const originalHostEnv = new Map<string, string | undefined>();
-let signedIn = { id: 'admin-1', role: 'admin' };
 
 /** Loads the claim with the signed-in user's own session authority. */
 function loadClaim() {
-  return getOpsClaimDetail('claim-1', opsAuthority(signedIn));
+  return getOpsClaimDetail('claim-1');
 }
 
 function requestFrom(host: string, forwardedHost?: string): void {
@@ -26,7 +25,6 @@ function requestFrom(host: string, forwardedHost?: string): void {
 }
 
 function signInAs(user: { role: string; branchId?: string }): void {
-  signedIn = { id: `${user.role}-1`, role: user.role };
   hoisted.getSession.mockResolvedValueOnce({
     user: { id: `${user.role}-1`, tenantId: 'tenant_ks', ...user },
   });
@@ -34,19 +32,18 @@ function signInAs(user: { role: string; branchId?: string }): void {
 
 function expectDeniedBeforeSql(result: unknown): void {
   expect(result).toEqual({ kind: 'not_found' });
-  expect(hoisted.claimsFindFirst).not.toHaveBeenCalled();
+  expect(hoisted.visibleClaimFrom).not.toHaveBeenCalled();
   expect(hoisted.withTenantContext).not.toHaveBeenCalled();
 }
 
 function expectAccessThenHomeTenantReads(): void {
   expect(readContexts().map(context => context.tenantId)).toEqual(['tenant_ks', 'tenant_home']);
-  expect(hoisted.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_ks');
+  expect(visibleClaimSql().params).toContain('tenant_ks');
 }
 
 describe('getOpsClaimDetail host admission', () => {
   beforeEach(() => {
     resetOpsClaimDetailMocks();
-    signedIn = { id: 'admin-1', role: 'admin' };
     for (const key of ENV_KEYS) {
       originalHostEnv.set(key, process.env[key]);
       Reflect.deleteProperty(process.env, key);
@@ -168,37 +165,39 @@ describe('getOpsClaimDetail host admission', () => {
 
   it('fails closed in SQL for a foreign claim on an IDA host', async () => {
     requestFrom('ida.interdomestik.com');
-    hoisted.claimsFindFirst.mockResolvedValueOnce(undefined);
+    hoisted.visibleClaimFrom.mockResolvedValueOnce([]);
 
     const result = await loadClaim();
 
     expect(result).toEqual({ kind: 'not_found' });
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(hoisted.matchesAccessTenant).toHaveBeenCalledWith(expect.anything(), 'tenant_ks');
-    expect(hoisted.dbSelect).not.toHaveBeenCalled();
+    expect(visibleClaimSql().params).toContain('tenant_ks');
+    expect(hoisted.dbSelect).toHaveBeenCalledTimes(1);
+    expect(hoisted.searchAssignableStaff).not.toHaveBeenCalled();
   });
 
   it('scopes branch managers to their own branch on an IDA host', async () => {
     requestFrom('ida.interdomestik.com');
     signInAs({ role: 'branch_manager', branchId: 'branch-1' });
-    mockSelectChains();
+    const { docsUnion } = mockSelectChains();
+    docsUnion.mockResolvedValueOnce([{ count: 0 }, { count: 0 }]);
 
     const result = await loadClaim();
 
     expect(result.kind).toBe('ok');
-    expect(hoisted.eq).toHaveBeenCalledWith('claims.branchId', 'branch-1');
+    expect(visibleClaimSql().params).toContain('branch-1');
   });
 
   it('denies another branch in SQL on an IDA host', async () => {
     requestFrom('ida.interdomestik.com');
     signInAs({ role: 'branch_manager', branchId: 'branch-2' });
-    hoisted.claimsFindFirst.mockResolvedValueOnce(undefined);
+    hoisted.visibleClaimFrom.mockResolvedValueOnce([]);
 
     const result = await loadClaim();
 
     expect(result).toEqual({ kind: 'not_found' });
     expect(hoisted.withTenantContext).toHaveBeenCalledTimes(1);
-    expect(hoisted.eq).toHaveBeenCalledWith('claims.branchId', 'branch-2');
+    expect(visibleClaimSql().params).toContain('branch-2');
   });
 
   it('denies a branch manager without a branch before SQL on an IDA host', async () => {

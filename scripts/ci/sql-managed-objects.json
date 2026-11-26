@@ -204,27 +204,27 @@
     {
       "key": "function [\"public\",\"exchange_rate_check_completed(p_tenant text, p_book text, p_check text)\"]",
       "value": "c8b1e45435c96329cd4d13831acbcd2e",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_check_events_insert_fn()\"]",
       "value": "94d712c895dd6c85c5924cb8b2cfcd9a",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_check_windows_insert_fn()\"]",
       "value": "778191036aad5a60a73c84a0bb4bb9e7",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_head_at(p_tenant text, p_book text, p_at timestamp with time zone)\"]",
       "value": "0c8c2d62e7cb5c5a07043ad9e66ecea3",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_insert_guard_fn()\"]",
       "value": "bcf16d83651375024506393cccc9f9fd",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_reject_mutation_fn()\"]",
@@ -234,12 +234,12 @@
     {
       "key": "function [\"public\",\"exchange_rate_verifications_insert_guard_fn()\"]",
       "value": "1c7901f2980ec3fb4006c9a2b05537a8",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_verifications_require_check_fn()\"]",
       "value": "b01c5efcc9204ecef13c2df78f20df97",
-      "migration": "0110_wp07_rate_check_contract"
+      "migration": "0111_wp07_rate_check_contract"
     },
     {
       "key": "function [\"public\",\"legal_acceptance_reject_mutation()\"]",
@@ -309,12 +309,12 @@
     {
       "key": "function [\"public\",\"membership_sale_rate_at(p_tenant text, p_book text, p_at timestamp with time zone)\"]",
       "value": "77a5faff48c724a9cfe3e6fe3cc44adf",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"membership_sale_rate_verification_age_fn()\"]",
       "value": "0e32d10f142de9c03502ddd8325d6f32",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"membership_sale_require_charge_fn()\"]",
@@ -400,6 +400,11 @@
       "key": "index [\"public\",\"claim_correspondence\",\"claim_correspondence_follow_up_idx\"]",
       "value": "btree (tenant_id, follow_up_at) WHERE ((direction = 'outbound'::text) AND (follow_up_at IS NOT NULL))",
       "migration": "0106_wp12_claim_correspondence"
+    },
+    {
+      "key": "index [\"public\",\"claim_documents\",\"claim_documents_access_claim_id_idx\"]",
+      "value": "btree (access_tenant_id, claim_id, id) WHERE (access_tenant_id IS NOT NULL)",
+      "migration": "0109_wp19_claim_documents_access_claim_id"
     },
     {
       "key": "index [\"public\",\"claim_documents\",\"idx_claim_documents_tenant_id\"]",
@@ -1604,12 +1609,12 @@
     {
       "key": "rls-force [\"public\",\"exchange_rate_check_events\"]",
       "value": "forced",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "rls-force [\"public\",\"exchange_rate_check_windows\"]",
       "value": "forced",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "rls-force [\"public\",\"exchange_rate_verification_limits\"]",
@@ -1819,22 +1824,22 @@
     {
       "key": "trigger [\"public\",\"exchange_rate_check_events\",\"exchange_rate_check_events_append_only\"]",
       "value": "CREATE TRIGGER exchange_rate_check_events_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_check_events FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_check_events\",\"exchange_rate_check_events_insert_guard\"]",
       "value": "CREATE TRIGGER exchange_rate_check_events_insert_guard BEFORE INSERT ON public.exchange_rate_check_events FOR EACH ROW EXECUTE FUNCTION exchange_rate_check_events_insert_fn()",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_check_windows\",\"exchange_rate_check_windows_append_only\"]",
       "value": "CREATE TRIGGER exchange_rate_check_windows_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_check_windows FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_check_windows\",\"exchange_rate_check_windows_insert_guard\"]",
       "value": "CREATE TRIGGER exchange_rate_check_windows_insert_guard BEFORE INSERT ON public.exchange_rate_check_windows FOR EACH ROW EXECUTE FUNCTION exchange_rate_check_windows_insert_fn()",
-      "migration": "0109_wp07_rate_check_expand"
+      "migration": "0110_wp07_rate_check_expand"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_verifications\",\"exchange_rate_verifications_append_only\"]",
@@ -1844,7 +1849,7 @@
     {
       "key": "trigger [\"public\",\"exchange_rate_verifications\",\"exchange_rate_verifications_check_required\"]",
       "value": "CREATE TRIGGER exchange_rate_verifications_check_required BEFORE INSERT ON public.exchange_rate_verifications FOR EACH ROW WHEN ((new.check_id IS NULL)) EXECUTE FUNCTION exchange_rate_verifications_require_check_fn()",
-      "migration": "0110_wp07_rate_check_contract"
+      "migration": "0111_wp07_rate_check_contract"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_verifications\",\"exchange_rate_verifications_insert_guard\"]",

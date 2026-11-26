@@ -1,6 +1,6 @@
 {
-  "id": "b84843fa-2558-49f7-acb2-d5ac452716ce",
-  "prevId": "86235dc7-f25c-47da-99f0-17103db42402",
+  "id": "a6432468-2381-4c59-bcf6-1d7e277963ff",
+  "prevId": "39ae5a2a-a9d2-4146-b965-d9c8468986b8",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -12032,6 +12032,16 @@
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
+        "exchange_rates_tenant_book_week_revision_uq": {
+          "name": "exchange_rates_tenant_book_week_revision_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "book_id",
+            "week_starts_on",
+            "revision"
+          ]
+        },
         "exchange_rates_tenant_book_date_revision_uq": {
           "name": "exchange_rates_tenant_book_date_revision_uq",
           "nullsNotDistinct": false,

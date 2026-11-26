@@ -1,45 +1,35 @@
-import {
-  readTenantAuthority,
-  type TenantAuthority,
-} from '@interdomestik/database/tenant-authority';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-type StaffRow = Readonly<{ id: string; name: string | null; email: string; role: string }>;
+type StaffRow = Readonly<{ id: string; name: string | null; email: string }>;
 type CardProps = Readonly<{
   allStaff: readonly StaffRow[];
   canAssign?: boolean;
   readOnly?: boolean;
 }>;
-type HeaderProps = Readonly<{ allStaff: readonly StaffRow[] }>;
+type HeaderProps = Readonly<{ showAssignee: boolean; claim: { ownerName: string } }>;
 
 const mocks = vi.hoisted(() => ({
-  getSession: vi.fn(),
-  getStaff: vi.fn(),
   getOpsClaimDetail: vi.fn(),
-  resolveClaimsVisibility: vi.fn(),
   claimHeader: vi.fn<(props: HeaderProps) => void>(),
   nextActionsCard: vi.fn<(props: CardProps) => void>(),
   evidencePanel: vi.fn(),
   messagingPanel: vi.fn<(props: { allowInternal?: boolean }) => void>(),
 }));
 
-vi.mock('@/lib/auth', () => ({ auth: { api: { getSession: mocks.getSession } } }));
-vi.mock('next/headers', () => ({ headers: () => Promise.resolve(new Headers()) }));
 vi.mock('next-intl/server', () => ({ setRequestLocale: vi.fn() }));
 vi.mock('next/navigation', () => ({
   notFound: () => {
     throw new Error('NEXT_NOT_FOUND');
   },
 }));
-vi.mock('@interdomestik/shared-auth', () => ({ ensureTenantId: () => 'tenant-1' }));
-vi.mock('@/actions/admin-users', () => ({ getStaff: mocks.getStaff }));
 vi.mock('@/features/admin/claims/server/getOpsClaimDetail', () => ({
   getOpsClaimDetail: mocks.getOpsClaimDetail,
 }));
-vi.mock('../server', () => ({
-  canViewAdminClaims: () => true,
-  resolveClaimsVisibility: mocks.resolveClaimsVisibility,
+vi.mock('./detail/ClaimDetailReadControls', () => ({
+  ClaimStaffSearch: () => <div data-testid="staff-search" />,
+  ClaimDetailPageLinks: () => null,
 }));
 vi.mock('@/features/admin/claims/components/detail/getNextActions', () => ({
   getNextActions: () => ({ primary: { type: 'assign' }, secondary: [], allowedTransitions: [] }),
@@ -84,16 +74,23 @@ vi.mock('@/features/admin/claims/components/ops/EvidencePanel', () => ({
 import { AdminClaimDetailV2Page } from './AdminClaimDetailV2Page';
 
 const STAFF_READ: readonly StaffRow[] = [
-  { id: 'staff-1', name: 'Sara Staff', email: 'sara@example.test', role: 'staff' },
-  { id: 'tadmin-1', name: 'Tina Admin', email: 'tina@example.test', role: 'tenant_admin' },
-  { id: 'bm-1', name: 'Bora Manager', email: 'bora@example.test', role: 'branch_manager' },
+  { id: 'staff-1', name: 'Sara Staff', email: 'sara@example.test' },
 ];
 
-function signIn(role: string, branchId: string | null = null) {
-  mocks.getSession.mockResolvedValue({
-    user: { id: 'actor-1', role, name: 'Actor', image: null, tenantId: 'tenant-1', branchId },
+function signIn(role: string, branchId: string | null = null, items = STAFF_READ) {
+  const admin = ['admin', 'tenant_admin', 'super_admin'].includes(role);
+  mocks.getOpsClaimDetail.mockResolvedValue({
+    kind: 'ok',
+    data: { id: 'claim-1', docs: [], ownerName: 'Assignee outside this page' },
+    authorized: {
+      session: {
+        user: { id: 'actor-1', role, name: 'Actor', image: null, tenantId: 'tenant-1', branchId },
+      },
+      authority: mintTestTenantAuthority('tenant-1', { userId: 'actor-1', role }),
+    },
+    staffPage: admin ? { items, nextCursor: 'staff-1' } : null,
+    documentsNextCursor: null,
   });
-  mocks.resolveClaimsVisibility.mockResolvedValue({ role, branchId });
 }
 
 async function renderPage() {
@@ -108,17 +105,13 @@ function lastCardProps(): CardProps {
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.getOpsClaimDetail.mockResolvedValue({ kind: 'ok', data: { id: 'claim-1', docs: [] } });
+  mocks.getOpsClaimDetail.mockResolvedValue({ kind: 'not_found' });
 });
 
 describe('AdminClaimDetailV2Page staff assignment data', () => {
   it('fails into the route error boundary when an assigning admin cannot read staff', async () => {
     signIn('admin');
-    mocks.getStaff.mockResolvedValue({
-      success: false,
-      error: 'Internal Server Error',
-      code: 'INTERNAL_SERVER_ERROR',
-    });
+    mocks.getOpsClaimDetail.mockRejectedValueOnce(new Error('Failed to load assignable staff'));
 
     await expect(AdminClaimDetailV2Page({ id: 'claim-1', locale: 'en' })).rejects.toThrow(
       'Failed to load assignable staff'
@@ -127,36 +120,33 @@ describe('AdminClaimDetailV2Page staff assignment data', () => {
   });
 
   it('keeps a successful empty staff read as an empty assignable state', async () => {
-    signIn('admin');
-    mocks.getStaff.mockResolvedValue({ success: true, data: [] });
+    signIn('admin', null, []);
 
     await renderPage();
 
     expect(screen.getByTestId('next-actions-card')).toBeInTheDocument();
     expect(lastCardProps()).toMatchObject({ allStaff: [], canAssign: true });
-    const authority = mocks.getOpsClaimDetail.mock.calls[0]?.[1] as TenantAuthority;
-    expect(readTenantAuthority(authority)).toMatchObject({
-      tenantId: 'tenant-1',
-      principal: { userId: 'actor-1', role: 'admin' },
-    });
+    expect(screen.getByTestId('staff-search')).toBeInTheDocument();
+    expect(mocks.getOpsClaimDetail).toHaveBeenCalledWith('claim-1', {});
   });
 
-  it('offers only staff-role targets while the header keeps every staff row', async () => {
+  it('offers the eligible staff page and keeps the separately loaded assignee', async () => {
     signIn('admin');
-    mocks.getStaff.mockResolvedValue({ success: true, data: STAFF_READ });
 
     await renderPage();
 
     expect(lastCardProps().allStaff.map(member => member.id)).toEqual(['staff-1']);
     expect(lastCardProps().canAssign).toBe(true);
     expect(mocks.claimHeader).toHaveBeenLastCalledWith(
-      expect.objectContaining({ allStaff: STAFF_READ })
+      expect.objectContaining({
+        showAssignee: true,
+        claim: expect.objectContaining({ ownerName: 'Assignee outside this page' }),
+      })
     );
   });
 
   it.each(['tenant_admin', 'super_admin'])('lets %s assign', async role => {
     signIn(role);
-    mocks.getStaff.mockResolvedValue({ success: true, data: STAFF_READ });
 
     await renderPage();
 
@@ -165,16 +155,12 @@ describe('AdminClaimDetailV2Page staff assignment data', () => {
 
   it('keeps branch managers read-only without failing when staff is unreadable', async () => {
     signIn('branch_manager', 'branch-1');
-    mocks.getStaff.mockResolvedValue({
-      success: false,
-      error: 'Unauthorized',
-      code: 'UNAUTHORIZED',
-    });
 
     await renderPage();
 
     expect(lastCardProps()).toMatchObject({ allStaff: [], canAssign: false });
     expect(screen.getByTestId('claim-message-summary')).toBeInTheDocument();
+    expect(screen.queryByTestId('staff-search')).not.toBeInTheDocument();
   });
 });
 
@@ -183,7 +169,6 @@ describe('AdminClaimDetailV2Page ops read-only forwarding', () => {
     'forwards an editable ops card to %s',
     async role => {
       signIn(role);
-      mocks.getStaff.mockResolvedValue({ success: true, data: STAFF_READ });
 
       await renderPage();
 
@@ -193,11 +178,6 @@ describe('AdminClaimDetailV2Page ops read-only forwarding', () => {
 
   it('forwards an explicit read-only card to a branch manager', async () => {
     signIn('branch_manager', 'branch-1');
-    mocks.getStaff.mockResolvedValue({
-      success: false,
-      error: 'Unauthorized',
-      code: 'UNAUTHORIZED',
-    });
 
     await renderPage();
 
@@ -208,8 +188,6 @@ describe('AdminClaimDetailV2Page ops read-only forwarding', () => {
   });
 
   it('renders no card for a branch manager without a branch', async () => {
-    signIn('branch_manager', null);
-
     await expect(AdminClaimDetailV2Page({ id: 'claim-1', locale: 'en' })).rejects.toThrow(
       'NEXT_NOT_FOUND'
     );
@@ -220,7 +198,6 @@ describe('AdminClaimDetailV2Page ops read-only forwarding', () => {
     'forwards a read-only card to a %s viewer admitted by visibility',
     async role => {
       signIn(role);
-      mocks.getStaff.mockResolvedValue({ success: true, data: STAFF_READ });
 
       await renderPage();
 
@@ -234,7 +211,6 @@ describe('AdminClaimDetailV2Page internal notes', () => {
     'offers %s the internal-note toggle',
     async role => {
       signIn(role);
-      mocks.getStaff.mockResolvedValue({ success: true, data: STAFF_READ });
 
       await renderPage();
 
@@ -248,7 +224,6 @@ describe('AdminClaimDetailV2Page internal notes', () => {
     'keeps %s on public messages only',
     async role => {
       signIn(role);
-      mocks.getStaff.mockResolvedValue({ success: true, data: STAFF_READ });
 
       await renderPage();
 
@@ -260,11 +235,6 @@ describe('AdminClaimDetailV2Page internal notes', () => {
 
   it('renders no messaging panel for a branch manager', async () => {
     signIn('branch_manager', 'branch-1');
-    mocks.getStaff.mockResolvedValue({
-      success: false,
-      error: 'Unauthorized',
-      code: 'UNAUTHORIZED',
-    });
 
     await renderPage();
 
