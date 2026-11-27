@@ -5,8 +5,6 @@ export type AllowListRefusal = 'allowlist_empty' | 'recipient_not_allowlisted';
 /**
  * Hosted staging must never mail a real inbox by accident, so every recipient must be on
  * EMAIL_RECIPIENT_ALLOWLIST there. Decided only from server-side variables, failing closed:
- * - a non-empty EMAIL_RECIPIENT_ALLOWLIST always turns the gate on (the runtime marker the
- *   staging configuration carries itself);
  * - any INTERDOMESTIK_DEPLOY_ENV other than local, development or production turns it on;
  * - any Vercel marker turns it on unless VERCEL_ENV is exactly `production` and
  *   VERCEL_TARGET_ENV is absent or exactly `production`, as isProductionEmailDeployment in
@@ -14,7 +12,6 @@ export type AllowListRefusal = 'allowlist_empty' | 'recipient_not_allowlisted';
  * Local development, CI and local E2E carry none of these and are unchanged.
  */
 export function recipientAllowListActive(env: Env = process.env): boolean {
-  if (env.EMAIL_RECIPIENT_ALLOWLIST?.trim()) return true;
   const deployEnv = env.INTERDOMESTIK_DEPLOY_ENV?.trim().toLowerCase();
   if (deployEnv && !UNGATED_DEPLOY_ENVS.has(deployEnv)) return true;
   const vercelEnv = env.VERCEL_ENV?.trim();

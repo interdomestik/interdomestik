@@ -217,12 +217,7 @@ describe('when the allow-list applies', () => {
     [{ VERCEL_TARGET_ENV: 'production' }, true],
     [{ VERCEL: '1', VERCEL_ENV: 'Production' }, true],
     [{ VERCEL: '0' }, true],
-    [{ EMAIL_RECIPIENT_ALLOWLIST: 'qa@office.example.test' }, true],
-    [
-      { VERCEL: '1', VERCEL_ENV: 'production', EMAIL_RECIPIENT_ALLOWLIST: 'office.example.test' },
-      true,
-    ],
-    [{ EMAIL_RECIPIENT_ALLOWLIST: '  ' }, false],
+    [{ EMAIL_RECIPIENT_ALLOWLIST: 'qa@office.example.test' }, false],
     [{ VERCEL: '1', VERCEL_ENV: 'production' }, false],
     [{ VERCEL: '1', VERCEL_ENV: 'production', VERCEL_TARGET_ENV: 'production' }, false],
     [{ INTERDOMESTIK_DEPLOY_ENV: 'local' }, false],
@@ -234,19 +229,23 @@ describe('when the allow-list applies', () => {
     expect(recipientAllowListActive(env)).toBe(active);
   });
 
-  it('leaves hosted production unchanged without any allow-list', async () => {
-    vi.stubEnv('VERCEL', '1');
-    vi.stubEnv('VERCEL_ENV', 'production');
-    const { sendEmail, sendEmailOutcome } = await import('./email');
-    await expect(sendEmail('anyone@gmail.example', template)).resolves.toEqual({
-      success: true,
-      id: 'sent-id',
-    });
-    await expect(
-      sendEmailOutcome('resend', 'anyone@gmail.example', template, outcomeOptions)
-    ).resolves.toEqual({ ok: true, transport: 'resend' });
-    expect(refusals()).toEqual([]);
-  });
+  it.each([undefined, 'office.example.test'])(
+    'leaves hosted production unchanged (allow-list %s)',
+    async allowList => {
+      vi.stubEnv('VERCEL', '1');
+      vi.stubEnv('VERCEL_ENV', 'production');
+      if (allowList) vi.stubEnv('EMAIL_RECIPIENT_ALLOWLIST', allowList);
+      const { sendEmail, sendEmailOutcome } = await import('./email');
+      await expect(sendEmail('anyone@gmail.example', template)).resolves.toEqual({
+        success: true,
+        id: 'sent-id',
+      });
+      await expect(
+        sendEmailOutcome('resend', 'anyone@gmail.example', template, outcomeOptions)
+      ).resolves.toEqual({ ok: true, transport: 'resend' });
+      expect(refusals()).toEqual([]);
+    }
+  );
 
   it('leaves local development unchanged without any allow-list', async () => {
     vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', 'local');
