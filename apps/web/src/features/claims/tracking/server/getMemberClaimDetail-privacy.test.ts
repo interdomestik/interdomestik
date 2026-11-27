@@ -100,13 +100,13 @@ vi.mock('./member-domain-event-timeline', () => ({
   getMemberTimelineFromDomainEvents: mocks.timeline,
 }));
 vi.mock('./getMemberVaultConsentDisplay', () => ({
-  openMemberVaultConsentDisplay: async () => ({ open: false, display: { kind: 'hidden' } }),
-  completeMemberVaultConsentDisplay: async () => {
-    throw new Error('closed Vault gate must not complete');
-  },
+  openMemberVaultConsentDisplay: () =>
+    Promise.resolve({ open: false, display: { kind: 'hidden' } }),
+  completeMemberVaultConsentDisplay: () =>
+    Promise.reject(new Error('closed Vault gate must not complete')),
 }));
 vi.mock('@interdomestik/domain-documents/claim-evidence', () => ({
-  readCurrentMemberVaultEvidence: async () => [],
+  readCurrentMemberVaultEvidence: () => Promise.resolve([]),
 }));
 
 import { getMemberClaimDetail } from './getMemberClaimDetail';
