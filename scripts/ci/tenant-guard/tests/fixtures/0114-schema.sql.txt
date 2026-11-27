@@ -182,7 +182,7 @@ GRANT SELECT (tenant_id, claim_id, document_id, bucket, file_path)
 --> statement-breakpoint
 GRANT SELECT (tenant_id, id, role, branch_id) ON public."user" TO interdomestik_wp12_guard;
 --> statement-breakpoint
--- A row lock requires UPDATE privilege on one column. The guard only locks staff rows.
+-- A row lock requires UPDATE privilege on one column. The guard holds actor row locks for writes.
 GRANT UPDATE ("updatedAt") ON public."user" TO interdomestik_wp12_guard;
 --> statement-breakpoint
 GRANT SELECT (tenant_id, claim_id, id, bucket, file_path)

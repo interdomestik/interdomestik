@@ -1,11 +1,17 @@
 import { readFileSync } from 'node:fs';
 import { bundlerClosure } from '../bundler-closure.mjs';
 import { C1_ADMISSIONS } from '../c1-admissions.mjs';
-import { KERNEL_ANCHOR, LEGACY, LEGACY_PINS } from '../manifest.mjs';
+import { CONNECTION_CONTROL, KERNEL_ANCHOR, LEGACY, LEGACY_PINS } from '../manifest.mjs';
+import { installAdmission } from '../rules-admission.mjs';
 import { proveSchemaAdmission } from '../rules-schema-admission.mjs';
 import { kernelWalk } from '../rules-trust.mjs';
 import { gitIdentity, readSchemaTree, schemaTreeFromBlobs } from '../sources.mjs';
-import { RECEIPT_CALLER, RECEIPT_KEY, RECEIPT_REEXPORT } from '../storage-receipt-admission.mjs';
+import {
+  RECEIPT_CALLER,
+  RECEIPT_KEY,
+  RECEIPT_REEXPORT,
+  storageReceiptAdmission,
+} from '../storage-receipt-admission.mjs';
 import { MIGRATION_JOURNAL, RECEIPT_SQL } from '../storage-receipt-prerequisite.mjs';
 
 const ROOT = new URL('../../../../', import.meta.url);
@@ -16,6 +22,7 @@ export const INBOUND = `${SCHEMA}/claim-inbound-documents.ts`;
 export const INBOUND_EXPORT = "export * from './claim-inbound-documents';\n";
 export const VERIFIER = RECEIPT_KEY.split('#')[0];
 export const BINDER = 'packages/database/src/free-start-drafts/context.ts';
+export const PRINCIPAL_CONTEXT = 'packages/database/src/principal-context.ts';
 export const DB_MANIFEST = 'packages/database/package.json';
 export const READER = 'apps/web/src/app/api/documents/document-access-reads.ts';
 export const MODEL = 'apps/web/src/app/api/documents/document-access-model.ts';
@@ -75,9 +82,16 @@ export const wp07 = edit(
     'index.ts',
   ].map(file => [`${SCHEMA}/${file}`, fixture(file, WP07_FIXTURES)])
 );
+export const predecessorReceiptSql = [
+  'predecessor-schema',
+  'receipt',
+  'predecessor-publication-and-scope',
+]
+  .map(part => fixture('0114-' + part + '.sql'))
+  .join('');
 export const journalEntry = JSON.parse(fixture('0114-journal-entry.json'));
 export const journal = (...entries) => JSON.stringify({ entries });
-const receiptSql = ['schema', 'receipt', 'publication-and-scope']
+const receiptSql = ['schema', 'receipt', 'publication-and-scope', 'scope-privileges']
   .map(part => fixture(`0114-${part}.sql`))
   .join('');
 export const dark = edit(wp07, [
@@ -101,6 +115,10 @@ export const storage = edit(dark, [
   ],
   [
     `${DB}/free-start-drafts.ts`,
+    "export { withPrincipalTenantContext } from './principal-context';\n",
+  ],
+  [
+    PRINCIPAL_CONTEXT,
     "export { withPrincipalTenantContext } from './free-start-drafts/context';\n",
   ],
 ]);
@@ -115,4 +133,21 @@ export function prove(base, candidate, { checkout = candidate, inboundRecord } =
     undefined,
     inboundRecord
   );
+}
+
+export function checkStorageAdmission(base, candidate) {
+  const ctx = {
+    graph: candidate.graph,
+    sources: candidate.sources,
+    violations: [],
+    telemetry: {},
+    schemaAdmission: prove(base, candidate),
+  };
+  installAdmission(ctx, [readerRecord]);
+  return {
+    proof: ctx.schemaAdmission,
+    reader: ctx.telemetry.c1Admissions === 1,
+    receipt: storageReceiptAdmission(ctx, candidate, CONNECTION_CONTROL),
+    violations: ctx.violations,
+  };
 }

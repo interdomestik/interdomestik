@@ -1,7 +1,6 @@
 import { sql } from 'drizzle-orm';
 
 import { dbAdmin } from './db';
-import { bindTenantTransactionPrincipal } from './free-start-drafts/context';
 import { readTenantAuthority, type TenantAuthority } from './tenant-authority';
 
 export async function recordClaimInboundObjectVerification(
@@ -20,7 +19,11 @@ export async function recordClaimInboundObjectVerification(
     await tx.execute(
       sql`select set_config('app.current_access_tenant_id', ${accessTenantId}, true)`
     );
-    await bindTenantTransactionPrincipal(tx, principal);
+    await tx.execute(sql`
+      select set_config('app.current_actor_id', ${principal.userId}, true),
+             set_config('app.current_actor_role', ${principal.role}, true),
+             set_config('app.current_actor_branch_id', ${principal.branchId ?? ''}, true)
+    `);
     const rows = await tx.execute<{ recorded: boolean }>(sql`
       select public.record_claim_inbound_object_verification(
         ${observed.decisionId}::uuid, ${observed.bucket}::text, ${observed.path}::text,

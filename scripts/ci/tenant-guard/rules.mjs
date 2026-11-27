@@ -4,7 +4,7 @@
 
 import { C1_ADMISSIONS } from './c1-admissions.mjs';
 import { LIFETIME_RUNNERS } from './lifetime-runners.mjs';
-import { CONTRACTS, LEGACY_PINS, STATE_CONTRACTS } from './manifest.mjs';
+import { CONNECTION_CONTROL, CONTRACTS, LEGACY_PINS, STATE_CONTRACTS } from './manifest.mjs';
 import { installAdmission } from './rules-admission.mjs';
 import { installCustody } from './rules-custody.mjs';
 import { installDependencies } from './rules-dependencies.mjs';
@@ -77,7 +77,7 @@ export function evaluate({
     violations,
   };
   installTrust(ctx);
-  ctx.storageReceipt = storageReceiptAdmission(ctx, schemaAdmission?.candidate);
+  ctx.storageReceipt = storageReceiptAdmission(ctx, schemaAdmission?.candidate, CONNECTION_CONTROL);
   installAdmission(ctx, admissions);
   installDependencies(ctx);
   installState(ctx);

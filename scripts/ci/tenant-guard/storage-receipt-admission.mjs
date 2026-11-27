@@ -15,18 +15,16 @@ export const RECEIPT_REEXPORT = `${DB}/claim-evidence-object-lock.ts`;
 const BINDER = `${DB}/free-start-drafts/context.ts`;
 const STORAGE = 'apps/web/src/lib/storage/service-role.ts';
 const OBJECT_LOCK = '@interdomestik/database/claim-evidence-object-lock';
-const BINDER_NAME = 'bindTenantTransactionPrincipal';
-const RECEIPT_UNIT = '198f43ef997e24406448c377e1d53bb01a6f38ebb148f78574592e7a47c45539';
+const RECEIPT_UNIT = '528f565df255f9a48b8b59608f31d0808f618ecd88ab8a9fd6949dd4934926a3';
 const IMAGES = new Map([
-  [VERIFIER, '93a13733b266647ea0c765d962e3c5ead1e1adb5c156032d01ad88bab499ff1f'],
+  [VERIFIER, '850e5eb0482f4eb019b8aa418d1c3e00dc1c7bee358bd614b0740b1995065a43'],
   [RECEIPT_CALLER, 'fe3c6b8ed3ec2477bde0e1070fbdace212410eb86be0fc01ce61042d7144f931'],
   [RECEIPT_REEXPORT, '5373364cf020452a3be025098197ec09c840c3d1691865fb97b4b7a2965ffaf2'],
-  [BINDER, 'd44138e0bcfa17b09fc40f1a26ceaa3dfa7897d653e415d59942a6358e7fbcae'],
+  [BINDER, '0407bc3343f3ac44f0a6fbfe4ec0377ae70bc20d3e17a84243630113411a24c3'],
 ]);
 
 const BINDINGS = [
   [VERIFIER, './db', 'dbAdmin', `${DB}/db.ts`],
-  [VERIFIER, './free-start-drafts/context', BINDER_NAME, BINDER],
   [VERIFIER, './tenant-authority', 'readTenantAuthority', `${DB}/tenant-authority.ts`],
   [RECEIPT_REEXPORT, './claim-inbound-verification', COMMAND, VERIFIER],
   [
@@ -78,23 +76,83 @@ function bindingProblem(graph) {
   return null;
 }
 
-function commandSites(source) {
+const CONTROL_SHAPES = [
+  [ts.SyntaxKind.NoSubstitutionTemplateLiteral],
+  [ts.SyntaxKind.NoSubstitutionTemplateLiteral],
+  [ts.SyntaxKind.TemplateHead],
+  [ts.SyntaxKind.TemplateHead],
+  [ts.SyntaxKind.TemplateHead, ts.SyntaxKind.TemplateMiddle, ts.SyntaxKind.TemplateMiddle],
+];
+
+function isNamedIdentifier(node, name) {
+  return ts.isIdentifier(node) && node.text === name;
+}
+
+function isDirectCall(node, receiver, name) {
+  if (!node || !ts.isCallExpression(node) || node.questionDotToken || node.arguments.length !== 1)
+    return false;
+  const member = node.expression;
+  return (
+    ts.isPropertyAccessExpression(member) &&
+    !member.questionDotToken &&
+    isNamedIdentifier(member.expression, receiver) &&
+    member.name.text === name
+  );
+}
+
+function controlNodes(statement, connectionControl) {
+  if (!ts.isExpressionStatement(statement) || !ts.isAwaitExpression(statement.expression))
+    return [];
+  const call = statement.expression.expression;
+  if (!isDirectCall(call, 'tx', 'execute')) return [];
+  const [tagged] = call.arguments;
+  if (!ts.isTaggedTemplateExpression(tagged) || !isNamedIdentifier(tagged.tag, 'sql')) return [];
+  const { template } = tagged;
+  const literals = ts.isTemplateExpression(template)
+    ? [template.head, ...template.templateSpans.map(span => span.literal)]
+    : [template];
+  return literals.filter(node => connectionControl.test(node.text));
+}
+
+function commandSites(source, connectionControl) {
   const unit = source.statements.find(
     node => ts.isFunctionDeclaration(node) && node.name?.text === COMMAND
   );
   if (!unit || sha256(fingerprint(unit, source)) !== RECEIPT_UNIT) return null;
-  // The exact fingerprint fixes the direct transaction, four tenant/role controls, principal
-  // binder on the same transaction, and the parameterized receipt call with one boolean result.
-  // Retain only the AST nodes for the five otherwise prohibited sites.
-  const transaction = unit.body.statements.at(-1).expression;
-  const controls = transaction.arguments[0].body.statements.slice(0, 4).map(statement => {
-    const template = statement.expression.expression.arguments[0].template;
-    return ts.isTemplateExpression(template) ? template.head : template;
-  });
-  return { admin: transaction.expression.expression, controls: new Set(controls) };
+  if (!(connectionControl instanceof RegExp)) return null;
+
+  const last = unit.body?.statements.at(-1);
+  if (!last || !ts.isReturnStatement(last)) return null;
+  const transaction = last.expression;
+  if (!isDirectCall(transaction, 'dbAdmin', 'transaction')) return null;
+  const [callback] = transaction.arguments;
+  if (
+    !ts.isArrowFunction(callback) ||
+    !callback.modifiers?.some(modifier => modifier.kind === ts.SyntaxKind.AsyncKeyword) ||
+    callback.parameters.length !== 1 ||
+    !isNamedIdentifier(callback.parameters[0].name, 'tx') ||
+    !ts.isBlock(callback.body)
+  )
+    return null;
+
+  // The pinned command contains exactly seven connection-control fragments in its first
+  // five direct awaited statements. The receipt query receives no node identities.
+  const statements = callback.body.statements.slice(0, CONTROL_SHAPES.length);
+  if (statements.length !== CONTROL_SHAPES.length) return null;
+  const groups = statements.map(statement => controlNodes(statement, connectionControl));
+  if (
+    groups.some((nodes, index) => {
+      const expected = CONTROL_SHAPES[index];
+      return (
+        nodes.length !== expected.length || nodes.some((node, at) => node.kind !== expected[at])
+      );
+    })
+  )
+    return null;
+  return { admin: transaction.expression.expression, controls: new Set(groups.flat()) };
 }
 
-export function storageReceiptAdmission(ctx, candidate) {
+export function storageReceiptAdmission(ctx, candidate, connectionControl) {
   const { graph, sources, violations, schemaAdmission } = ctx;
   if (!sources.has(VERIFIER) && !candidate?.files.has(VERIFIER)) return null;
   const refuse = detail => {
@@ -112,7 +170,7 @@ export function storageReceiptAdmission(ctx, candidate) {
     return refuse(`storage receipt binding mismatch: ${OBJECT_LOCK} package export`);
   const binding = bindingProblem(graph);
   if (binding) return refuse(`storage receipt binding mismatch: ${binding}`);
-  const sites = commandSites(graph.sourceFileOf(VERIFIER));
+  const sites = commandSites(graph.sourceFileOf(VERIFIER), connectionControl);
   if (!sites) return refuse('storage receipt command fingerprint mismatch');
   const prerequisite = storageReceiptPrerequisiteProblem(schemaAdmission);
   if (prerequisite) return refuse(`storage receipt ${prerequisite}`);
