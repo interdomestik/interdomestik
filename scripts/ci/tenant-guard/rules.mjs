@@ -20,6 +20,7 @@ import { report } from './rules-report.mjs';
 import { proveSchemaAdmission } from './rules-schema-admission.mjs';
 import { scanSeedTlsEntries } from './rules-seed-tls.mjs';
 import { scanFiles } from './rules-scan.mjs';
+import { storageReceiptAdmission } from './storage-receipt-admission.mjs';
 import { unitName, unitOf } from './syntax.mjs';
 
 export { sha256 } from './rules-digest.mjs';
@@ -76,6 +77,7 @@ export function evaluate({
     violations,
   };
   installTrust(ctx);
+  ctx.storageReceipt = storageReceiptAdmission(ctx, schemaAdmission?.candidate);
   installAdmission(ctx, admissions);
   installDependencies(ctx);
   installState(ctx);

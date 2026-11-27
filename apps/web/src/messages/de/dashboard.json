@@ -554,6 +554,9 @@
         "legacy": "Klassisch",
         "v3": "v3"
       }
+    },
+    "settings_page": {
+      "residence_unavailable": "Ihr Wohnsitzland konnte nicht geladen werden. Laden Sie die Seite erneut, bevor Sie es ändern."
     }
   }
 }

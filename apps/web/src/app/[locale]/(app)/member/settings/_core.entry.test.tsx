@@ -145,8 +145,9 @@ describe('SettingsPage commercial billing terms', () => {
     expect(hoisted.redirectMock).not.toHaveBeenCalled();
   });
 
-  it('keeps the settings page renderable when residence-country lookup fails', async () => {
+  it('closes the residence form and offers a retry when the residence-country read fails', async () => {
     hoisted.userFindFirstMock.mockRejectedValueOnce(new Error('db unavailable'));
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const tree = await SettingsPage({
       params: Promise.resolve({ locale: 'en' }),
@@ -154,7 +155,58 @@ describe('SettingsPage commercial billing terms', () => {
 
     render(tree);
 
-    expect(screen.getByTestId('residence-country-settings')).toBeEmptyDOMElement();
+    // A failed read must not open the form with a blank value that a save would store.
+    expect(screen.queryByTestId('residence-country-settings')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'dashboard.settings_page.residence_unavailable'
+    );
+    expect(screen.getByRole('link', { name: 'common.tryAgain' })).toHaveAttribute(
+      'href',
+      '/en/member/settings'
+    );
+    expect(consoleError).toHaveBeenCalledWith(
+      'Failed to load residence country:',
+      expect.any(Error)
+    );
     expectCommercialTerms({ sectionTestId: 'settings-billing-terms' });
+    consoleError.mockRestore();
+  });
+
+  it('treats a missing member row as an unavailable read, not as no stored country', async () => {
+    hoisted.userFindFirstMock.mockResolvedValueOnce(undefined as never);
+
+    render(await SettingsPage({ params: Promise.resolve({ locale: 'en' }) }));
+
+    expect(screen.queryByTestId('residence-country-settings')).not.toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'dashboard.settings_page.residence_unavailable'
+    );
+  });
+
+  it('opens the residence form empty when the member has no stored country', async () => {
+    hoisted.userFindFirstMock.mockResolvedValueOnce({ residenceCountry: null } as never);
+
+    render(await SettingsPage({ params: Promise.resolve({ locale: 'en' }) }));
+
+    expect(screen.getByTestId('residence-country-settings')).toBeEmptyDOMElement();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('leads with one page heading and names each settings section', async () => {
+    render(await SettingsPage({ params: Promise.resolve({ locale: 'en' }) }));
+
+    expect(screen.getByRole('heading', { level: 1, name: 'settings.title' })).toBeInTheDocument();
+    for (const [id, key] of [
+      ['profile', 'profile'],
+      ['residence-country-section', 'residenceCountry'],
+      ['security', 'security'],
+      ['language', 'language'],
+      ['notifications', 'notifications'],
+    ]) {
+      expect(screen.getByRole('region', { name: `settings.${key}.sectionTitle` })).toHaveAttribute(
+        'id',
+        id
+      );
+    }
   });
 });

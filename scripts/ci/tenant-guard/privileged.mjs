@@ -1,6 +1,8 @@
 // The privileged symbols of the tenant guard boundary (see manifest.mjs). Part of the owner-pinned
 // guard source.
 
+import { RECEIPT_CALLER, RECEIPT_KEY, RECEIPT_REEXPORT } from './storage-receipt-admission.mjs';
+
 export const DB = 'packages/database/src';
 
 /**
@@ -9,6 +11,7 @@ export const DB = 'packages/database/src';
  * re-export outside `reexports` blocks.
  */
 export const PRIVILEGED = new Map([
+  [RECEIPT_KEY, { form: 'call', callers: [RECEIPT_CALLER], reexports: [RECEIPT_REEXPORT] }],
   [
     `${DB}/db.ts#dbAdmin`,
     {

@@ -702,6 +702,12 @@
     "removeWhen": "The post-pilot Branches work implements and proves the detail reader's branchless-manager denial."
   },
   {
+    "file": "packages/domain-membership-billing/test/exchange-rates-upgrade.test.ts",
+    "reason": "The release-candidate workflow runs this WP-07 legacy upgrade proof through scripts/ci/run-wp07-legacy-upgrade.mjs against a pinned legacy checkout and its own disposable database; the advisory lanes cannot supply that checkout.",
+    "owner": "Billing",
+    "removeWhen": "An advisory lane can provision the pinned legacy checkout and run the WP-07 upgrade proof."
+  },
+  {
     "file": "packages/qa/src/tools/paddle.test.ts",
     "reason": "The QA tool test builds a temporary Git worktree and checks target refusal before access.",
     "owner": "QA Tooling",
@@ -724,6 +730,18 @@
     "reason": "This historical routing assertion is retired by the contract selector and exercises the old workflow.",
     "owner": "CI Tooling",
     "removeWhen": "A current database test replaces the historical routing assertion."
+  },
+  {
+    "file": "scripts/ci/tenant-guard/tests/path-c-schema.test.mjs",
+    "reason": "Tenant-guard Path-C qualification suite run by test:ci:contracts. It reads migration SQL and schema sources as fixture text and opens no database connection.",
+    "owner": "Tenant guard",
+    "removeWhen": "The database-lane inventory distinguishes fixture SQL text from database access."
+  },
+  {
+    "file": "scripts/ci/tenant-guard/tests/path-c-storage-scan.test.mjs",
+    "reason": "Tenant-guard Path-C qualification suite run by test:ci:contracts. It reads migration SQL and schema sources as fixture text and opens no database connection.",
+    "owner": "Tenant guard",
+    "removeWhen": "The database-lane inventory distinguishes fixture SQL text from database access."
   },
   {
     "file": "scripts/docker-workflow.test.mjs",

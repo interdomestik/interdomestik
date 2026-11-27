@@ -554,6 +554,9 @@
         "legacy": "Trashëguar",
         "v3": "V3"
       }
+    },
+    "settings_page": {
+      "residence_unavailable": "Nuk mundëm ta ngarkojmë shtetin tuaj të banimit. Ngarkoni faqen përsëri para se ta ndryshoni."
     }
   }
 }

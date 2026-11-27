@@ -283,8 +283,10 @@ describe('member case messages', () => {
     expect(screen.getAllByText('member.read')).toHaveLength(1);
   });
 
-  it('gives the send button a 44px phone target and keeps the desktop height', async () => {
+  it('gives the send and refresh buttons a 44px target at every width', async () => {
     renderPanel();
-    expect(await screen.findByTestId('send-message-button')).toHaveClass('h-11', 'sm:h-10');
+    expect(await screen.findByTestId('send-message-button')).toHaveClass('min-h-11');
+    expect(screen.getByRole('button', { name: 'member.refresh' })).toHaveClass('min-h-11');
+    expect(screen.getByTestId('send-message-button')).not.toHaveClass('sm:h-10');
   });
 });
