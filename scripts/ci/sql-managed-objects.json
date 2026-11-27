@@ -352,6 +352,11 @@
       "migration": "0102_wp07_membership_sales"
     },
     {
+      "key": "function [\"public\",\"membership_import_list_complete_guard()\"]",
+      "value": "2760ed7fffd1ebe3e5ed5a03a2cd1997",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "function [\"public\",\"membership_individual_sale_guard_fn()\"]",
       "value": "5f4f551a12be11642dfc88431dac2162",
       "migration": "0102_wp07_membership_sales"
@@ -440,6 +445,11 @@
       "key": "function [\"public\",\"sponsor_terms_guard_fn()\"]",
       "value": "0df49e20782ee8b487f420972ab1593c",
       "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "function [\"public\",\"wp09_update_scope_guard()\"]",
+      "value": "afa6d1c7a29194db13abd735ba08fcaa",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "index [\"public\",\"agent_settings\",\"idx_agent_settings_tenant_id\"]",
@@ -2042,6 +2052,21 @@
       "migration": "0097_member_leads_consent"
     },
     {
+      "key": "trigger [\"public\",\"membership_import_assignments\",\"membership_import_assignments_update_scope\"]",
+      "value": "CREATE TRIGGER membership_import_assignments_update_scope BEFORE UPDATE ON public.membership_import_assignments FOR EACH ROW EXECUTE FUNCTION wp09_update_scope_guard('revoked_at', 'revoked_by')",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_import_lists\",\"membership_import_lists_complete\"]",
+      "value": "CREATE CONSTRAINT TRIGGER membership_import_lists_complete AFTER INSERT ON public.membership_import_lists DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION membership_import_list_complete_guard()",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_import_lists\",\"membership_import_lists_update_scope\"]",
+      "value": "CREATE TRIGGER membership_import_lists_update_scope BEFORE UPDATE ON public.membership_import_lists FOR EACH ROW EXECUTE FUNCTION wp09_update_scope_guard('decision', 'decided_by', 'decided_at', 'decided_digest')",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "trigger [\"public\",\"membership_ledger_entries\",\"membership_ledger_entries_append_only\"]",
       "value": "CREATE TRIGGER membership_ledger_entries_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.membership_ledger_entries FOR EACH STATEMENT EXECUTE FUNCTION membership_port_reject_mutation_fn()",
       "migration": "0102_wp07_membership_sales"
@@ -2105,6 +2130,11 @@
       "key": "trigger [\"public\",\"membership_sales\",\"membership_sales_z_rate_verification_age\"]",
       "value": "CREATE TRIGGER membership_sales_z_rate_verification_age BEFORE INSERT ON public.membership_sales FOR EACH ROW WHEN ((new.kind = 'individual'::text)) EXECUTE FUNCTION membership_sale_rate_verification_age_fn()",
       "migration": "0104_wp07_rate_verification_age"
+    },
+    {
+      "key": "trigger [\"public\",\"sponsor_contract_years\",\"sponsor_contract_years_update_scope\"]",
+      "value": "CREATE TRIGGER sponsor_contract_years_update_scope BEFORE UPDATE ON public.sponsor_contract_years FOR EACH ROW EXECUTE FUNCTION wp09_update_scope_guard('current_limit')",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "trigger [\"public\",\"sponsor_handover_cancel_attempts\",\"sponsor_handover_cancel_attempts_guard\"]",

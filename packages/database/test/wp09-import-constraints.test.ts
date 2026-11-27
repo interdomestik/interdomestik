@@ -149,7 +149,12 @@ test('WP-09 rejects invalid scopes, proof, raw personal data and replay claims',
       ],
       [
         'membership_import_rows',
-        { ...priorPaid, email_alias_key: digest('origin') },
+        {
+          ...priorPaid,
+          email_alias_key: digest('origin'),
+          member_user_id: null,
+          member_verified_at: null,
+        },
         '23503',
         'membership_import_rows_list_origin_fk',
       ],
@@ -267,7 +272,7 @@ test('WP-09 rejects invalid scopes, proof, raw personal data and replay claims',
             if (table === 'membership_import_rows' && !('list_id' in patch)) {
               await insertRecord(sp, 'membership_import_lists', fresh);
             }
-            const target = table === 'membership_import_rows' ? { list_id: fresh.id } : {};
+            const target: Row = table === 'membership_import_rows' ? { list_id: fresh.id } : {};
             await insertRecord(sp, table, { ...home[table], ...target, ...patch, id: uid() });
           },
           code,
