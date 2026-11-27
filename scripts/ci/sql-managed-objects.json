@@ -37,6 +37,11 @@
       "migration": "0110_storage_path_canonical"
     },
     {
+      "key": "exclusion [\"public\",\"sponsor_contract_years\",\"sponsor_contract_years_agreement_window_excl\"]",
+      "value": "EXCLUDE USING gist (tenant_id WITH =, agreement_key WITH =, daterange(starts_on, ends_before, '[)'::text) WITH &&)",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "exclusion [\"public\",\"sponsor_terms\",\"sponsor_terms_no_overlap\"]",
       "value": "EXCLUDE USING gist (sponsor_id WITH =, tstzrange(term_start, term_end, '[)'::text) WITH &&)",
       "migration": "0099_acq3b_sponsor_seats"
@@ -97,6 +102,46 @@
       "migration": "0108_wp13a_legal_acceptance"
     },
     {
+      "key": "fk [\"public\",\"membership_import_lists\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"sponsor_id\",\"term_id\"],\"public\",\"sponsor_contract_years\",[\"tenant_id\",\"legal_entity_id\",\"id\",\"sponsor_id\",\"term_id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_import_rows\",[\"tenant_id\",\"legal_entity_id\",\"list_id\",\"contract_year_id\"],\"public\",\"membership_import_lists\",[\"tenant_id\",\"legal_entity_id\",\"id\",\"contract_year_id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_import_rows\",[\"tenant_id\",\"legal_entity_id\",\"list_id\",\"origin\"],\"public\",\"membership_import_lists\",[\"tenant_id\",\"legal_entity_id\",\"id\",\"origin\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_notice_obligations\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"exit_event_id\",\"employee_exit_seat_id\"],\"public\",\"sponsor_exit_events\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\",\"employee_seat_id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_notice_obligations\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"exit_event_id\",\"exit_kind\"],\"public\",\"sponsor_exit_events\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\",\"kind\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_notice_obligations\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"seat_id\",\"import_row_id\"],\"public\",\"sponsor_contract_year_seats\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\",\"import_row_id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_notice_obligations\",[\"tenant_id\",\"legal_entity_id\",\"import_row_id\"],\"public\",\"membership_import_rows\",[\"tenant_id\",\"legal_entity_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_opt_out_tokens\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"seat_id\"],\"public\",\"sponsor_contract_year_seats\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "fk [\"public\",\"membership_sales\",[\"tenant_id\",\"plan_version_id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"plan_tier\",\"plan_members_included\"],\"public\",\"membership_plan_versions\",[\"tenant_id\",\"id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"tier\",\"members_included\"]]",
       "value": "delete=no action update=no action match=s",
       "migration": "0102_wp07_membership_sales"
@@ -120,6 +165,26 @@
       "key": "fk [\"public\",\"notification_preview_restrictions\",[\"tenant_id\",\"notification_id\"],\"public\",\"notifications\",[\"tenant_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
       "migration": "0105_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"sponsor_contract_year_seats\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"import_row_id\"],\"public\",\"membership_import_rows\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"sponsor_contract_year_seats\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"year_current_limit\"],\"public\",\"sponsor_contract_years\",[\"tenant_id\",\"legal_entity_id\",\"id\",\"current_limit\"]]",
+      "value": "delete=no action update=cascade match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"sponsor_exit_events\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"agreement_key\"],\"public\",\"sponsor_contract_years\",[\"tenant_id\",\"legal_entity_id\",\"id\",\"agreement_key\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"sponsor_exit_events\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"employee_seat_id\"],\"public\",\"sponsor_contract_year_seats\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "fk [\"public\",\"support_handoff_first_responses\",[\"tenant_id\",\"handoff_id\"],\"public\",\"support_handoffs\",[\"tenant_id\",\"id\"]]",
@@ -487,6 +552,21 @@
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"membership_import_rows\",\"membership_import_rows_active_alias_uq\"]",
+      "value": "unique btree (tenant_id, email_alias_key) WHERE ((identity_released_at IS NULL) AND (email_alias_key IS NOT NULL))",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "index [\"public\",\"membership_import_rows\",\"membership_import_rows_active_member_uq\"]",
+      "value": "unique btree (tenant_id, member_user_id) WHERE ((identity_released_at IS NULL) AND (member_user_id IS NOT NULL))",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "index [\"public\",\"membership_import_rows\",\"membership_import_rows_active_stable_uq\"]",
+      "value": "unique btree (tenant_id, stable_identity_namespace, stable_identity_key) WHERE ((identity_released_at IS NULL) AND (stable_identity_key IS NOT NULL))",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "index [\"public\",\"membership_ledger_entries\",\"membership_ledger_entries_charge_uq\"]",
       "value": "unique btree (tenant_id, sale_id) WHERE (kind = 'charge'::text)",
       "migration": "0102_wp07_membership_sales"
@@ -560,6 +640,11 @@
       "key": "index [\"public\",\"service_usage\",\"idx_service_usage_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"sponsor_terms\",\"sponsor_terms_wp09_scope_uq\"]",
+      "value": "unique btree (tenant_id, id, sponsor_id, legal_entity_id)",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "index [\"public\",\"subscriptions\",\"idx_subscriptions_tenant_id\"]",
@@ -1647,9 +1732,34 @@
       "migration": "0108_wp13a_legal_acceptance"
     },
     {
+      "key": "rls-force [\"public\",\"membership_import_assignments\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_import_lists\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_import_rows\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "rls-force [\"public\",\"membership_ledger_entries\"]",
       "value": "forced",
       "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_notice_obligations\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_opt_out_tokens\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "rls-force [\"public\",\"membership_plan_versions\"]",
@@ -1685,6 +1795,21 @@
       "key": "rls-force [\"public\",\"notification_preview_restrictions\"]",
       "value": "forced",
       "migration": "0105_wp11_notification_deliveries"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_contract_year_seats\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_contract_years\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_exit_events\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "rls-force [\"public\",\"sponsor_handover_cancel_attempts\"]",

@@ -4,7 +4,11 @@ import { fileURLToPath } from 'node:url';
 import type postgres from 'postgres';
 
 import { restricted, runtimeRole } from './exchange-rates-restricted.fixture';
-import { migrateJournal, scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
+import {
+  migrateJournalBeforeNotificationDeliveries,
+  migrateJournalThrough,
+} from './journal-prefix.support';
+import { scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
 import { quoteIdentifier } from './rls-test-connection';
 import {
   END,
@@ -17,6 +21,7 @@ import {
   type Scope,
   type Tx,
 } from './sponsor-seed.test-support';
+import { grantNotificationDeliveryRowLocks } from './wp11-notification-deliveries-rls.fixture';
 
 export const tables = [
   'membership_import_assignments',
@@ -185,7 +190,8 @@ type Fixture = {
 
 export async function insertRecord(tx: Tx, table: Table, row: Row): Promise<void> {
   if (table === 'sponsor_contract_years') {
-    await tx`insert into sponsor_contract_years ${tx({ ...row, benefits: tx.json({}) })}`;
+    // Text input for jsonb: the insert helper does not carry tx.json's type into the bind.
+    await tx`insert into sponsor_contract_years ${tx({ ...row, benefits: '{}' })}`;
     return;
   }
   await insert(tx, table, row);
@@ -213,7 +219,11 @@ export async function withWp09Fixture(t: TestContext, run: (fixture: Fixture) =>
       try {
         await db.unsafe(`create role ${otherRole} nologin nosuperuser nobypassrls`);
         try {
-          await migrateJournal(db, migrations);
+          // The migrations grant to the runtime role when it exists, as in every environment.
+          // Supply 0105's row-lock prerequisite at its checkpoint, then build through WP-09.
+          await migrateJournalBeforeNotificationDeliveries(db, migrations);
+          await grantNotificationDeliveryRowLocks(db);
+          await migrateJournalThrough(db, migrations, { name: 'wp09_import_assignment_capacity' });
           // Exercise the migration's table ACLs directly. Both roles can use the schema.
           await db.unsafe(`grant usage on schema public to ${runtimeRole}, ${otherRole}`);
           const a = await seedSponsorScope(db);
