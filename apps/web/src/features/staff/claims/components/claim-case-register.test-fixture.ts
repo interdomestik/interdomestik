@@ -58,5 +58,6 @@ export const outbound: ClaimCorrespondenceEntry = {
   createdAt: occurredAt,
   answered: false,
   overdue: true,
+  receivedDocumentIds: [],
   sharedDocumentIds: [],
 };

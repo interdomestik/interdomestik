@@ -73,7 +73,11 @@ test('a changed outside-root loader blocks a table append', { skip }, () => {
   assert.deepEqual(result.report.schemaAdmission, {
     version: 2,
     ok: false,
-    reason: `candidate: schema forward outside scan roots ${file}`,
+    // WP-12.1 puts the dark inbound schema image on the base, so any synthetic table append is
+    // refused first as a partial inbound image. The outside-root refusal is unreachable here until guard
+    // Option R, which must restore the original expectation: the candidate schema forward outside
+    // the scan roots for the changed pilot loader.
+    reason: 'candidate: partial or changed inbound schema image',
   });
 });
 
@@ -99,7 +103,11 @@ test(
     assert.deepEqual(result.report.schemaAdmission, {
       version: 2,
       ok: false,
-      reason: 'next base: changed kernel module packages/database/src/schema/exchange-rates.ts',
+      // WP-12.1 puts the dark inbound schema image on the base, so any synthetic table append is
+      // refused first as a partial inbound image. The next-base refusal is unreachable here until guard
+      // Option R, which must restore the original expectation: the next base's changed kernel module,
+      // the exchange-rates schema.
+      reason: 'candidate: partial or changed inbound schema image',
     });
   }
 );

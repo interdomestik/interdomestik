@@ -120,6 +120,30 @@ function CorrespondenceRow({
           </ul>
         </div>
       )}
+      {entry.receivedDocumentIds?.length > 0 && (
+        <div>
+          <p>{t('inbound.received')}</p>
+          <ul className="ms-5 list-disc">
+            {entry.receivedDocumentIds.map(id => {
+              const name = documentNames.get(id);
+              return (
+                <li key={id}>
+                  {name ? (
+                    <a
+                      className="underline"
+                      href={`/api/documents/${encodeURIComponent(id)}/download`}
+                    >
+                      {name}
+                    </a>
+                  ) : (
+                    t('inbound.unavailable')
+                  )}
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+      )}
       {entry.followUpAt && (
         <p>{t('list.followUp', { date: formatPilotDateTime(entry.followUpAt, locale, '') })}</p>
       )}

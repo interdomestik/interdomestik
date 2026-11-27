@@ -11,11 +11,15 @@ const mocks = vi.hoisted(() => ({
   updateFields: vi.fn(),
   recordInbound: vi.fn(),
   recordOutbound: vi.fn(),
+  isClaimUploadPaused: vi.fn(),
   followUp: vi.fn(),
 }));
 
 vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.authorize }));
 vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: mocks.audit }));
+vi.mock('@/features/claims/upload/server/claim-upload-cutover', () => ({
+  isClaimUploadPaused: mocks.isClaimUploadPaused,
+}));
 vi.mock('@sentry/nextjs', () => ({
   setTag: vi.fn(),
   setUser: vi.fn(),
@@ -248,5 +252,29 @@ it.each([
     );
     expect(mocks.capture.mock.calls[0]?.[0]).not.toHaveProperty('cause');
     vi.restoreAllMocks();
+  }
+);
+
+it.each([
+  { assignment: 'assigned', caseId: claimId, paused: false },
+  { assignment: 'foreign', caseId: 'claim-foreign-staff', paused: true },
+])(
+  'rejects duplicate received IDs before looking up the $assignment case',
+  async ({ caseId, paused }) => {
+    vi.resetAllMocks();
+    mocks.authorize.mockResolvedValue(authorizedSession(STAFF_A));
+    mocks.audit.mockResolvedValue({ ok: true });
+    mocks.isClaimUploadPaused.mockResolvedValue(paused);
+    mocks.recordInbound.mockResolvedValue({ ok: false, code: 'invalid' });
+
+    const result = await recordInboundCorrespondence({
+      ...contact,
+      claimId: caseId,
+      receivedDocumentIds: ['document-a', 'document-a'],
+    });
+
+    expect(mocks.isClaimUploadPaused).not.toHaveBeenCalled();
+    expect(mocks.recordInbound).not.toHaveBeenCalled();
+    expect(result).toEqual({ success: false, code: 'VALIDATION_ERROR', error: 'Invalid input' });
   }
 );

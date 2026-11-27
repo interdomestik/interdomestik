@@ -1,3 +1,5 @@
+import { isClaimUploadPaused } from '@/features/claims/upload/server/claim-upload-cutover';
+import { isInboundPilotCase } from '@interdomestik/domain-claims/claims/inbound-upload';
 import {
   resolveStorageUploadContentType,
   resolveUploadMimeType,
@@ -93,6 +95,25 @@ function captureConfirmFailure(params: {
   });
 }
 
+// WP-12.1 cutover: a paused case refuses its channel; staff never self-upload to a pilot case.
+async function isEvidenceUploadClosed(
+  authority: AuthorizedSession['authority'],
+  tenantId: string,
+  claimId: string,
+  isAdminSurface: boolean
+) {
+  if (
+    await isClaimUploadPaused(
+      authority,
+      tenantId,
+      claimId,
+      isAdminSurface ? 'staff' : 'self-supply'
+    )
+  )
+    return true;
+  return isAdminSurface && (await isInboundPilotCase(authority, claimId));
+}
+
 async function uploadEvidence(authorized: AuthorizedSession, request: Request) {
   const { session, authority } = authorized;
   const { tenantId } = readTenantAuthority(authority);
@@ -119,6 +140,10 @@ async function uploadEvidence(authorized: AuthorizedSession, request: Request) {
       claimAccess.status === 404 ? 'Claim not found' : 'Unauthorized',
       claimAccess.status
     );
+  }
+
+  if (await isEvidenceUploadClosed(authority, tenantId, claimId, claimAccess.isAdminSurface)) {
+    return jsonError('Forbidden', 403);
   }
 
   if (informationRequestId && claimAccess.isAdminSurface) {

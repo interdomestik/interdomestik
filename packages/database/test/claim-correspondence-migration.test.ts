@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { randomBytes } from 'node:crypto';
+import { randomBytes, randomUUID } from 'node:crypto';
 import { copyFileSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,8 +7,10 @@ import test, { type TestContext } from 'node:test';
 import { fileURLToPath } from 'node:url';
 
 import {
+  assignedPath,
   documentInput,
   insertClaim,
+  insertDocument,
   restricted,
   seedActors,
   withRuntime,
@@ -37,13 +39,18 @@ test('WP-12 journal cutover preserves legacy cases and closes intake', async t =
   });
 });
 
-function journalThrough(t: TestContext, stop: 'prior' | 'register') {
+function journalThrough(t: TestContext, stop: 'prior' | 'register' | 'before-inbound') {
   const journal = JSON.parse(readFileSync(join(migrations, 'meta/_journal.json'), 'utf8'));
   const register = journal.entries.findIndex((entry: { tag: string }) =>
     entry.tag.endsWith(registerTagSuffix)
   );
   assert.ok(register > 0, 'the WP-12 register migration follows an earlier journal entry');
-  const index = stop === 'register' ? register : register - 1;
+  const inbound = journal.entries.findIndex((entry: { tag: string }) =>
+    entry.tag.endsWith('_wp12_1_inbound_documents')
+  );
+  assert.ok(inbound > register, 'the pilot migration follows the case register');
+  const registerIndex = stop === 'register' ? register : register - 1;
+  const index = stop === 'before-inbound' ? inbound - 1 : registerIndex;
   const entries: { tag: string }[] = journal.entries.slice(0, index + 1);
   const dir = mkdtempSync(join(tmpdir(), 'wp12-journal-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));
@@ -52,6 +59,33 @@ function journalThrough(t: TestContext, stop: 'prior' | 'register') {
   for (const { tag } of entries)
     copyFileSync(join(migrations, `${tag}.sql`), join(dir, `${tag}.sql`));
   return dir;
+}
+
+async function proveInboundOccupancy(
+  admin: ScratchClient,
+  claim: Awaited<ReturnType<typeof insertClaim>>
+) {
+  const reservedId = 'wp12-inbound-' + 'a'.repeat(32);
+  const checkOccupancy = () =>
+    assert.rejects(migrateJournal(admin, migrations), (error: unknown) => {
+      assert.ok(error instanceof Error);
+      const driver = error.cause ?? error;
+      assert.ok(driver instanceof Error && 'code' in driver);
+      assert.equal(driver.code, 'P0001');
+      assert.equal(driver.message, 'WP-12.1 document namespace is already occupied');
+      return true;
+    });
+  const reservedPath = assignedPath(claim, reservedId);
+  const ordinary = documentInput(claim, randomUUID(), reservedPath);
+  await insertDocument(admin, ordinary);
+  await checkOccupancy();
+  await admin`delete from claim_documents where id = ${ordinary.id}`;
+
+  const polymorphicId = randomUUID();
+  await admin`insert into documents (id, tenant_id, entity_type, entity_id, file_name, mime_type, file_size, storage_path, uploaded_by, deleted_at)
+    values (${polymorphicId}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', 'application/pdf', 120, ${reservedPath}, ${claim.user}, now())`;
+  await checkOccupancy();
+  await admin`delete from documents where id = ${polymorphicId}`;
 }
 
 async function proveJournal(t: TestContext, admin: ScratchClient) {
@@ -81,10 +115,13 @@ async function proveJournal(t: TestContext, admin: ScratchClient) {
     documentInput(retail, undefined, randomPath()),
     documentInput(injury, nearLimitId()),
   ];
-  for (const document of documents) await admin`insert into claim_documents ${admin(document)}`;
+  const duplicateLegacyPath = documentInput(injury, undefined, documents[0].file_path);
+  for (const document of [...documents, duplicateLegacyPath]) {
+    await admin`insert into claim_documents ${admin(document)}`;
+  }
   assert.ok(documents[1].file_path.length > 3_000);
   assert.equal(documents[2].id.length, 2_650);
-  const documentIds = documents.map(document => document.id);
+  const documentIds = [...documents, duplicateLegacyPath].map(document => document.id);
   // Row values and row versions (xmin): the migration performs no DML on an existing table.
   const snapshot = async () => ({
     claims: [
@@ -98,7 +135,7 @@ async function proveJournal(t: TestContext, admin: ScratchClient) {
   });
   const before = await snapshot();
   assert.equal(before.claims.length, ids.length);
-  assert.equal(before.documents.length, documents.length);
+  assert.equal(before.documents.length, documentIds.length);
 
   await migrateJournal(admin, journalThrough(t, 'register'));
   assert.deepEqual(
@@ -106,6 +143,16 @@ async function proveJournal(t: TestContext, admin: ScratchClient) {
     before,
     'the migration leaves legacy claims and documents untouched'
   );
+  await migrateJournal(admin, journalThrough(t, 'before-inbound'));
+  await proveInboundOccupancy(admin, retail);
+  await migrateJournal(admin, migrations);
+  assert.deepEqual(
+    await snapshot(),
+    before,
+    'WP-12.1 keeps duplicate and long legacy paths intact'
+  );
+  const [pilot] = await admin`select count(*)::int as count from claim_inbound_pilot_cases`;
+  assert.equal(pilot.count, 0);
   return { retail, injury, draft, closedDrafts };
 }
 

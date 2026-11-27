@@ -1,3 +1,4 @@
+import { isInboundPilotCase } from '@interdomestik/domain-claims/claims/inbound-upload';
 import { deniesClaimMessageContent } from '@/lib/branch-manager-message-boundary';
 import { ClaimMessageSummary } from '@/features/claims/communication/claim-message-summary';
 import { MessagingPanel } from '@/components/messaging/messaging-panel';
@@ -41,6 +42,7 @@ export async function AdminClaimDetailV2Page({
   } = result;
   const canAssign = staffPage !== null;
   const branchManager = session.user.role === 'branch_manager';
+  const inboundPilot = !branchManager && (await isInboundPilotCase(authority, id));
   const nextActions = getNextActions(data, session.user.id);
   const showStaffSearch =
     staffPage &&
@@ -141,6 +143,7 @@ export async function AdminClaimDetailV2Page({
             viewerRole={session.user.role}
             documentSummary={data.documentSummary}
             readOnly={branchManager}
+            inboundPilot={inboundPilot}
             docs={data.docs.map(d => ({
               id: d.id,
               url: d.url,

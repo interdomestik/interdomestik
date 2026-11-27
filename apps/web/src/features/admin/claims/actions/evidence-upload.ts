@@ -1,5 +1,10 @@
 'use server';
 
+import { isClaimUploadPaused } from '@/features/claims/upload/server/claim-upload-cutover';
+import { isInboundPilotCase } from '@interdomestik/domain-claims/claims/inbound-upload';
+import { parameterFreeFailure } from '@/actions/staff-claims/register-failure';
+import * as Sentry from '@sentry/nextjs';
+
 import { ClaimDocumentUploadConflictError } from '@/features/claims/upload/server/claim-document-upload-conflict';
 import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
 
@@ -44,10 +49,10 @@ export type GenerateAdminUploadUrlResult =
       bucket: string;
       intentToken: string;
     }
-  | { success: false; error: string; status: 400 | 401 | 404 | 413 | 500 };
+  | { success: false; error: string; status: 400 | 401 | 403 | 404 | 413 | 500 };
 
 export type ConfirmAdminUploadResult =
-  { success: true } | { success: false; error: string; status: 401 | 404 | 409 | 500 };
+  { success: true } | { success: false; error: string; status: 401 | 403 | 404 | 409 | 500 };
 
 export type ConfirmAdminUploadParams = {
   claimId: string;
@@ -115,28 +120,38 @@ export async function generateAdminUploadUrl(
   }
 
   const { authority, tenantId, resolvedBucket } = uploadContext;
-  const claim = await findAccessibleAdminUploadClaim({
-    branchId: uploadContext.session.user.branchId ?? null,
-    claimId,
-    role: uploadContext.session.user.role ?? null,
-    authority,
-    userId: uploadContext.session.user.id,
-  });
+  try {
+    const claim = await findAccessibleAdminUploadClaim({
+      branchId: uploadContext.session.user.branchId ?? null,
+      claimId,
+      role: uploadContext.session.user.role ?? null,
+      authority,
+      userId: uploadContext.session.user.id,
+    });
 
-  if (!claim) {
-    return { success: false, error: 'Claim not found', status: 404 };
+    if (!claim) {
+      return { success: false, error: 'Claim not found', status: 404 };
+    }
+
+    if (await isInboundPilotCase(authority, claimId)) {
+      return { success: false, error: 'Forbidden', status: 403 };
+    }
+
+    return await createSignedUploadUrl({
+      authority,
+      actorId: uploadContext.session.user.id,
+      bucket: resolvedBucket,
+      claimId,
+      fileName,
+      fileSize,
+      logPrefix: '[admin/claims]',
+      mimeType: contentType,
+      tenantId,
+    });
+  } catch (error) {
+    Sentry.captureException(parameterFreeFailure(error, 'legacy staff evidence issuance'));
+    return { success: false, error: 'evidence_upload_failed', status: 500 };
   }
-
-  return createSignedUploadUrl({
-    actorId: uploadContext.session.user.id,
-    bucket: resolvedBucket,
-    claimId,
-    fileName,
-    fileSize,
-    logPrefix: '[admin/claims]',
-    mimeType: contentType,
-    tenantId,
-  });
 }
 
 export async function confirmAdminUpload(
@@ -176,6 +191,12 @@ export async function confirmAdminUpload(
   }
 
   try {
+    if (
+      (await isClaimUploadPaused(authority, tenantId, claimId)) ||
+      (await isInboundPilotCase(authority, claimId))
+    ) {
+      return { success: false, error: 'Forbidden', status: 403 };
+    }
     if (uploadedBucket && uploadedBucket !== resolvedBucket) {
       return {
         success: false,

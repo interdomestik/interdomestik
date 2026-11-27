@@ -57,7 +57,7 @@ export function SharedEvidenceUploadDialog({
   const tClaims = useTranslations('claims');
   const tUpload = useTranslations('evidence.fileUpload');
   const pathname = usePathname();
-  const [lastFailure, setLastFailure] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [category, setCategory] = useState<EvidenceCategory>('evidence');
@@ -150,7 +150,7 @@ export function SharedEvidenceUploadDialog({
 
     const attempt = signedUpload.acquire();
     if (!attempt) return;
-    setLastFailure(false);
+    setUploadError(null);
     try {
       const documentId = await signedUpload.uploadSigned(draft);
       onUploadSuccess?.({
@@ -162,9 +162,8 @@ export function SharedEvidenceUploadDialog({
       resetDialog();
       router.refresh();
     } catch (error) {
-      setLastFailure(true);
       console.error('Upload flow error', error);
-      toast.error(
+      const message =
         error instanceof SignedUploadIdentityChangedError
           ? tClaims('uploadRecovery.identityChanged')
           : evidenceUploadErrorMessage(
@@ -173,8 +172,9 @@ export function SharedEvidenceUploadDialog({
               (resolveEvidenceFormat(draft.file.name, draft.file.type)?.maxBytes ??
                 10 * 1024 * 1024) /
                 (1024 * 1024)
-            )
-      );
+            );
+      setUploadError(message);
+      toast.error(message);
     } finally {
       signedUpload.release(attempt);
     }
@@ -235,8 +235,9 @@ export function SharedEvidenceUploadDialog({
             />
           ) : null}
         </div>
-        {lastFailure || !signedUpload.identityMatches ? (
+        {uploadError || !signedUpload.identityMatches ? (
           <output data-testid="upload-recovery" className="block space-y-2 text-sm">
+            {uploadError && <span className="block text-destructive">{uploadError}</span>}
             <span className="block">{tClaims('uploadRecovery.description')}</span>
             <a
               className="inline-block underline underline-offset-4"

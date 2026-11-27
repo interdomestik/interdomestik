@@ -4,9 +4,10 @@ import { type TenantTransaction } from '@interdomestik/database';
 import { buildVaultConsentDisplay, type VaultConsentDisplay } from '@interdomestik/domain-claims';
 import { readTenantAuthority } from '@interdomestik/database/tenant-authority';
 import { readTenantLocaleMetadata } from '@interdomestik/database/tenant-directory';
-import { claimDocumentAiExtractionConsents, claimDocuments } from '@interdomestik/database/schema';
+import { claimDocumentAiExtractionConsents } from '@interdomestik/database/schema';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 import 'server-only';
+import { readCurrentMemberVaultEvidence } from '@interdomestik/domain-documents/claim-evidence';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export interface GetMemberVaultConsentDisplayParams {
@@ -16,16 +17,35 @@ export interface GetMemberVaultConsentDisplayParams {
   piiStatus: 'available' | 'erased_or_unavailable';
 }
 
-export async function getMemberVaultConsentDisplay(
-  params: GetMemberVaultConsentDisplayParams,
-  database?: TenantTransaction
-): Promise<VaultConsentDisplay> {
+export type MemberVaultEvidence = Awaited<ReturnType<typeof readCurrentMemberVaultEvidence>>;
+type TenantLocaleMetadata = Awaited<ReturnType<typeof readTenantLocaleMetadata>>;
+
+/** The Vault gate, decided before any document read. */
+export type MemberVaultConsentGate =
+  | { open: false; display: VaultConsentDisplay }
+  | {
+      open: true;
+      display: VaultConsentDisplay;
+      tenantId: string;
+      viewerId: string;
+      tenant: TenantLocaleMetadata;
+    };
+type OpenMemberVaultConsentGate = Extract<MemberVaultConsentGate, { open: true }>;
+
+/**
+ * Admits the member and evaluates the tenant, category and PII gate without reading documents.
+ * When the gate is open, the caller reads the viewer's current evidence inside its admitted
+ * transaction and finishes with `completeMemberVaultConsentDisplay` in that same transaction.
+ */
+export async function openMemberVaultConsentDisplay(
+  params: GetMemberVaultConsentDisplayParams
+): Promise<MemberVaultConsentGate> {
   const admission = await requireAdmittedMember();
   if (!admission.ok) throw new UnauthorizedError();
-  const { authority } = admission.authorized;
-  const { tenantId } = readTenantAuthority(authority);
+  const { tenantId, principal } = readTenantAuthority(admission.authorized.authority);
+  if (!principal) throw new UnauthorizedError();
   const tenant = await readTenantLocaleMetadata(tenantId);
-  const gated = buildVaultConsentDisplay({
+  const display = buildVaultConsentDisplay({
     tenantCode: tenant?.code ?? null,
     tenantCountryCode: tenant?.countryCode ?? null,
     claimCategory: params.claimCategory,
@@ -33,43 +53,37 @@ export async function getMemberVaultConsentDisplay(
     documents: [],
     consents: [],
   });
-  if (gated.kind !== 'ready') return gated;
-
-  if (!database) {
-    // The ambient client carries no tenant context, so run the reads inside one.
-    return withTenantAuthority(authority, tx =>
-      readVaultConsentDisplay(params, tenantId, tx, tenant, gated)
-    );
-  }
-  return readVaultConsentDisplay(params, tenantId, database, tenant, gated);
+  if (display.kind !== 'ready') return { open: false, display };
+  return { open: true, display, tenantId, viewerId: principal.userId, tenant };
 }
 
-type TenantLocaleMetadata = Awaited<ReturnType<typeof readTenantLocaleMetadata>>;
-
-async function readVaultConsentDisplay(
-  params: GetMemberVaultConsentDisplayParams,
-  tenantId: string,
-  database: TenantTransaction,
-  tenant: TenantLocaleMetadata,
-  gated: VaultConsentDisplay
+export async function getMemberVaultConsentDisplay(
+  params: GetMemberVaultConsentDisplayParams
 ): Promise<VaultConsentDisplay> {
-  // db-access-guard: tenant-scoped -- reason: exact MK tenant gate passed and the claim was already resolved through the member-scoped claim-detail query
-  const documents = await database
-    .select({
-      id: claimDocuments.id,
-      category: claimDocuments.category,
-      createdAt: claimDocuments.createdAt,
-    })
-    .from(claimDocuments)
-    .where(
-      and(
-        eq(claimDocuments.tenantId, tenantId),
-        eq(claimDocuments.claimId, params.claimId),
-        eq(claimDocuments.category, 'evidence')
-      )
-    )
-    .orderBy(desc(claimDocuments.createdAt), desc(claimDocuments.id));
-  if (documents.length === 0) return gated;
+  const gate = await openMemberVaultConsentDisplay(params);
+  if (!gate.open) return gate.display;
+  const admission = await requireAdmittedMember();
+  if (!admission.ok) throw new UnauthorizedError();
+  // The ambient client carries no tenant context, so run the reads inside one.
+  return withTenantAuthority(admission.authorized.authority, async tx => {
+    const evidence = await readCurrentMemberVaultEvidence(
+      tx,
+      gate.tenantId,
+      params.claimId,
+      gate.viewerId
+    );
+    return completeMemberVaultConsentDisplay(params, gate, tx, evidence);
+  });
+}
+
+export async function completeMemberVaultConsentDisplay(
+  params: GetMemberVaultConsentDisplayParams,
+  gate: OpenMemberVaultConsentGate,
+  database: TenantTransaction,
+  documents: MemberVaultEvidence
+): Promise<VaultConsentDisplay> {
+  const { tenantId, tenant } = gate;
+  if (documents.length === 0) return gate.display;
 
   // db-access-guard: tenant-scoped -- reason: exact tenant, member, claim, document, consent-type, and purpose predicates bound this read
   const consents = await database

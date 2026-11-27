@@ -1,12 +1,10 @@
 import {
   and,
-  asc,
   claimCorrespondence,
   claimDocuments,
   claims,
   desc,
   inArray,
-  claimCorrespondenceDocuments,
   eq,
   type TenantTransaction,
 } from '@interdomestik/database';
@@ -25,6 +23,7 @@ import {
   resolveRegisterRead,
 } from './case-register-access';
 import { recordInboundCorrespondenceInputSchema } from './correspondence';
+import { readCorrespondenceDocumentLinks } from './correspondence-links';
 import { readSummary } from './correspondence-summary';
 import { caseAuthorityScopes, MAX_SHARED_DOCUMENTS } from './outward-action-requirements';
 import { filterRegisterCitationNames } from './register-citation-access';
@@ -48,16 +47,6 @@ export type CorrespondenceReplyParent = Pick<
   ClaimCorrespondenceEntry,
   'id' | 'partyOrganisation' | 'occurredAt'
 >;
-
-function groupDocumentIds(links: { correspondenceId: string; documentId: string }[]) {
-  const byEntry = new Map<string, string[]>();
-  for (const link of links) {
-    const ids = byEntry.get(link.correspondenceId) ?? [];
-    ids.push(link.documentId);
-    byEntry.set(link.correspondenceId, ids);
-  }
-  return byEntry;
-}
 
 type RegisterPage = { claimId: string; page: number; perPage: number };
 
@@ -144,27 +133,12 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, input
               )
             )
           );
-  const links =
-    entryIds.length === 0
-      ? []
-      : await tx
-          .select({
-            correspondenceId: claimCorrespondenceDocuments.correspondenceId,
-            documentId: claimCorrespondenceDocuments.claimDocumentId,
-          })
-          .from(claimCorrespondenceDocuments)
-          .where(
-            withTenant(
-              tenantId,
-              claimCorrespondenceDocuments.tenantId,
-              and(
-                eq(claimCorrespondenceDocuments.claimId, claimId),
-                inArray(claimCorrespondenceDocuments.correspondenceId, entryIds)
-              )
-            )
-          )
-          .orderBy(asc(claimCorrespondenceDocuments.claimDocumentId));
-  const byEntry = groupDocumentIds(links);
+  const { byEntry, receivedByEntry } = await readCorrespondenceDocumentLinks(
+    tx,
+    tenantId,
+    claimId,
+    rows
+  );
   const now = Date.now();
   return {
     page,
@@ -183,6 +157,7 @@ async function readCorrespondence(tx: TenantTransaction, tenantId: string, input
       sharingAttestedAt: row.sharingAttestedAt?.toISOString() ?? null,
       createdAt: row.createdAt.toISOString(),
       sharedDocumentIds: byEntry.get(row.id) ?? [],
+      receivedDocumentIds: receivedByEntry.get(row.id) ?? [],
       overdue:
         row.direction === 'outbound' &&
         !answered.has(row.id) &&
@@ -248,6 +223,11 @@ export async function listRegisterCitationNames(
           where d.tenant_id = "claim_documents"."tenant_id"
             and d.claim_id = "claim_documents"."claim_id"
             and d.claim_document_id = "claim_documents"."id"
+        ) or exists (
+          select 1 from public."claim_correspondence_received_documents" r
+          where r.tenant_id = "claim_documents"."tenant_id"
+            and r.claim_id = "claim_documents"."claim_id"
+            and r.claim_document_id = "claim_documents"."id"
         ))`
                 )
               )

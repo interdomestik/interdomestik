@@ -5,6 +5,7 @@ import { eq, inArray, sql } from 'drizzle-orm';
 
 import { claimMessages } from '../src/schema';
 import type { TenantTransaction } from '../src/tenant';
+import { mintTestTenantAuthority } from '../src/testing/tenant-authority';
 import {
   KS_TENANT_ID,
   MK_TENANT_ID,
@@ -83,6 +84,58 @@ test('tenant transaction capabilities expire with their callback', async t => {
   };
 
   try {
+    await t.test('session actor settings expire after commit and rollback', async () => {
+      const { withPrincipalTenantContext } = await import('../src/free-start-drafts');
+      const state = async (tx: TenantTransaction) =>
+        (
+          await tx.execute(sql`
+          select pg_backend_pid() as pid,
+                 current_setting('app.current_tenant_id') as tenant,
+                 current_setting('app.current_access_tenant_id') as access,
+                 nullif(current_setting('app.current_actor_id', true), '') as actor,
+                 nullif(current_setting('app.current_actor_role', true), '') as role,
+                 nullif(current_setting('app.current_actor_branch_id', true), '') as branch
+        `)
+        )[0];
+      for (const [branch, rollback] of [
+        ['fixture-branch', false],
+        [null, true],
+      ] as const) {
+        const authority = mintTestTenantAuthority(KS_TENANT_ID, {
+          accessTenantId: MK_TENANT_ID,
+          userId: ks.userId,
+          role: 'member',
+          branchId: branch,
+          purpose: 'session',
+        });
+        let pid: unknown;
+        const transaction = withPrincipalTenantContext(authority, async tx => {
+          const observed = await state(tx);
+          pid = observed.pid;
+          assert.equal(typeof pid, 'number');
+          assert.deepEqual(observed, {
+            pid,
+            tenant: KS_TENANT_ID,
+            access: MK_TENANT_ID,
+            actor: ks.userId,
+            role: 'member',
+            branch,
+          });
+          if (rollback) throw new Error('Rollback the session-actor transaction');
+        });
+        if (rollback) await assert.rejects(transaction, /Rollback the session-actor transaction/);
+        else await transaction;
+        assert.deepEqual(await asTenant(MK_TENANT_ID, state), {
+          pid,
+          tenant: MK_TENANT_ID,
+          access: MK_TENANT_ID,
+          actor: null,
+          role: null,
+          branch: null,
+        });
+      }
+    });
+
     await t.test(
       'normal use: returned builders, awaited prepared queries and nesting work',
       async () => {

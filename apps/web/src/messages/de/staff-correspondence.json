@@ -136,6 +136,22 @@
       "title": "Übersicht der Korrespondenz",
       "total": "Korrespondenzeinträge • {total}",
       "latest": "Angezeigt werden die neuesten Daten: {shown} von {total}"
+    },
+    "inbound": {
+      "received": "Empfangene Dokumente",
+      "selection": "Ausgewählte Dokumente",
+      "empty": "Keine freigegebenen PDFs verfügbar.",
+      "find": "Freigegebene PDFs suchen",
+      "unavailable": "Dokument nicht verfügbar",
+      "title": "Sichtbarkeit des Versicherer-PDFs",
+      "custody": "Zurückgestellt — Entscheidung zur Sichtbarkeit für das Mitglied steht aus. Bewahren Sie die Datei bis zur Freigabe in der Geschäftsstelle auf.",
+      "file": "PDF-Datei",
+      "oversize": "Diese Datei überschreitet 1 MiB. Bewahren Sie sie in der Geschäftsstelle auf.",
+      "officeRef": "Eingangsreferenz der Geschäftsstelle",
+      "intended": "Entscheidung „für das Mitglied bestimmt“ erfassen",
+      "approved": "Entscheidung „zur Anzeige freigegeben“ erfassen",
+      "decisionRef": "Referenz der Sichtbarkeitsentscheidung",
+      "upload": "Freigegebenes PDF hochladen"
     }
   }
 }

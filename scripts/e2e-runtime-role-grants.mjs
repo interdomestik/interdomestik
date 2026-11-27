@@ -9,6 +9,28 @@ const verificationGrants = new Map([
   ['public.exchange_rate_check_events', 'SELECT, INSERT'],
 ]);
 
+// WP-12.1 relations retain the column-level insert limits when provisioned late.
+const inboundGrants = new Map([
+  ['public.claim_inbound_pilot_cases', 'SELECT'],
+  ['public.claim_inbound_object_verifications', 'SELECT'],
+  [
+    'public.claim_inbound_upload_decisions',
+    `SELECT, INSERT (
+    tenant_id, claim_id, correlation_id, classification, decided_by, role_basis, recipient_id,
+    uploader_id, office_receipt_ref, document_id, bucket, file_path, file_name, mime_type, file_size, sha256
+  )`,
+  ],
+  [
+    'public.claim_correspondence_received_seals',
+    'SELECT, INSERT (tenant_id, claim_id, correspondence_id, document_count)',
+  ],
+  [
+    'public.claim_correspondence_received_documents',
+    'SELECT, INSERT (tenant_id, claim_id, correspondence_id, claim_document_id)',
+  ],
+]);
+const limitedGrants = new Map([...verificationGrants, ...inboundGrants]);
+
 /**
  * Tables whose migration narrows the runtime role's writes: no DELETE and UPDATE only on these
  * columns (WP-12 migration 0106). The bulk DML grant must not widen them, so provisioning
@@ -40,10 +62,7 @@ export async function grantE2eRuntimePrivileges(tx, role) {
   const names = kinds => relations.filter(r => kinds.includes(r.kind)).map(r => `public.${r.name}`);
   const tables = names(['r', 'p']);
   const grants = [
-    [
-      'SELECT, INSERT, UPDATE, DELETE ON TABLE',
-      tables.filter(name => !verificationGrants.has(name)),
-    ],
+    ['SELECT, INSERT, UPDATE, DELETE ON TABLE', tables.filter(name => !limitedGrants.has(name))],
     ['USAGE, SELECT ON SEQUENCE', names(['S'])],
     ['SELECT ON TABLE', names(['v'])],
   ].filter(([, targets]) => targets.length > 0);
@@ -53,13 +72,21 @@ export async function grantE2eRuntimePrivileges(tx, role) {
     )
   );
 
-  const existing = [...verificationGrants].filter(([table]) => tables.includes(table));
+  const existing = [...limitedGrants].filter(([table]) => tables.includes(table));
   await Promise.all(
     existing.map(async ([table, privileges]) => {
       await tx.unsafe(`REVOKE ALL ON TABLE ${table} FROM ${role}`);
       await tx.unsafe(`GRANT ${privileges} ON TABLE ${table} TO ${role}`);
     })
   );
+
+  if (tables.includes('public.claim_inbound_upload_decisions')) {
+    // Match WP-12.1's runtime grants for the invoker policies, write guards and expiry query.
+    await tx.unsafe(`GRANT EXECUTE ON FUNCTION public.claim_inbound_reserved_path(text),
+      public.claim_inbound_staff_branch_allowed(text, text),
+      public.claim_inbound_decision_visible(text, text, text, text, text, text, varchar, varchar),
+      public.claim_inbound_decision_deadline(timestamptz) TO ${role}`);
+  }
 
   // In order on the one transaction connection: each REVOKE runs before its table's GRANT.
   const narrowed = Object.entries(NARROWED_TABLE_GRANTS)
