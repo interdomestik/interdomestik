@@ -28,8 +28,9 @@ export async function getAgentLeadsCore(
     where: (leads, { and, eq }) =>
       and(eq(leads.tenantId, tenantId), eq(leads.agentId, agentId), eq(leads.branchId, branchId)),
     orderBy: (leads, { desc }) => [desc(leads.createdAt)],
+    // Only the branch name reaches the client (the page shows it), not the branch row.
     with: {
-      branch: true,
+      branch: { columns: { name: true } },
     },
   });
 }
