@@ -16,6 +16,24 @@ const record = {
   plan: { name: 'Standard' },
 } as never;
 
+/** Cancellation is offered and confirmed, but its idempotency key cannot be created. */
+function arrangeKeyCreationFailure() {
+  actionMocks.getMembershipActions.mockReturnValue({
+    primary: undefined,
+    secondary: [{ id: 'cancel', label: 'Cancel membership' }],
+  });
+  vi.stubGlobal(
+    'confirm',
+    vi.fn(() => true)
+  );
+  vi.stubGlobal('crypto', {
+    randomUUID: () => {
+      throw new Error('randomUUID unavailable');
+    },
+  });
+  return vi.spyOn(console, 'error').mockImplementation(() => {});
+}
+
 describe('MembershipOpsPage cancellation pending state', () => {
   setupMembershipOpsPageHarness();
 
@@ -50,20 +68,7 @@ describe('MembershipOpsPage cancellation pending state', () => {
   });
 
   it('restores cancellation when creating its request key fails before the request', async () => {
-    actionMocks.getMembershipActions.mockReturnValue({
-      primary: undefined,
-      secondary: [{ id: 'cancel', label: 'Cancel membership' }],
-    });
-    vi.stubGlobal(
-      'confirm',
-      vi.fn(() => true)
-    );
-    vi.stubGlobal('crypto', {
-      randomUUID: () => {
-        throw new Error('randomUUID unavailable');
-      },
-    });
-    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const consoleError = arrangeKeyCreationFailure();
     render(<MembershipOpsPage subscriptions={[record]} documents={[]} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Cancel membership' }));
@@ -72,6 +77,20 @@ describe('MembershipOpsPage cancellation pending state', () => {
     expect(actionMocks.cancelSubscription).not.toHaveBeenCalled();
     const { toast } = await import('sonner');
     expect(toast.error).toHaveBeenCalledWith('errors.action_failed');
+    consoleError.mockRestore();
+  });
+
+  it('reports a key-creation failure within the click, even if the view unmounts right after', async () => {
+    const consoleError = arrangeKeyCreationFailure();
+    const { toast } = await import('sonner');
+    const view = render(<MembershipOpsPage subscriptions={[record]} documents={[]} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Cancel membership' }));
+    view.unmount();
+
+    // Handled in the click's own call stack, before any microtask could see the unmounted view.
+    expect(toast.error).toHaveBeenCalledWith('errors.action_failed');
+    expect(actionMocks.cancelSubscription).not.toHaveBeenCalled();
     consoleError.mockRestore();
   });
 });
