@@ -223,16 +223,14 @@ test('WP-19 evidence confirmation locks the authorized claim and request under r
       const constraintName = `wp19_refuse_audit_${input.fileId.replaceAll('-', '')}`;
       const constraint = quoteIdentifier(constraintName);
       // Only the audit for this fixture's request and upload can violate the check.
-      await f.adminDb.execute(
-        sql.raw(`
+      await f.adminDb.execute(sql.raw(`
         alter table public.audit_log add constraint ${constraint}
         check (
           action <> 'claim_information_request.evidence_submitted'
           or entity_id is distinct from ${quoteSqlLiteral(informationRequestId)}
           or (metadata->>'documentId') is distinct from ${quoteSqlLiteral(input.fileId)}
         ) not valid
-      `)
-      );
+      `));
       try {
         await assert.rejects(f.confirm(input), (error: unknown) => {
           const cause = (error as { cause?: { code?: string; constraint_name?: string } }).cause;
