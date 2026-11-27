@@ -183,7 +183,7 @@ export const claimCorrespondenceReceivedDocuments = pgTable(
         claimCorrespondence.id,
       ],
     }),
-    // Migration 0110 manages the document foreign key with immediate RESTRICT.
+    // Migration 0114 manages the document foreign key with immediate RESTRICT.
     pgPolicy('claim_received_documents_tenant', {
       for: 'all',
       using: sql`${t.tenantId} = (select current_setting('app.current_tenant_id', true))::text

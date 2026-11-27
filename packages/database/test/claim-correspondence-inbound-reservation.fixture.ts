@@ -148,13 +148,21 @@ export async function proveReservation(connections: Connection) {
     encoded.replace('%77', '%2577'),
   ];
   for (const path of aliases) {
+    await restricted(peer, async tx => {
+      const [classification] =
+        await tx`select public.claim_inbound_reserved_path(${path}) as reserved`;
+      assert.equal(classification?.reserved, true);
+    });
     await assert.rejects(
       restricted(peer, tx => insertDocument(tx, documentInput(other, randomUUID(), path))),
-      reserved
+      { code: '23514', constraint_name: 'claim_documents_file_path_canonical_ck' }
     );
     await assert.rejects(
       restricted(peer, tx => alias(tx, randomUUID(), path)),
-      reserved
+      {
+        code: '23514',
+        constraint_name: 'documents_storage_path_canonical_ck',
+      }
     );
   }
   await restricted(peer, async tx => {
@@ -205,7 +213,7 @@ export async function provePolymorphicAliasMutation(
   const id = randomUUID();
   const nextId = randomUUID();
   const canonical = assignedPath(claim, id);
-  // Both parent revisions accept the encoded basename, even before a pilot decision exists.
+  const reservedPath = assignedPath(claim, 'wp12-inbound-' + 'a'.repeat(32));
   const encoded = assignedPath(claim, '%77p12-inbound-' + 'a'.repeat(32));
   const insert = (tx: postgres.TransactionSql) => tx`insert into documents
     (id, tenant_id, entity_type, entity_id, file_name, mime_type, file_size, storage_path, uploaded_by)
@@ -228,10 +236,17 @@ export async function provePolymorphicAliasMutation(
     }
   };
   await assert.rejects(
-    restricted(runtime, tx => change(tx, encoded)),
+    restricted(runtime, tx => change(tx, reservedPath)),
     {
       ...reserved,
       message: 'Reserved pilot document refused',
+    }
+  );
+  await assert.rejects(
+    restricted(runtime, tx => change(tx, encoded)),
+    {
+      code: '23514',
+      constraint_name: 'documents_storage_path_canonical_ck',
     }
   );
   const [unchanged] =

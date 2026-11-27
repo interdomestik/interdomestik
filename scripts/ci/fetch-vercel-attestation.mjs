@@ -1,6 +1,7 @@
 import { pathToFileURL } from 'node:url';
 
 const REDIRECT_STATUSES = new Set([301, 302, 303, 307, 308]);
+const VERCEL_HOST = /^(?:[a-z0-9_.-]+\.)?vercel\.app$/u;
 
 function requireValue(name, value) {
   if (!value) {
@@ -21,13 +22,19 @@ function envInteger(name, fallback) {
   return parsePositiveInteger(name, process.env[name] ?? fallback);
 }
 
-function assertExpectedUrl(url, expectedHost) {
-  if (url.protocol !== 'https:') {
-    throw new Error('URL must use https');
-  }
-  if (url.host !== expectedHost) {
-    throw new Error('Attestation crossed host boundary');
-  }
+function buildRequestUrl(url, expectedHost) {
+  if (url.protocol !== 'https:') throw new Error('URL must use https');
+  if (url.host !== expectedHost) throw new Error('Attestation crossed host boundary');
+
+  // Assign parsed components separately so the resource cannot change the origin.
+  const requestUrl = new URL('https://vercel.app');
+  requestUrl.hostname = expectedHost;
+  requestUrl.pathname = url.pathname;
+  requestUrl.search = url.search || (url.href.split('#', 1)[0].endsWith('?') ? '?' : '');
+  requestUrl.hash = url.hash || (url.href.endsWith('#') ? '#' : '');
+  requestUrl.username = url.username;
+  requestUrl.password = url.password;
+  return requestUrl;
 }
 
 function assertJsonResponse(response, url) {
@@ -45,7 +52,7 @@ function buildRequestInit(secret, controller) {
   return init;
 }
 
-function nextRedirectUrl(response, currentUrl, redirects, maxRedirects, host) {
+function nextRedirectUrl(response, currentUrl, redirects, maxRedirects) {
   if (!REDIRECT_STATUSES.has(response.status)) return null;
   if (redirects >= maxRedirects) throw new Error('Attestation redirect limit exceeded');
   const location = response.headers.get('location');
@@ -54,7 +61,6 @@ function nextRedirectUrl(response, currentUrl, redirects, maxRedirects, host) {
   if (nextUrl.hostname === 'vercel.com' && nextUrl.pathname.startsWith('/sso-api')) {
     throw new Error('Attestation requires VERCEL_AUTOMATION_BYPASS_SECRET');
   }
-  assertExpectedUrl(nextUrl, host);
   return nextUrl;
 }
 async function sleep(ms) {
@@ -73,13 +79,11 @@ export async function fetchVercelAttestation({
     .trim()
     .toLowerCase();
   const secret = typeof bypassSecret === 'string' ? bypassSecret.trim() : '';
-  if (!host.endsWith('.vercel.app') && host !== 'vercel.app') {
-    throw new Error('Host must be vercel.app or *.vercel.app');
-  }
-  let currentUrl = new URL(requireValue('metadataUrl', metadataUrl));
-  assertExpectedUrl(currentUrl, host);
+  if (!VERCEL_HOST.test(host)) throw new Error('Host must be vercel.app or *.vercel.app');
+  let targetUrl = new URL(requireValue('metadataUrl', metadataUrl));
 
   for (let redirects = 0; ; redirects += 1) {
+    const currentUrl = buildRequestUrl(targetUrl, host);
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), timeoutMs);
     let response;
@@ -88,11 +92,8 @@ export async function fetchVercelAttestation({
     } finally {
       clearTimeout(timer);
     }
-    const redirectUrl = nextRedirectUrl(response, currentUrl, redirects, maxRedirects, host);
-    if (redirectUrl) {
-      currentUrl = redirectUrl;
-      continue;
-    }
+    targetUrl = nextRedirectUrl(response, currentUrl, redirects, maxRedirects);
+    if (targetUrl) continue;
 
     if (!response.ok) {
       throw new Error(`Attestation fetch failed: ${response.status}`);

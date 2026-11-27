@@ -93,6 +93,10 @@ export async function proveExchangeRateConstraints(
               await tx`alter table public.membership_sales drop constraint membership_sales_rate_fk`;
               await tx`alter table public.exchange_rate_verifications
                 drop constraint exchange_rate_verifications_exact_rate_fk`;
+              await tx`alter table public.exchange_rate_check_events
+                drop constraint exchange_rate_check_events_rate_fk`;
+              await tx`alter table public.exchange_rate_check_windows
+                drop constraint exchange_rate_check_windows_book_fk`;
               await tx`alter table public.exchange_rates
               drop constraint exchange_rates_book_fk,
               drop constraint exchange_rates_correction_fk`;

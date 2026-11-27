@@ -5,6 +5,8 @@
 const verificationGrants = new Map([
   ['public.exchange_rate_verifications', 'SELECT, INSERT'],
   ['public.exchange_rate_verification_limits', 'SELECT'],
+  ['public.exchange_rate_check_windows', 'SELECT'],
+  ['public.exchange_rate_check_events', 'SELECT, INSERT'],
 ]);
 
 // WP-12.1 relations retain the column-level insert limits when provisioned late.
@@ -79,7 +81,7 @@ export async function grantE2eRuntimePrivileges(tx, role) {
   );
 
   if (tables.includes('public.claim_inbound_upload_decisions')) {
-    // Match 0110's runtime grants for the invoker policies, write guards and expiry query.
+    // Match WP-12.1's runtime grants for the invoker policies, write guards and expiry query.
     await tx.unsafe(`GRANT EXECUTE ON FUNCTION public.claim_inbound_reserved_path(text),
       public.claim_inbound_staff_branch_allowed(text, text),
       public.claim_inbound_decision_visible(text, text, text, text, text, text, varchar, varchar),

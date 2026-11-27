@@ -61,4 +61,5 @@ export * from './claim-correspondence';
 export * from './claim-case-fields';
 export * from './legal-acceptance';
 export * from './legal-document-versions';
+export * from './exchange-rate-checks';
 export * from './claim-inbound-documents';

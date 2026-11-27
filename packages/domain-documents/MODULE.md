@@ -24,7 +24,22 @@ transaction, a scope verified under the claim lock, and the verified upload meta
 The caller verifies any information-request link in the same transaction. A replay-only caller
 may use `hasClaimEvidenceDocument` before taking locks to avoid reading stored bytes.
 
+## Storage metadata
+
+`allocateStoragePath` from `./storage` returns an immutable server-side allocation
+record with a canonical relative `storagePath` and an ASCII-safe filename label.
+Use that key for the upload, then pass the original record to
+`recordUpload({ ..., allocation })` in the same server process. The writer checks
+the record against the authorized tenant, entity coordinates, and filename,
+and preserves the display name verbatim. It rejects raw keys and copied records.
+When `allocation` is omitted, the legacy format still applies and the writer
+rejects keys the canonical formatter would change.
+PostgreSQL enforces canonical spelling on
+`documents.storage_path` and `claim_documents.file_path`.
+
 ## WP-12.1 pilot evidence
+
+Migration `0114_wp12_1_inbound_documents` adds pilot enrollment, upload decisions and received-document records.
 
 Ordinary publication remains a domain-documents write inside the caller's case transaction. The committed visibility decision supplies the canonical evidence coordinates and approved uploader. Confirmation rechecks the case and returns the existing document ID on exact replay. Publication makes the PDF visible through the ordinary case read; inbound correspondence records the receipt separately.
 

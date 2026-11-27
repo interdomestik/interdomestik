@@ -197,7 +197,7 @@ export function registerOfferCases(fixture: () => Promise<SaleFixture>) {
     expect(await f.counts(input.operationKey)).toEqual(absent);
   });
 
-  it('distinguishes hidden plans, missing offers, missing rates and rounded-zero rates', async () => {
+  it('distinguishes hidden plans, missing offers, and missing, stale or rounded-zero rates', async () => {
     const f = await fixture();
     expect(await f.quote(randomUUID())).toEqual(refused('not_found'));
     expect(
@@ -206,6 +206,8 @@ export function registerOfferCases(fixture: () => Promise<SaleFixture>) {
     expect(await f.quote()).toEqual(refused('stale_offer'));
     const { version } = success(await f.publish());
     expect(await f.quote()).toEqual(refused('rate_unavailable'));
+    await f.addUnverifiedRate('61.50', '2020-01-01');
+    expect(await f.quote()).toEqual(refused('stale_rate'));
     const [rate] = await f.addRate('0.00000001');
     expect(await f.quote()).toEqual(refused('rate_unavailable'));
     const input = {

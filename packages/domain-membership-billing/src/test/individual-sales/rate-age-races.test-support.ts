@@ -9,7 +9,7 @@ import { setTimeout as poll } from 'node:timers/promises';
 import { expect, it } from 'vitest';
 
 import { directSaleRow, insertDirectSale } from './individual-sale-direct.test-support';
-import { race, saleScope } from './individual-sale-offer-races.test-support';
+import { holdingChange, race, saleScope } from './individual-sale-offer-races.test-support';
 import { absent, completed, refused, success } from './individual-sales.test-support';
 import {
   ageCandidate,
@@ -19,6 +19,51 @@ import {
 } from './rate-age.test-support';
 
 export function registerRateAgeRaceCases(fixture: AgeFixture) {
+  for (const composed of [false, true]) {
+    it(`refuses a waiting ${composed ? 'composed' : 'standalone'} sale when the check start commits first`, async () => {
+      const f = await fixture();
+      const { input, evidence } = await ageCandidate(f);
+      success(await f.verify(evidence));
+      const original = success(await f.sale(input));
+      const fresh = { ...input, operationKey: randomUUID() };
+      const begin = f.checkInput();
+      const checkId = randomUUID();
+      const { recordSaleInTx } = await import('../../payment-port-compose');
+      const description = 'Independent write after the committed check starts';
+      const { second } = await race(
+        f,
+        holdingChange(
+          f,
+          tx => tx`insert into exchange_rate_check_events
+          (id, tenant_id, book_id, legal_entity_id, actor_id, kind, operation_key)
+          values (${checkId}, ${f.tenantId}, ${f.bookId}, ${f.legalEntityId}, ${f.owner.id}, 'start', ${begin.operationKey})`
+        ),
+        () =>
+          composed
+            ? saleScope(f, f.owner, async tx => {
+                const refusal = await recordSaleInTx(tx, f.owner.authority, fresh, f.owner);
+                expect(await recordSaleInTx(tx, f.owner.authority, input, f.owner)).toEqual(
+                  original
+                );
+                await tx.execute(
+                  sql`update membership_plans set description = ${description} where id = ${f.planId}`
+                );
+                return refusal;
+              })
+            : f.sale(fresh)
+      );
+      expect(second).toEqual(refused('stale_rate'));
+      expect(await f.sale(input)).toEqual(original);
+      expect(await f.counts(input.operationKey)).toEqual(completed);
+      expect(await f.counts(fresh.operationKey)).toEqual(absent);
+      if (composed) {
+        const [plan] =
+          await f.admin`select description from membership_plans where id = ${f.planId}`;
+        expect(plan.description).toBe(description);
+      }
+    }, 15000);
+  }
+
   for (const direct of [false, true]) {
     const path = direct ? 'direct INSERT' : 'port sale';
     for (const commits of [true, false]) {
@@ -69,11 +114,11 @@ export function registerRateAgeRaceCases(fixture: AgeFixture) {
       }, 15000);
     }
 
-    it(`stamps a waiting verification after a successful ${path} releases the book`, async () => {
+    it(`stamps a waiting check start after a successful ${path} releases the book`, async () => {
       const f = await fixture();
       const { input, evidence } = await ageCandidate(f);
       success(await f.verify(evidence));
-      const lateEvidence = { ...evidence, operationKey: randomUUID() };
+      const lateCheck = f.checkInput();
       const row = await directSaleRow(f, input, { deriveDueOn: true });
       const { recordSaleInTx } = await import('../../payment-port-compose');
       const result = await race(
@@ -100,13 +145,13 @@ export function registerRateAgeRaceCases(fixture: AgeFixture) {
                 );
                 return stamp;
               }),
-        () => f.verify(lateEvidence)
+        () => f.begin(lateCheck)
       );
       success(result.second);
-      const [verification] =
-        await f.admin`select verified_at >= ${result.first}::text::timestamptz as after_marker
-        from exchange_rate_verifications where operation_key = ${lateEvidence.operationKey}`;
-      expect(verification).toEqual({ after_marker: true });
+      const [check] =
+        await f.admin`select occurred_at >= ${result.first}::text::timestamptz as after_marker
+        from exchange_rate_check_events where operation_key = ${lateCheck.operationKey}`;
+      expect(check).toEqual({ after_marker: true });
       expect(await f.counts(input.operationKey)).toEqual(completed);
     }, 15000);
   }

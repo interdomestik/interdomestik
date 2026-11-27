@@ -13,6 +13,7 @@ import { randomUUID } from 'node:crypto';
 import type { z } from 'zod';
 
 import { recordExchangeRateInputSchema, scheduledExchangeRateInputSchema } from './rate-input';
+import { rateConstraint } from './rate-db-error';
 
 type RateInput = z.output<typeof recordExchangeRateInputSchema>;
 type Failure = { ok: false; code: 'invalid' | 'conflict' | 'forbidden' | 'not_found' };
@@ -25,7 +26,7 @@ async function publishRate(
   publisher: Publisher
 ): Promise<Publication> {
   const { accessTenantId } = readTenantAuthority(authority);
-  return withTenantAuthority(authority, async tx => {
+  const publication = withTenantAuthority<Publication>(authority, async tx => {
     const [book] = await tx
       .select({ id: exchangeRateBooks.id })
       .from(exchangeRateBooks)
@@ -51,15 +52,15 @@ async function publishRate(
         .from(exchangeRates)
         .where(and(bookScope, eq(exchangeRates.id, input.correctsRateId)));
       if (!predecessor) return { ok: false, code: 'conflict' };
+      if (predecessor.effectiveOn !== input.effectiveOn) return { ok: false, code: 'invalid' };
 
       const [current] = await tx
         .select({ id: exchangeRates.id })
         .from(exchangeRates)
-        .where(and(bookScope, eq(exchangeRates.weekStartsOn, predecessor.weekStartsOn)))
+        .where(and(bookScope, eq(exchangeRates.effectiveOn, input.effectiveOn)))
         .orderBy(desc(exchangeRates.revision))
         .limit(1);
       if (current?.id !== predecessor.id) return { ok: false, code: 'conflict' };
-      if (predecessor.effectiveOn !== input.effectiveOn) return { ok: false, code: 'invalid' };
       revision = predecessor.revision + 1;
     }
 
@@ -86,13 +87,24 @@ async function publishRate(
         target: [
           exchangeRates.tenantId,
           exchangeRates.bookId,
-          exchangeRates.weekStartsOn,
+          exchangeRates.effectiveOn,
           exchangeRates.revision,
         ],
       })
       .returning();
     return rate ? { ok: true, rate } : { ok: false, code: 'conflict' };
   });
+  try {
+    return await publication;
+  } catch (error) {
+    if (rateConstraint(error, '23505') === 'exchange_rates_tenant_book_week_revision_uq') {
+      return { ok: false, code: 'conflict' }; // The expand schema still enforces weekly uniqueness.
+    }
+    if (rateConstraint(error, '23514') === 'exchange_rates_read_committed_guard') {
+      return { ok: false, code: 'invalid' };
+    }
+    throw error;
+  }
 }
 
 export async function recordExchangeRate(

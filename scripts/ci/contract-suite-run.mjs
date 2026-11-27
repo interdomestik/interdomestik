@@ -7,6 +7,17 @@ import { fileURLToPath } from 'node:url';
 import { selectRepository } from './contract-suite-surface.mjs';
 import { contractTestPlan, runParallel } from './contract-test-shards.mjs';
 
+export function productContractSelector(root = fileURLToPath(new URL('../../', import.meta.url))) {
+  const { files } = JSON.parse(
+    readFileSync(resolve(root, 'scripts/ci/contract-tooling-only.json'), 'utf8')
+  );
+  if (!Array.isArray(files) || files.some(file => typeof file !== 'string')) {
+    throw new Error('Invalid tooling-only contract file list');
+  }
+  const toolingOnly = new Set(files);
+  return files => files.filter(file => !toolingOnly.has(file));
+}
+
 export async function runContractSuite(selectLane = selectRepository) {
   let selection;
   try {
@@ -23,14 +34,7 @@ export async function runContractSuite(selectLane = selectRepository) {
   process.stdout.write(`contract lane: ${lane} (${reason})\n`);
 
   const { shards } = contractTestPlan();
-  let select;
-  if (lane === 'product') {
-    const list = JSON.parse(
-      readFileSync(new URL('./contract-tooling-only.json', import.meta.url), 'utf8')
-    );
-    const toolingOnly = new Set(list.files);
-    select = files => files.filter(file => !toolingOnly.has(file));
-  }
+  const select = lane === 'product' ? productContractSelector() : undefined;
 
   let total = 0;
   for (const [name, files] of Object.entries(shards)) {

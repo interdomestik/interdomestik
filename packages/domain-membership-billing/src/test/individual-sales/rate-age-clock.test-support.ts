@@ -56,18 +56,17 @@ export async function installCalendarClock({ admin }: PaymentPortDatabase) {
   await admin.unsafe(`grant select on wp07_rate_clock to "${runtimeRole}"`);
   await runSequentially(
     [
-      ['public.exchange_rate_insert_guard_fn()', 'NEW.stored_at := clock_timestamp()'],
-      [
-        'public.exchange_rate_verifications_insert_guard_fn()',
-        'NEW.verified_at := clock_timestamp()',
-      ],
+      ['public.exchange_rate_insert_guard_fn()', 'clock_timestamp()'],
+      ['public.exchange_rate_verifications_insert_guard_fn()', 'clock_timestamp()'],
+      ['public.exchange_rate_check_events_insert_fn()', 'clock_timestamp()'],
+      ['public.membership_individual_sale_guard_fn()', 'clock_timestamp()'],
+      ['public.membership_sale_rate_at(text,text,timestamptz)', 'statement_timestamp()'],
     ],
-    async ([name, assignment]) => {
+    async ([name, builtin]) => {
       const [{ body }] = await admin<{ body: string }[]>`
         select pg_get_functiondef(${name}::regprocedure) as body`;
-      expect(body.split(assignment)).toHaveLength(2);
-      const testStamp = assignment.replace('clock_timestamp()', 'public.wp07_test_rate_clock()');
-      await admin.unsafe(body.replace(assignment, testStamp));
+      expect(body.split(builtin)).toHaveLength(2);
+      await admin.unsafe(body.replace(builtin, 'public.wp07_test_rate_clock()'));
     }
   );
   return (instant: string) =>

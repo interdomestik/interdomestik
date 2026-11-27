@@ -75,19 +75,15 @@ async function proveInboundOccupancy(
       assert.equal(driver.message, 'WP-12.1 document namespace is already occupied');
       return true;
     });
-  const ordinary = documentInput(
-    claim,
-    randomUUID(),
-    assignedPath(claim, reservedId) + '#fragment'
-  );
+  const reservedPath = assignedPath(claim, reservedId);
+  const ordinary = documentInput(claim, randomUUID(), reservedPath);
   await insertDocument(admin, ordinary);
   await checkOccupancy();
   await admin`delete from claim_documents where id = ${ordinary.id}`;
 
   const polymorphicId = randomUUID();
-  const encoded = assignedPath(claim, reservedId.replace('w', '%77'));
   await admin`insert into documents (id, tenant_id, entity_type, entity_id, file_name, mime_type, file_size, storage_path, uploaded_by, deleted_at)
-    values (${polymorphicId}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', 'application/pdf', 120, ${encoded}, ${claim.user}, now())`;
+    values (${polymorphicId}, ${claim.tenant}, 'claim', ${claim.id}, 'Fixture PDF', 'application/pdf', 120, ${reservedPath}, ${claim.user}, now())`;
   await checkOccupancy();
   await admin`delete from documents where id = ${polymorphicId}`;
 }

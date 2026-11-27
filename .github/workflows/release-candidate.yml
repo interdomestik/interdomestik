@@ -59,6 +59,8 @@ jobs:
       RELEASE_GATE_REQUIRE_STAFF_CLAIM_URL: 'false'
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
         with:
           install-playwright: true
@@ -87,6 +89,8 @@ jobs:
           printf '%s\n' "${exit_code}" > "${RC_LOGS_DIR}/ai_eval.exit"
           exit "${exit_code}"
 
+      # Retain the WP-07 proof until the contract migration has run, old
+      # writers are drained, and post-contract validation passes.
       - name: Prepare CI database
         shell: bash
         run: |
@@ -98,6 +102,7 @@ jobs:
           pnpm db:migrate
           pnpm seed:e2e
           pnpm seed:assert-e2e
+          DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test bash scripts/ci/rc-wp07-legacy-upgrade.sh
 
       - name: Build web standalone artifact
         run: pnpm --filter @interdomestik/web run build:ci

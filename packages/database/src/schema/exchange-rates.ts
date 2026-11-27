@@ -58,10 +58,10 @@ export const exchangeRates = pgTable(
     storedAt: timestamp('stored_at', { withTimezone: true, mode: 'string' }).notNull(),
   },
   table => [
-    unique('exchange_rates_tenant_book_week_revision_uq').on(
+    unique('exchange_rates_tenant_book_date_revision_uq').on(
       table.tenantId,
       table.bookId,
-      table.weekStartsOn,
+      table.effectiveOn,
       table.revision
     ),
     unique('exchange_rates_tenant_id_book_date_uq').on(

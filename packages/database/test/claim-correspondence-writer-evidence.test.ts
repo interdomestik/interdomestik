@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import test, { type TestContext } from 'node:test';
 
 import {
+  assignedPath,
   createBases,
   documentInput,
   earlier,
@@ -61,7 +62,10 @@ async function proveEvidence(t: TestContext, connections: Connection, domain: Do
             name: 'Member legal.pdf',
             category: 'legal',
           });
-          const uncited = await insertDocument(tx, documentInput(claim, ' sent-document '));
+          const uncited = await insertDocument(
+            tx,
+            documentInput(claim, ' sent-document ', assignedPath(claim, randomUUID()))
+          );
           const offCase = await insertDocument(tx, documentInput(other));
           await createBases(tx, other, offCase);
           const omitted = await insertDocument(tx, documentInput(claim));

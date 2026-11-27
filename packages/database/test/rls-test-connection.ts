@@ -16,7 +16,7 @@ export function quoteIdentifier(identifier: string): string {
 
 export const quoteSqlLiteral = (value: string): string => `'${value.replaceAll("'", "''")}'`;
 
-/** Document writers on either side of migration 0110 use the same restricted test login. */
+/** Document writers on either side of the WP-12.1 migration use the same restricted test login. */
 export const grantInboundDocumentPathCheck = `do $$
 begin
   if to_regprocedure('public.claim_inbound_reserved_path(text)') is not null then

@@ -224,7 +224,7 @@ export function registerRaceCases(fixture: () => Promise<SaleFixture>) {
     try {
       publisher = (async () => {
         await reachedReplay.promise;
-        await f.addRate('62.17', '2000-01-10');
+        await f.checkedCorrection({ id: input.rateId, effective_on: f.today }, '62.17');
         expect((await f.offer()).rateId).not.toBe(input.rateId);
       })().finally(() => rateCommitted.resolve());
       // Release the publisher when an assertion or an unexpected branch prevents replay.
