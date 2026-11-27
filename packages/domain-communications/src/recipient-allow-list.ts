@@ -2,25 +2,26 @@ type Env = Readonly<NodeJS.Dict<string>>;
 
 export type AllowListRefusal = 'allowlist_empty' | 'recipient_not_allowlisted';
 
-const signal = (value: string | undefined) => value?.trim().toLowerCase() || undefined;
-
 /**
  * Hosted staging must never mail a real inbox by accident, so every recipient must be on
- * EMAIL_RECIPIENT_ALLOWLIST there. Decided only from server-side deployment variables, failing
- * closed: the gate is off only for a process with no deployment marker other than a recognised
- * local one, or for a positively production deployment. Any staging, preview or unrecognised
- * marker gates, also when another marker says production. "Positively production" mirrors
- * isProductionEmailDeployment in apps/web/src/lib/email-link-origins.ts (not importable, R-15).
+ * EMAIL_RECIPIENT_ALLOWLIST there. Decided only from server-side variables, failing closed:
+ * - a non-empty EMAIL_RECIPIENT_ALLOWLIST always turns the gate on (the runtime marker the
+ *   staging configuration carries itself);
+ * - any INTERDOMESTIK_DEPLOY_ENV other than local, development or production turns it on;
+ * - any Vercel marker turns it on unless VERCEL_ENV is exactly `production` and
+ *   VERCEL_TARGET_ENV is absent or exactly `production`, as isProductionEmailDeployment in
+ *   apps/web/src/lib/email-link-origins.ts decides (not importable here, R-15).
+ * Local development, CI and local E2E carry none of these and are unchanged.
  */
 export function recipientAllowListActive(env: Env = process.env): boolean {
-  const vercelEnv = signal(env.VERCEL_ENV);
-  const targetEnv = signal(env.VERCEL_TARGET_ENV);
-  const deployEnv = signal(env.INTERDOMESTIK_DEPLOY_ENV);
+  if (env.EMAIL_RECIPIENT_ALLOWLIST?.trim()) return true;
+  const deployEnv = env.INTERDOMESTIK_DEPLOY_ENV?.trim().toLowerCase();
   if (deployEnv && !UNGATED_DEPLOY_ENVS.has(deployEnv)) return true;
-  if (targetEnv && targetEnv !== 'production') return true;
-  if (vercelEnv && vercelEnv !== 'production') return true;
-  const hosted = env.VERCEL === '1' || Boolean(env.VERCEL_URL?.trim()) || Boolean(vercelEnv);
-  return hosted && vercelEnv !== 'production';
+  const vercelEnv = env.VERCEL_ENV?.trim();
+  const targetEnv = env.VERCEL_TARGET_ENV?.trim();
+  const vercel = env.VERCEL?.trim() || env.VERCEL_URL?.trim() || vercelEnv || targetEnv;
+  if (!vercel) return false;
+  return !(vercelEnv === 'production' && (!targetEnv || targetEnv === 'production'));
 }
 
 const UNGATED_DEPLOY_ENVS: ReadonlySet<string> = new Set(['local', 'development', 'production']);
