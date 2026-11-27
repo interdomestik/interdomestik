@@ -196,7 +196,7 @@ export const PINNED_ADAPTERS = Object.freeze({
   'packages/database/test/pg16/wp16-1-runtime-grants-access.ts':
     '059252a08e8a8f6fcde0eb4d97e01dbb7d56fdfae316763e246746d7b2064333',
   'packages/database/test/pg16/wp16-1-runtime-grants-rollback.ts':
-    '49675a2ae561d82951da1e92416190de6f7eca5442ad30396f60274cdd8cc1f6',
+    'b7934deb20b2f7d92ca2e3593f050fa123a3acbba4c68a2fb18d7e071dcf11c4',
 });
 
 const PINNED_GUARDED = Object.freeze({

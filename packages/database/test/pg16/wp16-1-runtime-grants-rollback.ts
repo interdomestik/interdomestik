@@ -3,17 +3,72 @@ import { createHash } from 'node:crypto';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import {
   applyReleaseJournal,
-  readReleaseJournal,
   releaseConnection,
   verifiedReleaseLedger,
 } from '../../src/release-journal-ledger';
 import { inspectReleaseSponsorAcl } from '../../src/release-sponsor-acl';
-import { sponsorRuntimeRole } from '../../src/release-sponsor-checkpoint';
+import {
+  sponsorRuntimeRole,
+  sponsorTrailingTag,
+  type ReleaseSql,
+} from '../../src/release-sponsor-checkpoint';
+import { runSponsorReleaseMigrations } from '../../src/release-sponsor-migrations';
 import { runSequentially } from '../in-order';
 import { quoteIdentifier } from '../rls-test-connection';
 import type { ScratchClient } from './scratch-database';
+import {
+  journal,
+  migrationsFolder,
+  scratchOptions,
+  stageJournal,
+  withGrantsScratch,
+} from './wp16-1-runtime-grants.test-support';
 
 type Acl = Awaited<ReturnType<typeof inspectReleaseSponsorAcl>>;
+
+async function rollbackReference(before: Acl, path: 'fresh' | 'forward'): Promise<Acl> {
+  return withGrantsScratch(async (client, database) => {
+    if (path === 'forward') await stageJournal(client, 'legacy');
+    const { options } = scratchOptions(database);
+    const stopBeforeSponsorGrants = new Error('reference stops before 0111');
+    await assert.rejects(
+      runSponsorReleaseMigrations(client, {
+        ...options,
+        path,
+        async recordAcl({ phase, acl }) {
+          if (phase === 'before-trailing') {
+            assert.deepEqual(acl, before);
+            throw stopBeforeSponsorGrants;
+          }
+        },
+      }),
+      (error: unknown) => error === stopBeforeSponsorGrants
+    );
+
+    const handle = await client.reserve();
+    const sql = releaseConnection(handle, client.options);
+    try {
+      // Replay the suffix so its independent grants and triggers are part of the rollback baseline.
+      const referenceJournal = journal.filter(entry => entry.tag !== sponsorTrailingTag);
+      await applyReleaseJournal(drizzle(sql)._.session, migrationsFolder, referenceJournal);
+      assert.equal(
+        (await verifiedReleaseLedger(sql, referenceJournal)).length,
+        referenceJournal.length
+      );
+      return await inspectReleaseSponsorAcl(sql);
+    } finally {
+      sql.release();
+    }
+  });
+}
+
+async function columnAclItems(sql: ReleaseSql, acl: string | null) {
+  if (acl === null) return null;
+  return await sql<{ item: string }[]>`
+    select item::text as item from pg_catalog.unnest(${acl}::pg_catalog.aclitem[]) as acl(item)
+    order by item::text collate "C"
+  `;
+}
 
 function columnRollbackStatements(
   table: Acl[number],
@@ -40,11 +95,10 @@ function columnRollbackStatements(
 
 export async function proveForwardAclRollback(
   client: ScratchClient,
-  migrationsFolder: string,
   before: Acl,
-  after: Acl
+  after: Acl,
+  path: 'fresh' | 'forward'
 ) {
-  const journal = readReleaseJournal(migrationsFolder);
   const runtime = quoteIdentifier(sponsorRuntimeRole);
   const statements = [];
   for (const [index, table] of before.entries()) {
@@ -64,6 +118,7 @@ export async function proveForwardAclRollback(
   }
   assert.ok(statements.length > 0);
 
+  const reference = await rollbackReference(before, path);
   const handle = await client.reserve();
   const sql = releaseConnection(handle, client.options);
   try {
@@ -92,14 +147,41 @@ export async function proveForwardAclRollback(
         ?.triggers.find(t => t.name === claimGuard.name),
       claimGuard
     );
+    assert.equal(restored.length, reference.length);
     for (const [index, table] of restored.entries()) {
-      const expected = before[index];
+      const expected = reference[index];
       assert.equal(table.relation, expected.relation);
       assert.equal(table.tableAcl, expected.tableAcl);
       assert.deepEqual(table.effectiveTable, expected.effectiveTable);
-      assert.deepEqual(table.columns, expected.columns);
+      assert.equal(table.columns.length, expected.columns.length, table.relation);
+      await runSequentially(table.columns.entries(), async ([position, column]) => {
+        const baseline = expected.columns[position];
+        const label = `${table.relation}.${column.name}`;
+        assert.equal(column.name, baseline.name, label);
+        assert.deepEqual(column.effective, baseline.effective, label);
+        if (column.acl !== baseline.acl) {
+          // Regranting a legacy privilege can change the position of its ACL item.
+          assert.deepEqual(
+            await columnAclItems(sql, column.acl),
+            await columnAclItems(sql, baseline.acl),
+            label
+          );
+        }
+      });
+      const retainedGuard = `wp16_${table.relation}_runtime_id_guard`;
       const guarded = ['membership_plans', 'claim_transition_evidence'].includes(table.relation);
-      assert.deepEqual(table.triggers, guarded ? after[index].triggers : expected.triggers);
+      assert.deepEqual(
+        table.triggers.filter(trigger => !(guarded && trigger.name === retainedGuard)),
+        expected.triggers
+      );
+      if (guarded) {
+        const guard = after[index].triggers.find(trigger => trigger.name === retainedGuard);
+        assert.ok(guard);
+        assert.deepEqual(
+          table.triggers.find(trigger => trigger.name === retainedGuard),
+          guard
+        );
+      }
     }
   } finally {
     sql.release();

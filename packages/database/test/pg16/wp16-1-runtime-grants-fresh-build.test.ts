@@ -11,7 +11,6 @@ import { proveSponsorOptOut } from './wp16-1-runtime-grants-opt-out';
 import {
   journal,
   migrationCause,
-  migrationsFolder,
   prefix,
   scratchOptions,
   sponsorGrantsIndex,
@@ -97,7 +96,7 @@ test('WP-16.1 release builds and reconciles the PG16 runtime grant journal', asy
         assert.equal(after.phase, 'after-trailing');
         assert.deepEqual(before.target.ledger, finished.ledger.slice(0, sponsorGrantsIndex));
         assert.deepEqual(after.target.ledger, finished.ledger.slice(0, sponsorGrantsIndex + 1));
-        await proveForwardAclRollback(client, migrationsFolder, before.acl, after.acl);
+        await proveForwardAclRollback(client, before.acl, after.acl, 'fresh');
       });
     });
 
@@ -114,7 +113,7 @@ test('WP-16.1 release builds and reconciles the PG16 runtime grant journal', asy
           assert.deepEqual(finished.ledger.slice(0, sponsorGrantsIndex), acl[0].target.ledger);
           assert.deepEqual(checkpoint, []);
           assert.deepEqual(withoutGrantor(acl[1].acl), freshAcl);
-          await proveForwardAclRollback(client, migrationsFolder, acl[0].acl, acl[1].acl);
+          await proveForwardAclRollback(client, acl[0].acl, acl[1].acl, 'forward');
         });
       }
     );
