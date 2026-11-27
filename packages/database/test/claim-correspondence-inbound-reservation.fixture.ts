@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
+import { fileURLToPath } from 'node:url';
 import type postgres from 'postgres';
 
 import {
@@ -10,65 +11,94 @@ import {
   ownerB,
   publish,
   setActor,
+  setup,
 } from './claim-correspondence-inbound-pilot.fixture';
+import type { RegisterProof } from './claim-correspondence-runtime.fixture';
 import {
   assignedPath,
   documentInput,
   foreignActor,
+  foreignKey,
   foreignTenant,
   homeActor,
   homeTenant,
   insertClaim,
   insertDocument,
   restricted,
+  seedActors,
+  withRuntime,
   type Connection,
 } from './claim-correspondence.fixture';
 import { runSequentially } from './in-order';
+import { migrateJournalThrough } from './journal-prefix.support';
+import { withScratchDatabase } from './pg16/scratch-database';
 
 const reserved = { code: 'P1211' };
 const wrongCase = { code: 'P1210' };
 
+export async function withInboundJournal114(work: RegisterProof): Promise<void> {
+  await withScratchDatabase('wp12_inbound_0114', async admin => {
+    const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
+    await migrateJournalThrough(admin, migrations, '0114_wp12_1_inbound_documents');
+    await seedActors(admin);
+    await withRuntime(admin, async connections => {
+      await setup(connections);
+      await work(connections);
+    });
+  });
+}
+
+function storedReservation(admin: postgres.Sql, claimId: string, attemptedId: string | null) {
+  return admin`select c."userId", to_jsonb(p) as enrollment,
+      exists (select 1 from claim_documents where id = ${attemptedId}) as attempted
+    from claim c join claim_inbound_pilot_cases p on p.tenant_id = c.tenant_id and p.claim_id = c.id
+    where c.id = ${claimId}`;
+}
+
+async function proveForeignPair(
+  connections: Connection,
+  claimId: string,
+  refusal: { code: string }
+) {
+  const { admin, runtime } = connections;
+  const foreign = await insertClaim(admin, { tenant: foreignTenant });
+  const before = await storedReservation(admin, claimId, null);
+  assert.equal(before[0]?.userId, ownerA);
+  assert.ok(before[0]?.enrollment.enrolled_at && before[0].enrollment.paused === false);
+  await runSequentially(['staff', 'member'], async role => {
+    const attempt = { ...documentInput(foreign), claim_id: claimId };
+    const write = async (tx: postgres.TransactionSql) => {
+      await setActor(tx, foreignActor, role);
+      const rows = await tx`select 1 from claim_inbound_pilot_cases where claim_id = ${claimId}`;
+      assert.equal(rows.length, 0);
+      await insertDocument(tx, attempt);
+    };
+    await assert.rejects(restricted(runtime, write, { home: foreignTenant }), refusal);
+    assert.deepEqual(await storedReservation(admin, claimId, attempt.id), before);
+  });
+  return { foreign, before };
+}
+
 export async function proveReservation(connections: Connection) {
+  await withInboundJournal114(async prefix => {
+    const claim = await enrolledCase(prefix.admin);
+    await proveForeignPair(prefix, claim.id, wrongCase);
+  });
+
   const { admin, runtime, peer } = connections;
   const claim = await enrolledCase(admin);
   const other = await insertClaim(admin);
-  const foreign = await insertClaim(admin, { tenant: foreignTenant });
-  const mismatch = { ...documentInput(foreign), claim_id: claim.id };
-  await assert.rejects(
-    restricted(
-      runtime,
-      async tx => {
-        const visible =
-          await tx`select claim_id from claim_inbound_pilot_cases where claim_id = ${claim.id}`;
-        assert.equal(visible.length, 0);
-        await setActor(tx, foreignActor);
-        await insertDocument(tx, mismatch);
-      },
-      { home: foreignTenant }
-    ),
-    wrongCase
-  );
-  await assert.rejects(
-    restricted(
-      runtime,
-      async tx => {
-        await setActor(tx, foreignActor, 'member');
-        await insertDocument(tx, { ...documentInput(foreign), claim_id: claim.id });
-      },
-      { home: foreignTenant }
-    ),
-    wrongCase
-  );
-  const [refused] = await admin`select count(*)::int as count from claim_documents
-    where claim_id = ${claim.id} and tenant_id = ${foreignTenant}`;
-  assert.equal(refused.count, 0);
+  const homeForeignKey = foreignKey('claim_documents_case_home_fk');
+  const { foreign, before } = await proveForeignPair(connections, claim.id, homeForeignKey);
+  const wrongOwner = { ...documentInput(claim), uploaded_by: ownerB };
   await assert.rejects(
     restricted(runtime, async tx => {
       await setActor(tx, ownerB, 'member');
-      await insertDocument(tx, { ...documentInput(claim), uploaded_by: ownerB });
+      await insertDocument(tx, wrongOwner);
     }),
     wrongCase
   );
+  assert.deepEqual(await storedReservation(admin, claim.id, wrongOwner.id), before);
   const own = { ...documentInput(claim), uploaded_by: ownerA };
   await restricted(runtime, async tx => {
     await setActor(tx, ownerA, 'member');
