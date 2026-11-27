@@ -92,11 +92,11 @@ export async function provePublishedScope(connections: Connection) {
       wrongCase
     );
     const document = await approve(connections, claim, classification);
+    assert.equal(await attest(admin, document), true);
     await assert.rejects(
       restricted(runtime, tx => insertDocument(tx, document)),
-      reserved
+      { ...reserved, message: 'Reserved pilot document is outside assigned staff scope' }
     );
-    assert.equal(await attest(admin, document), true);
     await assert.rejects(
       restricted(runtime, tx => publish(tx, { ...document, uploaded_by: ownerB })),
       reserved
