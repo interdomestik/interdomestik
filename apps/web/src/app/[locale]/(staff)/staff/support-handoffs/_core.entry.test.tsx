@@ -1,5 +1,5 @@
 import { mocks, renderPage } from './_core.entry.shared.test-support';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyDefaultMocks, queueItem } from './_core.entry.test-support';
 
@@ -27,12 +27,11 @@ describe('StaffSupportHandoffsPage', () => {
       'true'
     );
     expect(mocks.getSupportHandoffDetail).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+    const toggle = screen.getByTestId('staff-support-handoff-detail-toggle');
+    await act(async () => fireEvent.click(toggle));
 
-    await waitFor(() => {
-      expect(mocks.getSupportHandoffDetail).toHaveBeenCalledWith('handoff-1');
-    });
-    expect(await screen.findByTestId('staff-support-handoff-detail-panel')).toBeVisible();
+    expect(mocks.getSupportHandoffDetail).toHaveBeenCalledWith('handoff-1');
+    expect(screen.getByTestId('staff-support-handoff-detail-panel')).toBeVisible();
     expect(screen.getByTestId('staff-support-handoff-contact-preference')).toHaveTextContent(
       'detail.contact_preference_phone'
     );
@@ -73,9 +72,10 @@ describe('StaffSupportHandoffsPage', () => {
 
     await renderPage();
 
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+    const toggle = screen.getByTestId('staff-support-handoff-detail-toggle');
+    await act(async () => fireEvent.click(toggle));
 
-    expect(await screen.findByTestId('staff-support-handoff-source')).toHaveTextContent(
+    expect(screen.getByTestId('staff-support-handoff-source')).toHaveTextContent(
       'detail.source_claim_detail'
     );
   });

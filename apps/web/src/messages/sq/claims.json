@@ -229,7 +229,9 @@
         "progress": "Ecuria",
         "evidence": "Dëshmitë",
         "history": "Kronologjia",
-        "messages": "Mesazhet"
+        "messages": "Mesazhet",
+        "referenceLabel": "Referenca",
+        "statusLabel": "Statusi"
       },
       "caseDetails": "Detajet e Rastit",
       "description": "Përshkrimi",

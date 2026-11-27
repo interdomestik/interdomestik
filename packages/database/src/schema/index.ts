@@ -61,6 +61,7 @@ export * from './claim-correspondence';
 export * from './claim-case-fields';
 export * from './legal-acceptance';
 export * from './legal-document-versions';
+export * from './exchange-rate-checks';
 export * from './membership-import-assignments';
 export * from './sponsor-contract-years';
 export * from './membership-import-lists';

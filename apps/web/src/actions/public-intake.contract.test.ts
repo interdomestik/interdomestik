@@ -13,6 +13,7 @@ import {
 import { and, eq, inArray, sql } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { describe, expect, it, vi } from 'vitest';
+import { fixtureLegalAcceptance } from '../../e2e/fixtures/legal-acceptance.fixture';
 
 const request = vi.hoisted(() => ({ headers: new Headers() }));
 vi.mock('next/headers', () => ({ headers: async () => request.headers }));
@@ -181,6 +182,7 @@ describe.runIf(process.env.REQUIRE_PUBLIC_INTAKE_CONTRACT === '1')(
           createdAt: now,
           updatedAt: now,
         });
+        await fixtureLegalAcceptance('seed', [{ id: ownerUserId, tenantId, email }]);
         await dbAdmin.insert(account).values({
           id: randomUUID(),
           accountId: email,
@@ -273,6 +275,7 @@ describe.runIf(process.env.REQUIRE_PUBLIC_INTAKE_CONTRACT === '1')(
             await dbAdmin.delete(freeStartDrafts).where(ownedDrafts);
             await dbAdmin.delete(session).where(eq(session.userId, ownerUserId));
             await dbAdmin.delete(account).where(eq(account.userId, ownerUserId));
+            await fixtureLegalAcceptance('clean', [{ id: ownerUserId, tenantId, email }]);
             await dbAdmin.delete(user).where(eq(user.id, ownerUserId));
             await dbAdmin.delete(tenantSettings).where(
               inArray(

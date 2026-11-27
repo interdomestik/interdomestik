@@ -40,6 +40,7 @@ describe('sendEmailOutcome', () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
     vi.unstubAllEnvs();
     vi.unstubAllGlobals();
     vi.useRealTimers();
@@ -137,6 +138,26 @@ describe('sendEmailOutcome', () => {
   });
 
   it.each([
+    ['smtp', sendMail, 'smtp_ambiguous'],
+    ['resend', fetchEmail, 'resend_unknown'],
+  ] as const)('logs only the classified %s failure code', async (transport, provider, code) => {
+    const logger = vi.spyOn(console, 'error').mockImplementation(() => {});
+    provider.mockRejectedValue(
+      Object.assign(new Error('member@example.com and private message'), {
+        name: 'ProviderRefA123',
+        code: 'PROVIDER_REF_123',
+      })
+    );
+
+    await expect(sendEmailOutcome(transport, recipient, rendered, options)).resolves.toMatchObject({
+      ok: false,
+      code,
+    });
+    expect(provider).toHaveBeenCalledOnce();
+    expect(logger.mock.calls).toEqual([[{ code }]]);
+  });
+
+  it.each([
     [{ code: 'ECONNREFUSED', command: 'CONN' }, true],
     [{ code: 'EDNS' }, true],
     [{ code: 'ETLS' }, true],
@@ -192,7 +213,24 @@ describe('sendEmailOutcome', () => {
     }
   });
 
+  it('keeps Resend unknown outcomes independent across calls', async () => {
+    const logger = vi.spyOn(console, 'error').mockImplementation(() => {});
+    fetchEmail
+      .mockResolvedValueOnce(Response.json({}))
+      .mockRejectedValueOnce(new Error('private provider error'));
+    const expected = { ok: false, code: 'resend_unknown', ambiguous: true };
+
+    const first = await sendEmailOutcome('resend', recipient, rendered, options);
+    expect(first).toMatchObject(expected);
+    Object.assign(first, { code: 'changed', ambiguous: false });
+
+    const second = await sendEmailOutcome('resend', recipient, rendered, options);
+    expect(second).toMatchObject(expected);
+    expect(logger.mock.calls).toEqual([[{ code: 'resend_unknown' }]]);
+  });
+
   it('times out one Resend call without switching transport', async () => {
+    const logger = vi.spyOn(console, 'error').mockImplementation(() => {});
     vi.useFakeTimers();
     fetchEmail.mockReturnValue(new Promise(() => {}));
     const result = sendEmailOutcome('resend', recipient, rendered, options);
@@ -205,6 +243,7 @@ describe('sendEmailOutcome', () => {
     });
     expect(fetchEmail.mock.calls[0][1].signal.aborted).toBe(true);
     expect(sendMail).not.toHaveBeenCalled();
+    expect(logger.mock.calls).toEqual([[{ code: 'timeout' }]]);
   });
 
   it('aborts the SMTP socket at the absolute deadline and keeps the outcome ambiguous', async () => {

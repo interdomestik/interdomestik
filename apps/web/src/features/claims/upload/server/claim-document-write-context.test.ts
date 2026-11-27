@@ -60,7 +60,9 @@ import {
 
 type PersistParams = Parameters<typeof persistClaimDocumentMetadata>[0];
 
-const authority = mintTestTenantAuthority('tenant-1');
+const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
+const adminAuthority = mintTestTenantAuthority('tenant-1', { userId: 'admin-1', role: 'admin' });
+const CLAIM_ROW = { tenantId: 'tenant-1', userId: 'member-1' };
 const REQUEST_ID = '00000000-0000-4000-8000-000000000001';
 const STORAGE_PATH = 'pii/tenants/tenant-1/claims/claim-1/doc-1.pdf';
 const CONSENT = {
@@ -140,6 +142,7 @@ beforeEach(() => {
   hoisted.contexts.length = 0;
   hoisted.failTable.value = null;
   hoisted.selectRows.length = 0;
+  hoisted.selectRows.push([CLAIM_ROW]);
   // Mirrors a real transaction: staged writes commit only when the callback resolves.
   hoisted.withTenantContext.mockImplementation(
     async (context: unknown, action: (tx: unknown) => Promise<unknown>) => {
@@ -165,12 +168,12 @@ describe('persistClaimDocumentMetadata ordinary tenant context', () => {
 
   it('keeps the trusted admin role rather than attributing it to a member', async () => {
     const created = await persistClaimDocumentMetadata(
-      params({ actorRole: 'admin', userId: 'admin-1' })
+      params({ authority: adminAuthority, actorRole: 'admin', userId: 'admin-1' })
     );
 
     expect(created).toBe(true);
     expect(hoisted.contexts).toHaveLength(1);
-    expect(hoisted.contexts[0]).toBe(authority);
+    expect(hoisted.contexts[0]).toBe(adminAuthority);
     expect(hoisted.committed).toEqual([
       { table: 'claim_documents', values: { ...DOCUMENT_VALUES, uploadedBy: 'admin-1' } },
     ]);
@@ -233,7 +236,7 @@ describe('persistClaimDocumentMetadata request-linked path', () => {
   const linked = { informationRequestId: REQUEST_ID };
 
   it('keeps the member context, ownership locks, evidence link, and audit row', async () => {
-    hoisted.selectRows.push([{ userId: 'member-1' }], [{ id: REQUEST_ID }]);
+    hoisted.selectRows.push([{ id: REQUEST_ID }]);
 
     const created = await persistClaimDocumentMetadata(params(linked));
 
@@ -266,16 +269,16 @@ describe('persistClaimDocumentMetadata request-linked path', () => {
   it.each([
     {
       label: 'another owner',
-      claimRows: [{ userId: 'member-2' }],
+      claimRows: [{ ...CLAIM_ROW, userId: 'member-2' }],
       requestRows: [{ id: REQUEST_ID }],
     },
     {
       label: 'a closed or missing request',
-      claimRows: [{ userId: 'member-1' }],
+      claimRows: [CLAIM_ROW],
       requestRows: [],
     },
   ])('rejects $label without partial writes', async ({ claimRows, requestRows }) => {
-    hoisted.selectRows.push(claimRows, requestRows);
+    hoisted.selectRows.splice(0, hoisted.selectRows.length, claimRows, requestRows);
 
     await expect(
       persistClaimDocumentMetadata(params({ ...linked, actorRole: 'member' }))

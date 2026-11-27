@@ -13,6 +13,7 @@
     "./admin/get-users": "./src/admin/get-users.ts",
     "./admin/get-agents": "./src/admin/get-agents.ts",
     "./admin/get-staff": "./src/admin/get-staff.ts",
+    "./admin/search-assignable-staff": "./src/admin/search-assignable-staff.ts",
     "./admin/role-rules": "./src/admin/role-rules.ts",
     "./admin/schemas": "./src/admin/schemas.ts",
     "./admin/resolve-tenant-classification": "./src/admin/resolve-tenant-classification.ts",

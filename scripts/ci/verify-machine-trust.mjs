@@ -99,7 +99,7 @@ function readPinned(fs, markerPath, linkStat) {
  * writable by group, others or this user or carries an ACL grant, and the opened file is the
  * one that was checked.
  */
-export function readTrustedMarker(markerPath = MARKER_PATH, fs = DEFAULT_FS) {
+export function readTrustedBytes(markerPath, fs = DEFAULT_FS) {
   let linkStat;
   try {
     linkStat = fs.lstatSync(markerPath);
@@ -127,13 +127,19 @@ export function readTrustedMarker(markerPath = MARKER_PATH, fs = DEFAULT_FS) {
     return { status: 'invalid', errors: [`marker cannot be opened (${error?.code ?? 'error'})`] };
   }
   if (!pinned) return { status: 'invalid', errors: ['marker changed while it was checked'] };
+  return { status: 'trusted', bytes: pinned.bytes, sha256: sha256Hex(pinned.bytes) };
+}
+
+export function readTrustedMarker(markerPath = MARKER_PATH, fs = DEFAULT_FS) {
+  const result = readTrustedBytes(markerPath, fs);
+  if (result.status !== 'trusted') return result;
   let marker;
   try {
-    marker = JSON.parse(pinned.bytes.toString('utf8'));
+    marker = JSON.parse(result.bytes.toString('utf8'));
   } catch {
     return { status: 'invalid', errors: ['marker is not valid JSON'] };
   }
   const shapeProblems = validateMarker(marker);
   if (shapeProblems.length > 0) return { status: 'invalid', errors: shapeProblems };
-  return { status: 'trusted', marker, sha256: sha256Hex(pinned.bytes) };
+  return { status: 'trusted', marker, sha256: result.sha256 };
 }

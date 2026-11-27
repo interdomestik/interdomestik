@@ -1,5 +1,5 @@
 import { mocks, renderPage } from './_core.entry.shared.test-support';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { applyDefaultMocks, queueItem, session } from './_core.entry.test-support';
 
@@ -64,18 +64,18 @@ describe('StaffSupportHandoffsPage', () => {
       });
 
     await renderPage();
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+    const toggle = screen.getByTestId('staff-support-handoff-detail-toggle');
+    await act(async () => fireEvent.click(toggle));
 
-    const input = await screen.findByTestId('staff-support-handoff-public-response-input');
+    const input = screen.getByTestId('staff-support-handoff-public-response-input');
     mocks.routerRefresh.mockClear();
     fireEvent.change(input, { target: { value: 'Updated member-visible response' } });
-    fireEvent.submit(screen.getByTestId('staff-support-handoff-public-response-form'));
+    const form = screen.getByTestId('staff-support-handoff-public-response-form');
+    await act(async () => fireEvent.submit(form));
 
-    await waitFor(() => {
-      expect(mocks.updateSupportHandoffPublicResponse).toHaveBeenCalled();
-      expect(mocks.getSupportHandoffDetail).toHaveBeenCalledTimes(2);
-      expect(mocks.routerRefresh).toHaveBeenCalledTimes(1);
-    });
+    expect(mocks.updateSupportHandoffPublicResponse).toHaveBeenCalled();
+    expect(mocks.getSupportHandoffDetail).toHaveBeenCalledTimes(2);
+    expect(mocks.routerRefresh).toHaveBeenCalledTimes(1);
     expect(screen.getByTestId('staff-support-handoff-public-response-input')).toHaveValue(
       'Updated member-visible response'
     );
@@ -147,16 +147,16 @@ describe('StaffSupportHandoffsPage', () => {
       });
 
     await renderPage({ attention: 'needs_follow_up' });
-    fireEvent.click(screen.getByTestId('staff-support-handoff-detail-toggle'));
+    const toggle = screen.getByTestId('staff-support-handoff-detail-toggle');
+    await act(async () => fireEvent.click(toggle));
 
-    const input = await screen.findByTestId('staff-support-handoff-public-response-input');
+    const input = screen.getByTestId('staff-support-handoff-public-response-input');
     fireEvent.change(input, { target: { value: 'Updated member-visible response' } });
-    fireEvent.submit(screen.getByTestId('staff-support-handoff-public-response-form'));
+    const form = screen.getByTestId('staff-support-handoff-public-response-form');
+    await act(async () => fireEvent.submit(form));
 
-    await waitFor(() => {
-      expect(mocks.updateSupportHandoffPublicResponse).toHaveBeenCalled();
-      expect(screen.queryByTestId('staff-support-handoffs-row')).not.toBeInTheDocument();
-    });
+    expect(mocks.updateSupportHandoffPublicResponse).toHaveBeenCalled();
+    expect(screen.queryByTestId('staff-support-handoffs-row')).not.toBeInTheDocument();
   });
 
   it('hides reassignment for accepted handoffs owned by another staff member', async () => {

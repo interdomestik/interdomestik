@@ -61,6 +61,8 @@ const GATE_ENV_NAMES = new Set([
   ...PNPM_NAMES,
   ...GUARDED_ENV_KEYS.filter(key => key !== 'SENTRY_AUTH_TOKEN'),
   ...ISOLATION_ENV_KEYS,
+  'INTERDOMESTIK_M4_DISPATCH_DIR',
+  'INTERDOMESTIK_M4_QUEUE_SCOPE',
 ]);
 
 /** Names (never values) of variables a gate run does not take. */

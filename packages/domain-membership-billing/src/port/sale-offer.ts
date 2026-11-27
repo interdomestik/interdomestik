@@ -1,7 +1,6 @@
 import type { TenantTransaction } from '@interdomestik/database';
 import {
-  exchangeRateVerificationLimits,
-  exchangeRateVerifications,
+  exchangeRateBooks,
   exchangeRates,
   legalEntities,
   membershipPlans,
@@ -46,37 +45,6 @@ export async function readSaleOffer(
     .orderBy(desc(membershipPlanVersions.version))
     .limit(1);
 
-  const rateInForceId = tx
-    .select({ id: exchangeRates.id })
-    .from(exchangeRates)
-    .where(
-      withTenant(
-        tenantId,
-        exchangeRates.tenantId,
-        sql`${exchangeRates.storedAt} <= statement_timestamp()
-      and ${exchangeRates.effectiveOn} <= (statement_timestamp() at time zone 'Europe/Skopje')::date`
-      )
-    )
-    .orderBy(desc(exchangeRates.effectiveOn), desc(exchangeRates.revision))
-    .limit(1);
-
-  const latestVerification = tx
-    .select({ verifiedAt: exchangeRateVerifications.verifiedAt })
-    .from(exchangeRateVerifications)
-    .where(
-      withTenant(
-        tenantId,
-        exchangeRateVerifications.tenantId,
-        and(
-          eq(exchangeRateVerifications.bookId, exchangeRates.bookId),
-          eq(exchangeRateVerifications.rateId, exchangeRates.id),
-          sql`${exchangeRateVerifications.verifiedAt} <= statement_timestamp()`
-        )
-      )
-    )
-    .orderBy(desc(exchangeRateVerifications.verifiedAt))
-    .limit(1);
-
   const [snapshot] = await tx
     .select({
       planId: membershipPlans.id,
@@ -99,10 +67,7 @@ export async function readSaleOffer(
         quote: exchangeRates.quote,
         effectiveOn: exchangeRates.effectiveOn,
       },
-      rateVerified: sql<boolean>`coalesce(
-        extract(epoch from (statement_timestamp() - (${latestVerification})))
-          <= ${exchangeRateVerificationLimits.maxAgeSeconds}, false
-      )`,
+      rateVerified: sql<boolean>`coalesce(sale_rate.ready, false)`,
     })
     .from(user)
     .leftJoin(
@@ -126,12 +91,27 @@ export async function readSaleOffer(
       )
     )
     .leftJoin(
-      exchangeRates,
-      withTenant(tenantId, exchangeRates.tenantId, eq(exchangeRates.id, rateInForceId))
+      exchangeRateBooks,
+      withTenant(
+        tenantId,
+        exchangeRateBooks.tenantId,
+        and(eq(exchangeRateBooks.base, 'EUR'), eq(exchangeRateBooks.quote, 'MKD'))
+      )
     )
     .leftJoin(
-      exchangeRateVerificationLimits,
-      withTenant(tenantId, exchangeRateVerificationLimits.tenantId)
+      sql`public.membership_sale_rate_at(${tenantId}, ${exchangeRateBooks.id}) as sale_rate`,
+      sql`true`
+    )
+    .leftJoin(
+      exchangeRates,
+      withTenant(
+        tenantId,
+        exchangeRates.tenantId,
+        and(
+          eq(exchangeRates.bookId, exchangeRateBooks.id),
+          sql`${exchangeRates.id} = sale_rate.rate_id`
+        )
+      )
     )
     .where(withTenant(tenantId, user.tenantId, eq(user.id, userId)));
 

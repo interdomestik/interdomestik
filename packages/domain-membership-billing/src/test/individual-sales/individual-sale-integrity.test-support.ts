@@ -33,8 +33,11 @@ export function registerSaleIntegrityCases(fixture: () => Promise<SaleFixture>) 
     },
     {
       code: 'stale_rate',
-      makeStale: async (f: SaleFixture) => {
-        const [replacement] = await f.addRate('62.00', '2000-01-10');
+      makeStale: async (f: SaleFixture, input: SaleInput) => {
+        const replacement = await f.checkedCorrection(
+          { id: input.rateId, effective_on: f.today },
+          '62.00'
+        );
         expect((await f.offer()).rateId).toBe(replacement.id);
       },
     },

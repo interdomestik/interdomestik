@@ -26,6 +26,8 @@ The staff and admin actions call `changeClaimStatus` from `./claims/change-statu
 
 ## Invariants
 
+- `./admin-claims/visible-ops-claim` exports the pure `canViewAdminClaims` role predicate, which the web claims visibility module re-exports. This subpath also exports `readOpsClaimAuthority(authority)` for admission before opening a transaction and `selectVisibleOpsClaim(tx, { authority, claimId })` to build a fixed subquery in that transaction. Both require registered, unexpired authority and return null unless it is session authority with matching tenant IDs and an admitted principal. The subquery matches the exact claim, uses the effective access tenant with the null-access home fallback, and uses its private branch SQL fragment to confine branch managers to their verified branch. The documents owner uses the same subquery for initial selection and its document visibility recheck, inside the transaction opened with that authority.
+
 - There is **no `status` column**: the status is the pair `case_lifecycle_state` + `recovery_lifecycle_state` with a `lifecycle_version` counter (`packages/database/src/schema/claim-core.ts:36-48`; mapping at `src/claims/lifecycle-state.ts:18-55`). Nine statuses (`A/modules/case-handoff.md:47`).
 - Only 27 directed transitions are allowed, plus a same-status call — enforced in code by `ALLOWED_CLAIM_STATUS_TRANSITIONS` (`src/claims/transition-guard.ts:50-60,66-69`, MEASURED in `A/modules/case-handoff.md:51`). Database CHECKs pin the status pairs (`packages/database/src/schema/claim-core.ts:84-101`).
 - The staff and admin actions use the shared status command. It locks the scoped claim, applies the decline and recovery prerequisites and checks the lifecycle guard before writing. The lifecycle version also guards the write. Recovery transitions lock the agreement and membership inputs and use one effective time for coverage and usage.
@@ -38,6 +40,14 @@ The staff and admin actions call `changeClaimStatus` from `./claims/change-statu
 - A claim document belongs to its claim's tenant — application only for plain evidence; the database enforces it with composite FKs for request-linked evidence (`schema/claim-support-tables.ts:19-25,40`; `drizzle/0094_request_linked_evidence.sql:20-21`).
 
 ## Tenant boundary
+
+WP-19 evidence confirmation calls `./claims/evidence-confirmation` inside the existing session
+tenant transaction. `lockClaimForEvidence` rechecks home and effective access, member ownership
+or workforce scope on the locked claim, then locks the open information request when applicable.
+The same transaction checks request linkage on replay and uses `linkInformationRequestEvidence`
+to append the link and its audit row after a new document is created.
+The dependency-free `./claims/member-upload-role` export supplies the member-side role predicate
+to both the claim lock and the web upload validators.
 
 `./claims/send-message` composes the message write, response requests and notifications in one tenant transaction. Message and recovery decision commands take the actor from the tenant authority principal and require the session to match. The recovery decision action uses `resolveRecoveryDecisionActor` to apply the same check before reserving an idempotency key. An admin can post an internal message only in their home tenant. Staff routing and the send-time staff eligibility check use the same staff claim read scope. `./claims/notification-delivery-runner` drives the queue through the communications worker operations.
 

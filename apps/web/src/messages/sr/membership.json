@@ -3,7 +3,7 @@
     "CLOSED": "Plaćanja i upravljanje pretplatama trenutno nisu dostupni.",
     "page": {
       "title": "Članstvo",
-      "description": "Upravljajte pretplatom i detaljima plana."
+      "description": "Status vašeg članstva, trenutni period i šta članstvo obuhvata."
     },
     "scope": {
       "eyebrow": "Opseg plana",
@@ -95,14 +95,20 @@
     "ops": {
       "title": "Pretplate",
       "empty_list": "Nema pretplata",
-      "no_membership_title": "Dovršite članstvo",
-      "no_membership_body": "Još nemate aktivno plaćeno članstvo. Izaberite plan da nastavite na checkout i otključate pristup zahtevima.",
+      "no_membership_title": "Nema aktivnog članstva",
+      "no_membership_body": "Još nemate aktivno članstvo. Možete videti planove i šta svaki obuhvata.",
       "membership_not_active_title": "Ovo članstvo je neaktivno",
-      "membership_not_active_body": "Ovo članstvo još nije aktivno. Dovršite checkout da vratite zaštitu i pristup zahtevima.",
-      "complete_membership": "Dovrši članstvo",
-      "choose_plan": "Izaberi plan",
+      "membership_not_active_body": "Ovo članstvo nije aktivno. Dok je neaktivno, ne daje pristup novim predmetima.",
+      "complete_membership": "Pogledajte planove",
+      "choose_plan": "Pogledajte planove",
       "select_subscription": "Izaberite pretplatu",
-      "back_to_list": "Nazad na listu"
+      "back_to_list": "Nazad na listu",
+      "about_title": "O vašem članstvu",
+      "sponsor_coverage_label": "Program kompanije",
+      "renewal_label": "Obnova",
+      "renewal_stops": "Ne obnavlja se nakon trenutnog perioda",
+      "selection_unavailable": "Ovaj zapis o članstvu više nije dostupan. Vaše trenutno članstvo se možda promenilo.",
+      "open_current": "Otvorite trenutno članstvo"
     },
     "actions": {
       "confirm_cancel": "Da li ste sigurni da želite da otkažete? Otkazivanje menja samo buduće obnavljanje, a vaš trenutni pristup ostaje aktivan do kraja tekućeg obračunskog perioda.",
@@ -115,7 +121,8 @@
       "payment_update_preparing": "Pripremamo vaš bezbedni link za ažuriranje plaćanja…",
       "payment_update_opening": "Otvaramo bezbednu stranicu za plaćanje…",
       "renew": "Obnovi",
-      "cancel": "Zatraži otkazivanje"
+      "cancel": "Zatraži otkazivanje",
+      "cancel_pending": "Zahtev za otkazivanje se šalje…"
     },
     "errors": {
       "action_failed": "Nismo mogli da završimo tu člansku radnju. Pokušajte ponovo.",

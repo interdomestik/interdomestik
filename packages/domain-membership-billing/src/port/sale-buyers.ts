@@ -1,6 +1,7 @@
 import type { TenantTransaction } from '@interdomestik/database';
 import { memberLeads, subscriptions, user } from '@interdomestik/database/schema';
 import { withTenant } from '@interdomestik/database/tenant-security';
+import { currentMemberPredicate } from '@interdomestik/domain-communications/recipient-locale';
 import { ROLES } from '@interdomestik/shared-auth';
 import { and, eq } from 'drizzle-orm';
 
@@ -42,9 +43,7 @@ async function findBuyer(tx: TenantTransaction, tenantId: string, buyer: SaleBuy
   const query = tx
     .select({ branchId: user.branchId })
     .from(user)
-    .where(
-      withTenant(tenantId, user.tenantId, and(eq(user.id, buyer.id), eq(user.role, ROLES.member)))
-    );
+    .where(currentMemberPredicate(tenantId, buyer.id));
   const [member] = await (lock ? query.for('share') : query);
   if (member) return { agentId: null, branchId: member.branchId, coverageUserId: buyer.id };
 }

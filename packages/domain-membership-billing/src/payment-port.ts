@@ -13,4 +13,9 @@ export {
   withdrawPlanVersionInputSchema,
 } from './port/sale-input';
 export { recordRateVerification } from './port/record-rate-verification';
-export { recordRateVerificationInputSchema } from './port/rate-input';
+export { beginRateCheck, recordRateCheckInconclusive } from './port/record-rate-check';
+export {
+  beginRateCheckInputSchema,
+  recordRateCheckInconclusiveInputSchema,
+  recordRateVerificationInputSchema,
+} from './port/rate-input';

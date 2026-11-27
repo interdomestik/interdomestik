@@ -127,6 +127,12 @@ test('a mismatched anchor tree fails before approved guard execution', { skip },
   assert.equal(result.report, null);
 });
 
+test('a mismatched source tree fails before approved guard execution', { skip }, () => {
+  const result = route(openPullRequest(), { sourceTree: 'f'.repeat(40) });
+  assertFailed(result, /approved guard source tree mismatch/u);
+  assert.equal(result.report, null);
+});
+
 test(
   'correct identities and zero violations cannot authorize a refused schema admission',
   { skip },

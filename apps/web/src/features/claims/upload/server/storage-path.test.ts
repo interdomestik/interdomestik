@@ -142,7 +142,8 @@ describe('evidence storage path invariants', () => {
     ['fileName', { fileName: '../receipt.pdf' }],
     ['claimId', { claimId: 'claim-../1' }],
     ['tenantId', { tenantId: 'tenant/1' }],
-  ])('rejects path traversal via %s', (_label, overrides) => {
+    ['fileId', { fileId: 'file-1.' }],
+  ])('rejects noncanonical path allocation via %s', (_label, overrides) => {
     expect(() =>
       buildEvidenceStoragePath({
         bucket: 'claim-evidence',
@@ -158,6 +159,12 @@ describe('evidence storage path invariants', () => {
 
   it('rejects assigned paths with too few segments', () => {
     expectInvalidAssignedStoragePath('pii/tenants/tenant-1/claims/claim-1');
+  });
+
+  it('rejects adjacent dots created by joining the assigned file ID to its extension', () => {
+    expectInvalidAssignedStoragePath('pii/tenants/tenant-1/claims/claim-1/file-1..pdf', {
+      fileId: 'file-1.',
+    });
   });
 
   it('rejects assigned paths with too many segments', () => {

@@ -61,6 +61,7 @@ export async function proveExchangeRateAuthorization(
       });
       const deniedCapabilities = [
         mintPaymentPortTestIngress('cron'),
+        mintPaymentPortTestIngress('inngest', Date.now() - 60 * 60_000),
         paymentPortTestScheduledAuthority(tenantId),
         authority,
       ];

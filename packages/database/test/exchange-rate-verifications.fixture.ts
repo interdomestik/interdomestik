@@ -55,7 +55,7 @@ export async function makeVerification(
     observed_rate: rate.rate,
     source_ref: 'nbrm:2000-01-03',
     verified_by: actorId,
-    verified_at: 'infinity',
+    verified_at: '2000-01-03T00:00:00Z',
     operation_key: randomUUID(),
   };
 }

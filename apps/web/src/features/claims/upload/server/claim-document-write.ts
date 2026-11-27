@@ -1,55 +1,33 @@
-import { existingDocumentMatches } from './claim-document-replay';
-import {
-  and,
-  auditLog,
-  claimDocumentAiExtractionConsents,
-  claimDocuments,
-  claimInformationRequestEvidence,
-  claimInformationRequests,
-  claims,
-  eq,
-  type TenantTransaction,
-} from '@interdomestik/database';
 import {
   readTenantAuthority,
   type TenantAuthority,
 } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-import { randomUUID } from 'node:crypto';
+import {
+  linkInformationRequestEvidence,
+  lockClaimForEvidence,
+  matchesInformationRequestEvidence,
+} from '@interdomestik/domain-claims/claims/evidence-confirmation';
+import {
+  confirmClaimEvidence,
+  type EvidenceUploadConsent,
+  type VerifiedEvidenceUpload,
+} from '@interdomestik/domain-documents/claim-evidence';
 import { ClaimDocumentUploadConflictError } from './claim-document-upload-conflict';
+import { isMemberUploadRole } from './member-upload-role';
+
 export { ClaimDocumentUploadConflictError } from './claim-document-upload-conflict';
 
-export type UploadCategory = 'evidence' | 'legal';
+export type UploadCategory = VerifiedEvidenceUpload['category'];
 
-type AiExtractionConsentCapture = {
-  granted: boolean;
-  locale: string;
-  privacyVersion: string;
-  sourceSurface: string;
-};
-
-export type PersistClaimDocumentParams = {
-  /**
-   * Trusted, server-derived role of the confirming actor. Member confirmations preserve the
-   * canonical member actor; other admitted upload actors retain their verified session role.
-   * Required for ordinary uploads. Optional only so request-linked member writes keep their fixed
-   * member transaction role; a non-member role is rejected for that member-only path.
-   */
+export type PersistClaimDocumentParams = Omit<VerifiedEvidenceUpload, 'bucket'> & {
   actorRole?: string;
-  aiExtractionConsent?: AiExtractionConsentCapture;
-  /** The session tenant authority the metadata and consent writes run under; `tenantId` must be its tenant. */
+  aiExtractionConsent?: EvidenceUploadConsent;
   authority: TenantAuthority;
-  /** Trusted member-surface owner expectation; never accepted from the confirmation payload. */
   expectedClaimOwnerId?: string;
-  category: UploadCategory;
   claimId: string;
-  fileId: string;
-  fileSize: number;
   logPrefix: string;
-  mimeType: string;
-  originalName: string;
   resolvedBucket: string;
-  storagePath: string;
   tenantId: string;
   userId: string;
   informationRequestId?: string;
@@ -76,177 +54,71 @@ export class ClaimDocumentTenantAuthorityError extends Error {
   }
 }
 
-function assertMetadataActorRole(params: PersistClaimDocumentParams): void {
-  if (params.informationRequestId) {
-    // Request-linked evidence is a member-only write whose audit row records actorRole 'member'.
-    if (params.actorRole && params.actorRole !== 'member') throw new ClaimDocumentActorRoleError();
-    return;
-  }
-  if (!params.actorRole) throw new ClaimDocumentActorRoleError();
-}
-
-function documentValues(params: PersistClaimDocumentParams) {
-  return {
-    id: params.fileId,
-    tenantId: params.tenantId,
-    claimId: params.claimId,
-    name: params.originalName,
-    filePath: params.storagePath,
-    fileType: params.mimeType,
-    fileSize: params.fileSize,
-    bucket: params.resolvedBucket,
-    category: params.category,
-    uploadedBy: params.userId,
-  };
-}
-
-async function insertOrdinaryDocument(
-  tx: TenantTransaction,
-  params: PersistClaimDocumentParams
+export async function persistClaimDocumentMetadata(
+  params: PersistClaimDocumentParams,
+  replayOnly = false
 ): Promise<boolean> {
-  if (params.expectedClaimOwnerId !== undefined) {
-    const [claim] = await tx
-      .select({ userId: claims.userId })
-      .from(claims)
-      .where(and(eq(claims.id, params.claimId), eq(claims.tenantId, params.tenantId)))
-      .for('update');
-    if (
-      claim?.userId !== params.expectedClaimOwnerId ||
-      params.userId !== params.expectedClaimOwnerId
-    ) {
-      throw new ClaimDocumentUploadConflictError();
+  const { authority, claimId, fileId, informationRequestId } = params;
+  const { tenantId, principal } = readTenantAuthority(authority);
+  if (tenantId !== params.tenantId) throw new ClaimDocumentTenantAuthorityError();
+  const role = principal?.role;
+  const memberSurface = isMemberUploadRole(role);
+  const expectedRole = memberSurface ? 'member' : role;
+  if (
+    !principal ||
+    !role ||
+    principal.userId !== params.userId ||
+    (informationRequestId === undefined
+      ? params.actorRole !== expectedRole
+      : !memberSurface || (params.actorRole !== undefined && params.actorRole !== 'member'))
+  ) {
+    throw new ClaimDocumentActorRoleError();
+  }
+  if (
+    params.expectedClaimOwnerId !== undefined &&
+    (!memberSurface || params.expectedClaimOwnerId !== principal.userId)
+  ) {
+    throw new ClaimDocumentUploadConflictError();
+  }
+
+  return withTenantAuthority(authority, async tx => {
+    const verifiedScope = await lockClaimForEvidence(tx, {
+      authority,
+      claimId,
+      surface: memberSurface ? 'member' : 'admin',
+      informationRequestId,
+    });
+    if (!verifiedScope) {
+      throw informationRequestId === undefined
+        ? new ClaimDocumentUploadConflictError()
+        : new InformationRequestUploadConflictError();
     }
-  }
-  // db-access-guard: tenant-scoped -- reason: document metadata copies tenant, claim, and uploader scope from the validated upload session.
-  const [created] = await tx
-    .insert(claimDocuments)
-    .values(documentValues(params))
-    .onConflictDoNothing({ target: claimDocuments.id })
-    .returning({ id: claimDocuments.id });
-  if (created) return true;
 
-  // Each signed intent mints its own id, so an existing row is either this exact upload already
-  // committed behind a lost response (settled as not created) or a conflict that is never overwritten.
-  if (await existingDocumentMatches(tx, params)) return false;
-  throw new ClaimDocumentUploadConflictError();
-}
+    const outcome = await confirmClaimEvidence(tx, {
+      verifiedScope,
+      verifiedUpload: {
+        fileId,
+        originalName: params.originalName,
+        storagePath: params.storagePath,
+        mimeType: params.mimeType,
+        fileSize: params.fileSize,
+        bucket: params.resolvedBucket,
+        category: params.category,
+      },
+      consent: memberSurface ? params.aiExtractionConsent : undefined,
+      replayOnly,
+    });
 
-async function insertRequestLinkedDocument(
-  tx: TenantTransaction,
-  params: PersistClaimDocumentParams & { informationRequestId: string }
-): Promise<boolean> {
-  const [claim] = await tx
-    .select({ userId: claims.userId })
-    .from(claims)
-    .where(and(eq(claims.id, params.claimId), eq(claims.tenantId, params.tenantId)))
-    .for('update');
-  const [request] = await tx
-    .select({ id: claimInformationRequests.id })
-    .from(claimInformationRequests)
-    .where(
-      and(
-        eq(claimInformationRequests.id, params.informationRequestId),
-        eq(claimInformationRequests.claimId, params.claimId),
-        eq(claimInformationRequests.tenantId, params.tenantId),
-        eq(claimInformationRequests.status, 'open')
-      )
-    )
-    .for('update');
-  if (claim?.userId !== params.userId || !request) {
-    throw new InformationRequestUploadConflictError();
-  }
-
-  // db-access-guard: tenant-scoped -- reason: document values use the tenant validated by the locked claim and open request reads above.
-  const [created] = await tx
-    .insert(claimDocuments)
-    .values(documentValues(params))
-    .onConflictDoNothing({ target: claimDocuments.id })
-    .returning({ id: claimDocuments.id });
-
-  if (!created) {
-    const documentMatches = await existingDocumentMatches(tx, params);
-    const [existingLink] = await tx
-      .select({ requestId: claimInformationRequestEvidence.requestId })
-      .from(claimInformationRequestEvidence)
-      .where(
-        and(
-          eq(claimInformationRequestEvidence.documentId, params.fileId),
-          eq(claimInformationRequestEvidence.tenantId, params.tenantId),
-          eq(claimInformationRequestEvidence.claimId, params.claimId)
-        )
-      )
-      .limit(1);
-    if (documentMatches && existingLink?.requestId === params.informationRequestId) {
+    if (outcome === 'created') {
+      await linkInformationRequestEvidence(tx, verifiedScope, fileId);
+      return true;
+    }
+    if (
+      outcome === 'replayed' &&
+      (await matchesInformationRequestEvidence(tx, verifiedScope, fileId))
+    ) {
       return false;
     }
-    throw new InformationRequestUploadConflictError();
-  }
-
-  // db-access-guard: tenant-scoped -- reason: request evidence values use the tenant validated by the locked claim and open request reads above.
-  await tx.insert(claimInformationRequestEvidence).values({
-    tenantId: params.tenantId,
-    claimId: params.claimId,
-    requestId: params.informationRequestId,
-    documentId: params.fileId,
-    submittedByMemberId: params.userId,
+    throw new ClaimDocumentUploadConflictError();
   });
-  // db-access-guard: tenant-scoped -- reason: audit values use the tenant and actor validated by the locked claim and open request reads above.
-  await tx.insert(auditLog).values({
-    id: randomUUID(),
-    tenantId: params.tenantId,
-    actorId: params.userId,
-    actorRole: 'member',
-    action: 'claim_information_request.evidence_submitted',
-    entityType: 'claim_information_request',
-    entityId: params.informationRequestId,
-    metadata: { documentId: params.fileId },
-  });
-  return true;
-}
-
-export async function persistClaimDocumentMetadata(
-  params: PersistClaimDocumentParams
-): Promise<boolean> {
-  const persist = async (tx: TenantTransaction): Promise<boolean> => {
-    const created = params.informationRequestId
-      ? await insertRequestLinkedDocument(tx, {
-          ...params,
-          informationRequestId: params.informationRequestId,
-        })
-      : await insertOrdinaryDocument(tx, params);
-    // An exact replay of an already committed upload adds no consent row; callers skip AI queueing
-    // for false. The committed consent is retained; a replay does not repair a missed AI queue step.
-    if (!created) return false;
-
-    if (params.aiExtractionConsent?.granted === true) {
-      const now = new Date();
-      // db-access-guard: tenant-scoped -- reason: consent row copies exact tenant, subject, actor, claim, and document scope from the validated upload session.
-      await tx.insert(claimDocumentAiExtractionConsents).values({
-        id: randomUUID(),
-        tenantId: params.tenantId,
-        subjectId: params.userId,
-        actorId: params.userId,
-        claimId: params.claimId,
-        documentId: params.fileId,
-        consentType: 'ai_document_extraction',
-        processingPurpose: 'ai_document_extraction',
-        status: 'accepted',
-        privacyVersion: params.aiExtractionConsent.privacyVersion,
-        locale: params.aiExtractionConsent.locale,
-        sourceSurface: params.aiExtractionConsent.sourceSurface,
-        recordedAt: now,
-        grantedAt: now,
-      });
-    }
-    return true;
-  };
-
-  // Check the trusted role and tenant before any transaction opens so a missing or mismatched value
-  // fails without partial writes. Ordinary and request-linked writes share one tenant-bound
-  // transaction with the optional consent row, so either both persist or neither does.
-  assertMetadataActorRole(params);
-  if (readTenantAuthority(params.authority).tenantId !== params.tenantId) {
-    throw new ClaimDocumentTenantAuthorityError();
-  }
-  return withTenantAuthority(params.authority, persist);
 }

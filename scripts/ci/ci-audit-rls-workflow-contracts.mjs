@@ -8,6 +8,15 @@ const root = path.resolve(import.meta.dirname, '../..');
 const workflow = yaml.load(fs.readFileSync(path.join(root, '.github/workflows/ci.yml'), 'utf8'));
 const findStep = (steps, name) => steps.find(step => step?.name === name);
 
+function assertRlsRun(command) {
+  assert.equal(command, 'pnpm db:rls:test');
+}
+
+test('CI RLS contract rejects an early successful exit', () => {
+  const rls = findStep(workflow.jobs['e2e-gate'].steps, 'RLS Integration Test');
+  assert.throws(() => assertRlsRun(`exit 0\n${rls.run}`), { code: 'ERR_ASSERTION' });
+});
+
 test('CI audit preserves full E2E, tenant guard, and architecture guards', () => {
   const auditRun = findStep(workflow.jobs.audit.steps, 'Run Audits').run;
   assert.match(auditRun, /pnpm check:e2e-contracts\b/u);
@@ -21,7 +30,11 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   const rls = findStep(workflow.jobs['e2e-gate'].steps, 'RLS Integration Test');
   assert.equal(rls.env.REQUIRE_RLS_INTEGRATION, '1');
   assert.equal(rls.env.REQUIRE_RLS_COVERAGE, '1');
-  assert.equal(rls.run, 'pnpm db:rls:test');
+  const checkout = workflow.jobs['e2e-gate'].steps.find(
+    step => step.uses === 'actions/checkout@v5'
+  );
+  assert.equal(checkout.with['fetch-depth'], 0);
+  assertRlsRun(rls.run);
   assert.equal(
     workflow.jobs['e2e-gate'].env.DATABASE_URL,
     'postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test'
@@ -52,6 +65,7 @@ test('CI RLS integration requires both integration and coverage guards', () => {
   );
   assert.equal(
     billingScripts['test:rls'],
-    'BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts src/port/individual-sale-age-boundary.rls.test.ts src/port/individual-sale-weekly-rate.rls.test.ts src/sponsors/sponsor-privacy.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test test/exchange-rates-port.test.ts'
+    'BILLING_RLS_INTEGRATION=1 REQUIRE_RLS_INTEGRATION=1 vitest run --no-file-parallelism src/port/individual-sales.rls.test.ts src/port/individual-sale-age-boundary.rls.test.ts src/port/individual-sale-weekly-rate.rls.test.ts src/sponsors/sponsor-privacy.rls.test.ts src/expiry-deliveries/expiry-deliveries.rls.test.ts src/expiry-deliveries/expiry-authorization-race.rls.test.ts && REQUIRE_RLS_INTEGRATION=1 tsx --test --test-concurrency=1 test/exchange-rates-port.test.ts'
   );
+  assert.equal(billingScripts['test:rls:upgrade'], undefined);
 });
