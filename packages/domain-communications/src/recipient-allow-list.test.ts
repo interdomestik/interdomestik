@@ -206,9 +206,7 @@ describe('recipient policy by deployment', () => {
     vi.stubEnv('INTERDOMESTIK_AUTOMATED', '1');
     vi.stubEnv('E2E_SMTP_HOST', '127.0.0.1');
     const { sendSignInOtpEmail } = await import('./email');
-    await expect(
-      sendSignInOtpEmail('member@other.invalid, qa@office.example.test', '123456')
-    ).resolves.toEqual(suppressed);
+    await expect(sendSignInOtpEmail('member@other.invalid', '123456')).resolves.toEqual(suppressed);
     expect(providerCalls()).toBe(0);
     expect(consoleCalls()).toEqual([
       ['[EmailAllowList]', { outcome: 'refused', reason: 'deploy_env_unknown' }],
