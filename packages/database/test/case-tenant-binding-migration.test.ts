@@ -116,13 +116,15 @@ test('case-tenant binding validates a populated upgrade atomically', async t => 
     assert.deepEqual(await snapshot(), before);
     assert.deepEqual(
       [...(await keys())],
-      names.sort().map(name => ({
-        name,
-        validated: true,
-        parent_index: name.endsWith('_case_home_fk')
-          ? 'claim_tenant_id_id_uq'
-          : 'claim_documents_tenant_claim_id_uq',
-      }))
+      names
+        .sort((a, b) => Number(a > b) - Number(a < b))
+        .map(name => ({
+          name,
+          validated: true,
+          parent_index: name.endsWith('_case_home_fk')
+            ? 'claim_tenant_id_id_uq'
+            : 'claim_documents_tenant_claim_id_uq',
+        }))
     );
 
     // The predecessor write shapes still commit with the new constraints in place.
