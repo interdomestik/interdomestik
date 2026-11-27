@@ -30,8 +30,10 @@ const DEPLOYMENT_KEYS = [
 ];
 
 function hostedStaging(allowList?: string) {
+  // The new staging is its own Vercel project, so its runtime reports VERCEL_ENV=production.
   vi.stubEnv('VERCEL', '1');
-  vi.stubEnv('VERCEL_ENV', 'preview');
+  vi.stubEnv('VERCEL_ENV', 'production');
+  vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', 'staging');
   if (allowList !== undefined) vi.stubEnv('EMAIL_RECIPIENT_ALLOWLIST', allowList);
 }
 
@@ -198,42 +200,59 @@ describe('staging recipient allow-list', () => {
   });
 });
 
-describe('when the allow-list applies', () => {
+describe('recipient policy by deployment', () => {
   it.each([
-    [{ VERCEL: '1', VERCEL_ENV: 'preview' }, true],
-    [{ VERCEL_ENV: 'preview' }, true],
-    [{ VERCEL_URL: 'x.vercel.app' }, true],
-    [{ VERCEL: '1' }, true],
-    [{ VERCEL: '1', VERCEL_ENV: 'development' }, true],
-    [{ VERCEL: '1', VERCEL_ENV: 'production', VERCEL_TARGET_ENV: 'staging' }, true],
-    [{ VERCEL: '1', VERCEL_ENV: 'production', INTERDOMESTIK_DEPLOY_ENV: 'preview' }, true],
-    [{ VERCEL: '1', VERCEL_ENV: 'production', INTERDOMESTIK_DEPLOY_ENV: 'staging' }, true],
-    [{ INTERDOMESTIK_DEPLOY_ENV: ' Staging ' }, true],
-    [{ INTERDOMESTIK_DEPLOY_ENV: 'stagng' }, true],
-    [{ VERCEL_TARGET_ENV: 'office-dry-run' }, true],
-    [{ VERCEL_ENV: 'something-new' }, true],
-    [{ INTERDOMESTIK_DEPLOY_ENV: 'production', VERCEL_URL: 'x.vercel.app' }, true],
-    [{ VERCEL: '1', VERCEL_ENV: 'production', INTERDOMESTIK_DEPLOY_ENV: 'production' }, false],
-    [{ VERCEL_TARGET_ENV: 'production' }, true],
-    [{ VERCEL: '1', VERCEL_ENV: 'Production' }, true],
-    [{ VERCEL: '0' }, true],
-    [{ EMAIL_RECIPIENT_ALLOWLIST: 'qa@office.example.test' }, false],
-    [{ VERCEL: '1', VERCEL_ENV: 'production' }, false],
-    [{ VERCEL: '1', VERCEL_ENV: 'production', VERCEL_TARGET_ENV: 'production' }, false],
-    [{ INTERDOMESTIK_DEPLOY_ENV: 'local' }, false],
-    [{ INTERDOMESTIK_DEPLOY_ENV: 'development' }, false],
-    [{ INTERDOMESTIK_DEPLOY_ENV: 'production' }, false],
-    [{}, false],
-  ])('%o -> %s', async (env, active) => {
-    const { recipientAllowListActive } = await import('./recipient-allow-list');
-    expect(recipientAllowListActive(env)).toBe(active);
+    [{ VERCEL: '1', VERCEL_ENV: 'production', INTERDOMESTIK_DEPLOY_ENV: 'staging' }, 'allowlist'],
+    [{ VERCEL: '1', VERCEL_ENV: 'preview', INTERDOMESTIK_DEPLOY_ENV: ' Staging ' }, 'allowlist'],
+    [{ INTERDOMESTIK_DEPLOY_ENV: 'staging' }, 'allowlist'],
+    [{ VERCEL: '1', VERCEL_ENV: 'production', INTERDOMESTIK_DEPLOY_ENV: 'production' }, 'open'],
+    [{ VERCEL: '1', VERCEL_ENV: 'production' }, 'refuse_all'],
+    [{ VERCEL: '1', VERCEL_ENV: 'preview' }, 'refuse_all'],
+    [{ VERCEL_URL: 'x.vercel.app' }, 'refuse_all'],
+    [{ VERCEL_TARGET_ENV: 'production' }, 'refuse_all'],
+    [{ VERCEL: '1', INTERDOMESTIK_DEPLOY_ENV: 'stagng' }, 'refuse_all'],
+    [{ VERCEL: '1', INTERDOMESTIK_DEPLOY_ENV: 'local' }, 'refuse_all'],
+    [{ VERCEL: '1', INTERDOMESTIK_DEPLOY_ENV: '' }, 'refuse_all'],
+    [{ INTERDOMESTIK_DEPLOY_ENV: 'preview' }, 'refuse_all'],
+    [{ INTERDOMESTIK_DEPLOY_ENV: 'local' }, 'open'],
+    [{ INTERDOMESTIK_DEPLOY_ENV: 'development' }, 'open'],
+    [{ INTERDOMESTIK_DEPLOY_ENV: 'production' }, 'open'],
+    [{ EMAIL_RECIPIENT_ALLOWLIST: 'qa@office.example.test' }, 'open'],
+    [{}, 'open'],
+  ])('%o -> %s', async (env, policy) => {
+    const { recipientPolicy } = await import('./recipient-allow-list');
+    expect(recipientPolicy(env)).toBe(policy);
   });
+
+  it.each([
+    ['unset', undefined],
+    ['unknown', 'stagng'],
+  ])(
+    'refuses and records every send on a hosted runtime with the deploy env %s',
+    async (_kind, deployEnv) => {
+      vi.stubEnv('VERCEL', '1');
+      vi.stubEnv('VERCEL_ENV', 'production');
+      if (deployEnv) vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', deployEnv);
+      vi.stubEnv('EMAIL_RECIPIENT_ALLOWLIST', 'office.example.test');
+      const { sendEmail, sendEmailOutcome } = await import('./email');
+      await expect(sendEmail('qa@office.example.test', template)).resolves.toEqual(suppressed);
+      await expect(
+        sendEmailOutcome('resend', 'qa@office.example.test', template, outcomeOptions)
+      ).resolves.toMatchObject({ ok: false, retryable: false, code: 'email_suppressed' });
+      expect(providerCalls()).toBe(0);
+      expect(refusals()).toEqual([
+        { outcome: 'refused', reason: 'deploy_env_unknown' },
+        { outcome: 'refused', reason: 'deploy_env_unknown' },
+      ]);
+    }
+  );
 
   it.each([undefined, 'office.example.test'])(
     'leaves hosted production unchanged (allow-list %s)',
     async allowList => {
       vi.stubEnv('VERCEL', '1');
       vi.stubEnv('VERCEL_ENV', 'production');
+      vi.stubEnv('INTERDOMESTIK_DEPLOY_ENV', 'production');
       if (allowList) vi.stubEnv('EMAIL_RECIPIENT_ALLOWLIST', allowList);
       const { sendEmail, sendEmailOutcome } = await import('./email');
       await expect(sendEmail('anyone@gmail.example', template)).resolves.toEqual({

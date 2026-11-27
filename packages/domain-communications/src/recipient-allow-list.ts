@@ -1,27 +1,30 @@
 type Env = Readonly<NodeJS.Dict<string>>;
 
-export type AllowListRefusal = 'allowlist_empty' | 'recipient_not_allowlisted';
+export type AllowListRefusal =
+  'allowlist_empty' | 'recipient_not_allowlisted' | 'deploy_env_unknown';
+export type RecipientPolicy = 'open' | 'allowlist' | 'refuse_all';
+
+const LOCAL_DEPLOY_ENVS: ReadonlySet<string> = new Set(['local', 'development', 'production']);
 
 /**
- * Hosted staging must never mail a real inbox by accident, so every recipient must be on
- * EMAIL_RECIPIENT_ALLOWLIST there. Decided only from server-side variables, failing closed:
- * - any INTERDOMESTIK_DEPLOY_ENV other than local, development or production turns it on;
- * - any Vercel marker turns it on unless VERCEL_ENV is exactly `production` and
- *   VERCEL_TARGET_ENV is absent or exactly `production`, as isProductionEmailDeployment in
- *   apps/web/src/lib/email-link-origins.ts decides (not importable here, R-15).
- * Local development, CI and local E2E carry none of these and are unchanged.
+ * Which recipients a process may mail, decided only from server-side variables. A hosted (Vercel)
+ * runtime is keyed on INTERDOMESTIK_DEPLOY_ENV, a project setting of each Vercel project:
+ * `production` sends as before, `staging` sends only to EMAIL_RECIPIENT_ALLOWLIST, and an unset
+ * or unknown value refuses every send (fail closed). Off Vercel, `staging` (the Docker staging
+ * image) is gated the same way, any other unrecognised value refuses every send, and local
+ * development, CI and local E2E (unset, local, development) keep their current behaviour.
  */
-export function recipientAllowListActive(env: Env = process.env): boolean {
+export function recipientPolicy(env: Env = process.env): RecipientPolicy {
   const deployEnv = env.INTERDOMESTIK_DEPLOY_ENV?.trim().toLowerCase();
-  if (deployEnv && !UNGATED_DEPLOY_ENVS.has(deployEnv)) return true;
-  const vercelEnv = env.VERCEL_ENV?.trim();
-  const targetEnv = env.VERCEL_TARGET_ENV?.trim();
-  const vercel = env.VERCEL?.trim() || env.VERCEL_URL?.trim() || vercelEnv || targetEnv;
-  if (!vercel) return false;
-  return !(vercelEnv === 'production' && (!targetEnv || targetEnv === 'production'));
+  if (deployEnv === 'staging') return 'allowlist';
+  const hosted = [env.VERCEL, env.VERCEL_URL, env.VERCEL_ENV, env.VERCEL_TARGET_ENV].some(value =>
+    value?.trim()
+  );
+  if (hosted) return deployEnv === 'production' ? 'open' : 'refuse_all';
+  return !deployEnv || LOCAL_DEPLOY_ENVS.has(deployEnv) ? 'open' : 'refuse_all';
 }
 
-const UNGATED_DEPLOY_ENVS: ReadonlySet<string> = new Set(['local', 'development', 'production']);
+export const recipientAllowListActive = (env: Env = process.env) => recipientPolicy(env) !== 'open';
 
 // ASCII only, validated before case folding (toLowerCase maps some non-ASCII letters, such as
 // the Kelvin sign, onto ASCII). Local part: RFC 5322 dot-atom (no quoted strings). Domain: DNS
@@ -68,7 +71,9 @@ function readAllowList(env: Env) {
 
 /** Null when the mailbox may be sent to; otherwise the refusal reason. */
 export function allowListRefusal(mailbox: string, env: Env = process.env): AllowListRefusal | null {
-  if (!recipientAllowListActive(env)) return null;
+  const policy = recipientPolicy(env);
+  if (policy === 'open') return null;
+  if (policy === 'refuse_all') return 'deploy_env_unknown';
   const { mailboxes, domains } = readAllowList(env);
   if (mailboxes.size === 0 && domains.size === 0) return 'allowlist_empty';
   const parsed = parseMailbox(mailbox);
