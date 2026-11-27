@@ -102,8 +102,11 @@ export function StaffClaimsRow({
         <div>
           <dt>{tClaims('staff_queue.table.status_stage')}</dt>
           <dd className="flex flex-wrap items-center gap-2">
-            <ClaimStatusBadge status={claim.status} />
-            {!claim.status && claim.stageLabel && <span>{claim.stageLabel}</span>}
+            {claim.status ? (
+              <ClaimStatusBadge status={claim.status} />
+            ) : (
+              <span>{claim.stageLabel || unavailable}</span>
+            )}
           </dd>
         </div>
         <div>

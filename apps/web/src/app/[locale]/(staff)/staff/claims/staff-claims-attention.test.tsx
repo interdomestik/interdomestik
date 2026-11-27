@@ -240,19 +240,25 @@ describe('staff claim attention', () => {
     expect(row.getByText(pilotDate, { selector: 'dd' })).toHaveTextContent('28.09.2026');
   });
 
-  it('shows the stage label alongside the badge when status is null', async () => {
-    mocks.getClaims.mockResolvedValueOnce([{ ...queueClaim, status: null, stageLabel: 'Intake' }]);
-    render(
-      await StaffClaimsPage({
-        params: Promise.resolve({ locale: 'en' }),
-        searchParams: Promise.resolve({}),
-      })
-    );
+  it.each([
+    ['Intake', 'Intake'],
+    ['', 'Unavailable'],
+  ])(
+    'shows the stage label (%s) instead of a badge when status is missing',
+    async (stage, text) => {
+      mocks.getClaims.mockResolvedValueOnce([{ ...queueClaim, status: null, stageLabel: stage }]);
+      render(
+        await StaffClaimsPage({
+          params: Promise.resolve({ locale: 'en' }),
+          searchParams: Promise.resolve({}),
+        })
+      );
 
-    const badge = screen.getByTestId('claim-status-badge');
-    expect(badge).toHaveTextContent('Unknown');
-    expect(badge.closest('dd')).toHaveTextContent('Intake');
-  });
+      const row = within(screen.getByTestId('staff-claims-row'));
+      expect(row.queryByTestId('claim-status-badge')).not.toBeInTheDocument();
+      expect(row.getByText(text, { selector: 'dd span' })).toBeVisible();
+    }
+  );
 
   it.each(['en', 'sq', 'mk', 'sr', 'de'])(
     'groups assigned work and saved-date follow-ups in %s',

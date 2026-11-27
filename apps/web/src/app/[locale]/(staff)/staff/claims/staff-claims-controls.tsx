@@ -77,6 +77,18 @@ export function StaffClaimsControls({
     }
   });
 
+  // The input is uncontrolled so a draft survives renders that keep the committed search (a
+  // superseded navigation, an unchanged query). When the committed search itself changes (Clear
+  // search, Clear filters, back/forward), the input follows it.
+  const committedSearchRef = useRef(currentSearch ?? '');
+  useLayoutEffect(() => {
+    const committed = currentSearch ?? '';
+    if (committedSearchRef.current === committed) return;
+    committedSearchRef.current = committed;
+    const input = searchInputRef.current;
+    if (input && input.value.trim() !== committed) input.value = committed;
+  }, [currentSearch]);
+
   const activePendingKind = isNavigationPending ? pendingKind : null;
   const controlsBusy = activePendingKind !== null;
 

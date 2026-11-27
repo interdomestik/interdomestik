@@ -40,6 +40,29 @@ function parseDiasporaFilter(value: SearchParamValue): DiasporaOriginFilter {
   return parseDiasporaOriginFilter(getSingleParam(value));
 }
 
+// The settled announcement names the committed query, so two results of equal size still change it.
+function buildResultsSummary(args: {
+  count: number;
+  filterOptions: ReadonlyArray<{ isActive: boolean; label: string; value: string }>;
+  search?: string;
+  tClaims: (key: string, values?: Record<string, string | number>) => string;
+}) {
+  const { count, filterOptions, search, tClaims } = args;
+  const resultsCount = search
+    ? tClaims('staff_queue.results_count_search', { count, search })
+    : tClaims('staff_queue.results_count', { count });
+  const activeFilterLabels = filterOptions
+    .filter(option => option.isActive && option.value !== 'all')
+    .map(option => option.label);
+  const resultsFilters =
+    activeFilterLabels.length > 0
+      ? tClaims('staff_queue.results_filters', {
+          filters: activeFilterLabels.join(tClaims('staff_queue.results_filter_separator')),
+        })
+      : null;
+  return { resultsCount, resultsFilters };
+}
+
 export default async function StaffClaimsPage({
   params,
   searchParams,
@@ -203,6 +226,13 @@ export default async function StaffClaimsPage({
     },
   ];
 
+  const { resultsCount, resultsFilters } = buildResultsSummary({
+    count: claims.length,
+    filterOptions: [...assignmentFilterOptions, ...statusFilterOptions, ...diasporaFilterOptions],
+    search: currentSearch,
+    tClaims,
+  });
+
   return (
     <div className="min-w-0 space-y-6 [overflow-wrap:anywhere]" data-testid="staff-page-ready">
       <header className="space-y-2">
@@ -215,7 +245,8 @@ export default async function StaffClaimsPage({
         </h1>
         <p className="text-muted-foreground">{tClaims('staff_queue.subtitle')}</p>
         <p className="text-sm font-medium" data-testid="staff-claims-results-count" role="status">
-          {tClaims('staff_queue.results_count', { count: claims.length })}
+          {resultsCount}
+          {resultsFilters && <> {resultsFilters}</>}
         </p>
       </header>
 

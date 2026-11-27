@@ -96,6 +96,10 @@ vi.mock('next-intl/server', () => ({
           ? `${count} ${count === 1 ? 'rast' : 'raste'}`
           : `${count} ${count === 1 ? 'claim' : 'claims'}`;
       }
+      if (key === 'staff_queue.results_count_search') {
+        const count = values?.count ?? 0;
+        return `${count} ${count === 1 ? 'claim' : 'claims'} for “${values?.search ?? ''}”`;
+      }
       const catalogs = { en: enCatalog, mk: mkCatalog, sq: sqCatalog, sr: srCatalog };
       const catalog = catalogs[locale as keyof typeof catalogs];
       const value = key
@@ -108,7 +112,9 @@ vi.mock('next-intl/server', () => ({
           catalog?.['agent-claims'].claims
         );
       return typeof value === 'string'
-        ? value.replace(/\{(name|date)\}/g, (_, field: string) => String(values?.[field] ?? ''))
+        ? value.replace(/\{(name|date|filters)\}/g, (_, field: string) =>
+            String(values?.[field] ?? '')
+          )
         : key;
     }
   ),
@@ -327,5 +333,27 @@ describe('StaffClaimsPage', () => {
     expect(screen.getByTestId('staff-claims-empty')).toHaveTextContent('No claims in queue');
     expect(screen.queryByRole('link', { name: 'Clear filters' })).not.toBeInTheDocument();
     expect(within(screen.getByTestId('staff-claims-search-form')).queryByRole('link')).toBeNull();
+  });
+
+  it('names the committed search and filters, so equal counts still change the settled status', async () => {
+    const statusText = async (searchParams: Record<string, string>) => {
+      const { unmount } = render(
+        await StaffClaimsPage({
+          params: Promise.resolve({ locale: 'en' }),
+          searchParams: Promise.resolve(searchParams),
+        })
+      );
+      const text = screen.getByTestId('staff-claims-results-count').textContent;
+      unmount();
+      return text;
+    };
+
+    const first = await statusText({ search: 'Acme' });
+    const second = await statusText({ search: 'Beta' });
+    const filtered = await statusText({ search: 'Beta', diaspora: 'diaspora' });
+
+    expect(first).toBe('0 claims for “Acme”');
+    expect(second).toBe('0 claims for “Beta”');
+    expect(filtered).toBe('0 claims for “Beta” Filters: Diaspora / Green Card');
   });
 });

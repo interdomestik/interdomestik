@@ -20,6 +20,9 @@
       "staff_queue": {
         "subtitle": "What needs action today.",
         "results_count": "{count, plural, one {# claim} other {# claims}}",
+        "results_count_search": "{count, plural, one {# claim} other {# claims}} for “{search}”",
+        "results_filters": "Filters: {filters}",
+        "results_filter_separator": ", ",
         "search_label": "Search claims",
         "search_placeholder": "Search claim, member, company, or number",
         "search": "Search",

@@ -20,6 +20,9 @@
       "staff_queue": {
         "subtitle": "Was heute bearbeitet werden muss.",
         "results_count": "{count, plural, one {# Fall} other {# Fälle}}",
+        "results_count_search": "{count, plural, one {# Fall} other {# Fälle}} für „{search}“",
+        "results_filters": "Filter: {filters}",
+        "results_filter_separator": ", ",
         "search_label": "Fallsuche",
         "search_placeholder": "Fall, Mitglied, Unternehmen oder Nummer suchen",
         "search": "Suchen",

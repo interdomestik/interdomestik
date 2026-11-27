@@ -38,9 +38,7 @@ export function StaffClaimsQueue({
         {Array.from(groups, ([group, groupClaims]) => {
           const heading = group ? 'h3' : 'h2';
           const list = (
-            <ul className="space-y-3" role="list">
-              {groupClaims.map(claim => renderRow(claim, heading))}
-            </ul>
+            <ul className="space-y-3">{groupClaims.map(claim => renderRow(claim, heading))}</ul>
           );
 
           if (group === null) return <Fragment key="manager">{list}</Fragment>;
