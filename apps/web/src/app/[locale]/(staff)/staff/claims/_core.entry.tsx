@@ -273,6 +273,7 @@ export default async function StaffClaimsPage({
         claims={displayedClaims}
         getGroup={queueGroup}
         hasActiveFilters={hasActiveFilters}
+        locale={locale}
         renderRow={(claim, heading) => (
           <StaffClaimsRow
             key={claim.id}

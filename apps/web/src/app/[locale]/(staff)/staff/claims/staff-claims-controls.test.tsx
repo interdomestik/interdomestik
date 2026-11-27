@@ -10,7 +10,6 @@ import {
   isBusy,
   renderRoutedControls,
   resetNavigationHarness,
-  traverseHistory,
   routerPush as routerPushMock,
   typeSearch,
 } from './staff-claims-controls.fixtures';
@@ -111,17 +110,6 @@ describe('StaffClaimsControls', () => {
     await completeNavigation(
       '/staff/claims?assigned=unassigned&status=verification&diaspora=diaspora'
     );
-
-    expect(input).toHaveValue('');
-  });
-
-  it('follows the committed search when it changes outside the controls', async () => {
-    renderControls();
-    const input = screen.getByTestId('staff-claims-search-input');
-    typeSearch('Acme edited');
-
-    // Clear filters in the empty state and back/forward commit a route without a search.
-    await traverseHistory('/staff/claims');
 
     expect(input).toHaveValue('');
   });

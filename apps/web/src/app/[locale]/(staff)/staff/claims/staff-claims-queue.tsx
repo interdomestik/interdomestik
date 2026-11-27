@@ -1,5 +1,4 @@
 import { OUTLINED_LINK } from '@/components/dashboard/member-portal-link-styles';
-import { Link } from '@/i18n/routing';
 import type { StaffClaimsListItem } from '@interdomestik/domain-claims';
 import { Fragment, type ReactNode } from 'react';
 
@@ -9,6 +8,7 @@ type Props = Readonly<{
   claims: readonly StaffClaimsListItem[];
   getGroup: (claim: StaffClaimsListItem) => QueueGroup;
   hasActiveFilters: boolean;
+  locale: string;
   renderRow: (claim: StaffClaimsListItem, heading: 'h2' | 'h3') => ReactNode;
   tClaims: (key: string) => string;
 }>;
@@ -17,6 +17,7 @@ export function StaffClaimsQueue({
   claims,
   getGroup,
   hasActiveFilters,
+  locale,
   renderRow,
   tClaims,
 }: Props) {
@@ -37,8 +38,11 @@ export function StaffClaimsQueue({
       <div className="space-y-6" data-testid="staff-claims-list">
         {Array.from(groups, ([group, groupClaims]) => {
           const heading = group ? 'h3' : 'h2';
+          // A styled ul without markers loses its list role in WebKit; a div with the role keeps it.
           const list = (
-            <ul className="space-y-3">{groupClaims.map(claim => renderRow(claim, heading))}</ul>
+            <div className="space-y-3" role="list">
+              {groupClaims.map(claim => renderRow(claim, heading))}
+            </div>
           );
 
           if (group === null) return <Fragment key="manager">{list}</Fragment>;
@@ -68,13 +72,10 @@ export function StaffClaimsQueue({
                 : tClaims('staff_queue.empty_default')}
             </p>
             {hasActiveFilters && (
-              <Link
-                className={`${OUTLINED_LINK} scroll-my-24`}
-                href="/staff/claims"
-                prefetch={false}
-              >
+              // A full page load (as the slice 1 region actions do) also resets the search draft.
+              <a className={`${OUTLINED_LINK} scroll-my-24`} href={`/${locale}/staff/claims`}>
                 {tClaims('staff_queue.clear_filters')}
-              </Link>
+              </a>
             )}
           </div>
         )}

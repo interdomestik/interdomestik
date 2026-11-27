@@ -1,5 +1,6 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen, within } from '@testing-library/react';
+import { createTranslator } from 'next-intl';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import enCatalog from '@/messages/en/agent-claims.json';
@@ -96,9 +97,14 @@ vi.mock('next-intl/server', () => ({
           ? `${count} ${count === 1 ? 'rast' : 'raste'}`
           : `${count} ${count === 1 ? 'claim' : 'claims'}`;
       }
-      if (key === 'staff_queue.results_count_search') {
-        const count = values?.count ?? 0;
-        return `${count} ${count === 1 ? 'claim' : 'claims'} for “${values?.search ?? ''}”`;
+      if (key === 'staff_queue.results_count_search' || key === 'staff_queue.results_filters') {
+        // The real catalogue message, so a dropped placeholder fails the test.
+        const translate = createTranslator({
+          locale: 'en',
+          messages: enCatalog,
+          namespace: 'agent-claims.claims',
+        }) as unknown as (key: string, values?: Record<string, unknown>) => string;
+        return translate(key, values);
       }
       const catalogs = { en: enCatalog, mk: mkCatalog, sq: sqCatalog, sr: srCatalog };
       const catalog = catalogs[locale as keyof typeof catalogs];
@@ -112,9 +118,7 @@ vi.mock('next-intl/server', () => ({
           catalog?.['agent-claims'].claims
         );
       return typeof value === 'string'
-        ? value.replace(/\{(name|date|filters)\}/g, (_, field: string) =>
-            String(values?.[field] ?? '')
-          )
+        ? value.replace(/\{(name|date)\}/g, (_, field: string) => String(values?.[field] ?? ''))
         : key;
     }
   ),
@@ -314,7 +318,7 @@ describe('StaffClaimsPage', () => {
     expect(empty.getByText('No claims match the current filters')).toBeVisible();
     expect(empty.getByRole('link', { name: 'Clear filters' })).toHaveAttribute(
       'href',
-      '/staff/claims'
+      '/en/staff/claims'
     );
     expect(form.getAllByRole('link')).toEqual([form.getByRole('link', { name: 'Clear' })]);
   });
