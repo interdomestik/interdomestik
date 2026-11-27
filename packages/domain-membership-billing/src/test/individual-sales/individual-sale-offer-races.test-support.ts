@@ -123,17 +123,14 @@ const transitions = {
     stale: 'stale_rate',
     change: (f: SaleFixture, tx: PaymentPortTestTransaction) => tx`
       insert into exchange_rates (id, tenant_id, book_id, base, quote, rate, effective_on,
-        revision, source, caller_kind) values (${f.bookId + '-next'}, ${f.tenantId}, ${f.bookId},
-        'EUR', 'MKD', 62.00, '2000-01-10', 1, 'nbrm', 'inngest')
+        revision, source, caller_kind, stored_by, corrects_rate_id, correction_reason)
+      select ${f.bookId + '-next'}, tenant_id, book_id, base, quote, 62.00, effective_on,
+        revision + 1, 'nbrm', 'staff', ${f.owner.id}, id, 'Corrected official value'
+      from exchange_rates where tenant_id = ${f.tenantId} and book_id = ${f.bookId}
+        and effective_on = ${f.today}::date and revision = 1
     `,
-    command: (f: SaleFixture) =>
-      f.port
-        .recordExchangeRate(
-          f.owner.authority,
-          { base: 'EUR', quote: 'MKD', rate: '62.00', effectiveOn: '2000-01-10' },
-          f.owner
-        )
-        .then(success),
+    command: (f: SaleFixture, input: SaleInput) =>
+      f.correctRate({ id: input.rateId, effective_on: f.today }, '62.00'),
   },
 };
 

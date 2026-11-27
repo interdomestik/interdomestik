@@ -5,6 +5,7 @@ import test from 'node:test';
 import yaml from 'js-yaml';
 import '../../apps/web/scripts/check-size.test.mjs';
 import './ci-audit-rls-workflow-contracts.mjs';
+import './ci-audit-wp07-release-contracts.mjs';
 const rootDir = path.resolve(new URL('../../', import.meta.url).pathname);
 const TRUSTED_GATE_ACTION =
   'interdomestik/interdomestik/.github/actions/pr-gate-policy@f4b39fc4f7fed7e875363807faea11cc2c4cf717';

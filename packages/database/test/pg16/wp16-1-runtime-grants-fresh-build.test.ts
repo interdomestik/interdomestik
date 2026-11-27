@@ -14,6 +14,7 @@ import {
   migrationsFolder,
   prefix,
   scratchOptions,
+  sponsorGrantsIndex,
   stageJournal,
   withGrantsRole,
   withGrantsScratch,
@@ -58,7 +59,7 @@ test('WP-16.1 release builds and reconciles the PG16 runtime grant journal', asy
               ...options,
               async recordAcl({ phase, target }) {
                 if (phase === 'before-trailing') {
-                  assert.equal(target.ledger.length, journal.length - 1);
+                  assert.equal(target.ledger.length, sponsorGrantsIndex);
                   throw new Error('pre-0111 recording failed');
                 }
               },
@@ -94,8 +95,8 @@ test('WP-16.1 release builds and reconciles the PG16 runtime grant journal', asy
         const [, before, after] = acl;
         assert.equal(before.phase, 'before-trailing');
         assert.equal(after.phase, 'after-trailing');
-        assert.deepEqual(before.target.ledger, finished.ledger.slice(0, -1));
-        assert.deepEqual(after.target.ledger, finished.ledger);
+        assert.deepEqual(before.target.ledger, finished.ledger.slice(0, sponsorGrantsIndex));
+        assert.deepEqual(after.target.ledger, finished.ledger.slice(0, sponsorGrantsIndex + 1));
         await proveForwardAclRollback(client, migrationsFolder, before.acl, after.acl);
       });
     });
@@ -110,7 +111,7 @@ test('WP-16.1 release builds and reconciles the PG16 runtime grant journal', asy
             ...options,
             path: 'forward',
           });
-          assert.deepEqual(finished.ledger.slice(0, -1), acl[0].target.ledger);
+          assert.deepEqual(finished.ledger.slice(0, sponsorGrantsIndex), acl[0].target.ledger);
           assert.deepEqual(checkpoint, []);
           assert.deepEqual(withoutGrantor(acl[1].acl), freshAcl);
           await proveForwardAclRollback(client, migrationsFolder, acl[0].acl, acl[1].acl);

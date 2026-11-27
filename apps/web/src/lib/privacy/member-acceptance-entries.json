@@ -628,6 +628,16 @@
     "evidence": "apps/web/src/actions/membership-billing/individual-sales.ts:37",
     "proof": "2b033b5fdf09"
   },
+  "actions/membership-billing/rate-check.ts#beginRateCheck": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/membership-billing/rate-check.ts:12",
+    "proof": "f38142dbb914"
+  },
+  "actions/membership-billing/rate-check.ts#recordRateCheckInconclusive": {
+    "disposition": "not_member_reachable",
+    "evidence": "apps/web/src/actions/membership-billing/rate-check.ts:28",
+    "proof": "3d0e39477463"
+  },
   "actions/membership-billing/record-exchange-rate.ts#recordExchangeRate": {
     "disposition": "not_member_reachable",
     "evidence": "apps/web/src/actions/membership-billing/record-exchange-rate.ts:10",

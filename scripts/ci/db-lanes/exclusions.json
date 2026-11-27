@@ -702,6 +702,12 @@
     "removeWhen": "The post-pilot Branches work implements and proves the detail reader's branchless-manager denial."
   },
   {
+    "file": "packages/domain-membership-billing/test/exchange-rates-upgrade.test.ts",
+    "reason": "The release-candidate workflow runs this WP-07 legacy upgrade proof through scripts/ci/run-wp07-legacy-upgrade.mjs against a pinned legacy checkout and its own disposable database; the advisory lanes cannot supply that checkout.",
+    "owner": "Billing",
+    "removeWhen": "An advisory lane can provision the pinned legacy checkout and run the WP-07 upgrade proof."
+  },
+  {
     "file": "packages/qa/src/tools/paddle.test.ts",
     "reason": "The QA tool test builds a temporary Git worktree and checks target refusal before access.",
     "owner": "QA Tooling",
