@@ -133,6 +133,8 @@ Design v4, Astra rounds 3–7, and the owner's November 26 authorization govern 
 
 The correspondence API exports `hasUniqueReceivedDocumentIds` so the staff action can reject duplicate IDs before reading the case's upload-pause state. The domain command applies the same check before querying the case.
 
+Replaying an inbound entry with stored received-document links requires current staff and branch access. The command checks that access in the session-bound transaction before comparing the requested and stored document sets.
+
 Staff writes intersect the branch on the staff row with any branch restriction carried by the session. The upload action reads back the approved private object and checks its byte count and digest. Publication in the restricted tenant transaction requires the database receipt.
 
 **Activation preconditions**

@@ -4,14 +4,15 @@ import {
   claimCorrespondence,
   claimCorrespondenceReceivedSeals,
   claimInboundUploadDecisions,
+  claims,
   eq,
   inArray,
+  sql,
   type TenantTransaction,
 } from '@interdomestik/database';
 import { insertClaimReceivedLinks } from '@interdomestik/database/claim-evidence-object-lock';
 import { withPrincipalTenantContext } from '@interdomestik/database/free-start-drafts';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
-import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
 import { z } from 'zod';
 import {
@@ -57,7 +58,18 @@ const inboundDecisionSchema = recordInboundCorrespondenceInputSchema.refine(
   hasUniqueReceivedDocumentIds
 );
 
-async function replayEntry({ actorId, tx, tenantId }: LockedRegister, input: Inbound, row: Entry) {
+async function hasCurrentReceivedReplayScope({ tx, tenantId }: LockedRegister, claimId: string) {
+  const [scope] = await tx
+    .select({
+      allowed: sql<boolean>`public.claim_inbound_staff_branch_allowed(${claims.tenantId}, ${claims.branchId})`,
+    })
+    .from(claims)
+    .where(withTenant(tenantId, claims.tenantId, eq(claims.id, claimId)));
+  return scope?.allowed === true;
+}
+
+async function replayEntry(context: LockedRegister, input: Inbound, row: Entry) {
+  const { actorId, tx, tenantId } = context;
   const conflict = { ok: false, code: 'conflict' } as const;
   if (
     row.direction !== 'inbound' ||
@@ -66,6 +78,9 @@ async function replayEntry({ actorId, tx, tenantId }: LockedRegister, input: Inb
   )
     return conflict;
   const links = await readReceivedDocumentLinks(tx, tenantId, input.claimId, [row.id]);
+  if (links.length > 0 && !(await hasCurrentReceivedReplayScope(context, input.claimId))) {
+    return registerForbidden;
+  }
   const requested = new Set(input.receivedDocumentIds ?? []);
   if (links.length !== requested.size || !links.every(link => requested.has(link.documentId))) {
     return conflict;
@@ -180,19 +195,14 @@ export async function recordInboundCorrespondence(
   if (!access.ok) return access;
   const { tenantId, actor } = access;
   const data = normalizeRegisterInput(access.data);
-  const linksReceivedDocuments = Boolean(data.receivedDocumentIds?.length);
-  if (linksReceivedDocuments && actor.role !== 'staff') return registerForbidden;
+  if (data.receivedDocumentIds?.length && actor.role !== 'staff') return registerForbidden;
   const write = async (tx: TenantTransaction) => {
     if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor))) return registerForbidden;
     return recordInbound({ tx, tenantId, actorId: actor.userId }, data);
   };
-  const writeInTransaction = () =>
-    linksReceivedDocuments
-      ? withPrincipalTenantContext(access.authority, write)
-      : withTenantAuthority(access.authority, write);
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await writeInTransaction();
+      return await withPrincipalTenantContext(access.authority, write);
     } catch (error) {
       if (error instanceof ReceivedCorrelationConflict) {
         if (attempt !== 1) return { ok: false, code: 'conflict' } as const;
