@@ -1,6 +1,7 @@
 import test from 'node:test';
 
 import { END, rejected, uid, type Row } from './sponsor-test-fixture';
+import { freshList } from './wp09-import-actions.fixture';
 import {
   asPrincipal,
   digest,
@@ -16,6 +17,12 @@ type Violation = readonly [Table, Row, string, string];
 test('WP-09 rejects invalid scopes, proof, raw personal data and replay claims', async t => {
   await withWp09Fixture(t, async ({ db, a, b, home, away }) => {
     const exit = home.sponsor_exit_events;
+    const priorPaid = {
+      origin: 'prior_paid_company',
+      evidence_class: 'historical-payment',
+      evidence_ref: ref('payment'),
+      source_paid_through: '2041-01-01',
+    };
 
     const cases: Violation[] = [
       [
@@ -98,6 +105,17 @@ test('WP-09 rejects invalid scopes, proof, raw personal data and replay claims',
       ],
       [
         'membership_import_lists',
+        {
+          upload_key: 'raw-approval',
+          digest: digest('raw-approval'),
+          employer_approved_digest: digest('raw-approval'),
+          employer_approval_ref: 'scan of the signed roster',
+        },
+        '23514',
+        'membership_import_lists_employer_approval_ck',
+      ],
+      [
+        'membership_import_lists',
         { employer_approved_digest: digest('wrong version') },
         '23514',
         'membership_import_lists_employer_approval_ck',
@@ -115,88 +133,61 @@ test('WP-09 rejects invalid scopes, proof, raw personal data and replay claims',
       ],
       [
         'membership_import_rows',
-        {
-          source_row: 2,
-          stable_identity_key: digest('facts'),
-          email_alias_key: null,
-          member_user_id: null,
-          member_verified_at: null,
-          review_facts: '{"name":"Jane Doe","address":"Main Street 1"}',
-        },
+        { email_alias_key: digest('facts'), review_facts: '{"name":"Jane Doe"}' },
         '23514',
         'membership_import_rows_review_ck',
       ],
       [
         'membership_import_rows',
         {
-          source_row: 2,
-          origin: 'prior_paid_company',
-          stable_identity_key: digest('origin'),
-          email_alias_key: null,
-          member_user_id: null,
-          member_verified_at: null,
-          evidence_class: 'historical-payment',
-          evidence_ref: ref('payment'),
-          source_paid_through: '2041-01-01',
+          email_alias_key: digest('pair'),
+          stable_identity_namespace: 'national_id',
+          stable_identity_key: digest('pair'),
         },
+        '23514',
+        'membership_import_rows_identity_ck',
+      ],
+      [
+        'membership_import_rows',
+        { ...priorPaid, email_alias_key: digest('origin') },
         '23503',
         'membership_import_rows_list_origin_fk',
       ],
       [
         'membership_import_rows',
-        {
-          source_row: 2,
-          origin: 'prior_paid_company',
-          stable_identity_key: digest('raw proof'),
-          email_alias_key: null,
-          member_user_id: null,
-          member_verified_at: null,
-          evidence_class: 'historical-payment',
-          evidence_ref: 'receipt of Jane Doe, 40 EUR',
-          source_paid_through: '2041-01-01',
-        },
+        { ...priorPaid, email_alias_key: digest('raw proof'), evidence_ref: 'receipt, Jane Doe' },
         '23514',
         'membership_import_rows_proof_ck',
       ],
       [
         'membership_import_rows',
-        {
-          source_row: 2,
-          stable_identity_namespace: 'other',
-          email_alias_key: null,
-          member_user_id: b.user,
-        },
+        { ...priorPaid, email_alias_key: digest('raw class'), evidence_class: 'Jane Doe' },
+        '23514',
+        'membership_import_rows_proof_ck',
+      ],
+      [
+        'membership_import_rows',
+        { email_alias_key: null, member_user_id: b.user },
         '23503',
         'membership_import_rows_member_fk',
       ],
       [
         'membership_import_rows',
-        { source_row: 2, email_alias_key: null, member_user_id: null, member_verified_at: null },
-        '23505',
-        'membership_import_rows_active_stable_uq',
-      ],
-      [
-        'membership_import_rows',
-        {
-          source_row: 2,
-          stable_identity_key: digest('other'),
-          member_user_id: null,
-          member_verified_at: null,
-        },
+        { member_user_id: null, member_verified_at: null },
         '23505',
         'membership_import_rows_active_alias_uq',
       ],
       [
         'membership_import_rows',
-        { source_row: 2, stable_identity_key: digest('other'), email_alias_key: null },
+        { email_alias_key: digest('other') },
         '23505',
         'membership_import_rows_active_member_uq',
       ],
       [
         'membership_import_rows',
         {
-          stable_identity_key: digest('other'),
-          email_alias_key: null,
+          list_id: home.membership_import_lists.id,
+          email_alias_key: digest('position'),
           member_user_id: null,
           member_verified_at: null,
         },
@@ -270,11 +261,34 @@ test('WP-09 rejects invalid scopes, proof, raw personal data and replay claims',
       await asPrincipal(db, writerOf(a, table), tx =>
         rejected(
           tx,
-          sp => insertRecord(sp, table, { ...home[table], ...patch, id: uid() }),
+          async sp => {
+            // A row case goes to a fresh pending list unless it names the fixture list.
+            const fresh = freshList(home, 5);
+            if (table === 'membership_import_rows' && !('list_id' in patch)) {
+              await insertRecord(sp, 'membership_import_lists', fresh);
+            }
+            const target = table === 'membership_import_rows' ? { list_id: fresh.id } : {};
+            await insertRecord(sp, table, { ...home[table], ...target, ...patch, id: uid() });
+          },
           code,
           name
         )
       );
     }
+    // Only a fulfilled row carries a period reference, so the owner writes this case.
+    await db.begin(tx =>
+      rejected(
+        tx,
+        sp =>
+          insertRecord(sp, 'membership_import_rows', {
+            ...home.membership_import_rows,
+            id: uid(),
+            fulfillment_state: 'fulfilled',
+            period_origin_ref: 'period of Jane Doe',
+          }),
+        '23514',
+        'membership_import_rows_fulfillment_ck'
+      )
+    );
   });
 });

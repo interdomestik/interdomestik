@@ -121,10 +121,19 @@ export async function insertRecord(tx: Tx, table: Table, row: Row): Promise<void
 }
 
 async function insertRecords(db: postgres.Sql, scope: Scope, rows: Records) {
-  // Later tables reference earlier ones, so insert in declaration order, each as its writer.
-  await runSequentially(tables, table =>
-    asPrincipal(db, writerOf(scope, table), tx => insertRecord(tx, table, rows[table]))
-  );
+  const asWriter = (table: Table) =>
+    asPrincipal(db, writerOf(scope, table), tx => insertRecord(tx, table, rows[table]));
+  await asWriter('membership_import_assignments');
+  await asWriter('sponsor_contract_years');
+  // A list commits together with all of its rows, and its seats are reserved at that commit.
+  await asPrincipal(db, staffOf(scope), async tx => {
+    await insertRecord(tx, 'membership_import_lists', rows.membership_import_lists);
+    await insertRecord(tx, 'membership_import_rows', rows.membership_import_rows);
+    await insertRecord(tx, 'sponsor_contract_year_seats', rows.sponsor_contract_year_seats);
+  });
+  await asWriter('sponsor_exit_events');
+  await asWriter('membership_notice_obligations');
+  await asWriter('membership_opt_out_tokens');
   await asPrincipal(db, adminOf(scope), tx =>
     insertRecord(tx, 'membership_import_assignments', delegation(scope))
   );
@@ -143,15 +152,16 @@ async function seedDecider(db: postgres.Sql, scope: Scope) {
   });
 }
 
+/** Effective privileges, including PUBLIC and role membership, on each table and column. */
 function runtimePrivileges(db: postgres.Sql) {
   return db<{ table: string; privilege: string }[]>`
-    select table_name as table, privilege_type as privilege
-    from information_schema.role_table_grants
-    where grantee = ${runtimeRole} and table_schema = 'public' and table_name in ${db(tables)}
-    union
-    select table_name, 'column ' || privilege_type || ' ' || column_name
-    from information_schema.role_column_grants
-    where grantee = ${runtimeRole} and table_schema = 'public' and table_name in ${db(tables)}
+    select c.relname as table, p.privilege
+    from pg_class c
+    cross join unnest(array['SELECT', 'INSERT', 'UPDATE', 'DELETE', 'TRUNCATE', 'REFERENCES', 'TRIGGER']) as p(privilege)
+    where c.oid = any(${tables.map(table => 'public.' + table)}::regclass[])
+      and (has_table_privilege(${runtimeRole}, c.oid, p.privilege)
+        or (p.privilege in ('SELECT', 'INSERT', 'UPDATE', 'REFERENCES')
+          and has_any_column_privilege(${runtimeRole}, c.oid, p.privilege)))
     order by 1, 2`;
 }
 

@@ -158,12 +158,24 @@ export const membershipImportLists = pgTable(
           and ${table.decidedAt} >= ${table.verifiedAt} and ${table.decidedDigest} = ${table.digest}
           and ${table.decidedBy} <> ${table.submittedBy} and ${table.decidedBy} <> ${table.verifiedBy})`
     ),
+    // Staff see lists of their current import assignment; an admin sees only the lists of a
+    // current decision delegation for the exact entity and target.
     pgPolicy('membership_import_lists_select', {
       for: 'select',
       using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
         and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
-        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'
+        and (((select current_setting('app.current_actor_role', true)) = 'tenant_admin' and exists (
+            select 1 from public.membership_import_assignments as assignment
+            where assignment.tenant_id = ${table.tenantId}
+              and assignment.legal_entity_id = ${table.legalEntityId}
+              and assignment.capacity = 'decision'
+              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
+              and (assignment.source_key = ${table.sourceKey} or assignment.sponsor_id = ${table.sponsorId})
+              and assignment.revoked_at is null
+              and assignment.valid_from <= statement_timestamp()
+              and assignment.valid_until > statement_timestamp()
+          ))
           or ((select current_setting('app.current_actor_role', true)) = 'staff' and exists (
             select 1 from public.membership_import_assignments as assignment
             where assignment.tenant_id = ${table.tenantId}
@@ -199,7 +211,7 @@ export const membershipImportLists = pgTable(
           )`,
     }),
     // A decision needs a current delegation for the exact entity and target, and a decider
-    // other than the submitter and verifier. The decision trigger checks completeness.
+    // other than the submitter and verifier. Every list is complete from its own commit.
     pgPolicy('membership_import_lists_decide', {
       for: 'update',
       using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))

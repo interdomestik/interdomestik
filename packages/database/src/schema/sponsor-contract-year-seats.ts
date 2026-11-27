@@ -52,16 +52,36 @@ export const sponsorContractYearSeats = pgTable(
             and import_row.id = ${table.importRowId}
         )`,
     }),
+    // Assigned staff reserve a seat for a row of their own pending list.
     pgPolicy('sponsor_contract_year_seats_reserve', {
       for: 'insert',
       withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
         and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'staff'
         and exists (
           select 1 from public.membership_import_rows as import_row
+          join public.membership_import_lists as import_list
+            on import_list.tenant_id = import_row.tenant_id
+            and import_list.legal_entity_id = import_row.legal_entity_id
+            and import_list.id = import_row.list_id
           where import_row.tenant_id = ${table.tenantId}
             and import_row.legal_entity_id = ${table.legalEntityId}
             and import_row.id = ${table.importRowId}
+            and import_list.decision is null
+            and import_list.submitted_by = (select current_setting('app.current_actor_id', true))
+            and exists (
+              select 1 from public.membership_import_assignments as assignment
+              where assignment.tenant_id = import_list.tenant_id
+                and assignment.legal_entity_id = import_list.legal_entity_id
+                and assignment.capacity = 'import'
+                and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
+                and (assignment.source_key = import_list.source_key
+                  or assignment.sponsor_id = import_list.sponsor_id)
+                and assignment.revoked_at is null
+                and assignment.valid_from <= statement_timestamp()
+                and assignment.valid_until > statement_timestamp()
+            )
         )`,
     }),
   ]

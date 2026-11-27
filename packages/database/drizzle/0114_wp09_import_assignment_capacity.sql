@@ -152,9 +152,7 @@ CREATE TABLE "membership_import_rows" (
         or ("membership_import_rows"."origin" in ('prior_paid_company', 'new_company') and "membership_import_rows"."contract_year_id" is not null)),
 	CONSTRAINT "membership_import_rows_review_ck" CHECK ("membership_import_rows"."source_row" > 0 and "membership_import_rows"."review_facts" = '{}'::jsonb),
 	CONSTRAINT "membership_import_rows_identity_ck" CHECK (num_nonnulls("membership_import_rows"."stable_identity_key", "membership_import_rows"."email_alias_key", "membership_import_rows"."member_user_id") >= 1
-        and ("membership_import_rows"."stable_identity_key" is null) = ("membership_import_rows"."stable_identity_namespace" is null)
-        and ("membership_import_rows"."stable_identity_key" is null or
-          ("membership_import_rows"."stable_identity_namespace" ~ '[^[:space:]]' and "membership_import_rows"."stable_identity_key" ~ '^[0-9a-f]{64}$'))
+        and "membership_import_rows"."stable_identity_key" is null and "membership_import_rows"."stable_identity_namespace" is null
         and ("membership_import_rows"."email_alias_key" is null or "membership_import_rows"."email_alias_key" ~ '^[0-9a-f]{64}$')
         and ("membership_import_rows"."member_user_id" is null) = ("membership_import_rows"."member_verified_at" is null)
         and ("membership_import_rows"."member_verified_at" is null or isfinite("membership_import_rows"."member_verified_at"))),
@@ -340,7 +338,17 @@ CREATE POLICY "sponsor_contract_years_limit_update" ON "sponsor_contract_years" 
 CREATE POLICY "membership_import_lists_select" ON "membership_import_lists" AS PERMISSIVE FOR SELECT TO public USING ("membership_import_lists"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
         and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
-        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'
+        and (((select current_setting('app.current_actor_role', true)) = 'tenant_admin' and exists (
+            select 1 from public.membership_import_assignments as assignment
+            where assignment.tenant_id = "membership_import_lists"."tenant_id"
+              and assignment.legal_entity_id = "membership_import_lists"."legal_entity_id"
+              and assignment.capacity = 'decision'
+              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
+              and (assignment.source_key = "membership_import_lists"."source_key" or assignment.sponsor_id = "membership_import_lists"."sponsor_id")
+              and assignment.revoked_at is null
+              and assignment.valid_from <= statement_timestamp()
+              and assignment.valid_until > statement_timestamp()
+          ))
           or ((select current_setting('app.current_actor_role', true)) = 'staff' and exists (
             select 1 from public.membership_import_assignments as assignment
             where assignment.tenant_id = "membership_import_lists"."tenant_id"
@@ -413,7 +421,20 @@ CREATE POLICY "membership_import_rows_insert" ON "membership_import_rows" AS PER
             and import_list.decision is null
             and import_list.submitted_by = (select current_setting('app.current_actor_id', true))
             and "membership_import_rows"."source_row" <= import_list.row_count
-        ));--> statement-breakpoint
+            and exists (
+              select 1 from public.membership_import_assignments as assignment
+              where assignment.tenant_id = import_list.tenant_id
+                and assignment.legal_entity_id = import_list.legal_entity_id
+                and assignment.capacity = 'import'
+                and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
+                and (assignment.source_key = import_list.source_key
+                  or assignment.sponsor_id = import_list.sponsor_id)
+                and assignment.revoked_at is null
+                and assignment.valid_from <= statement_timestamp()
+                and assignment.valid_until > statement_timestamp()
+            )
+        )
+        and (select current_setting('app.current_actor_role', true)) = 'staff');--> statement-breakpoint
 CREATE POLICY "sponsor_contract_year_seats_select" ON "sponsor_contract_year_seats" AS PERMISSIVE FOR SELECT TO public USING ("sponsor_contract_year_seats"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
         and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and exists (
@@ -425,11 +446,30 @@ CREATE POLICY "sponsor_contract_year_seats_select" ON "sponsor_contract_year_sea
 CREATE POLICY "sponsor_contract_year_seats_reserve" ON "sponsor_contract_year_seats" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("sponsor_contract_year_seats"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
         and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'staff'
         and exists (
           select 1 from public.membership_import_rows as import_row
+          join public.membership_import_lists as import_list
+            on import_list.tenant_id = import_row.tenant_id
+            and import_list.legal_entity_id = import_row.legal_entity_id
+            and import_list.id = import_row.list_id
           where import_row.tenant_id = "sponsor_contract_year_seats"."tenant_id"
             and import_row.legal_entity_id = "sponsor_contract_year_seats"."legal_entity_id"
             and import_row.id = "sponsor_contract_year_seats"."import_row_id"
+            and import_list.decision is null
+            and import_list.submitted_by = (select current_setting('app.current_actor_id', true))
+            and exists (
+              select 1 from public.membership_import_assignments as assignment
+              where assignment.tenant_id = import_list.tenant_id
+                and assignment.legal_entity_id = import_list.legal_entity_id
+                and assignment.capacity = 'import'
+                and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
+                and (assignment.source_key = import_list.source_key
+                  or assignment.sponsor_id = import_list.sponsor_id)
+                and assignment.revoked_at is null
+                and assignment.valid_from <= statement_timestamp()
+                and assignment.valid_until > statement_timestamp()
+            )
         ));--> statement-breakpoint
 CREATE POLICY "sponsor_exit_events_select" ON "sponsor_exit_events" AS PERMISSIVE FOR SELECT TO public USING ("sponsor_exit_events"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
         and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
@@ -554,44 +594,69 @@ CREATE UNIQUE INDEX membership_notice_obligations_individual_uq
   ON public.membership_notice_obligations (tenant_id, import_row_id)
   WHERE purpose = 'individual_notice';
 --> statement-breakpoint
--- A decision changes only the decision columns, and approval needs the complete list. Row
--- positions are unique and bounded by row_count, so an approved list can take no further row.
-CREATE FUNCTION public.membership_import_list_decision_guard()
+-- An update changes only the columns its trigger admits: the decision columns of a list,
+-- the revocation of an assignment and the current limit of a contract year. This holds for
+-- every writer, whatever table privileges a role is given.
+CREATE FUNCTION public.wp09_update_scope_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = pg_catalog
+AS $$
+BEGIN
+  IF (to_jsonb(NEW) - TG_ARGV) IS DISTINCT FROM (to_jsonb(OLD) - TG_ARGV) THEN
+    RAISE check_violation USING
+      MESSAGE = format('WP-09: an update of %s changes only its admitted columns', TG_TABLE_NAME),
+      CONSTRAINT = TG_TABLE_NAME || '_update_scope';
+  END IF;
+  RETURN NEW;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER membership_import_lists_update_scope
+  BEFORE UPDATE ON public.membership_import_lists
+  FOR EACH ROW EXECUTE FUNCTION public.wp09_update_scope_guard('decision', 'decided_by', 'decided_at', 'decided_digest');
+--> statement-breakpoint
+CREATE TRIGGER membership_import_assignments_update_scope
+  BEFORE UPDATE ON public.membership_import_assignments
+  FOR EACH ROW EXECUTE FUNCTION public.wp09_update_scope_guard('revoked_at', 'revoked_by');
+--> statement-breakpoint
+CREATE TRIGGER sponsor_contract_years_update_scope
+  BEFORE UPDATE ON public.sponsor_contract_years
+  FOR EACH ROW EXECUTE FUNCTION public.wp09_update_scope_guard('current_limit');
+--> statement-breakpoint
+-- A list commits with all of its rows. Positions are unique and bounded by row_count, so a
+-- committed list admits no further row, and a decision never races a row insert.
+CREATE FUNCTION public.membership_import_list_complete_guard()
 RETURNS trigger
 LANGUAGE plpgsql
 SECURITY INVOKER
 SET search_path = pg_catalog
 AS $$
 DECLARE
-  decision_columns constant text[] := ARRAY['decision', 'decided_by', 'decided_at', 'decided_digest'];
   present integer;
 BEGIN
-  IF (to_jsonb(NEW) - decision_columns) IS DISTINCT FROM (to_jsonb(OLD) - decision_columns) THEN
+  SELECT count(*) INTO present
+  FROM public.membership_import_rows AS import_row
+  WHERE import_row.tenant_id = NEW.tenant_id
+    AND import_row.legal_entity_id = NEW.legal_entity_id
+    AND import_row.list_id = NEW.id;
+  IF present <> NEW.row_count THEN
     RAISE check_violation USING
-      MESSAGE = 'WP-09: a list decision changes only the decision columns',
-      CONSTRAINT = 'membership_import_lists_decision_scope';
+      MESSAGE = 'WP-09: a list commits with all of its rows',
+      CONSTRAINT = 'membership_import_lists_complete';
   END IF;
-  IF NEW.decision = 'approved' THEN
-    SELECT count(*) INTO present
-    FROM public.membership_import_rows AS import_row
-    WHERE import_row.tenant_id = NEW.tenant_id
-      AND import_row.legal_entity_id = NEW.legal_entity_id
-      AND import_row.list_id = NEW.id;
-    IF present <> NEW.row_count THEN
-      RAISE check_violation USING
-        MESSAGE = 'WP-09: only a complete list can be approved',
-        CONSTRAINT = 'membership_import_lists_complete';
-    END IF;
-  END IF;
-  RETURN NEW;
+  RETURN NULL;
 END;
 $$;
 --> statement-breakpoint
-CREATE TRIGGER membership_import_lists_decision_guard
-  BEFORE UPDATE ON public.membership_import_lists
-  FOR EACH ROW EXECUTE FUNCTION public.membership_import_list_decision_guard();
+CREATE CONSTRAINT TRIGGER membership_import_lists_complete
+  AFTER INSERT ON public.membership_import_lists
+  DEFERRABLE INITIALLY DEFERRED
+  FOR EACH ROW EXECUTE FUNCTION public.membership_import_list_complete_guard();
 --> statement-breakpoint
-REVOKE ALL ON FUNCTION public.membership_import_list_decision_guard() FROM PUBLIC;
+REVOKE ALL ON FUNCTION public.wp09_update_scope_guard(), public.membership_import_list_complete_guard()
+  FROM PUBLIC;
 --> statement-breakpoint
 -- Dormant: no runtime call path reads or writes these tables yet, so no role receives any
 -- privilege here (the B1 derivation rule). The writer PR adds its exact grants through the

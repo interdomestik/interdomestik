@@ -7,12 +7,14 @@ import { visibleIds } from './wp09-import-actions.fixture';
 import {
   adminOf,
   asPrincipal,
+  deciderOf,
   digest,
   insertRecord,
   staffOf,
   tables,
   withWp09Fixture,
   writerOf,
+  type Table,
 } from './wp09-import.fixture';
 
 test('WP-09 is dormant: the migration grants the runtime role nothing on the eight tables', async t => {
@@ -44,22 +46,22 @@ test('WP-09 forces RLS and scopes every new table to the admitted tenant and rol
             forced: true,
             active: true,
           });
-          const ids = (await visibleIds(tx, table)).map(row => row.id);
-          assert.ok(ids.includes(home[table].id));
-          assert.ok(!ids.includes(away[table].id));
           await rejected(tx, sp => sp`update ${sp(table)} set id = id`, '42501');
           await rejected(tx, sp => sp`delete from ${sp(table)}`, '42501');
           await rejected(tx, sp => sp`truncate table ${sp(table)}`, '42501');
         });
         // Tenant denial with the writer's own actor and row: only the tenant column differs.
-        await asPrincipal(db, writer, async tx => {
+        await asPrincipal(db, { ...writer, home: b.tenant }, async tx => {
+          const ids = (await visibleIds(tx, table)).map(row => row.id);
+          assert.ok(ids.includes(home[table].id));
+          assert.ok(!ids.includes(away[table].id));
           await rejected(
             tx,
             sp => insertRecord(sp, table, { ...home[table], id: uid(), tenant_id: b.tenant }),
             '42501'
           );
         });
-        await asPrincipal(db, { ...adminOf(b), home: a.tenant }, async tx => {
+        await asPrincipal(db, { ...writerOf(b, table), home: a.tenant }, async tx => {
           const ids = (await visibleIds(tx, table)).map(row => row.id);
           assert.ok(ids.includes(away[table].id));
           assert.ok(!ids.includes(home[table].id));
@@ -137,5 +139,38 @@ test('WP-09 actor columns bind the session actor, not another same-tenant user',
         '42501'
       );
     });
+  });
+});
+
+test('WP-09 policies and update triggers hold even under table-wide DML grants', async t => {
+  await withWp09Fixture(t, async ({ db, a, home }) => {
+    // As if a provisioner granted every table privilege (the pre-B1 E2E blanket grant).
+    await db.unsafe(`grant update, delete on table ${tables.map(table => 'public.' + table).join(', ')}
+      to ${runtimeRole}`);
+    const admitted: Partial<Record<Table, [Record<string, unknown>, string]>> = {
+      membership_import_lists: [{ row_count: 2 }, 'membership_import_lists_update_scope'],
+      membership_import_assignments: [
+        { evidence_ref: 'assignment:' + 'a'.repeat(64) },
+        'membership_import_assignments_update_scope',
+      ],
+      sponsor_contract_years: [{ signed_ceiling: 499 }, 'sponsor_contract_years_update_scope'],
+    };
+    for (const table of tables) {
+      const principal = table === 'membership_import_lists' ? deciderOf(a) : writerOf(a, table);
+      await asPrincipal(db, principal, async tx => {
+        assert.equal((await tx`delete from ${tx(table)}`).count, 0, table);
+        const scoped = admitted[table];
+        if (scoped) {
+          const [patch, name] = scoped;
+          await rejected(tx, sp => sp`update ${sp(table)} set ${sp(patch)}`, '23514', name);
+        } else {
+          assert.equal((await tx`update ${tx(table)} set id = id`).count, 0, table);
+        }
+        assert.ok(
+          (await visibleIds(tx, table)).some(row => row.id === home[table].id),
+          table
+        );
+      });
+    }
   });
 });

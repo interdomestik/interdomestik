@@ -1,14 +1,8 @@
 import type postgres from 'postgres';
 
-import { END, START, insert, uid, type Scope, type Tx } from './sponsor-test-fixture';
-import {
-  asPrincipal,
-  digest,
-  insertRecord,
-  staffOf,
-  type Records,
-  type Table,
-} from './wp09-import.fixture';
+import { runSequentially } from './in-order';
+import { END, START, insert, uid, type Tx } from './sponsor-test-fixture';
+import { digest, insertRecord, type Records, type Table } from './wp09-import.fixture';
 
 export function visibleIds(tx: Tx, table: Table) {
   return tx<{ id: string }[]>`select id from ${tx(table)} order by id`;
@@ -29,26 +23,44 @@ export function decide(
   `;
 }
 
-/** A further row of the fixture list, at the given position, with its own identity. */
-export function listRow(home: Records, sourceRow: number) {
+/** A row of the fixture's list shape, at the given position, with its own identity. */
+export function listRow(
+  home: Records,
+  sourceRow: number,
+  listId = home.membership_import_lists.id
+) {
   const id = uid();
   return {
     ...home.membership_import_rows,
     id,
+    list_id: listId,
     source_row: sourceRow,
-    stable_identity_key: digest(id),
-    email_alias_key: null,
+    email_alias_key: digest(id),
     member_user_id: null,
     member_verified_at: null,
   };
 }
 
-/** Fills positions 2 and 3, so the fixture list holds all of its three rows. */
-export function completeList(db: postgres.Sql, a: Scope, home: Records) {
-  return asPrincipal(db, staffOf(a), async tx => {
-    await insertRecord(tx, 'membership_import_rows', listRow(home, 2));
-    await insertRecord(tx, 'membership_import_rows', listRow(home, 3));
-  });
+/** A new pending list of the fixture's shape, with its own upload identity and digest. */
+export function freshList(home: Records, rowCount: number) {
+  const id = uid();
+  return {
+    ...home.membership_import_lists,
+    id,
+    upload_key: id,
+    row_count: rowCount,
+    digest: digest(id),
+    employer_approved_digest: digest(id),
+  };
+}
+
+/** Inserts a complete new list with its rows on the caller's transaction (assigned staff). */
+export async function insertCompleteList(tx: Tx, home: Records, rowCount: number) {
+  const list = freshList(home, rowCount);
+  await insertRecord(tx, 'membership_import_lists', list);
+  const rows = Array.from({ length: rowCount }, (_, index) => listRow(home, index + 1, list.id));
+  await runSequentially(rows, row => insertRecord(tx, 'membership_import_rows', row));
+  return { list, rows };
 }
 
 export async function insertUser(db: postgres.Sql, tenantId: string): Promise<string> {

@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { rejected, rollback, uid } from './sponsor-test-fixture';
-import { listRow, visibleIds } from './wp09-import-actions.fixture';
+import { insertCompleteList, listRow, visibleIds } from './wp09-import-actions.fixture';
 import {
   adminOf,
   asPrincipal,
@@ -119,6 +119,14 @@ test('WP-09 staff access follows an active named assignment before import rows a
     });
     await asPrincipal(db, staff, async tx => {
       for (const table of readable.slice(1)) {
+        assert.equal((await visibleIds(tx, table)).length, 0, table);
+      }
+      // A revoked submitter can submit nothing further.
+      await rejected(tx, sp => insertCompleteList(sp, home, 1), '42501');
+    });
+    // An admin without a decision delegation sees no list, row or seat.
+    await asPrincipal(db, adminOf(a), async tx => {
+      for (const table of readable.slice(2)) {
         assert.equal((await visibleIds(tx, table)).length, 0, table);
       }
     });

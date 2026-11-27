@@ -11,6 +11,7 @@ import {
   staffOf,
   withWp09Fixture,
 } from './wp09-import.fixture';
+import { insertCompleteList } from './wp09-import-actions.fixture';
 
 test('WP-09 binds replay sets, prior-paid evidence, seats, exit notices and token hashes', async t => {
   await withWp09Fixture(t, async ({ db, a, b, home, away }) => {
@@ -65,8 +66,7 @@ test('WP-09 binds replay sets, prior-paid evidence, seats, exit notices and toke
         id: priorEntryId,
         list_id: prior.id,
         origin: prior.origin,
-        stable_identity_key: digest('prior identity'),
-        email_alias_key: null,
+        email_alias_key: digest('prior identity'),
         member_user_id: null,
         member_verified_at: null,
       };
@@ -90,6 +90,14 @@ test('WP-09 binds replay sets, prior-paid evidence, seats, exit notices and toke
       );
       await insertRecord(tx, 'membership_import_rows', {
         ...paid,
+        source_paid_through: '2041-01-01',
+      });
+      // Each list of the ordered set commits with its own row.
+      await insertRecord(tx, 'membership_import_rows', {
+        ...paid,
+        id: uid(),
+        list_id: second.id,
+        email_alias_key: digest('second identity'),
         source_paid_through: '2041-01-01',
       });
       await rejected(
@@ -176,21 +184,20 @@ test('WP-09 binds replay sets, prior-paid evidence, seats, exit notices and toke
       const foreign = await tx`update sponsor_contract_years set current_limit = 500
         where id = ${away.sponsor_contract_years.id} returning id`;
       assert.equal(foreign.length, 0);
-      await proveLimitChanges(tx, year.id, seat.id);
+      await proveLimitChanges(tx, year.id);
+    });
+    // The limit change cascaded to the occupied seat, which keeps its slot.
+    await asPrincipal(db, staffOf(a), async tx => {
+      const [kept] = await tx`select slot, year_current_limit
+        from sponsor_contract_year_seats where id = ${seat.id}`;
+      assert.deepEqual(kept, { slot: 2, year_current_limit: 500 });
     });
 
-    const awayRowId = uid();
     const awaySeatId = uid();
+    let awayRowId = '';
     await asPrincipal(db, staffOf(b), async tx => {
-      await insertRecord(tx, 'membership_import_rows', {
-        ...away.membership_import_rows,
-        id: awayRowId,
-        source_row: 2,
-        stable_identity_key: digest(awayRowId),
-        email_alias_key: null,
-        member_user_id: null,
-        member_verified_at: null,
-      });
+      const { rows } = await insertCompleteList(tx, away, 1);
+      awayRowId = rows[0].id;
       await insertRecord(tx, 'sponsor_contract_year_seats', {
         ...away.sponsor_contract_year_seats,
         id: awaySeatId,
@@ -223,14 +230,11 @@ test('WP-09 binds replay sets, prior-paid evidence, seats, exit notices and toke
   });
 });
 
-async function proveLimitChanges(tx: Tx, yearId: string, seatId: string) {
+async function proveLimitChanges(tx: Tx, yearId: string) {
   const change = (scope: Tx, limit: number) => scope`update sponsor_contract_years
     set current_limit = ${limit} where id = ${yearId} returning current_limit`;
   await rejected(tx, sp => change(sp, 1), '23514', 'sponsor_contract_year_seats_slot_ck');
   const [before] = await tx`select current_limit from sponsor_contract_years where id = ${yearId}`;
   assert.equal(before.current_limit, 2);
   assert.deepEqual([...(await change(tx, 500))], [{ current_limit: 500 }]);
-  const [seat] =
-    await tx`select slot, year_current_limit from sponsor_contract_year_seats where id = ${seatId}`;
-  assert.deepEqual(seat, { slot: 2, year_current_limit: 500 });
 }

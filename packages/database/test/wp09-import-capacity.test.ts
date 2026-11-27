@@ -3,10 +3,10 @@ import test from 'node:test';
 import postgres from 'postgres';
 
 import { insert, rejected, row, START, uid } from './sponsor-test-fixture';
+import { insertCompleteList } from './wp09-import-actions.fixture';
 import {
   adminOf,
   asPrincipal,
-  digest,
   insertRecord,
   staffOf,
   withWp09Fixture,
@@ -42,19 +42,10 @@ test('WP-09 years for the same signed agreement exclude overlap and allow adjace
 
 test('WP-09 concurrent reservations contend for the last annual slot', async t => {
   await withWp09Fixture(t, async ({ db, a, home }) => {
-    const contenders = [uid(), uid()];
-    await asPrincipal(db, staffOf(a), async tx => {
-      for (const [index, id] of contenders.entries()) {
-        await insertRecord(tx, 'membership_import_rows', {
-          ...home.membership_import_rows,
-          id,
-          source_row: index + 2,
-          stable_identity_key: digest(id),
-          email_alias_key: null,
-          member_user_id: null,
-          member_verified_at: null,
-        });
-      }
+    // Two rows of one new pending list contend for the year's one remaining slot.
+    const contenders = await asPrincipal(db, staffOf(a), async tx => {
+      const { rows } = await insertCompleteList(tx, home, 2);
+      return rows.map(entry => entry.id);
     });
 
     let ready = 0;
@@ -86,7 +77,7 @@ test('WP-09 concurrent reservations contend for the last annual slot', async t =
     assert.ok(error instanceof postgres.PostgresError);
     assert.equal(error.code, '23505');
     assert.equal(error.constraint_name, 'sponsor_contract_year_seats_slot_uq');
-    await asPrincipal(db, adminOf(a), async tx => {
+    await asPrincipal(db, staffOf(a), async tx => {
       const occupied = await tx`select slot from sponsor_contract_year_seats order by slot`;
       assert.deepEqual([...occupied], [{ slot: 1 }, { slot: 2 }]);
     });
