@@ -35,17 +35,17 @@ export default async function MembershipPage({ params }: { params: Promise<{ loc
       : null;
 
   return (
-    <div data-testid="membership-page-ready">
-      <div className="space-y-6">
-        <CoverageMatrix
-          {...buildCoverageMatrixProps(coverageMatrix, 'membership-coverage-matrix')}
-        />
-        <MembershipOpsPage
-          subscriptions={subscriptions}
-          documents={documents}
-          leaveEntryId={leaveEntryId}
-        />
-      </div>
+    <div data-testid="membership-page-ready" className="min-w-0 p-4 sm:p-6 md:p-0">
+      <MembershipOpsPage
+        subscriptions={subscriptions}
+        documents={documents}
+        leaveEntryId={leaveEntryId}
+        coverage={
+          <CoverageMatrix
+            {...buildCoverageMatrixProps(coverageMatrix, 'membership-coverage-matrix')}
+          />
+        }
+      />
     </div>
   );
 }

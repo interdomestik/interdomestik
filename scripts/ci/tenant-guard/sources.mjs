@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { createModuleGraph } from './modules.mjs';
 import { resolutionConfig, resolverInput, workspaceDirs } from './resolution.mjs';
+import { MIGRATION_JOURNAL, RECEIPT_SQL } from './storage-receipt-prerequisite.mjs';
 
 const GIT = '/usr/bin/git';
 
@@ -174,7 +175,11 @@ export function readSchemaTree(repoRoot, ref, role) {
   const blobs = gitBlobs(
     repoRoot,
     files,
-    file => isSource(file) || (!GENERATED.test(file) && resolverInput(file)),
+    file =>
+      file === RECEIPT_SQL ||
+      file === MIGRATION_JOURNAL ||
+      isSource(file) ||
+      (!GENERATED.test(file) && resolverInput(file)),
     role
   );
   return schemaTreeFromBlobs(blobs, files);

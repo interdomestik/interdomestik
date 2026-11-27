@@ -1,0 +1,26 @@
+export async function lockRateCheckScope(
+  tx: TenantTransaction,
+  { tenantId, userId }: SalePrincipal,
+  entityId: string
+): Promise<({ ok: true } & CheckScope) | CheckRefusal> {
+  const [{ isolation }] = await tx.execute<{ isolation: string }>(
+    sql`select current_setting('transaction_isolation') as isolation`
+  );
+  if (isolation !== 'read committed') return { ok: false, code: 'invalid' };
+
+  const [book] = await tx
+    .select({ id: exchangeRateBooks.id })
+    .from(exchangeRateBooks)
+    .where(
+      withTenant(
+        tenantId,
+        exchangeRateBooks.tenantId,
+        and(eq(exchangeRateBooks.base, 'EUR'), eq(exchangeRateBooks.quote, 'MKD'))
+      )
+    )
+    .for('update');
+  if (!book) return { ok: false, code: 'not_found' };
+  const entity = await lockLegalEntity(tx, tenantId, entityId);
+  if (!entity?.isActive) return { ok: false, code: 'not_found' };
+  return { ok: true, tenantId, userId, bookId: book.id, legalEntityId: entity.id };
+}

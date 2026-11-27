@@ -4,7 +4,7 @@ import { membershipStatusKey } from '@/lib/utils/membership-status';
 
 import { LeaveCompanyProgramme } from './leave-company-programme';
 
-import { OpsActionBar, OpsDocumentsPanel, OpsStatusBadge, OpsTimeline } from '@/components/ops';
+import { OpsDocumentsPanel, OpsStatusBadge, OpsTimeline } from '@/components/ops';
 import {
   DbDocument,
   getMembershipActions,
@@ -16,7 +16,6 @@ import {
 } from '@/components/ops/adapters/membership';
 import { useRouter } from '@/i18n/routing';
 import { formatPilotDateTime } from '@/lib/utils/date';
-import { Card, CardContent, CardHeader, CardTitle } from '@interdomestik/ui';
 import { useLocale, useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
 import { cancelSubscription, getPaymentUpdateUrl } from '@/actions/subscription.core';
@@ -24,7 +23,9 @@ import { buildCancellationFeedbackMessage } from '@/features/member/membership/c
 import { toast } from 'sonner';
 import { SubscriptionRecord } from '@/app/[locale]/(app)/member/membership/_core';
 import { MembershipEntityDisclosureNotice } from './MembershipEntityDisclosureNotice';
+import { MembershipActions } from './membership-actions';
 import { MembershipPeriodGraceFacts } from './membership-period-grace-facts';
+import { MEMBERSHIP_REGION } from './membership-region-styles';
 
 type TranslationFn = (key: string, values?: Record<string, string | number>) => string;
 
@@ -76,6 +77,8 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
   const isPaymentUpdatePendingRef = useRef(false);
   const [isPaymentUpdatePending, setIsPaymentUpdatePending] = useState(false);
   const [paymentUpdateStatus, setPaymentUpdateStatus] = useState<string | null>(null);
+  const isCancelPendingRef = useRef(false);
+  const [isCancelPending, setIsCancelPending] = useState(false);
 
   useEffect(() => {
     isMountedRef.current = true;
@@ -129,9 +132,56 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
     }
   };
 
+  const showActionError = (error: unknown) => {
+    if (!isMountedRef.current) return;
+    cancellationKeyRef.current = null;
+    console.error(error);
+    toast.error(t('errors.action_failed'));
+  };
+
+  // Cancellation, extracted from handleAction. Its body sits directly in this try, so a throw before the
+  // first await (key creation) is caught in the same call stack as before, while the view is mounted.
+  const handleCancel = async () => {
+    try {
+      if (!confirm(t('actions.confirm_cancel'))) return;
+
+      if (isCancelPendingRef.current) return;
+      isCancelPendingRef.current = true;
+      setIsCancelPending(true);
+      let result: Awaited<ReturnType<typeof cancelSubscription>>;
+      try {
+        // Key creation sits inside the pending scope: if it throws, the button is restored too.
+        const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
+        cancellationKeyRef.current = idempotencyKey;
+        result = await cancelSubscription(subscription.id, idempotencyKey);
+      } finally {
+        isCancelPendingRef.current = false;
+        if (isMountedRef.current) setIsCancelPending(false);
+      }
+      if (result.error || !result.success) {
+        cancellationKeyRef.current = null;
+        toast.error(
+          'code' in result && result.code === 'CLOSED' ? t('CLOSED') : t('errors.action_failed')
+        );
+        return;
+      }
+
+      cancellationKeyRef.current = null;
+      toast.success(buildCancellationFeedbackMessage(t, result.cancellationTerms, locale));
+    } catch (error) {
+      showActionError(error);
+    }
+  };
+
   const handleAction = async (id: string) => {
     if (isPaymentUpdateAction(id)) {
       await handlePaymentUpdate();
+      return;
+    }
+    // Cancellation has its own single error handler; keeping it outside the try below means an error
+    // is never handled twice.
+    if (id === 'cancel') {
+      await handleCancel();
       return;
     }
     try {
@@ -140,91 +190,86 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
         return;
       }
 
-      if (id === 'cancel') {
-        if (!confirm(t('actions.confirm_cancel'))) return;
-
-        const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
-        cancellationKeyRef.current = idempotencyKey;
-        const result = await cancelSubscription(subscription.id, idempotencyKey);
-        if (result.error || !result.success) {
-          cancellationKeyRef.current = null;
-          toast.error(
-            'code' in result && result.code === 'CLOSED' ? t('CLOSED') : t('errors.action_failed')
-          );
-          return;
-        }
-
-        cancellationKeyRef.current = null;
-        toast.success(buildCancellationFeedbackMessage(t, result.cancellationTerms, locale));
-        return;
-      }
-
       console.log('[Membership Action] Unhandled:', id);
-    } catch (err) {
-      if (!isMountedRef.current) return;
-      cancellationKeyRef.current = null;
-      console.error(err);
-      toast.error(t('errors.action_failed'));
+    } catch (error) {
+      showActionError(error);
     }
   };
 
+  const actionLabel = (config: OpsActionConfig) => {
+    if (isPaymentUpdateAction(config.id)) return t('dunning.update_payment_button');
+    if (config.id === 'cancel' && isCancelPending) return t('actions.cancel_pending');
+    return config.label;
+  };
+  const actionDisabled = (config: OpsActionConfig) => {
+    if (isPaymentUpdateAction(config.id)) return isPaymentUpdatePending;
+    if (config.id === 'cancel') return isCancelPending || config.disabled;
+    return config.disabled;
+  };
   const mapAction = (config: OpsActionConfig) => ({
     ...config,
-    label: isPaymentUpdateAction(config.id) ? t('dunning.update_payment_button') : config.label,
-    disabled: isPaymentUpdateAction(config.id) ? isPaymentUpdatePending : config.disabled,
+    label: actionLabel(config),
+    disabled: actionDisabled(config),
     onClick: () => handleAction(config.id),
   });
 
   return (
-    <div className="space-y-4 h-full overflow-y-auto pr-2">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex justify-between items-center">
-            {subscription.plan?.name || subscription.planId}
-            <OpsStatusBadge
-              {...toOpsStatus(subscription.status)}
-              label={tStatus(membershipStatusKey(subscription.status))}
-            />
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
+    <div className="grid min-w-0 gap-6">
+      <section
+        aria-labelledby="membership-status-title"
+        className={MEMBERSHIP_REGION}
+        data-testid="membership-status-region"
+      >
+        <h2 id="membership-status-title" className="text-lg font-semibold tracking-tight">
+          {subscription.plan?.name || subscription.planId}
+        </h2>
+        <dl className="grid gap-4 text-sm sm:grid-cols-2">
+          <div className="min-w-0 space-y-1">
+            <dt className="text-foreground/70">{t('plan.status_label')}</dt>
+            <dd>
+              <OpsStatusBadge
+                {...toOpsStatus(subscription.status)}
+                label={tStatus(membershipStatusKey(subscription.status))}
+              />
+            </dd>
+          </div>
           <MembershipPeriodGraceFacts subscription={subscription} locale={locale} t={t} />
+        </dl>
 
-          <MembershipEntityDisclosureNotice
-            testId="membership-entity-disclosure"
-            disclosure={subscription.entityDisclosure}
-          />
+        <MembershipEntityDisclosureNotice
+          testId="membership-entity-disclosure"
+          disclosure={subscription.entityDisclosure}
+        />
 
-          {leaveEntryId ? <LeaveCompanyProgramme entryId={leaveEntryId} t={t} /> : null}
-
-          <OpsActionBar
-            primary={primary ? mapAction(primary) : undefined}
-            secondary={secondary.map(mapAction)}
-          />
-
-          {isPaymentUpdateAction(primary?.id ?? '') && paymentUpdateStatus ? (
-            <p
-              role="status"
-              aria-live="polite"
-              data-testid="payment-update-status"
-              className="text-sm text-muted-foreground"
-            >
-              {paymentUpdateStatus}
+        {primary?.id === 'complete_membership' || sponsoredState === 'inactive' ? (
+          <div className="rounded-xl border border-foreground/60 p-4 forced-colors:border-[CanvasText]">
+            <h3 className="text-sm font-semibold">{t('ops.membership_not_active_title')}</h3>
+            <p className="mt-1 text-sm leading-6 text-foreground/70">
+              {t('ops.membership_not_active_body')}
             </p>
-          ) : null}
+          </div>
+        ) : null}
 
-          {primary?.id === 'complete_membership' || sponsoredState === 'inactive' ? (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/70 p-4">
-              <h4 className="text-sm font-semibold text-slate-900">
-                {t('ops.membership_not_active_title')}
-              </h4>
-              <p className="mt-1 text-sm text-slate-600">{t('ops.membership_not_active_body')}</p>
-            </div>
-          ) : null}
-        </CardContent>
-      </Card>
+        {leaveEntryId ? <LeaveCompanyProgramme entryId={leaveEntryId} t={t} /> : null}
 
-      <div className="space-y-4">
+        <MembershipActions
+          primary={primary ? mapAction(primary) : undefined}
+          secondary={secondary.map(mapAction)}
+        />
+
+        {isPaymentUpdateAction(primary?.id ?? '') && paymentUpdateStatus ? (
+          <p
+            role="status"
+            aria-live="polite"
+            data-testid="payment-update-status"
+            className="text-sm text-foreground/70"
+          >
+            {paymentUpdateStatus}
+          </p>
+        ) : null}
+      </section>
+
+      <div className="grid min-w-0 items-start gap-6 md:grid-cols-2">
         <OpsTimeline
           title={t('timeline.title')}
           events={toOpsTimelineEvents(subscription, t)}

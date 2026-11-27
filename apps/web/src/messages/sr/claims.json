@@ -229,7 +229,9 @@
         "progress": "Napredak",
         "evidence": "Dokazi",
         "history": "Hronologija",
-        "messages": "Poruke"
+        "messages": "Poruke",
+        "referenceLabel": "Referenca",
+        "statusLabel": "Stanje"
       },
       "caseDetails": "Detalji Slučaja",
       "description": "Opis",

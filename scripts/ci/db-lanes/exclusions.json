@@ -732,6 +732,18 @@
     "removeWhen": "A current database test replaces the historical routing assertion."
   },
   {
+    "file": "scripts/ci/tenant-guard/tests/path-c-schema.test.mjs",
+    "reason": "Tenant-guard Path-C qualification suite run by test:ci:contracts. It reads migration SQL and schema sources as fixture text and opens no database connection.",
+    "owner": "Tenant guard",
+    "removeWhen": "The database-lane inventory distinguishes fixture SQL text from database access."
+  },
+  {
+    "file": "scripts/ci/tenant-guard/tests/path-c-storage-scan.test.mjs",
+    "reason": "Tenant-guard Path-C qualification suite run by test:ci:contracts. It reads migration SQL and schema sources as fixture text and opens no database connection.",
+    "owner": "Tenant guard",
+    "removeWhen": "The database-lane inventory distinguishes fixture SQL text from database access."
+  },
+  {
     "file": "scripts/docker-workflow.test.mjs",
     "reason": "The Docker workflow contract checks static configuration and synthetic port and environment values.",
     "owner": "CI Tooling",

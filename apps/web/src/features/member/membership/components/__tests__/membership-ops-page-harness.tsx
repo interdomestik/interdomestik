@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { afterEach, beforeEach, vi } from 'vitest';
 
 export const originalConfirm = globalThis.confirm;
@@ -118,6 +118,13 @@ vi.doMock('sonner', () => ({
 }));
 
 vi.doMock('@interdomestik/ui', () => ({
+  Button: ({
+    children,
+    variant: _variant,
+    ...props
+  }: { children: ReactNode; variant?: string } & ButtonHTMLAttributes<HTMLButtonElement>) => (
+    <button {...props}>{children}</button>
+  ),
   Card: ({ children, className }: { children: ReactNode; className?: string }) => (
     <div className={className}>{children}</div>
   ),
