@@ -34,6 +34,7 @@ import {
 import {
   completeMemberVaultConsentDisplay,
   openMemberVaultConsentDisplay,
+  type GetMemberVaultConsentDisplayParams,
 } from './getMemberVaultConsentDisplay';
 import { readCurrentMemberVaultEvidence } from '@interdomestik/domain-documents/claim-evidence';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
@@ -135,7 +136,7 @@ export async function getMemberClaimDetail(
           },
           db
         );
-        const vaultParams = {
+        const vaultParams: GetMemberVaultConsentDisplayParams = {
           memberId,
           claimId: claim.id,
           claimCategory: claim.category ?? '',
