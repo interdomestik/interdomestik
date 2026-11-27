@@ -14,6 +14,7 @@ import {
 } from 'drizzle-orm/pg-core';
 
 import { user } from './auth';
+import { exchangeRateCheckEvents } from './exchange-rate-checks';
 import { exchangeRates } from './exchange-rates';
 import { sponsorTenantPolicy } from './sponsors';
 import { legalEntities } from './tenant-entity-decomposition';
@@ -27,6 +28,7 @@ export const exchangeRateVerifications = pgTable(
     legalEntityId: text('legal_entity_id').notNull(),
     bookId: text('book_id').notNull(),
     rateId: text('rate_id').notNull(),
+    checkId: text('check_id'),
     base: text('base').notNull(),
     quote: text('quote').notNull(),
     rateEffectiveOn: date('rate_effective_on').notNull(),
@@ -38,6 +40,26 @@ export const exchangeRateVerifications = pgTable(
   },
   table => [
     unique('exchange_rate_verifications_operation_uq').on(table.tenantId, table.operationKey),
+    unique('exchange_rate_verifications_check_uq').on(table.tenantId, table.bookId, table.checkId),
+    foreignKey({
+      name: 'exchange_rate_verifications_check_fk',
+      columns: [
+        table.tenantId,
+        table.bookId,
+        table.checkId,
+        table.legalEntityId,
+        table.verifiedBy,
+        table.rateId,
+      ],
+      foreignColumns: [
+        exchangeRateCheckEvents.tenantId,
+        exchangeRateCheckEvents.bookId,
+        exchangeRateCheckEvents.id,
+        exchangeRateCheckEvents.legalEntityId,
+        exchangeRateCheckEvents.actorId,
+        exchangeRateCheckEvents.rateId,
+      ],
+    }),
     index('exchange_rate_verifications_latest_idx').on(
       table.tenantId,
       table.bookId,

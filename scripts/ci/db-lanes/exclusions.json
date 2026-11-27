@@ -1,0 +1,830 @@
+[
+  {
+    "file": "apps/web/e2e-mac/closed-services.spec.ts",
+    "reason": "The Mac closed-services Playwright project provides a seeded database, a closed-services web server, and a loopback mail catcher for activation.",
+    "owner": "Web E2E",
+    "removeWhen": "An advisory lane can supply the closed-services server, seeded actors, and activation mailbox."
+  },
+  {
+    "file": "apps/web/e2e/agent-member-detail.spec.ts",
+    "reason": "The agent-member-detail browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/agent-members-search.spec.ts",
+    "reason": "The agent-members-search browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/auth.spec.ts",
+    "reason": "The auth browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/billing-webhook-entity-replay.spec.ts",
+    "reason": "The billing-webhook-entity-replay browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/branches.spec.ts",
+    "reason": "The branches browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/claim-tracking.ks.spec.ts",
+    "reason": "The claim-tracking.ks browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/full-seed.spec.ts",
+    "reason": "The full-seed browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/accepted-recovery-prerequisites.spec.ts",
+    "reason": "The gate/accepted-recovery-prerequisites browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/acq2b2-activation-invite.spec.ts",
+    "reason": "The gate/acq2b2-activation-invite browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/acq3b-sponsor-roster.spec.ts",
+    "reason": "The gate/acq3b-sponsor-roster browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/acq3b-term-end.spec.ts",
+    "reason": "The gate/acq3b-term-end browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/admin-claim-detail-paging.spec.ts",
+    "reason": "The gate/admin-claim-detail-paging browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/admin-claim-detail-read-consistency.spec.ts",
+    "reason": "The gate/admin-claim-detail-read-consistency browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/admin-crm-routing-rules.spec.ts",
+    "reason": "The gate/admin-crm-routing-rules browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/admin-mobile-workspace.spec.ts",
+    "reason": "The gate/admin-mobile-workspace browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/admin-ops-mutation-continuity.spec.ts",
+    "reason": "The gate/admin-ops-mutation-continuity browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/agent-crm-follow-up.spec.ts",
+    "reason": "The gate/agent-crm-follow-up browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/agent-handoff-messages.spec.ts",
+    "reason": "The gate/agent-handoff-messages browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/agent-message-visibility.spec.ts",
+    "reason": "The gate/agent-message-visibility browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/agent-workspace-claims-selection.spec.ts",
+    "reason": "The gate/agent-workspace-claims-selection browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/auth-authority-fields.spec.ts",
+    "reason": "The gate/auth-authority-fields browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/billing-webhook-retry-cas.spec.ts",
+    "reason": "The Playwright runner needs writable PostgreSQL with the seeded KS tenant. The spec inserts a retryable webhook receipt and races two concurrent receipt claims.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/claim-correspondence.spec.ts",
+    "reason": "The Playwright gate creates a case with seeded Kosovo staff and member actors and exercises PDF uploads and correspondence in the browser.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone PG16 suite provides equivalent case, document, and correspondence fixtures."
+  },
+  {
+    "file": "apps/web/e2e/gate/claim-state-truth.spec.ts",
+    "reason": "The gate/claim-state-truth browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/clarity-hardening.spec.ts",
+    "reason": "The gate/clarity-hardening browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/different-email-recovery.spec.ts",
+    "reason": "The gate/different-email-recovery browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/front-door-session-context.spec.ts",
+    "reason": "The gate/front-door-session-context browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/golden-gate.spec.ts",
+    "reason": "The gate/golden-gate browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/ida-live-login-cutover.spec.ts",
+    "reason": "The gate/ida-live-login-cutover browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/information-request.spec.ts",
+    "reason": "The gate/information-request browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/internal-notes-isolation.spec.ts",
+    "reason": "The gate/internal-notes-isolation browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/lead-duplicate-review.spec.ts",
+    "reason": "The gate/lead-duplicate-review browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/login-handoff-feedback.spec.ts",
+    "reason": "The gate/login-handoff-feedback browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/member-case-messages.spec.ts",
+    "reason": "The gate/member-case-messages browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/member-claim-draft-intake.spec.ts",
+    "reason": "The gate/member-claim-draft-intake browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/member-home-cta.spec.ts",
+    "reason": "The gate/member-home-cta browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/member-legal-acceptance.spec.ts",
+    "reason": "This browser E2E spec runs in the Playwright gate lanes and uses database imports as fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/member-staff-evidence-journey.spec.ts",
+    "reason": "The gate/member-staff-evidence-journey browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/messaging-session-revocation.spec.ts",
+    "reason": "The gate/messaging-session-revocation browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/nine-role-claim-access.spec.ts",
+    "reason": "The gate/nine-role-claim-access browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/nine-role-claim-lists.spec.ts",
+    "reason": "The gate/nine-role-claim-lists browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/nine-role-document-access.spec.ts",
+    "reason": "The gate/nine-role-document-access browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/nine-role-message-access.spec.ts",
+    "reason": "The gate/nine-role-message-access browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/one-door-admin-evidence-upload.spec.ts",
+    "reason": "The gate/one-door-admin-evidence-upload browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/one-door-anonymous-leads.spec.ts",
+    "reason": "The Playwright project provides seeded public admission and country hosts while the fixture verifies lead and reservation writes.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone PG16 suite can verify lead and reservation writes across the same admission modes."
+  },
+  {
+    "file": "apps/web/e2e/gate/ordinary-member-staff-evidence.spec.ts",
+    "reason": "The gate/ordinary-member-staff-evidence browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/pilot-day1-notify.spec.ts",
+    "reason": "This direct database mutation requires PILOT_DB_MUTATION_TESTS=1 and seeded KS member, agent, and staff users plus an existing claim for the member.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/pilot-deployment-env.spec.ts",
+    "reason": "The startup proof launches a built standalone server from the gate-ks-sq Playwright project with disposable database credentials.",
+    "owner": "Web E2E",
+    "removeWhen": "An advisory lane provides the built standalone server and its disposable runtime role."
+  },
+  {
+    "file": "apps/web/e2e/gate/premium-free-start-recovery-arrival.spec.ts",
+    "reason": "The gate/premium-free-start-recovery-arrival browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/premium-free-start-recovery.spec.ts",
+    "reason": "The gate/premium-free-start-recovery browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/recovery-decision-visibility.spec.ts",
+    "reason": "The gate/recovery-decision-visibility browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/register-tenant-attribution.spec.ts",
+    "reason": "The gate/register-tenant-attribution browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/rendering-build-mode.spec.ts",
+    "reason": "The gate/rendering-build-mode browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/s5-first-case-saved-draft-continuity.spec.ts",
+    "reason": "The gate/s5-first-case-saved-draft-continuity browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/s5-new-account-otp-secure-save.spec.ts",
+    "reason": "The gate/s5-new-account-otp-secure-save browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/s5-saved-draft-foreign-submit.spec.ts",
+    "reason": "The gate/s5-saved-draft-foreign-submit browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/s6-provider-entitlement-continuation.spec.ts",
+    "reason": "The gate/s6-provider-entitlement-continuation browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/seed-contract.spec.ts",
+    "reason": "The gate/seed-contract browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/session-revocation.spec.ts",
+    "reason": "The gate/session-revocation browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/staff-mobile-workspace.spec.ts",
+    "reason": "The gate/staff-mobile-workspace browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/staff-support-handoffs.spec.ts",
+    "reason": "The gate/staff-support-handoffs browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/tenant-reader-context.spec.ts",
+    "reason": "The gate/tenant-reader-context browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/gate/v1-live-surface-revalidation.spec.ts",
+    "reason": "The gate/v1-live-surface-revalidation browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/golden/admin-verification-flow.spec.ts",
+    "reason": "The golden/admin-verification-flow browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/golden/agent-lead-detail.spec.ts",
+    "reason": "The golden/agent-lead-detail browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/golden/agent-members-list.spec.ts",
+    "reason": "The golden/agent-members-list browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/golden/agent-members-search.spec.ts",
+    "reason": "The golden/agent-members-search browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/golden/cash-ops.regressions.spec.ts",
+    "reason": "The golden/cash-ops.regressions browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/golden/member-dashboard-empty-state.spec.ts",
+    "reason": "The golden/member-dashboard-empty-state browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/golden/member-dashboard-has-claims.spec.ts",
+    "reason": "The golden/member-dashboard-has-claims browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/golden/rbac-scope.spec.ts",
+    "reason": "The golden/rbac-scope browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/live/temp-check-claims.spec.ts",
+    "reason": "The live/temp-check-claims browser spec requires a running application selected by the operator and a Playwright browser.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/member-number.spec.ts",
+    "reason": "The member-number browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/messaging.spec.ts",
+    "reason": "The messaging browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/multi-user-flow.spec.ts",
+    "reason": "The multi-user-flow browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/pc04-branch-cash-truth.spec.ts",
+    "reason": "The pc04-branch-cash-truth browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/pc05-membership-lifecycle-truth.spec.ts",
+    "reason": "The pc05-membership-lifecycle-truth browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/pc06-enterprise-controls.spec.ts",
+    "reason": "The pc06-enterprise-controls browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/pc07-cash-verification-states.spec.ts",
+    "reason": "The pc07-cash-verification-states browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/pilot/c1-03-pilot-member-provisioning.spec.ts",
+    "reason": "The pilot/c1-03-pilot-member-provisioning browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/pilot/c1-pilot-branch-assignment.spec.ts",
+    "reason": "The pilot/c1-pilot-branch-assignment browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/pilot/c2-02-cross-tenant-artifact-isolation.spec.ts",
+    "reason": "The pilot/c2-02-cross-tenant-artifact-isolation browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/pilot/c2-03-cross-tenant-write-isolation.spec.ts",
+    "reason": "The Playwright runner needs a seeded database with an admin in the actor tenant and a claim with a document in the target tenant for the direct write-denial calls.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/pilot/c2-04-cross-tenant-staff-member-write-isolation.spec.ts",
+    "reason": "The Playwright runner needs a seeded database with staff and member actors in one tenant and a target claim in another tenant for the direct write-denial calls.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/pricing-otp-security.spec.ts",
+    "reason": "The pricing-otp-security browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/production.spec.ts",
+    "reason": "The production browser spec requires a running application selected by the operator and a Playwright browser.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/public-entry-coverage.spec.ts",
+    "reason": "The public-entry-coverage browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/security/csp-report-only-scripts.spec.ts",
+    "reason": "The security/csp-report-only-scripts browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/security/headers.spec.ts",
+    "reason": "The security/headers browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/security/upload-cross-tenant.spec.ts",
+    "reason": "The security/upload-cross-tenant browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/seeded-data.spec.ts",
+    "reason": "The seeded-data browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/e2e/smoke/ida-dashboard-smoke.spec.ts",
+    "reason": "The smoke/ida-dashboard-smoke browser spec requires a running web application and Playwright project fixtures.",
+    "owner": "Web E2E",
+    "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
+  },
+  {
+    "file": "apps/web/src/features/admin/claims/actions/ops-actions-test-setup.spec.ts",
+    "reason": "This shared Vitest setup exports the mocked ops-action fixture and is loaded by the individual cases.",
+    "owner": "Web Claims",
+    "removeWhen": "The setup becomes a standalone suite listed by Vitest."
+  },
+  {
+    "file": "apps/web/src/features/admin/lead-duplicates/server/lead-duplicates.integration.test.ts",
+    "reason": "The CRM proof requires separate admin and restricted-role URLs and its opt-in flag. The advisory service does not provision that credential pair.",
+    "owner": "Web CRM",
+    "removeWhen": "A reviewed disposable CI fixture supplies both credentials and verifies the restricted role."
+  },
+  {
+    "file": "apps/web/src/features/member/claims/actions-mocks.spec.ts",
+    "reason": "This shared Vitest setup exports member-claim mocks and is loaded by the individual cases.",
+    "owner": "Web Claims",
+    "removeWhen": "The setup becomes a standalone suite listed by Vitest."
+  },
+  {
+    "file": "apps/web/src/lib/auth/better-auth-authority.contract.test.ts",
+    "reason": "This opted-in authority proof writes users and sessions through the OTP contract helper's independent PostgreSQL client.",
+    "owner": "Web Auth",
+    "removeWhen": "The authority contract helper uses a guarded disposable CI target for setup, assertions, and cleanup."
+  },
+  {
+    "file": "apps/web/src/lib/auth/better-auth-email-otp.contract.test.ts",
+    "reason": "The opted-in OTP proof seeds users and writes verification, session, and account rows through a separately configured PostgreSQL client.",
+    "owner": "Web Auth",
+    "removeWhen": "A guarded disposable CI fixture owns the OTP client's writes and cleanup."
+  },
+  {
+    "file": "apps/web/src/lib/auth/different-email-recovery-reset.contract.test.ts",
+    "reason": "Reset proof creates users and verification rows through the recovery fixture's separate client and performs resets through the app database client.",
+    "owner": "Web Auth",
+    "removeWhen": "Both clients are bound to the same guarded disposable CI database and reset fixtures are isolated there."
+  },
+  {
+    "file": "apps/web/src/lib/auth/different-email-recovery-session.contract.test.ts",
+    "reason": "Session proof changes verification, user, and session state across the recovery fixture's client and the app database client.",
+    "owner": "Web Auth",
+    "removeWhen": "Both clients are bound to the same guarded disposable CI database and session fixtures are isolated there."
+  },
+  {
+    "file": "apps/web/src/lib/auth/different-email-recovery-store.contract.test.ts",
+    "reason": "The storage proof creates a cross-table ownership fixture and a competing writer through a separate recovery client while the store uses the app database client.",
+    "owner": "Web Auth",
+    "removeWhen": "Both clients and the competing writer are bound to the same guarded disposable CI database."
+  },
+  {
+    "file": "packages/database/test/admin-connection-preflight.test.ts",
+    "reason": "The admin preflight fixture starts a private PostgreSQL container and asserts its generated owner and non-owner identities.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supplies the preflight roles and lifecycle assertions."
+  },
+  {
+    "file": "packages/database/test/migration-callback-boundary.test.ts",
+    "reason": "The private plan authority test fails at line 39: canonical corpus validation returns false before the authority assertions because the 110-entry drizzle root at e4edd6609 exceeds the 101-entry cap (MIGRATION_CORPUS_ROOT_REJECTED).",
+    "owner": "Database migrations",
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
+  },
+  {
+    "file": "packages/database/test/migration-callback-plan.test.ts",
+    "reason": "The frozen callback-plan summary test fails at line 20: canonical corpus verification returns false before plan construction because the 110-entry drizzle root at e4edd6609 exceeds the 101-entry cap (MIGRATION_CORPUS_ROOT_REJECTED).",
+    "owner": "Database migrations",
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
+  },
+  {
+    "file": "packages/database/test/migration-callback-validation.test.ts",
+    "reason": "The builder ownership and deep-freeze test fails at line 88 with MIGRATION_CALLBACK_PLAN_REJECTED. The builder's journal-length check at migration-callback-plan-builder.ts:75 expects 96 entries and receives 109 at e4edd6609.",
+    "owner": "Database migrations",
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
+  },
+  {
+    "file": "packages/database/test/migration-corpus-boundary.test.ts",
+    "reason": "The physical line ceiling assertion fails at line 120: migration-corpus-validator.ts has 151 lines and the test allows 149 (151 > 149).",
+    "owner": "Database migrations",
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
+  },
+  {
+    "file": "packages/database/test/migration-corpus-journal.test.ts",
+    "reason": "The journal schema, order and timestamp test fails at line 38: the journal has 109 entries at e4edd6609 and the test expects 96 (109 !== 96).",
+    "owner": "Database migrations",
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
+  },
+  {
+    "file": "packages/database/test/migration-corpus.test.ts",
+    "reason": "The canonical corpus summary test fails at line 26: the validator returns ok: false (MIGRATION_CORPUS_ROOT_REJECTED) because the 110-entry drizzle root at e4edd6609 exceeds the 101-entry cap.",
+    "owner": "Database migrations",
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
+  },
+  {
+    "file": "packages/database/test/migration-execution-boundary.test.ts",
+    "reason": "The migration execution harness starts a private container and changes its catalog to exercise ownership boundaries.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supports the catalog collision checks."
+  },
+  {
+    "file": "packages/database/test/migration-execution-faults.test.ts",
+    "reason": "The execution fault harness starts a private container whose migration state it resets between scenarios.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supports the execution faults and resets."
+  },
+  {
+    "file": "packages/database/test/migration-execution-kernel.test.ts",
+    "reason": "The kernel suite creates and mutates a private migration ledger in its own container.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supports the kernel's migration ledger and role setup."
+  },
+  {
+    "file": "packages/database/test/migration-ledger-inspection-faults.test.ts",
+    "reason": "The forged-plan and pre-abort test fails in its setup at line 14: authenticCorpus() asserts successful validation before SQL and receives MIGRATION_CORPUS_ROOT_REJECTED because the 110-entry drizzle root at e4edd6609 exceeds the 101-entry cap.",
+    "owner": "Database migrations",
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
+  },
+  {
+    "file": "packages/database/test/migration-ledger-inspection.test.ts",
+    "reason": "The ledger inspection harness starts a private container and drops and rebuilds its migration ledger.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supports ledger resets and ownership checks."
+  },
+  {
+    "file": "packages/database/test/migration-ledger-lock-order.test.ts",
+    "reason": "The lock-order harness starts a private container and coordinates multiple connections against its own ledger.",
+    "owner": "Database migrations",
+    "removeWhen": "An isolated CI fixture supports the competing ledger connections and cleanup."
+  },
+  {
+    "file": "packages/database/test/migration-runtime-role-fixture-boundary.test.ts",
+    "reason": "The runtime import boundary test fails at line 90: migration-corpus-validator.ts has 151 lines and the test allows 150.",
+    "owner": "Database migrations",
+    "removeWhen": "the kernel-activation PR re-pins the corpus and runs all 8 against the live corpus before first use"
+  },
+  {
+    "file": "packages/database/test/pg16/migration-runtime-role-fixture.test.ts",
+    "reason": "This opt-in proof owns a separate labelled Docker container and its lifecycle instead of using the CI PostgreSQL service.",
+    "owner": "Database migrations",
+    "removeWhen": "A CI lane can execute the container lifecycle proof with its required isolation."
+  },
+  {
+    "file": "packages/domain-claims/src/support-handoffs/queue.detail.test.ts",
+    "reason": "CI's Coverage Gate executes the four mocked detail cases through the domain-claims unit runner. The suite also reports the deferred branchless-manager denial as a TODO, which the advisory PG16 lane rejects.",
+    "owner": "Branches",
+    "removeWhen": "The post-pilot Branches work implements and proves the detail reader's branchless-manager denial."
+  },
+  {
+    "file": "packages/domain-membership-billing/test/exchange-rates-upgrade.test.ts",
+    "reason": "The release-candidate workflow runs this WP-07 legacy upgrade proof through scripts/ci/run-wp07-legacy-upgrade.mjs against a pinned legacy checkout and its own disposable database; the advisory lanes cannot supply that checkout.",
+    "owner": "Billing",
+    "removeWhen": "An advisory lane can provision the pinned legacy checkout and run the WP-07 upgrade proof."
+  },
+  {
+    "file": "packages/qa/src/tools/paddle.test.ts",
+    "reason": "The QA tool test builds a temporary Git worktree and checks target refusal before access.",
+    "owner": "QA Tooling",
+    "removeWhen": "The QA tool develops a disposable PG16 integration suite."
+  },
+  {
+    "file": "scripts/approval-envelope-bootstrap.test.mjs",
+    "reason": "The approval bootstrap test exercises mocked Git identity and receipt data.",
+    "owner": "CI Tooling",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "scripts/ci/db-access-protected-bootstrap.test.mjs",
+    "reason": "This historical bootstrap assertion is retired by the contract selector and exercises the old workflow.",
+    "owner": "CI Tooling",
+    "removeWhen": "A current database test replaces the historical bootstrap assertion."
+  },
+  {
+    "file": "scripts/ci/db-access-protected-route.test.mjs",
+    "reason": "This historical routing assertion is retired by the contract selector and exercises the old workflow.",
+    "owner": "CI Tooling",
+    "removeWhen": "A current database test replaces the historical routing assertion."
+  },
+  {
+    "file": "scripts/ci/tenant-guard/tests/path-c-schema.test.mjs",
+    "reason": "Tenant-guard Path-C qualification suite run by test:ci:contracts. It reads migration SQL and schema sources as fixture text and opens no database connection.",
+    "owner": "Tenant guard",
+    "removeWhen": "The database-lane inventory distinguishes fixture SQL text from database access."
+  },
+  {
+    "file": "scripts/ci/tenant-guard/tests/path-c-storage-scan.test.mjs",
+    "reason": "Tenant-guard Path-C qualification suite run by test:ci:contracts. It reads migration SQL and schema sources as fixture text and opens no database connection.",
+    "owner": "Tenant guard",
+    "removeWhen": "The database-lane inventory distinguishes fixture SQL text from database access."
+  },
+  {
+    "file": "scripts/docker-workflow.test.mjs",
+    "reason": "The Docker workflow contract checks static configuration and synthetic port and environment values.",
+    "owner": "CI Tooling",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "scripts/env-example.test.mjs",
+    "reason": "This test checks example environment file placeholders with synthetic inputs.",
+    "owner": "CI Tooling",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "scripts/lean-current-authority-conformance.test.mjs",
+    "reason": "This test validates repository authority projections with a temporary Git fixture.",
+    "owner": "CI Tooling",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "scripts/multi-agent/pr-hardening-common.test.mjs",
+    "reason": "This test checks generated declarations and writable paths with isolated file fixtures.",
+    "owner": "CI Tooling",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "scripts/pilot/admin-users-unread.test.ts",
+    "reason": "The pilot proof requires a seeded loopback database on port 55432 and creates and checks the records_search_rls role. The advisory service uses port 5432 and does not provision that role.",
+    "owner": "Pilot Records",
+    "removeWhen": "A reviewed disposable CI lane supplies the seeded target and verifies the proof's restricted role."
+  },
+  {
+    "file": "scripts/release-gate/role-panel-failure-snapshot.test.ts",
+    "reason": "This test exercises role-panel failure capture with a browser fixture.",
+    "owner": "Release Gate",
+    "removeWhen": "The failure capture test moves to a PG16-only harness."
+  },
+  {
+    "file": "scripts/release-gate/vercel-protection.test.mjs",
+    "reason": "This test checks deployment protection request and response fixtures.",
+    "owner": "Release Gate",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "scripts/security/sec-cql-01.test.mjs",
+    "reason": "This test checks egress and command guard decisions with synthetic URLs and command strings.",
+    "owner": "CI Tooling",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "scripts/sentry-enterprise-alerts.test.mjs",
+    "reason": "This test validates alert payloads and catalog drift with fixture data.",
+    "owner": "CI Tooling",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "scripts/sentry-responsiveness-alerts.test.mjs",
+    "reason": "This test checks alert catalog data and rejects disabled modes before accessing the network.",
+    "owner": "CI Tooling",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "scripts/slice-rehearse-host.test.mjs",
+    "reason": "This test checks host admission and pinning with isolated Git and policy fixtures.",
+    "owner": "CI Tooling",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "scripts/slice-rehearse-operation-facts.test.mjs",
+    "reason": "This test checks PR and Git fact collection using synthetic provider responses.",
+    "owner": "CI Tooling",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "scripts/slice-rehearse-proof-execution-cli.test.mjs",
+    "reason": "This test checks rehearsal proof planning and records with a scratch worktree fixture.",
+    "owner": "CI Tooling",
+    "removeWhen": "This file adds a live PG16 proof."
+  },
+  {
+    "file": "tools/review-evidence-console/tests/middleware-auth.test.mjs",
+    "reason": "This test uses synthetic web requests to check middleware and function routing.",
+    "owner": "Review Evidence Console",
+    "removeWhen": "This file adds a live PG16 proof."
+  }
+]

@@ -1,0 +1,282 @@
+CREATE TABLE "claim_correspondence_received_documents" (
+	"tenant_id" text NOT NULL,
+	"claim_id" text NOT NULL,
+	"correspondence_id" uuid NOT NULL,
+	"claim_document_id" text NOT NULL,
+	"created_at" timestamp (3) with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
+ALTER TABLE "claim_correspondence_received_documents" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE TABLE "claim_correspondence_received_seals" (
+	"tenant_id" text NOT NULL,
+	"claim_id" text NOT NULL,
+	"correspondence_id" uuid PRIMARY KEY NOT NULL,
+	"document_count" integer NOT NULL,
+	CONSTRAINT "claim_received_seals_count_check" CHECK ("claim_correspondence_received_seals"."document_count" between 0 and 20)
+);
+--> statement-breakpoint
+ALTER TABLE "claim_correspondence_received_seals" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE TABLE "claim_inbound_pilot_cases" (
+	"tenant_id" text NOT NULL,
+	"claim_id" text PRIMARY KEY NOT NULL,
+	"paused" boolean DEFAULT false NOT NULL,
+	"enrolled_at" timestamp (3) with time zone,
+	"legacy_credential_disposition" text,
+	CONSTRAINT "claim_inbound_pilot_cases_disposition_check" CHECK (("claim_inbound_pilot_cases"."legacy_credential_disposition" is null and "claim_inbound_pilot_cases"."enrolled_at" is null)
+        or ("claim_inbound_pilot_cases"."legacy_credential_disposition" is not null
+          and "claim_inbound_pilot_cases"."legacy_credential_disposition" in ('expired', 'invalidated', 'none-issued')))
+);
+--> statement-breakpoint
+ALTER TABLE "claim_inbound_pilot_cases" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE TABLE "claim_inbound_upload_decisions" (
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"tenant_id" text NOT NULL,
+	"claim_id" text NOT NULL,
+	"correlation_id" uuid NOT NULL,
+	"classification" text NOT NULL,
+	"decided_by" text NOT NULL,
+	"role_basis" text NOT NULL,
+	"decided_at" timestamp (3) with time zone DEFAULT now() NOT NULL,
+	"recipient_id" text NOT NULL,
+	"uploader_id" text NOT NULL,
+	"office_receipt_ref" varchar(128) NOT NULL,
+	"document_id" text NOT NULL,
+	"bucket" varchar(128) NOT NULL,
+	"file_path" varchar(768) NOT NULL,
+	"file_name" varchar(255) NOT NULL,
+	"mime_type" text NOT NULL,
+	"file_size" integer NOT NULL,
+	"sha256" varchar(64) NOT NULL,
+	CONSTRAINT "claim_inbound_decisions_basis_check" CHECK (("claim_inbound_upload_decisions"."classification" = 'intended-for-member' and "claim_inbound_upload_decisions"."role_basis" = 'staff')
+        or ("claim_inbound_upload_decisions"."classification" = 'approved-to-show' and "claim_inbound_upload_decisions"."role_basis" = 'tenant_admin')),
+	CONSTRAINT "claim_inbound_decisions_file_check" CHECK ("claim_inbound_upload_decisions"."file_size" between 1 and 1048576 and "claim_inbound_upload_decisions"."mime_type" = 'application/pdf'
+        and "claim_inbound_upload_decisions"."sha256" ~ '^[a-f0-9]{64}$' and "claim_inbound_upload_decisions"."file_name" ~ '\S'
+        and "claim_inbound_upload_decisions"."office_receipt_ref" ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$'),
+	CONSTRAINT "claim_inbound_decisions_key_check" CHECK ("claim_inbound_upload_decisions"."document_id" ~ '^wp12-inbound-[a-f0-9]{32}$'
+        and "claim_inbound_upload_decisions"."file_path" = 'pii/tenants/' || "claim_inbound_upload_decisions"."tenant_id" || '/claims/' || "claim_inbound_upload_decisions"."claim_id" || '/' || "claim_inbound_upload_decisions"."document_id" || '.pdf')
+);
+--> statement-breakpoint
+ALTER TABLE "claim_inbound_upload_decisions" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
+CREATE TABLE public.claim_inbound_object_verifications (
+  decision_id uuid PRIMARY KEY NOT NULL,
+  verified_at timestamp (3) with time zone DEFAULT now() NOT NULL,
+  CONSTRAINT claim_inbound_object_verifications_decision_fk FOREIGN KEY (decision_id)
+    REFERENCES public.claim_inbound_upload_decisions (id)
+);
+--> statement-breakpoint
+ALTER TABLE public.claim_inbound_object_verifications ENABLE ROW LEVEL SECURITY;
+--> statement-breakpoint
+ALTER TABLE public.claim_inbound_object_verifications FORCE ROW LEVEL SECURITY;
+--> statement-breakpoint
+ALTER TABLE "claim_correspondence_received_documents" ADD CONSTRAINT "claim_received_documents_entry_fk" FOREIGN KEY ("tenant_id","claim_id","correspondence_id") REFERENCES "public"."claim_correspondence"("tenant_id","claim_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "claim_correspondence_received_documents" ADD CONSTRAINT "claim_received_documents_document_fk" FOREIGN KEY ("tenant_id","claim_id","claim_document_id") REFERENCES "public"."claim_documents"("tenant_id","claim_id","id") ON DELETE restrict ON UPDATE restrict;--> statement-breakpoint
+ALTER TABLE "claim_correspondence_received_seals" ADD CONSTRAINT "claim_received_seals_claim_fk" FOREIGN KEY ("tenant_id","claim_id") REFERENCES "public"."claim"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "claim_inbound_pilot_cases" ADD CONSTRAINT "claim_inbound_pilot_cases_claim_fk" FOREIGN KEY ("tenant_id","claim_id") REFERENCES "public"."claim"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "claim_inbound_upload_decisions" ADD CONSTRAINT "claim_inbound_decisions_claim_fk" FOREIGN KEY ("tenant_id","claim_id") REFERENCES "public"."claim"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "claim_inbound_upload_decisions" ADD CONSTRAINT "claim_inbound_decisions_actor_fk" FOREIGN KEY ("tenant_id","decided_by") REFERENCES "public"."user"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+CREATE UNIQUE INDEX "claim_received_documents_entry_document_uq" ON "claim_correspondence_received_documents" USING btree ("correspondence_id","claim_document_id");--> statement-breakpoint
+CREATE INDEX "claim_received_documents_case_idx" ON "claim_correspondence_received_documents" USING btree ("tenant_id","claim_id","correspondence_id");--> statement-breakpoint
+CREATE INDEX "claim_received_documents_document_idx" ON "claim_correspondence_received_documents" USING btree ("tenant_id","claim_id","claim_document_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "claim_inbound_decisions_correlation_uq" ON "claim_inbound_upload_decisions" USING btree ("tenant_id","correlation_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "claim_inbound_decisions_document_uq" ON "claim_inbound_upload_decisions" USING btree ("document_id");--> statement-breakpoint
+CREATE UNIQUE INDEX "claim_inbound_decisions_object_uq" ON "claim_inbound_upload_decisions" USING btree ("bucket","file_path");--> statement-breakpoint
+CREATE INDEX "claim_inbound_decisions_case_idx" ON "claim_inbound_upload_decisions" USING btree ("tenant_id","claim_id");--> statement-breakpoint
+CREATE POLICY "claim_received_documents_tenant" ON "claim_correspondence_received_documents" AS PERMISSIVE FOR ALL TO public USING ("claim_correspondence_received_documents"."tenant_id" = (select current_setting('app.current_tenant_id', true))::text
+        and "claim_correspondence_received_documents"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("claim_correspondence_received_documents"."tenant_id" = (select current_setting('app.current_tenant_id', true))::text
+        and "claim_correspondence_received_documents"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
+CREATE POLICY "claim_received_seals_tenant" ON "claim_correspondence_received_seals" AS PERMISSIVE FOR ALL TO public USING ("claim_correspondence_received_seals"."tenant_id" = (select current_setting('app.current_tenant_id', true))::text
+        and "claim_correspondence_received_seals"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("claim_correspondence_received_seals"."tenant_id" = (select current_setting('app.current_tenant_id', true))::text
+        and "claim_correspondence_received_seals"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);--> statement-breakpoint
+CREATE POLICY "claim_inbound_pilot_cases_read" ON "claim_inbound_pilot_cases" AS PERMISSIVE FOR SELECT TO public USING ("claim_inbound_pilot_cases"."tenant_id" = (select current_setting('app.current_tenant_id', true))::text
+        or exists (select 1 from "claim" c where c.tenant_id = "claim_inbound_pilot_cases"."tenant_id" and c.id = "claim_inbound_pilot_cases"."claim_id"
+          and coalesce(c.access_tenant_id, c.tenant_id) = (select current_setting('app.current_access_tenant_id', true))::text));--> statement-breakpoint
+CREATE POLICY "claim_inbound_decisions_tenant" ON "claim_inbound_upload_decisions" AS PERMISSIVE FOR ALL TO public USING ("claim_inbound_upload_decisions"."tenant_id" = (select current_setting('app.current_tenant_id', true))::text
+        and "claim_inbound_upload_decisions"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text) WITH CHECK ("claim_inbound_upload_decisions"."tenant_id" = (select current_setting('app.current_tenant_id', true))::text
+        and "claim_inbound_upload_decisions"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))::text);
+
+--> statement-breakpoint
+-- Classify the URL path's final segment without rewriting the stored reference.
+CREATE FUNCTION public.claim_inbound_reserved_path(p_path text) RETURNS boolean
+LANGUAGE plpgsql IMMUTABLE STRICT SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  reserved_basename constant text := '(^|/)wp12-inbound-[a-f0-9]{32}[.]pdf';
+  object_key text;
+  encoded_octet text[];
+  byte integer;
+BEGIN
+  object_key := split_part(split_part(translate(p_path, E'\t\r\n', ''), '#', 1), '?', 1);
+  object_key := regexp_replace(replace(object_key, E'\\', '/') COLLATE "C", '[[:cntrl:] ]+$', '');
+  IF object_key COLLATE "C" ~ (reserved_basename || '$') THEN RETURN true; END IF;
+  IF strpos(object_key, '%') = 0 THEN RETURN false; END IF;
+
+  object_key := regexp_replace(object_key, '%(?:25)+([0-9a-f]{2})', E'%\\1', 'gi');
+  FOR encoded_octet IN SELECT DISTINCT regexp_matches(object_key, '%([0-9a-fA-F]{2})', 'g') LOOP
+    byte := get_byte(decode(encoded_octet[1], 'hex'), 0);
+    IF byte BETWEEN 1 AND 127 AND byte <> 37 THEN
+      object_key := replace(object_key, '%' || encoded_octet[1], chr(byte));
+    END IF;
+  END LOOP;
+  object_key := replace(translate(object_key, E'\t\r\n', ''), E'\\', '/');
+  object_key := regexp_replace(object_key COLLATE "C", '[[:cntrl:] ]+$', '');
+  -- Encoded delimiters may be decoded upstream. Keep any literal reserved path recognized above.
+  RETURN object_key COLLATE "C" ~ (reserved_basename || '($|[?#])');
+END;
+$$;
+--> statement-breakpoint
+-- The reserved namespace is protected independently of the writer's snapshot, tenant or case.
+LOCK TABLE public.claim_documents, public.documents IN SHARE ROW EXCLUSIVE MODE;
+--> statement-breakpoint
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM public.claim_documents
+    WHERE id LIKE 'wp12-inbound-%' OR public.claim_inbound_reserved_path(file_path)
+  ) OR EXISTS (
+    SELECT 1 FROM public.documents
+    WHERE id LIKE 'wp12-inbound-%' OR public.claim_inbound_reserved_path(storage_path)
+  ) THEN
+    RAISE EXCEPTION 'WP-12.1 document namespace is already occupied';
+  END IF;
+END;
+$$;
+--> statement-breakpoint
+ALTER TABLE public.claim_inbound_pilot_cases FORCE ROW LEVEL SECURITY;
+--> statement-breakpoint
+ALTER TABLE public.claim_inbound_upload_decisions FORCE ROW LEVEL SECURITY;
+--> statement-breakpoint
+ALTER TABLE public.claim_correspondence_received_seals FORCE ROW LEVEL SECURITY;
+--> statement-breakpoint
+ALTER TABLE public.claim_correspondence_received_documents FORCE ROW LEVEL SECURITY;
+--> statement-breakpoint
+ALTER TABLE public.claim_correspondence_received_seals ADD CONSTRAINT claim_received_seals_entry_fk
+  FOREIGN KEY (tenant_id, claim_id, correspondence_id)
+  REFERENCES public.claim_correspondence (tenant_id, claim_id, id)
+  DEFERRABLE INITIALLY DEFERRED;
+--> statement-breakpoint
+DO $$
+DECLARE
+  capability_role name;
+BEGIN
+  FOREACH capability_role IN ARRAY ARRAY[
+    'interdomestik_wp12_guard', 'interdomestik_wp12_receipt_writer', 'interdomestik_wp12_verifier'
+  ] LOOP
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = capability_role) THEN
+      EXECUTE format('CREATE ROLE %I NOLOGIN NOINHERIT NOBYPASSRLS', capability_role);
+    END IF;
+    IF EXISTS (
+      SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = capability_role
+        AND (rolcanlogin OR rolinherit OR rolbypassrls OR rolsuper OR rolcreaterole OR rolcreatedb OR rolreplication)
+    ) THEN
+      RAISE EXCEPTION 'WP-12.1 capability role % has unexpected authority', capability_role;
+    END IF;
+  END LOOP;
+END;
+$$;
+--> statement-breakpoint
+GRANT USAGE, CREATE ON SCHEMA public TO interdomestik_wp12_guard;
+--> statement-breakpoint
+GRANT SELECT (tenant_id, claim_id, enrolled_at) ON public.claim_inbound_pilot_cases TO interdomestik_wp12_guard;
+--> statement-breakpoint
+GRANT SELECT (tenant_id, claim_id, document_id, bucket, file_path)
+  ON public.claim_inbound_upload_decisions TO interdomestik_wp12_guard;
+--> statement-breakpoint
+GRANT SELECT (tenant_id, id, role, branch_id) ON public."user" TO interdomestik_wp12_guard;
+--> statement-breakpoint
+-- A row lock requires UPDATE privilege on one column. The guard only locks staff rows.
+GRANT UPDATE ("updatedAt") ON public."user" TO interdomestik_wp12_guard;
+--> statement-breakpoint
+GRANT SELECT (tenant_id, claim_id, id, bucket, file_path)
+  ON public.claim_documents TO interdomestik_wp12_guard;
+--> statement-breakpoint
+-- The public enrollment policy checks the case's access tenant. The home guard also checks self-supply.
+GRANT SELECT (tenant_id, id, access_tenant_id, branch_id, "userId") ON public.claim TO interdomestik_wp12_guard;
+--> statement-breakpoint
+CREATE POLICY claim_inbound_pilot_cases_guard ON public.claim_inbound_pilot_cases
+  FOR SELECT TO interdomestik_wp12_guard USING (true);
+--> statement-breakpoint
+CREATE POLICY claim_inbound_decisions_guard ON public.claim_inbound_upload_decisions
+  FOR SELECT TO interdomestik_wp12_guard USING (true);
+--> statement-breakpoint
+CREATE POLICY claim_documents_inbound_guard_read ON public.claim_documents
+  FOR SELECT TO interdomestik_wp12_guard USING (id LIKE 'wp12-inbound-%');
+--> statement-breakpoint
+-- Only the guard can lock an RLS-hidden parent. UPDATE privilege is required for a row lock,
+-- and the restrictive policy prevents this role from using that privilege to change rows.
+GRANT UPDATE (id) ON public.claim TO interdomestik_wp12_guard;
+--> statement-breakpoint
+CREATE POLICY claim_inbound_guard_case_read ON public.claim
+  FOR SELECT TO interdomestik_wp12_guard USING (true);
+--> statement-breakpoint
+CREATE POLICY claim_inbound_guard_case_lock ON public.claim
+  FOR UPDATE TO interdomestik_wp12_guard USING (true) WITH CHECK (false);
+--> statement-breakpoint
+CREATE POLICY claim_inbound_guard_case_no_update ON public.claim
+  AS RESTRICTIVE FOR UPDATE TO interdomestik_wp12_guard USING (true) WITH CHECK (false);
+--> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_staff_branch_allowed(p_tenant text, p_branch text) RETURNS boolean
+LANGUAGE sql STABLE SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+  SELECT p_tenant = current_setting('app.current_tenant_id', true)
+    AND p_tenant = current_setting('app.current_access_tenant_id', true)
+    AND current_setting('app.current_actor_role', true) = 'staff'
+    AND (nullif(current_setting('app.current_actor_branch_id', true), '') IS NULL
+      OR p_branch IS NOT DISTINCT FROM current_setting('app.current_actor_branch_id', true))
+    AND EXISTS (
+      SELECT 1 FROM public."user" AS staff
+      WHERE staff.tenant_id = p_tenant AND staff.id = current_setting('app.current_actor_id', true)
+        AND staff.role = 'staff' AND (staff.branch_id IS NULL OR staff.branch_id IS NOT DISTINCT FROM p_branch)
+    );
+$$;
+--> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_lock_staff_branch(p_tenant text, p_branch text) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  session_branch text := nullif(current_setting('app.current_actor_branch_id', true), '');
+BEGIN
+  IF p_tenant IS DISTINCT FROM current_setting('app.current_tenant_id', true)
+    OR p_tenant IS DISTINCT FROM current_setting('app.current_access_tenant_id', true)
+    OR current_setting('app.current_actor_role', true) IS DISTINCT FROM 'staff'
+    OR (session_branch IS NOT NULL AND session_branch IS DISTINCT FROM p_branch) THEN
+    RETURN false;
+  END IF;
+
+  PERFORM staff.id FROM public."user" AS staff
+    WHERE staff.tenant_id = p_tenant AND staff.id = current_setting('app.current_actor_id', true)
+      AND staff.role = 'staff' AND (staff.branch_id IS NULL OR staff.branch_id IS NOT DISTINCT FROM p_branch)
+    FOR SHARE OF staff;
+  RETURN FOUND;
+END;
+$$;
+--> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_decision_visible(
+  p_tenant text, p_case text, p_decider text, p_uploader text, p_recipient text,
+  p_document text, p_bucket varchar, p_path varchar
+) RETURNS boolean
+LANGUAGE plpgsql STABLE SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  -- Return before the principal query is planned and its column grants are checked.
+  IF CURRENT_USER = 'interdomestik_wp12_guard' THEN RETURN true; END IF;
+  IF CURRENT_USER = 'interdomestik_wp12_receipt_writer' THEN
+    RETURN current_setting('app.current_actor_role', true) = 'staff'
+      AND p_uploader = current_setting('app.current_actor_id', true);
+  END IF;
+  IF current_setting('app.current_actor_role', true) = 'tenant_admin' THEN
+    RETURN p_decider = current_setting('app.current_actor_id', true);
+  END IF;
+  IF current_setting('app.current_actor_role', true) = 'staff' THEN
+    RETURN EXISTS (
+      SELECT 1 FROM public.claim AS c
+      WHERE c.tenant_id = p_tenant AND c.id = p_case
+        AND c."staffId" = current_setting('app.current_actor_id', true)
+        AND c.case_lifecycle_state <> 'draft'
+        AND public.claim_inbound_staff_branch_allowed(c.tenant_id, c.branch_id)
+        AND ((p_uploader = c."staffId" AND p_recipient = c."userId") OR EXISTS (
+          SELECT 1 FROM public.claim_documents AS d
+          WHERE d.tenant_id = p_tenant AND d.claim_id = p_case AND d.id = p_document
+            AND d.bucket = p_bucket AND d.file_path = p_path
+        ))
+    );
+  END IF;
+  RETURN false;
+END;
+$$;
+--> statement-breakpoint

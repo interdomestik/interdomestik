@@ -5,6 +5,17 @@
  * All storage paths MUST include tenantId for security.
  */
 
+type StoragePathParams = {
+  tenantId: string;
+  entityType: string;
+  entityId: string;
+  fileName: string;
+};
+
+export type StoragePathAllocation = Readonly<StoragePathParams & { storagePath: string }>;
+
+const issuedAllocations = new WeakSet<StoragePathAllocation>();
+
 /**
  * Build a tenant-isolated storage path for a document.
  * Format: {tenantId}/{entityType}/{entityId}/{timestamp}_{filename}
@@ -13,22 +24,57 @@
  * buildStoragePath({ tenantId: 'tenant_ks', entityType: 'claim', entityId: 'claim123', fileName: 'invoice.pdf' })
  * // => 'tenant_ks/claim/claim123/1705186800000_invoice.pdf'
  */
-export function buildStoragePath(params: {
-  tenantId: string;
-  entityType: string;
-  entityId: string;
-  fileName: string;
-}): string {
+export function buildStoragePath(
+  params: StoragePathParams,
+  { preserveLegacyKey = false }: { preserveLegacyKey?: boolean } = {}
+): string {
+  const timestamp = Date.now();
   const { tenantId, entityType, entityId, fileName } = params;
 
-  // Sanitize filename - remove path traversal attempts
-  const sanitizedFileName = fileName.replace(/[/\\]/g, '_').replace(/\.\./g, '_');
+  for (const component of [tenantId, entityType, entityId]) {
+    if (
+      !component ||
+      /[^A-Za-z0-9._-]/.test(component) ||
+      component === '.' ||
+      component.includes('..')
+    ) {
+      throw new Error('Document storage identifiers must each be a canonical path component.');
+    }
+  }
 
-  // Unique timestamp prefix to prevent collisions
-  const timestamp = Date.now();
+  const legacyFileName = fileName.replaceAll(/[/\\]/g, '_').replaceAll('..', '_');
+  const sanitizedFileName = legacyFileName.replace(/[^A-Za-z0-9._-]/g, '_');
+  if (preserveLegacyKey && sanitizedFileName !== legacyFileName) {
+    throw new Error('The existing upload key contains noncanonical characters.');
+  }
 
   // Path MUST include tenantId for isolation
   return `${tenantId}/${entityType}/${entityId}/${timestamp}_${sanitizedFileName}`;
+}
+
+/** Allocate a key and retain the original record on the server through metadata recording. */
+export function allocateStoragePath(params: StoragePathParams): StoragePathAllocation {
+  const { tenantId, entityType, entityId, fileName } = params;
+  const coordinates = { tenantId, entityType, entityId, fileName };
+  const allocation = Object.freeze({ ...coordinates, storagePath: buildStoragePath(coordinates) });
+  issuedAllocations.add(allocation);
+  return allocation;
+}
+
+export function readAllocatedStoragePath(
+  allocation: StoragePathAllocation,
+  params: StoragePathParams
+): string {
+  if (
+    !issuedAllocations.has(allocation) ||
+    allocation.tenantId !== params.tenantId ||
+    allocation.entityType !== params.entityType ||
+    allocation.entityId !== params.entityId ||
+    allocation.fileName !== params.fileName
+  ) {
+    throw new Error('The storage allocation must be issued for this upload.');
+  }
+  return allocation.storagePath;
 }
 
 /**

@@ -56,6 +56,11 @@ export function formatPilotDateTime(value: DateValue, locale: string, fallback: 
   return `${formatPilotDate(date, locale, fallback)} ${hour}:${minute}`;
 }
 
+/** The ISO instant for a `<time dateTime>`, read by the same rule as the formatters; else undefined. */
+export function toPilotDateTimeAttribute(value: DateValue): string | undefined {
+  return parseDate(value)?.toISOString();
+}
+
 /**
  * Long date with weekday ("e premte, 13 nëntor 2026") for server-rendered pages, where the runtime
  * has full ICU data; sr resolves to Latin script.

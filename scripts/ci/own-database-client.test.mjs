@@ -26,6 +26,7 @@ const reviewed = JSON.parse(readFileSync(join(root, listPath), 'utf8'));
 test('the predicate sees every way a script names a client', () => {
   for (const source of [
     "import postgres from 'postgres';",
+    "import type postgres from 'postgres';",
     'import pg from "pg";',
     "import { drizzle } from 'drizzle-orm/postgres-js';",
     "import { migrate } from 'drizzle-orm/postgres-js/migrator';",

@@ -1,0 +1,100 @@
+name: Database Lanes
+on:
+  pull_request:
+    branches: ['**']
+    types: [opened, synchronize, reopened, ready_for_review, converted_to_draft]
+concurrency:
+  group: database-lanes-${{ github.ref }}
+  cancel-in-progress: true
+permissions: { contents: read }
+
+jobs:
+  advisory-validation-surface:
+    runs-on: ubuntu-latest
+    permissions: { actions: read, contents: read, pull-requests: read }
+    outputs:
+      run_broad: ${{ steps.validation.outputs.run_broad }}
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/validation-surface
+        id: validation
+
+  database-lanes-advisory:
+    needs: [advisory-validation-surface]
+    if: needs.advisory-validation-surface.outputs.run_broad == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 40 # Includes long-running contracts and serial PG16 suites.
+    continue-on-error: true
+    services:
+      postgres:
+        image: docker.io/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+        env:
+          { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres, POSTGRES_DB: interdomestik_test }
+        ports:
+          - '127.0.0.1:5432:5432'
+        options: >-
+          --health-cmd="pg_isready -U postgres -d interdomestik_test"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    env:
+      DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
+      BETTER_AUTH_SECRET: test-secret-for-ci-only-do-not-use-in-production
+      NEXT_PUBLIC_APP_URL: http://127.0.0.1:3000
+      BETTER_AUTH_URL: http://127.0.0.1:3000
+      PORT: 3000
+      TURBO_TOKEN: ''
+      TURBO_TEAM: ''
+      TURBO_REMOTE_CACHE_SIGNATURE_KEY: ''
+      INTERDOMESTIK_TURBO_REMOTE_CACHE_READ_ONLY: '1'
+    steps:
+      - uses: actions/checkout@8e8c483db84b4bee98b60c0593521ed34d9990e8 # v6.0.1
+        with:
+          # Contract fixtures need the historical adoption commit and the source on its own branch.
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: ./.github/actions/setup
+      - name: Check database inventory contract
+        id: contract
+        run: node --test scripts/ci/db-lanes/*.test.mjs
+      - name: Report database test selection
+        id: inventory
+        run: node scripts/ci/db-lanes/inventory.mjs
+      - name: Run database unit tests
+        id: unit
+        run: node scripts/ci/db-lanes/run.mjs unit
+      - name: Build advisory database from the journal
+        id: migration
+        if: ${{ !cancelled() }}
+        run: pnpm db:migrate
+      - name: Run advisory PG16 database tests
+        id: pg16
+        if: ${{ !cancelled() }}
+        env:
+          MIGRATION_OUTCOME: ${{ steps.migration.outcome }}
+        run: |
+          if [[ "$MIGRATION_OUTCOME" != success ]]; then
+            echo '::error::PG16 tests require a successful journal build'
+            exit 1
+          fi
+          node scripts/ci/db-lanes/run.mjs pg16
+      - name: Report advisory database lane outcomes
+        if: ${{ !cancelled() }}
+        env:
+          CONTRACT_OUTCOME: ${{ steps.contract.outcome }}
+          INVENTORY_OUTCOME: ${{ steps.inventory.outcome }}
+          UNIT_OUTCOME: ${{ steps.unit.outcome }}
+          MIGRATION_OUTCOME: ${{ steps.migration.outcome }}
+          PG16_OUTCOME: ${{ steps.pg16.outcome }}
+        run: |
+          failed=0
+          for lane in CONTRACT INVENTORY UNIT MIGRATION PG16; do
+            key="${lane}_OUTCOME"
+            outcome="${!key}"
+            printf '%s: %s\n' "$lane" "${outcome:-missing}" | tee -a "$GITHUB_STEP_SUMMARY"
+            if [[ "$outcome" != success ]]; then failed=1; fi
+          done
+          exit "$failed"

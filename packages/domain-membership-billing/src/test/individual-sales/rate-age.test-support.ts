@@ -46,7 +46,7 @@ export async function ageCandidate(
   };
   return {
     input: accepted(offer, { memberUserId: f.member.id }),
-    evidence: f.verificationInput(current.id, observedRate),
+    evidence: await f.newEvidence(current.id, observedRate),
   };
 }
 
@@ -57,9 +57,10 @@ export function insertEvidence(
 ) {
   return tx<{ verified_at: string }[]>`insert into exchange_rate_verifications
     (id, tenant_id, legal_entity_id, book_id, rate_id, base, quote, rate_effective_on,
-     observed_rate, source_ref, verified_by, operation_key)
+     observed_rate, source_ref, verified_by, operation_key, check_id)
     select ${randomUUID()}, tenant_id, ${evidence.legalEntityId}, book_id, id, base, quote,
-      effective_on, ${evidence.observedRate}::numeric, ${evidence.sourceRef}, ${f.owner.id}, ${evidence.operationKey}
+      effective_on, ${evidence.observedRate}::numeric, ${evidence.sourceRef}, ${f.owner.id}, ${evidence.operationKey},
+      ${evidence.checkId ?? null}
     from exchange_rates where tenant_id = ${f.tenantId} and id = ${evidence.rateId}
     returning verified_at::text`;
 }
@@ -161,7 +162,7 @@ export function registerRateAgeCases(fixture: AgeFixture) {
     await assertClosed(f, newSale);
     await assertAgeInsertRefusal(f, newSale);
     await f.setLimit(86400);
-    success(await f.verify({ ...evidence, operationKey: randomUUID() }));
+    success(await f.verify(await f.newEvidence(evidence.rateId, evidence.observedRate)));
     success(await f.sale(newSale));
     expect(await f.counts(newSale.operationKey)).toEqual(completed);
   }, 30000);

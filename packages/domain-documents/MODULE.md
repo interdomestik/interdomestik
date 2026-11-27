@@ -23,3 +23,16 @@ transaction, a scope verified under the claim lock, and the verified upload meta
 `created`, `replayed`, or `conflict` by comparing the stored metadata and original consent.
 The caller verifies any information-request link in the same transaction. A replay-only caller
 may use `hasClaimEvidenceDocument` before taking locks to avoid reading stored bytes.
+
+## Storage metadata
+
+`allocateStoragePath` from `./storage` returns an immutable server-side allocation
+record with a canonical relative `storagePath` and an ASCII-safe filename label.
+Use that key for the upload, then pass the original record to
+`recordUpload({ ..., allocation })` in the same server process. The writer checks
+the record against the authorized tenant, entity coordinates, and filename,
+and preserves the display name verbatim. It rejects raw keys and copied records.
+When `allocation` is omitted, the legacy format still applies and the writer
+rejects keys the canonical formatter would change.
+PostgreSQL enforces canonical spelling on
+`documents.storage_path` and `claim_documents.file_path`.

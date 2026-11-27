@@ -43,6 +43,18 @@ it.skipIf(process.env.RUN_DUNNING_POSTGRES !== '1')(
         `grant select, insert, update on subscriptions, audit_log, engagement_email_sends to "${role}"`
       );
       await admin.unsafe(`grant select on webhook_events, domain_events to "${role}"`);
+      await admin.unsafe(`grant select (id, tenant_id) on public."user" to "${role}"`);
+      await admin.unsafe(`grant select on public.sponsor_roster_entries to "${role}"`);
+      await admin.unsafe(`grant select on public.sponsor_terms to "${role}"`);
+      await admin.unsafe(
+        `grant select (id, tenant_id, paid_until) on public.sponsor_handover_intents to "${role}"`
+      );
+      await admin.unsafe(
+        `grant select (id, tenant_id, term_id) on public.sponsor_term_revisions to "${role}"`
+      );
+      await admin.unsafe(
+        `grant select (id, tenant_id, revision_id, decision) on public.sponsor_revision_decisions to "${role}"`
+      );
       await admin`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt") values
         (${userId}, ${tenantId}, 'Synthetic recovery', ${`${userId}@example.test`}, true, 'member', now(), now())`;
       await admin`insert into subscriptions (id, tenant_id, user_id, status, plan_id, provider_subscription_id, provider_event_id, provider_event_occurred_at)

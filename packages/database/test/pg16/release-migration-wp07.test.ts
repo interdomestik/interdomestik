@@ -84,7 +84,7 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
     candidateRoot,
     policyRoot: folder,
   });
-  if (journal.entries[112]?.tag !== '0112_wp07_rate_check_contract') {
+  if (journal.entries[113]?.tag !== '0113_wp07_rate_check_contract') {
     assert.ok(
       candidatePath === undefined && process.env.REQUIRE_RELEASE_PHASE_WP07 !== '1',
       'The exact reviewed WP-07 pair is required'
@@ -113,14 +113,14 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
       const plan = await fixture.expand();
       assert.deepEqual(
         [plan.expand.tag, plan.contract?.tag, plan.expandCount, plan.finalCount],
-        ['0111_wp07_rate_check_expand', '0112_wp07_rate_check_contract', 112, 113]
+        ['0112_wp07_rate_check_expand', '0113_wp07_rate_check_contract', 113, 114]
       );
       let bookIndex = 0;
       let lastTenant = '';
       let lastBook = '';
       let oldRate = '';
       await exerciseRefusals(t, fixture, async () => {
-        await assertLedger(client, journal, 112);
+        await assertLedger(client, journal, 113);
         const [shape] = await client`
         SELECT pg_catalog.to_regclass('public.exchange_rate_check_events') IS NOT NULL AS events,
           pg_catalog.to_regclass('public.exchange_rate_check_windows') IS NOT NULL AS windows,
@@ -151,7 +151,7 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
         assert.equal(old.id, oldRate);
       });
       await proveContractOnce(fixture);
-      await assertLedger(client, journal, 113);
+      await assertLedger(client, journal, 114);
       await t.test(
         'recovery rejects the same FK name and target with a different mapping',
         async () => {
@@ -160,7 +160,7 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
           ADD CONSTRAINT exchange_rate_verifications_check_fk
           FOREIGN KEY (tenant_id, book_id, verified_by, legal_entity_id, check_id, rate_id)
           REFERENCES exchange_rate_check_events (tenant_id, book_id, id, legal_entity_id, actor_id, rate_id)`;
-          await assertLedger(client, journal, 113);
+          await assertLedger(client, journal, 114);
           assertRefusal(await fixture.run('recover'), 'PHASE_SCHEMA_DIVERGENT');
           await client`ALTER TABLE exchange_rate_verifications
           DROP CONSTRAINT exchange_rate_verifications_check_fk,
@@ -174,12 +174,12 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
         async () => {
           await client`ALTER TABLE exchange_rates ADD CONSTRAINT alternate_weekly_constraint
           UNIQUE (tenant_id, book_id, week_starts_on, revision)`;
-          await assertLedger(client, journal, 113);
+          await assertLedger(client, journal, 114);
           assertRefusal(await fixture.run('recover'), 'PHASE_SCHEMA_DIVERGENT');
           await client`ALTER TABLE exchange_rates DROP CONSTRAINT alternate_weekly_constraint`;
           await client`CREATE UNIQUE INDEX alternate_weekly_index
           ON exchange_rates (week_starts_on, book_id, tenant_id) INCLUDE (revision)`;
-          await assertLedger(client, journal, 113);
+          await assertLedger(client, journal, 114);
           assertRefusal(await fixture.run('recover'), 'PHASE_SCHEMA_DIVERGENT');
           await client`DROP INDEX alternate_weekly_index`;
         }
@@ -187,7 +187,7 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
       await t.test('recovery rejects a weekly unique index with source in its key', async () => {
         await client`CREATE UNIQUE INDEX weekly_source_index
           ON exchange_rates (tenant_id, book_id, week_starts_on, revision, source)`;
-        await assertLedger(client, journal, 113);
+        await assertLedger(client, journal, 114);
         assertRefusal(await fixture.run('recover'), 'PHASE_SCHEMA_DIVERGENT');
         await client`DROP INDEX weekly_source_index`;
       });
@@ -214,7 +214,7 @@ test('PG16 WP-07 candidate CLI preserves same-week publications and checks the a
       assert.equal(recovered.code, 0, recovered.stderr);
       assert.equal(JSON.parse(recovered.stdout).status, 'verified-committed');
       await client`ALTER TABLE exchange_rate_verifications DISABLE TRIGGER exchange_rate_verifications_check_required`;
-      await assertLedger(client, journal, 113);
+      await assertLedger(client, journal, 114);
       assertRefusal(await fixture.run('recover'), 'PHASE_SCHEMA_DIVERGENT');
     }
   );

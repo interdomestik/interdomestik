@@ -114,7 +114,7 @@ export function contractTestPlan(root = REPO_ROOT) {
   return { all, core, retired: [...retired.files], skipArgs: retired.skipArgs, shards };
 }
 
-function runShard(root, name, files, { capture, skipArgs = [] }) {
+function runShard(root, name, files, { capture, skipArgs = [], testArgs = [] }) {
   const started = Date.now();
   // A shard is always its own top-level test runner, even when launched from inside one.
   const env = { ...process.env };
@@ -141,7 +141,7 @@ function runShard(root, name, files, { capture, skipArgs = [] }) {
   let child;
   try {
     scratch = contractScratch(env);
-    child = spawn(process.execPath, [...NODE_TEST_ARGS, ...skipArgs, ...files], {
+    child = spawn(process.execPath, [...NODE_TEST_ARGS, ...skipArgs, ...testArgs, ...files], {
       cwd: root,
       env,
       detached: scratch.detached,
@@ -234,13 +234,14 @@ export async function runParallel({
   root = REPO_ROOT,
   write = text => process.stdout.write(text),
   select,
+  testArgs,
 } = {}) {
   const { shards, skipArgs } = contractTestPlan(root);
   const grouped = process.env.GITHUB_ACTIONS === 'true';
   const running = Object.entries(shards)
     .map(([name, files]) => [name, select ? select(files) : files])
     .filter(([, files]) => files.length > 0)
-    .map(([name, files]) => runShard(root, name, files, { capture: true, skipArgs }));
+    .map(([name, files]) => runShard(root, name, files, { capture: true, skipArgs, testArgs }));
   const { outcomes, interrupted } = await waitForShards(running, outcome => {
     write(grouped ? `::group::contract shard ${outcome.name}\n` : `--- shard ${outcome.name}\n`);
     write(outcome.output.toString('utf8'));

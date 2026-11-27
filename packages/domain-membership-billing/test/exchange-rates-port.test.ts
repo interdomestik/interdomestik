@@ -102,7 +102,7 @@ async function provePublications(t: TestContext, fixture: ExchangeRatePortFixtur
   );
 
   await t.test(
-    'week identity across New Year serializes staff and scheduled publications',
+    'two effective dates across New Year share ISO metadata and have independent chains',
     async () => {
       const dates = ['2099-12-31', '2100-01-02'];
       const { mark, result } = await withLockedBook(
@@ -117,36 +117,74 @@ async function provePublications(t: TestContext, fixture: ExchangeRatePortFixtur
           ]),
         2
       );
-      const winners = result.flatMap(row => (row.ok ? [row.rate] : []));
-      assert.equal(winners.length, 1);
-      assert.deepEqual(
-        result.find(row => !row.ok),
-        { ok: false, code: 'conflict' }
-      );
-      const [winner] = winners;
-      assert.equal(winner.weekStartsOn, '2099-12-28');
-      assert.ok(dates.includes(winner.effectiveOn));
-      const [stored] = await restricted(
+      const [first, second] = result;
+      assert.ok(first.ok && second.ok);
+      for (const publication of [first, second]) {
+        assert.equal(publication.rate.weekStartsOn, '2099-12-28');
+        assert.equal(publication.rate.revision, 1);
+        const [stored] = await restricted(
+          admin,
+          tenantId,
+          tx => tx`
+        select stored_at > ${mark}::timestamptz as after_holder from exchange_rates where id = ${publication.rate.id}`
+        );
+        assert.equal(stored.after_holder, true);
+      }
+      const earlier = await publish({
+        ...rateInput(dates[0]),
+        rate: '62.20',
+        correctsRateId: first.rate.id,
+        correctionReason: 'Official correction',
+      });
+      assert.ok(earlier.ok);
+      assert.equal(earlier.rate.revision, 2);
+      const rows = await restricted(
         admin,
         tenantId,
         tx => tx`
-    select stored_at > ${mark}::timestamptz as after_holder from exchange_rates where id = ${winner.id}`
+      select effective_on::text, revision from exchange_rates
+      where tenant_id = ${tenantId} and book_id = ${book.id}
+        and week_starts_on = '2099-12-28' order by effective_on, revision`
       );
-      assert.equal(
-        stored.after_holder,
-        true,
-        'storage time follows the blocker releasing the book at commit'
+      assert.deepEqual(
+        rows.map(row => [row.effective_on, row.revision]),
+        [
+          [dates[0], 1],
+          [dates[0], 2],
+          [dates[1], 1],
+        ]
       );
-      const alternateDate = dates.find(date => date !== winner.effectiveOn);
-      assert.ok(alternateDate);
       await assert.rejects(
-        restricted(admin, tenantId, tx =>
-          insertRate(tx, firstRate(tenantId, book.id, alternateDate))
-        ),
-        { code: '23505', constraint_name: 'exchange_rates_tenant_book_week_revision_uq' }
+        restricted(admin, tenantId, tx => insertRate(tx, firstRate(tenantId, book.id, dates[1]))),
+        { code: '23505', constraint_name: 'exchange_rates_tenant_book_date_revision_uq' }
       );
     }
   );
+
+  await t.test('same-day staff and scheduled publication yields one winner', async () => {
+    const input = rateInput('2100-01-04');
+    const { result } = await withLockedBook(
+      peer,
+      admin,
+      tenantId,
+      book.id,
+      () => Promise.all([publish(input), scheduled({ data: { ...input, tenantId } })]),
+      2
+    );
+    assert.equal(result.filter(row => row.ok).length, 1);
+    assert.deepEqual(
+      result.find(row => !row.ok),
+      { ok: false, code: 'conflict' }
+    );
+    const [{ count }] = await restricted(
+      admin,
+      tenantId,
+      tx => tx`
+      select count(*)::int as count from exchange_rates
+      where tenant_id = ${tenantId} and book_id = ${book.id} and effective_on = ${input.effectiveOn}::date`
+    );
+    assert.equal(count, 1);
+  });
 
   await t.test(
     'successive weeks take effect on their actual Skopje dates at local midnight',
