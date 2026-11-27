@@ -201,6 +201,20 @@ describe('staging recipient allow-list', () => {
 });
 
 describe('recipient policy by deployment', () => {
+  it('records the hosted refusal once, also for a reserved recipient through the catcher', async () => {
+    vi.stubEnv('VERCEL', '1');
+    vi.stubEnv('INTERDOMESTIK_AUTOMATED', '1');
+    vi.stubEnv('E2E_SMTP_HOST', '127.0.0.1');
+    const { sendSignInOtpEmail } = await import('./email');
+    await expect(
+      sendSignInOtpEmail('member@other.invalid, qa@office.example.test', '123456')
+    ).resolves.toEqual(suppressed);
+    expect(providerCalls()).toBe(0);
+    expect(consoleCalls()).toEqual([
+      ['[EmailAllowList]', { outcome: 'refused', reason: 'deploy_env_unknown' }],
+    ]);
+  });
+
   it.each([
     [{ VERCEL: '1', VERCEL_ENV: 'production', INTERDOMESTIK_DEPLOY_ENV: 'staging' }, 'allowlist'],
     [{ VERCEL: '1', VERCEL_ENV: 'preview', INTERDOMESTIK_DEPLOY_ENV: ' Staging ' }, 'allowlist'],
@@ -240,10 +254,8 @@ describe('recipient policy by deployment', () => {
         sendEmailOutcome('resend', 'qa@office.example.test', template, outcomeOptions)
       ).resolves.toMatchObject({ ok: false, retryable: false, code: 'email_suppressed' });
       expect(providerCalls()).toBe(0);
-      expect(refusals()).toEqual([
-        { outcome: 'refused', reason: 'deploy_env_unknown' },
-        { outcome: 'refused', reason: 'deploy_env_unknown' },
-      ]);
+      const refused = ['[EmailAllowList]', { outcome: 'refused', reason: 'deploy_env_unknown' }];
+      expect(consoleCalls()).toEqual([refused, refused]);
     }
   );
 

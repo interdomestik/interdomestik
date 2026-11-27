@@ -1,9 +1,5 @@
 import addressparser from 'nodemailer/lib/addressparser';
-import {
-  allowListRefusal,
-  recipientAllowListActive,
-  recordAllowListRefusal,
-} from './recipient-allow-list';
+import { allowListRefusal, recipientPolicy, recordAllowListRefusal } from './recipient-allow-list';
 
 export type EmailRecipients = string | readonly string[];
 export const suppressedEmailResult = {
@@ -43,6 +39,12 @@ export function selectEmailRecipients(
   to: EmailRecipients,
   automatedCatcher = false
 ): string | string[] {
+  const policy = recipientPolicy();
+  if (policy === 'refuse_all') {
+    // A hosted runtime without a known deployment environment mails nobody; recorded once.
+    recordAllowListRefusal('deploy_env_unknown');
+    return '';
+  }
   const target = automatedCatcher && isAutomatedEmail() ? automatedSmtpTarget() : null;
   const catcherAllowed = !!target && target !== 'rejected';
   const values = typeof to === 'string' ? [to] : to;
@@ -53,7 +55,7 @@ export function selectEmailRecipients(
       if (!mailbox) return false;
       // The staging allow-list applies on top of the reserved-domain rule, which the automated
       // catcher never lifts where the allow-list is active.
-      const allowList = recipientAllowListActive();
+      const allowList = policy === 'allowlist';
       if ((allowList || !catcherAllowed) && isNonSendingEmail(mailbox)) return false;
       const refusal = allowList ? allowListRefusal(mailbox) : null;
       if (refusal) recordAllowListRefusal(refusal);

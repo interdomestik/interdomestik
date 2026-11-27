@@ -24,8 +24,6 @@ export function recipientPolicy(env: Env = process.env): RecipientPolicy {
   return !deployEnv || LOCAL_DEPLOY_ENVS.has(deployEnv) ? 'open' : 'refuse_all';
 }
 
-export const recipientAllowListActive = (env: Env = process.env) => recipientPolicy(env) !== 'open';
-
 // ASCII only, validated before case folding (toLowerCase maps some non-ASCII letters, such as
 // the Kelvin sign, onto ASCII). Local part: RFC 5322 dot-atom (no quoted strings). Domain: DNS
 // host name with at least two labels. Matching is then case-insensitive for the whole address.
