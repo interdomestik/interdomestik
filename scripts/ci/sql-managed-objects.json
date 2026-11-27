@@ -212,8 +212,8 @@
       "migration": "0106_wp12_claim_correspondence"
     },
     {
-      "key": "function [\"public\",\"claim_inbound_admin_decision_scope_guard_fn()\"]",
-      "value": "98f9a7b1b797c31f621ee1656515072a",
+      "key": "function [\"public\",\"claim_inbound_decision_actor_scope_guard_fn()\"]",
+      "value": "2794a5776d269820815372381d7c5e63",
       "migration": "0114_wp12_1_inbound_documents"
     },
     {
@@ -278,7 +278,7 @@
     },
     {
       "key": "function [\"public\",\"claim_inbound_staff_scope_guard_fn()\"]",
-      "value": "614b646005e25ffed96b20eac9c4e309",
+      "value": "4fa3c63875f199d204f0786a2017fcae",
       "migration": "0114_wp12_1_inbound_documents"
     },
     {
@@ -2067,8 +2067,8 @@
       "migration": "0114_wp12_1_inbound_documents"
     },
     {
-      "key": "trigger [\"public\",\"claim_inbound_upload_decisions\",\"claim_inbound_admin_decision_scope_guard\"]",
-      "value": "CREATE TRIGGER claim_inbound_admin_decision_scope_guard AFTER INSERT ON public.claim_inbound_upload_decisions FOR EACH ROW WHEN ((new.role_basis = 'tenant_admin'::text)) EXECUTE FUNCTION claim_inbound_admin_decision_scope_guard_fn()",
+      "key": "trigger [\"public\",\"claim_inbound_upload_decisions\",\"claim_inbound_decision_actor_scope_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_decision_actor_scope_guard AFTER INSERT ON public.claim_inbound_upload_decisions FOR EACH ROW EXECUTE FUNCTION claim_inbound_decision_actor_scope_guard_fn()",
       "migration": "0114_wp12_1_inbound_documents"
     },
     {
@@ -2079,11 +2079,6 @@
     {
       "key": "trigger [\"public\",\"claim_inbound_upload_decisions\",\"claim_inbound_decisions_immutable\"]",
       "value": "CREATE TRIGGER claim_inbound_decisions_immutable BEFORE DELETE OR UPDATE ON public.claim_inbound_upload_decisions FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
-      "migration": "0114_wp12_1_inbound_documents"
-    },
-    {
-      "key": "trigger [\"public\",\"claim_inbound_upload_decisions\",\"claim_inbound_staff_scope_guard\"]",
-      "value": "CREATE TRIGGER claim_inbound_staff_scope_guard AFTER INSERT ON public.claim_inbound_upload_decisions FOR EACH ROW WHEN ((new.role_basis = 'staff'::text)) EXECUTE FUNCTION claim_inbound_staff_scope_guard_fn()",
       "migration": "0114_wp12_1_inbound_documents"
     },
     {

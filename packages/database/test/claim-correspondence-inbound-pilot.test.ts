@@ -33,6 +33,10 @@ import {
   provePolymorphicAliasMutation,
   proveReservation,
 } from './claim-correspondence-inbound-reservation.fixture';
+import {
+  proveDecisionClassificationBasis,
+  proveStaffDecisionActorLock,
+} from './claim-correspondence-inbound-staff-decision-lock.fixture';
 import { proveVaultRace } from './claim-correspondence-inbound-vault.fixture';
 import { withRegisterDb } from './claim-correspondence.fixture';
 
@@ -59,6 +63,12 @@ test('WP-12.1 restricted runtime publication and receipt proofs', async t => {
       );
       await t.test('direct decision writes enforce branch', () =>
         proveDirectDecisionBranch(connections)
+      );
+      await t.test('new staff decisions retain the live actor lock through commit', () =>
+        proveStaffDecisionActorLock(connections)
+      );
+      await t.test('the database rejects a crossed decision classification and role basis', () =>
+        proveDecisionClassificationBasis(connections)
       );
       await t.test('direct publication writes enforce branch', () =>
         proveDirectPublicationBranch(connections)

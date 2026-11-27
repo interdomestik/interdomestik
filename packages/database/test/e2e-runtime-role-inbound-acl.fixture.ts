@@ -13,7 +13,7 @@ export async function assertInboundFunctionGrants(admin: ScratchClient, role: st
   const [app] = await admin`select 1 from pg_roles where rolname = ${appRole}`;
   const runtimeRoles = app ? [role, appRole] : [role];
   const actorGuards = [
-    'claim_inbound_admin_decision_scope_guard_fn()',
+    'claim_inbound_decision_actor_scope_guard_fn()',
     'claim_received_document_actor_scope_guard_fn()',
   ];
   const expectedGrants: Record<string, readonly string[]> = {
@@ -43,10 +43,19 @@ export async function assertInboundFunctionGrants(admin: ScratchClient, role: st
   await runSequentially(Object.entries(expectedGrants), async ([signature, grantees]) => {
     const qualified = `public.${signature}`;
     const [posture] = await admin<
-      { runtime_execute: boolean; grantees: string[]; owner: string; security_definer: boolean }[]
+      {
+        runtime_execute: boolean;
+        grantees: string[];
+        owner: string;
+        security_definer: boolean;
+        search_path: string[] | null;
+      }[]
     >`select
       has_function_privilege(${role}, p.oid, 'EXECUTE') as runtime_execute,
       p.proowner::regrole::text as owner, p.prosecdef as security_definer,
+      (select pg_catalog.regexp_split_to_array(option_value, '[[:space:]]*,[[:space:]]*')
+        from pg_catalog.pg_options_to_table(p.proconfig)
+        where option_name = 'search_path') as search_path,
       array(select coalesce(r.rolname::text, 'PUBLIC') || case when acl.is_grantable then '*' else '' end
         from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) as acl
         left join pg_roles as r on r.oid = acl.grantee
@@ -58,6 +67,7 @@ export async function assertInboundFunctionGrants(admin: ScratchClient, role: st
     if (actorGuards.includes(signature)) {
       assert.equal(posture.owner, guard, signature);
       assert.equal(posture.security_definer, true, signature);
+      assert.deepEqual(posture.search_path, ['pg_catalog', 'pg_temp'], signature);
     }
   });
 }

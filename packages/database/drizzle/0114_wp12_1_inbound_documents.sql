@@ -561,42 +561,49 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
 DECLARE
   case_branch text;
 BEGIN
-  -- The preceding guards hold the case lock. Hold the actor's staff row through commit too.
+  -- The publication guard holds the case lock before this guard locks the actor row.
   SELECT c.branch_id INTO case_branch FROM public.claim AS c
     WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id;
   IF NOT FOUND OR public.claim_inbound_lock_staff_branch(NEW.tenant_id, case_branch) IS NOT TRUE THEN
-    IF TG_TABLE_NAME = 'claim_inbound_upload_decisions' THEN
-      RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot visibility decision refused';
-    END IF;
     RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document is outside assigned staff scope';
   END IF;
   RETURN NULL;
 END;
 $$;
 --> statement-breakpoint
-CREATE TRIGGER claim_inbound_staff_scope_guard AFTER INSERT ON public.claim_inbound_upload_decisions
-  FOR EACH ROW WHEN (NEW.role_basis = 'staff') EXECUTE FUNCTION public.claim_inbound_staff_scope_guard_fn();
---> statement-breakpoint
-CREATE FUNCTION public.claim_inbound_admin_decision_scope_guard_fn() RETURNS trigger
+CREATE FUNCTION public.claim_inbound_decision_actor_scope_guard_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  case_branch text;
+  actor_allowed boolean := false;
 BEGIN
-  IF NEW.tenant_id IS NOT DISTINCT FROM current_setting('app.current_tenant_id', true)
+  -- The decision guard holds the case lock. The basis constraint binds classification to role.
+  IF NEW.role_basis = 'staff' THEN
+    SELECT c.branch_id INTO case_branch FROM public.claim AS c
+      WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id;
+    IF FOUND THEN
+      actor_allowed := public.claim_inbound_lock_staff_branch(NEW.tenant_id, case_branch);
+    END IF;
+  ELSIF NEW.classification = 'approved-to-show'
+    AND NEW.tenant_id IS NOT DISTINCT FROM current_setting('app.current_tenant_id', true)
     AND NEW.tenant_id IS NOT DISTINCT FROM current_setting('app.current_access_tenant_id', true)
     AND NEW.decided_by IS NOT DISTINCT FROM current_setting('app.current_actor_id', true)
-    AND current_setting('app.current_actor_role', true) = 'tenant_admin' THEN
+    AND NEW.role_basis IS NOT DISTINCT FROM current_setting('app.current_actor_role', true) THEN
     PERFORM administrator.id FROM public."user" AS administrator
       WHERE administrator.tenant_id = NEW.tenant_id AND administrator.id = NEW.decided_by
-        AND administrator.role = 'tenant_admin'
+        AND administrator.role = NEW.role_basis
       FOR SHARE OF administrator;
-    IF FOUND THEN RETURN NULL; END IF;
+    actor_allowed := FOUND;
   END IF;
-  RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot visibility decision refused';
+  IF actor_allowed IS NOT TRUE THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot visibility decision refused';
+  END IF;
+  RETURN NULL;
 END;
 $$;
 --> statement-breakpoint
-CREATE TRIGGER claim_inbound_admin_decision_scope_guard AFTER INSERT ON public.claim_inbound_upload_decisions
-  FOR EACH ROW WHEN (NEW.role_basis = 'tenant_admin')
-  EXECUTE FUNCTION public.claim_inbound_admin_decision_scope_guard_fn();
+CREATE TRIGGER claim_inbound_decision_actor_scope_guard AFTER INSERT ON public.claim_inbound_upload_decisions
+  FOR EACH ROW EXECUTE FUNCTION public.claim_inbound_decision_actor_scope_guard_fn();
 --> statement-breakpoint
 CREATE TRIGGER claim_inbound_staff_scope_guard AFTER INSERT ON public.claim_documents
   FOR EACH ROW WHEN (NEW.id LIKE 'wp12-inbound-%' OR public.claim_inbound_reserved_path(NEW.file_path))
@@ -771,7 +778,7 @@ BEGIN
     'public.record_claim_inbound_object_verification(uuid, text, text, integer, text)',
     'public.claim_inbound_enrollment_guard_fn()',
     'public.claim_inbound_document_home_guard_fn()',
-    'public.claim_inbound_admin_decision_scope_guard_fn()',
+    'public.claim_inbound_decision_actor_scope_guard_fn()',
     'public.claim_inbound_decision_guard_fn()',
     'public.claim_inbound_document_publication_guard_fn()',
     'public.claim_inbound_staff_scope_guard_fn()',
@@ -859,7 +866,7 @@ BEGIN
 
   ALTER FUNCTION public.claim_inbound_lock_staff_branch(text, text) OWNER TO interdomestik_wp12_guard;
   ALTER FUNCTION public.claim_inbound_document_home_guard_fn() OWNER TO interdomestik_wp12_guard;
-  ALTER FUNCTION public.claim_inbound_admin_decision_scope_guard_fn() OWNER TO interdomestik_wp12_guard;
+  ALTER FUNCTION public.claim_inbound_decision_actor_scope_guard_fn() OWNER TO interdomestik_wp12_guard;
   ALTER FUNCTION public.claim_inbound_staff_scope_guard_fn() OWNER TO interdomestik_wp12_guard;
   ALTER FUNCTION public.claim_inbound_owner_guard_fn() OWNER TO interdomestik_wp12_guard;
   ALTER FUNCTION public.claim_received_document_actor_scope_guard_fn() OWNER TO interdomestik_wp12_guard;
