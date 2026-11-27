@@ -11,15 +11,18 @@ test.describe('Agent Members List', () => {
       marker: 'dashboard-page-ready',
     });
 
-    await expect(page.getByTestId('agent-members-list')).toBeVisible();
-    const firstRow = page.getByTestId('agent-member-row').first();
+    // React streaming can briefly hold a hidden copy of the page (<div hidden id="S:n">) outside the
+    // shell before it swaps it in, so scope reads to the role shell (gate-mk-mk, 2026-11-27).
+    const shell = page.getByTestId('role-shell');
+    await expect(shell.getByTestId('agent-members-list')).toBeVisible();
+    const firstRow = shell.getByTestId('agent-member-row').first();
     await expect(firstRow).toBeVisible();
 
     await Promise.all([
       page.waitForURL(/\/agent\/members\/[^/]+$/),
       firstRow.getByTestId('agent-member-link').click(),
     ]);
-    await expect(page.getByTestId('agent-member-detail-ready')).toBeVisible();
+    await expect(shell.getByTestId('agent-member-detail-ready')).toBeVisible();
 
     const unassigned = await db.query.user.findFirst({
       where: eq(user.email, E2E_USERS.KS_MEMBER_B1.email),
@@ -33,6 +36,6 @@ test.describe('Agent Members List', () => {
     await gotoApp(page, routes.agentMemberDetail(unassigned.id, testInfo), testInfo, {
       marker: 'not-found-page',
     });
-    await expect(page.getByTestId('not-found-page')).toBeVisible();
+    await expect(page.getByTestId('not-found-page').filter({ visible: true })).toBeVisible();
   });
 });
