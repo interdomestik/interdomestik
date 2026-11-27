@@ -49,10 +49,11 @@ test('only the two admitted transaction functions set actor GUCs', () => {
   ];
   const writers = roots.flatMap(getSources).flatMap(findWriters);
   writers.sort((left, right) => left.localeCompare(right));
+  // WP-12.1 moved the principal GUC writes into the binder that withPrincipalTenantContext calls.
   assert.deepEqual(writers, [
+    `${contextModule}#bindTenantTransactionPrincipal:app.current_actor_id`,
+    `${contextModule}#bindTenantTransactionPrincipal:app.current_actor_role`,
     `${contextModule}#withFreeStartDraftContext:app.current_actor_id`,
-    `${contextModule}#withPrincipalTenantContext:app.current_actor_id`,
-    `${contextModule}#withPrincipalTenantContext:app.current_actor_role`,
   ]);
 });
 
