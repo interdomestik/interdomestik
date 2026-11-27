@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { test } from 'vitest';
+import { beforeAll, test } from 'vitest';
 
 import {
   buildRecoverySuccessFeeCollectedPayload,
@@ -8,6 +8,15 @@ import {
   recordRecoverySuccessFeeCollectedEvent,
   resolveRecoverySuccessFeeCollectionSnapshot,
 } from './index';
+
+// recordRecoverySuccessFeeCollectedEvent loads './success-fee-collection-event' with a dynamic
+// import, which pulls in the whole '@interdomestik/database' schema graph. That cold import is
+// the only real cost in this file and, on a cold hosted runner, it lands inside the test body and
+// can exceed the default 5000 ms test timeout (flake ledger 2026-11-27: #2172, #2171). Warm it in
+// a hook with its own budget so the test measures only the behavior it asserts.
+beforeAll(async () => {
+  await import('./success-fee-collection-event');
+}, 60_000);
 
 test('domain-recovery owns success-fee collection snapshot normalization', () => {
   assert.deepEqual(
