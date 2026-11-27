@@ -72,7 +72,7 @@ const commands = source => [...source.matchAll(COMMAND)];
 export function scriptFiles() {
   const listed = spawnSync(
     '/usr/bin/git',
-    ['ls-files', '-z', '--cached', '--others', '--exclude-standard'],
+    ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--deduplicate'],
     { cwd: root, encoding: 'utf8' }
   );
   assert.equal(listed.status, 0, listed.stderr);
@@ -203,7 +203,7 @@ const PINNED_GUARDED = Object.freeze({
   'packages/database/test/pg16/wp16-1-runtime-grants-opt-out.ts':
     '0696b586fb32ff7921edce55a8c8924e3129c78b4070aa0f48e3b5101bd038b0',
   'packages/database/test/pg16/wp16-1-runtime-grants.test-support.ts':
-    'ebff8886f3c17af16a91bb78c97ecb0398508d49bfdfa26a134ec8dd42c647cc',
+    '8c76eb956bee26eddcfe88e409e6bb6813cbb3656d09b37ba6e21b8b6b4fdb39',
 });
 // The release entry point applies journaled migrations through admin connection preflight.
 const PINNED_RELEASE_MIGRATIONS = Object.freeze({

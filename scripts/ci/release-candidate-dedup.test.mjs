@@ -69,27 +69,24 @@ test('RC artifact consumers do not require removed component-suite logs', () => 
   assert.doesNotMatch(consumerSource, /release-gate-p0\.log|release-gate-p1\.log/u);
 });
 
-test('RC manifest retains embedded RLS evidence and Playwright artifacts', () => {
+test('RC manifest retains legacy upgrade, shared RLS, and Playwright evidence', () => {
   const tmpParent = path.join(rootDir, 'tmp');
   fs.mkdirSync(tmpParent, { recursive: true });
   const fixtureRoot = fs.mkdtempSync(path.join(tmpParent, 'rc-dedup-contract-'));
 
   try {
-    const manifestPath = path.join(fixtureRoot, 'required.json');
     const logsDir = path.join(fixtureRoot, 'logs');
     const resultsDir = path.join(fixtureRoot, 'results');
     const outputPath = path.join(fixtureRoot, 'rc.json');
     fs.mkdirSync(logsDir);
     fs.mkdirSync(resultsDir);
-    fs.writeFileSync(
-      manifestPath,
-      `${JSON.stringify({ required: { commands: { pr_verify_hosts: 'pnpm pr:verify:hosts' } } })}\n`
-    );
     fs.writeFileSync(path.join(logsDir, 'pr_verify_hosts.exit'), '0\n');
     fs.writeFileSync(
       path.join(logsDir, 'pr_verify_hosts.log'),
       'required RLS coverage passed\nRLS_INTEGRATION_RAN=1\n'
     );
+    fs.writeFileSync(path.join(logsDir, 'wp07_legacy_upgrade.exit'), '0\n');
+    fs.writeFileSync(path.join(logsDir, 'wp07_legacy_upgrade.log'), 'PG16 upgrade proof passed\n');
     fs.writeFileSync(path.join(resultsDir, 'report.json'), '{}\n');
     fs.writeFileSync(path.join(resultsDir, 'junit.xml'), '<testsuites/>\n');
 
@@ -98,7 +95,7 @@ test('RC manifest retains embedded RLS evidence and Playwright artifacts', () =>
       [
         'scripts/release-gate/write-rc-manifest.mjs',
         '--manifest',
-        path.relative(rootDir, manifestPath),
+        'scripts/release-gate/v1-required-specs.json',
         '--run-id',
         'dedup-contract',
         '--results-dir',
@@ -113,6 +110,12 @@ test('RC manifest retains embedded RLS evidence and Playwright artifacts', () =>
 
     const receipt = JSON.parse(fs.readFileSync(outputPath, 'utf8'));
     assert.equal(receipt.commands.pr_verify_hosts.exit_code, 0);
+    assert.deepEqual(receipt.commands.wp07_legacy_upgrade, {
+      id: 'wp07_legacy_upgrade',
+      cmd: 'pnpm exec node scripts/ci/run-wp07-legacy-upgrade.mjs',
+      exit_code: 0,
+      log_path: path.relative(rootDir, path.join(logsDir, 'wp07_legacy_upgrade.log')),
+    });
     assert.equal(receipt.commands.rls, undefined);
     assert.equal(receipt.checks.rls_integration_ran, true);
     assert.equal(

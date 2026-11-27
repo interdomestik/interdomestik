@@ -191,6 +191,8 @@ jobs:
       NODE_OPTIONS: --max-old-space-size=4096
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: ./.github/actions/setup
         with:
           install-playwright: ${{ github.event_name != 'pull_request' }}

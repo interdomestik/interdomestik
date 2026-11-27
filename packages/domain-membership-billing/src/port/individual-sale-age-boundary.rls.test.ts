@@ -5,6 +5,7 @@ import { expect, it } from 'vitest';
 import { saleFixture, success } from '../test/individual-sales/individual-sales.test-support';
 import {
   installAgeProbe,
+  installCalendarClock,
   probeSaleAge,
 } from '../test/individual-sales/rate-age-clock.test-support';
 import { ageCandidate, ageViolation } from '../test/individual-sales/rate-age.test-support';
@@ -14,8 +15,13 @@ it.runIf(process.env.BILLING_RLS_INTEGRATION === '1')(
   async () => {
     await withPaymentPortDatabase(async db => {
       await installAgeProbe(db);
-      const f = await saleFixture(db, 3600);
-      const { evidence } = await ageCandidate(f);
+      const clock = await installCalendarClock(db);
+      const day = '2026-03-24';
+      await clock(`${day}T09:00:00+01:00`);
+      const f = await saleFixture(db, 3600, false);
+      await f.window(day);
+      const [rate] = await f.addUnverifiedRate('61.50', day);
+      const { evidence } = await ageCandidate(f, rate);
       success(await f.verify(evidence));
       const [{ deadline, after }] = await f.admin<{ deadline: string; after: string }[]>`
         select (verified_at + make_interval(secs => max_age_seconds))::text as deadline,

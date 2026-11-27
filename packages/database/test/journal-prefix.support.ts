@@ -6,12 +6,18 @@ import { PgDialect } from 'drizzle-orm/pg-core';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
 
-function readJournalThrough(migrationsFolder: string, tag: string) {
+type JournalBoundary = string | { name: string };
+
+function readJournalThrough(migrationsFolder: string, boundary: JournalBoundary) {
   const journal: { entries: { tag: string }[] } = JSON.parse(
     readFileSync(join(migrationsFolder, 'meta', '_journal.json'), 'utf8')
   );
-  const index = journal.entries.findIndex(entry => entry.tag === tag);
-  assert.ok(index >= 0, `migration ${tag} is journaled`);
+  const matches = ({ tag }: { tag: string }) =>
+    typeof boundary === 'string' ? tag === boundary : tag.replace(/^\d{4}_/u, '') === boundary.name;
+  const label = typeof boundary === 'string' ? boundary : boundary.name;
+  const index = journal.entries.findIndex(matches);
+  assert.ok(index >= 0, `migration ${label} is journaled`);
+  assert.ok(!journal.entries.slice(index + 1).some(matches), `migration ${label} is unambiguous`);
   return readMigrationFiles({ migrationsFolder }).slice(0, index + 1);
 }
 
@@ -20,8 +26,12 @@ function applyJournal(admin: postgres.Sql, migrationsFolder: string, migrations:
   return new PgDialect().migrate(migrations, adminDb._.session, { migrationsFolder });
 }
 
-export function migrateJournalThrough(admin: postgres.Sql, migrationsFolder: string, tag: string) {
-  return applyJournal(admin, migrationsFolder, readJournalThrough(migrationsFolder, tag));
+export function migrateJournalThrough(
+  admin: postgres.Sql,
+  migrationsFolder: string,
+  boundary: JournalBoundary
+) {
+  return applyJournal(admin, migrationsFolder, readJournalThrough(migrationsFolder, boundary));
 }
 
 /**

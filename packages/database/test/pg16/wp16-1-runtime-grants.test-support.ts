@@ -19,6 +19,7 @@ import {
   sponsorCheckpointGrants,
   sponsorCheckpointTag,
   sponsorRuntimeRole,
+  sponsorTrailingTag,
   verifySponsorCheckpoint,
 } from '../../src/release-sponsor-checkpoint';
 import {
@@ -32,6 +33,7 @@ import { proveSponsorRuntimeAcl } from './wp16-1-runtime-grants-access';
 export const migrationsFolder = fileURLToPath(new URL('../../drizzle', import.meta.url));
 export const journal = readReleaseJournal(migrationsFolder);
 export const prefix = journal.findIndex(entry => entry.tag === sponsorCheckpointTag) + 1;
+export const sponsorGrantsIndex = journal.findIndex(entry => entry.tag === sponsorTrailingTag);
 type ReleaseOptions = Parameters<typeof runSponsorReleaseMigrations>[1];
 type AbandonOptions = Parameters<typeof abandonSponsorCheckpoint>[1];
 
@@ -118,8 +120,13 @@ export async function stageJournal(
     } else {
       // One replacement was independently present before 0111. Rollback must retain it.
       await sql`grant update ("updatedAt") on public.claim to ${sql(sponsorRuntimeRole)}`;
-      await applyReleaseJournal(drizzle(sql)._.session, migrationsFolder, journal.slice(0, -1));
-      assert.equal((await verifiedReleaseLedger(sql, journal)).length, journal.length - 1);
+      assert.ok(sponsorGrantsIndex > prefix, 'the sponsor grants migration follows the checkpoint');
+      await applyReleaseJournal(
+        drizzle(sql)._.session,
+        migrationsFolder,
+        journal.slice(0, sponsorGrantsIndex)
+      );
+      assert.equal((await verifiedReleaseLedger(sql, journal)).length, sponsorGrantsIndex);
     }
   } finally {
     sql.release();

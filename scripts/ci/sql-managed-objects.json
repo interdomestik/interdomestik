@@ -212,9 +212,29 @@
       "migration": "0106_wp12_claim_correspondence"
     },
     {
+      "key": "function [\"public\",\"exchange_rate_check_completed(p_tenant text, p_book text, p_check text)\"]",
+      "value": "c8b1e45435c96329cd4d13831acbcd2e",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
+      "key": "function [\"public\",\"exchange_rate_check_events_insert_fn()\"]",
+      "value": "94d712c895dd6c85c5924cb8b2cfcd9a",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
+      "key": "function [\"public\",\"exchange_rate_check_windows_insert_fn()\"]",
+      "value": "778191036aad5a60a73c84a0bb4bb9e7",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
+      "key": "function [\"public\",\"exchange_rate_head_at(p_tenant text, p_book text, p_at timestamp with time zone)\"]",
+      "value": "0c8c2d62e7cb5c5a07043ad9e66ecea3",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
       "key": "function [\"public\",\"exchange_rate_insert_guard_fn()\"]",
-      "value": "9ebe8c6c8dcd2402816cd44bb24f9aa5",
-      "migration": "0101_wp07_exchange_rates"
+      "value": "bcf16d83651375024506393cccc9f9fd",
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"exchange_rate_reject_mutation_fn()\"]",
@@ -223,8 +243,13 @@
     },
     {
       "key": "function [\"public\",\"exchange_rate_verifications_insert_guard_fn()\"]",
-      "value": "9095311059a73978ebb7a44278f9c9b0",
-      "migration": "0104_wp07_rate_verification_age"
+      "value": "1c7901f2980ec3fb4006c9a2b05537a8",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
+      "key": "function [\"public\",\"exchange_rate_verifications_require_check_fn()\"]",
+      "value": "b01c5efcc9204ecef13c2df78f20df97",
+      "migration": "0113_wp07_rate_check_contract"
     },
     {
       "key": "function [\"public\",\"legal_acceptance_reject_mutation()\"]",
@@ -292,9 +317,14 @@
       "migration": "0102_wp07_membership_sales"
     },
     {
+      "key": "function [\"public\",\"membership_sale_rate_at(p_tenant text, p_book text, p_at timestamp with time zone)\"]",
+      "value": "77a5faff48c724a9cfe3e6fe3cc44adf",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
       "key": "function [\"public\",\"membership_sale_rate_verification_age_fn()\"]",
-      "value": "743b37b4e73606d28bb7c555f91a7b5e",
-      "migration": "0104_wp07_rate_verification_age"
+      "value": "0e32d10f142de9c03502ddd8325d6f32",
+      "migration": "0112_wp07_rate_check_expand"
     },
     {
       "key": "function [\"public\",\"membership_sale_require_charge_fn()\"]",
@@ -1587,6 +1617,16 @@
       "migration": "0101_wp07_exchange_rates"
     },
     {
+      "key": "rls-force [\"public\",\"exchange_rate_check_events\"]",
+      "value": "forced",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
+      "key": "rls-force [\"public\",\"exchange_rate_check_windows\"]",
+      "value": "forced",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
       "key": "rls-force [\"public\",\"exchange_rate_verification_limits\"]",
       "value": "forced",
       "migration": "0104_wp07_rate_verification_age"
@@ -1797,9 +1837,34 @@
       "migration": "0101_wp07_exchange_rates"
     },
     {
+      "key": "trigger [\"public\",\"exchange_rate_check_events\",\"exchange_rate_check_events_append_only\"]",
+      "value": "CREATE TRIGGER exchange_rate_check_events_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_check_events FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
+      "key": "trigger [\"public\",\"exchange_rate_check_events\",\"exchange_rate_check_events_insert_guard\"]",
+      "value": "CREATE TRIGGER exchange_rate_check_events_insert_guard BEFORE INSERT ON public.exchange_rate_check_events FOR EACH ROW EXECUTE FUNCTION exchange_rate_check_events_insert_fn()",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
+      "key": "trigger [\"public\",\"exchange_rate_check_windows\",\"exchange_rate_check_windows_append_only\"]",
+      "value": "CREATE TRIGGER exchange_rate_check_windows_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_check_windows FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
+      "key": "trigger [\"public\",\"exchange_rate_check_windows\",\"exchange_rate_check_windows_insert_guard\"]",
+      "value": "CREATE TRIGGER exchange_rate_check_windows_insert_guard BEFORE INSERT ON public.exchange_rate_check_windows FOR EACH ROW EXECUTE FUNCTION exchange_rate_check_windows_insert_fn()",
+      "migration": "0112_wp07_rate_check_expand"
+    },
+    {
       "key": "trigger [\"public\",\"exchange_rate_verifications\",\"exchange_rate_verifications_append_only\"]",
       "value": "CREATE TRIGGER exchange_rate_verifications_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.exchange_rate_verifications FOR EACH STATEMENT EXECUTE FUNCTION exchange_rate_reject_mutation_fn()",
       "migration": "0104_wp07_rate_verification_age"
+    },
+    {
+      "key": "trigger [\"public\",\"exchange_rate_verifications\",\"exchange_rate_verifications_check_required\"]",
+      "value": "CREATE TRIGGER exchange_rate_verifications_check_required BEFORE INSERT ON public.exchange_rate_verifications FOR EACH ROW WHEN ((new.check_id IS NULL)) EXECUTE FUNCTION exchange_rate_verifications_require_check_fn()",
+      "migration": "0113_wp07_rate_check_contract"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_verifications\",\"exchange_rate_verifications_insert_guard\"]",

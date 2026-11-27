@@ -72,6 +72,11 @@
       "reason": "Contract check over workflow YAML text: compares the e2e-gate job's DATABASE_URL entries; reads no database."
     },
     {
+      "path": "scripts/ci/ci-audit-wp07-release-contracts.mjs",
+      "kind": "contract",
+      "reason": "Compares the release candidate workflow's loopback DATABASE_URL wiring and tests the upgrade launcher with a stub executor or missing git; opens no database client."
+    },
+    {
       "path": "scripts/ci/db-lanes/inventory.mjs",
       "kind": "contract",
       "reason": "Matches database-client names and DATABASE_URL only as discovery tokens in test source; never imports a driver or opens a connection."

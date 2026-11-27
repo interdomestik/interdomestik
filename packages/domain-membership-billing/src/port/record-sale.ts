@@ -180,10 +180,11 @@ function validateSaleOffer(
   ) {
     return { ok: false, code: 'stale_offer' } as const;
   }
-  if (!book) throw new Error('Missing EUR/MKD exchange rate book');
   const { version, rate, termsVersion, governingLaw } = offer;
-  if (!rate) return { ok: false, code: 'rate_unavailable' } as const;
-  if (rate.id !== input.rateId) return { ok: false, code: 'stale_rate' } as const;
+  if (!book || !rate) return { ok: false, code: 'rate_unavailable' } as const;
+  if (rate.bookId !== book.id || rate.id !== input.rateId) {
+    return { ok: false, code: 'stale_rate' } as const;
+  }
   const amountMkdMinor = toMkdMinor(version.listPriceMinor, rate.rate);
   if (amountMkdMinor <= 0n) return { ok: false, code: 'rate_unavailable' } as const;
   if (amountMkdMinor !== input.amountMkdMinor) return { ok: false, code: 'invalid' } as const;

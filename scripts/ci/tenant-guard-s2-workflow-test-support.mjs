@@ -36,9 +36,11 @@ export const ready = fs.existsSync(archive) && lockIntegrity && sri(archive) ===
 assert.ok(ready, `needs the verified TypeScript ${TS} archive at ${archive}`);
 export const skip = false;
 
+// Main before the rate-book schema and its call-site admission landed. This revision includes
+// the schema transition guard and descends from the kernel anchor and the trusted comparator.
+export const HISTORICAL_SCHEMA_BASE = '2fc9812046d2505b8db02b004c506ccee453f9a6';
 // Protected main: the repository's committed tree (HEAD) with the guard under test, as a child of
-// the kernel anchor, so every contracted unit the guard names is present in the fixture.
-// The anchor's history includes the trusted comparator.
+// the historical base. Both base revisions are reachable from the fixture's protected main ref.
 // Mutable fixture state lives on one shared object; `fixture.main` is the protected main commit.
 export const fixture = { origin: null, main: null, variants: 0, pulls: 0 };
 export function fixtureOrigin() {
@@ -67,7 +69,7 @@ export function fixtureOrigin() {
     'commit-tree',
     tree,
     '-p',
-    KERNEL_ANCHOR.commit,
+    HISTORICAL_SCHEMA_BASE,
     '-m',
     'protected main snapshot'
   );
