@@ -75,19 +75,34 @@ describe('getMemberVaultConsentDisplay predicates', () => {
     );
   });
 
-  it('uses administrative metadata but the supplied RLS transaction for documents and consents', async () => {
+  it('uses administrative metadata but the supplied RLS transaction and evidence for consents', async () => {
     hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
-    const select = vi
-      .fn()
-      .mockReturnValueOnce(
-        orderedRowsChain([{ id: 'document-1', category: 'evidence', createdAt: null }])
-      )
-      .mockReturnValueOnce(orderedRowsChain([]));
-    const tx = { select } as unknown as TenantTransaction;
-    await getMemberVaultConsentDisplay(baseParams, tx);
+    const consents = orderedRowsChain([]);
+    const select = vi.fn().mockReturnValueOnce(consents);
+    const database = { select } as unknown as TenantTransaction;
+    const evidence = [{ id: 'document-1', category: 'evidence', createdAt: null }];
+    await getMemberVaultConsentDisplay(baseParams, { database, evidence });
     expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);
     expect(hoisted.select).not.toHaveBeenCalled();
-    expect(select).toHaveBeenCalledTimes(2);
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(select).toHaveBeenCalledTimes(1);
+    const consentWhere = consents.where.mock.calls[0]?.[0] as { args: unknown[] };
+    expect(consentWhere.args).toContainEqual({
+      op: 'inArray',
+      left: 'consents.documentId',
+      right: ['document-1'],
+    });
+  });
+
+  it('skips the consent read when the supplied evidence is empty', async () => {
+    hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
+    const select = vi.fn();
+    const database = { select } as unknown as TenantTransaction;
+    await expect(
+      getMemberVaultConsentDisplay(baseParams, { database, evidence: [] })
+    ).resolves.toEqual({ kind: 'ready', items: [] });
+    expect(select).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 
   it('skips consent reads when no eligible evidence exists', async () => {

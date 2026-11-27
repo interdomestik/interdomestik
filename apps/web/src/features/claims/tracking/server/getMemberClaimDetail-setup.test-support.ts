@@ -25,6 +25,7 @@ export function configureMemberDetailTest() {
   hoisted.buildClaimVisibilityWhere.mockReturnValue({ visibility: 'member' });
   hoisted.getMatterAllowanceVisibility.mockResolvedValue(null);
   hoisted.getMemberVaultConsentDisplay.mockResolvedValue({ kind: 'hidden' });
+  hoisted.readCurrentMemberVaultEvidence.mockResolvedValue([]);
   hoisted.buildRecoveryDecisionSnapshot.mockImplementation(buildRecoveryDecisionSnapshotMock);
   hoisted.toMemberSafeRecoveryDecision.mockImplementation(toMemberSafeRecoveryDecisionMock);
   hoisted.deriveCaseCompanionNextStep.mockReturnValue(hoisted.caseCompanionNextStep);

@@ -102,10 +102,13 @@ vi.mock('./member-domain-event-timeline', () => ({
 vi.mock('./getMemberVaultConsentDisplay', () => ({
   getMemberVaultConsentDisplay: async () => ({ kind: 'hidden' }),
 }));
+vi.mock('@interdomestik/domain-documents/claim-evidence', () => ({
+  readCurrentMemberVaultEvidence: async () => [],
+}));
 
 import { getMemberClaimDetail } from './getMemberClaimDetail';
 
-const authority = mintTestTenantAuthority('tenant-1');
+const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
 
 describe('member claim detail privacy', () => {
   it('scopes timeline reads to the authorized claim and tenant', async () => {

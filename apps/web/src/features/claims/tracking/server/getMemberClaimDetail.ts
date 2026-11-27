@@ -32,6 +32,7 @@ import {
   verifiedRecoveryDecisionAt,
 } from './member-recovery-timeline';
 import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
+import { readCurrentMemberVaultEvidence } from '@interdomestik/domain-documents/claim-evidence';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function getMemberClaimDetail(
@@ -131,6 +132,15 @@ export async function getMemberClaimDetail(
           },
           db
         );
+        const viewer = readTenantAuthority(authority).principal;
+        if (!viewer) throw new UnauthorizedError();
+        // Read in this transaction: vault evidence is bound to the viewer's current ownership.
+        const vaultEvidence = await readCurrentMemberVaultEvidence(
+          db,
+          tenantId,
+          claim.id,
+          viewer.userId
+        );
         const vaultConsentDisplay = await getMemberVaultConsentDisplay(
           {
             memberId,
@@ -138,7 +148,7 @@ export async function getMemberClaimDetail(
             claimCategory: claim.category ?? '',
             piiStatus,
           },
-          db
+          { database: db, evidence: vaultEvidence }
         );
         // Read status notes before the current decision, so a concurrent sensitive write
         // cannot add a note after the decision snapshot used to classify it.

@@ -17,9 +17,20 @@ export interface GetMemberVaultConsentDisplayParams {
   piiStatus: 'available' | 'erased_or_unavailable';
 }
 
+export type MemberVaultEvidence = Awaited<ReturnType<typeof readCurrentMemberVaultEvidence>>;
+
+/**
+ * A caller that already holds the admitted transaction reads the viewer's current evidence
+ * inside it and passes both, so the evidence read stays in that same transaction.
+ */
+export interface MemberVaultEvidenceSource {
+  database: TenantTransaction;
+  evidence: MemberVaultEvidence;
+}
+
 export async function getMemberVaultConsentDisplay(
   params: GetMemberVaultConsentDisplayParams,
-  database?: TenantTransaction
+  source?: MemberVaultEvidenceSource
 ): Promise<VaultConsentDisplay> {
   const admission = await requireAdmittedMember();
   if (!admission.ok) throw new UnauthorizedError();
@@ -38,13 +49,14 @@ export async function getMemberVaultConsentDisplay(
   });
   if (gated.kind !== 'ready') return gated;
 
-  if (!database) {
+  if (!source) {
     // The ambient client carries no tenant context, so run the reads inside one.
-    return withTenantAuthority(authority, tx =>
-      readVaultConsentDisplay(params, tenantId, viewerId, tx, tenant, gated)
-    );
+    return withTenantAuthority(authority, async tx => {
+      const evidence = await readCurrentMemberVaultEvidence(tx, tenantId, params.claimId, viewerId);
+      return readVaultConsentDisplay(params, tenantId, evidence, tx, tenant, gated);
+    });
   }
-  return readVaultConsentDisplay(params, tenantId, viewerId, database, tenant, gated);
+  return readVaultConsentDisplay(params, tenantId, source.evidence, source.database, tenant, gated);
 }
 
 type TenantLocaleMetadata = Awaited<ReturnType<typeof readTenantLocaleMetadata>>;
@@ -52,17 +64,11 @@ type TenantLocaleMetadata = Awaited<ReturnType<typeof readTenantLocaleMetadata>>
 async function readVaultConsentDisplay(
   params: GetMemberVaultConsentDisplayParams,
   tenantId: string,
-  viewerId: string,
+  documents: MemberVaultEvidence,
   database: TenantTransaction,
   tenant: TenantLocaleMetadata,
   gated: VaultConsentDisplay
 ): Promise<VaultConsentDisplay> {
-  const documents = await readCurrentMemberVaultEvidence(
-    database,
-    tenantId,
-    params.claimId,
-    viewerId
-  );
   if (documents.length === 0) return gated;
 
   // db-access-guard: tenant-scoped -- reason: exact tenant, member, claim, document, consent-type, and purpose predicates bound this read
