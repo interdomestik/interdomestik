@@ -76,6 +76,7 @@ export const wp07 = edit(
     'index.ts',
   ].map(file => [`${SCHEMA}/${file}`, fixture(file, WP07_FIXTURES)])
 );
+export const predecessorReceiptSql = fixture('0114-predecessor.sql');
 export const journalEntry = JSON.parse(fixture('0114-journal-entry.json'));
 export const journal = (...entries) => JSON.stringify({ entries });
 const receiptSql = ['schema', 'receipt', 'publication-and-scope']

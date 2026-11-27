@@ -5,6 +5,7 @@ import { C1_ADMISSIONS } from '../c1-admissions.mjs';
 import { CONNECTION_CONTROL, CONTRACTS } from '../manifest.mjs';
 import { createModuleGraph } from '../modules.mjs';
 import { installAdmission } from '../rules-admission.mjs';
+import { sha256 } from '../rules-digest.mjs';
 import { evaluate } from '../rules.mjs';
 import {
   RECEIPT_CALLER,
@@ -27,6 +28,7 @@ import {
   journal,
   journalEntry,
   main,
+  predecessorReceiptSql,
   prove,
   readerChanges,
   readerRecord,
@@ -138,6 +140,19 @@ test('D on W passes with the staff-draft reader and the verifier dormant', () =>
     ),
     true
   );
+});
+
+test('the previously admitted 0114 on the protected base withholds both permissions', () => {
+  assert.equal(
+    sha256(predecessorReceiptSql),
+    '23a5749235d0a82d5d337762bc715e5ebe23181ec5cf256b3d16b59bee18042a'
+  );
+  const base = edit(dark, [[RECEIPT_SQL, predecessorReceiptSql]]);
+  const result = check(base, storage);
+  assert.equal(result.proof.ok, true, result.proof.reason);
+  checkBoth(result, false);
+  assert.ok(has(result, readerBaseRefusal));
+  assert.ok(has(result, receiptBaseRefusal));
 });
 
 test('B on D and an ordinary follow-up on B pass both admissions', () => {

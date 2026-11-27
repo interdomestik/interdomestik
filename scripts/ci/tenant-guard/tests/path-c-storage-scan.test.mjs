@@ -10,6 +10,7 @@ import {
   edit,
   journal,
   journalEntry,
+  predecessorReceiptSql,
   readerRecord,
   storage,
 } from './path-c-test-support.mjs';
@@ -57,6 +58,7 @@ test('the scanner refuses changed verifier controls and withholds every SQL exce
 });
 
 for (const [label, file, changed] of [
+  ['the previously admitted 0114 SQL', RECEIPT_SQL, predecessorReceiptSql],
   ['a trailing newline in the 0114 SQL', RECEIPT_SQL, `${storage.blobs.get(RECEIPT_SQL)}\n`],
   ['a missing journal', MIGRATION_JOURNAL, null],
   ['an empty journal', MIGRATION_JOURNAL, ''],
@@ -66,6 +68,16 @@ for (const [label, file, changed] of [
     'a changed 0114 journal entry',
     MIGRATION_JOURNAL,
     journal({ ...journalEntry, when: journalEntry.when + 1 }),
+  ],
+  [
+    'a duplicate 0114 index',
+    MIGRATION_JOURNAL,
+    journal(journalEntry, { ...journalEntry, tag: '0114_wrong' }),
+  ],
+  [
+    'a duplicate 0114 tag',
+    MIGRATION_JOURNAL,
+    journal(journalEntry, { ...journalEntry, idx: 115 }),
   ],
 ]) {
   test(`${label} on a B candidate is refused and restoring the reviewed value passes`, () => {
