@@ -21,6 +21,7 @@ import {
 
 const schema = vi.hoisted(() => ({
   tenants: { id: 'tenants.id', code: 'tenants.code', countryCode: 'tenants.countryCode' },
+  claims: { tenantId: 'claim.tenantId', id: 'claim.id', userId: 'claim.userId' },
   claimDocuments: {
     id: 'documents.id',
     tenantId: 'documents.tenantId',
@@ -62,7 +63,10 @@ vi.mock('drizzle-orm', async importOriginal => ({
   inArray: hoisted.inArray,
 }));
 
-import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
+import {
+  completeMemberVaultConsentDisplay,
+  getMemberVaultConsentDisplay,
+} from './getMemberVaultConsentDisplay';
 
 describe('getMemberVaultConsentDisplay predicates', () => {
   beforeEach(() => {
@@ -74,19 +78,45 @@ describe('getMemberVaultConsentDisplay predicates', () => {
     );
   });
 
-  it('uses administrative metadata but the supplied RLS transaction for documents and consents', async () => {
-    hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
-    const select = vi
-      .fn()
-      .mockReturnValueOnce(
-        orderedRowsChain([{ id: 'document-1', category: 'evidence', createdAt: null }])
-      )
-      .mockReturnValueOnce(orderedRowsChain([]));
-    const tx = { select } as unknown as TenantTransaction;
-    await getMemberVaultConsentDisplay(baseParams, tx);
-    expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);
+  const openGate = {
+    open: true as const,
+    display: { kind: 'ready' as const, items: [] },
+    tenantId: baseTenantId,
+    viewerId: 'member-1',
+    tenant: { code: 'MK', countryCode: 'MK' },
+  };
+
+  it('completes with the supplied RLS transaction and evidence, reading only consents', async () => {
+    const consents = orderedRowsChain([]);
+    const select = vi.fn().mockReturnValueOnce(consents);
+    const database = { select } as unknown as TenantTransaction;
+    const evidence = [{ id: 'document-1', category: 'evidence' as const, createdAt: null }];
+    await completeMemberVaultConsentDisplay(baseParams, openGate, database, evidence);
+    expect(hoisted.admit).not.toHaveBeenCalled();
+    expect(hoisted.locale).not.toHaveBeenCalled();
     expect(hoisted.select).not.toHaveBeenCalled();
-    expect(select).toHaveBeenCalledTimes(2);
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
+    expect(select).toHaveBeenCalledTimes(1);
+    const consentWhere = consents.where.mock.calls[0]?.[0] as { args: unknown[] };
+    expect(consentWhere.args).toContainEqual({
+      op: 'eq',
+      left: 'consents.tenantId',
+      right: baseTenantId,
+    });
+    expect(consentWhere.args).toContainEqual({
+      op: 'inArray',
+      left: 'consents.documentId',
+      right: ['document-1'],
+    });
+  });
+
+  it('completes without a consent read when the supplied evidence is empty', async () => {
+    const select = vi.fn();
+    const database = { select } as unknown as TenantTransaction;
+    await expect(
+      completeMemberVaultConsentDisplay(baseParams, openGate, database, [])
+    ).resolves.toEqual({ kind: 'ready', items: [] });
+    expect(select).not.toHaveBeenCalled();
   });
 
   it('skips consent reads when no eligible evidence exists', async () => {
@@ -99,6 +129,14 @@ describe('getMemberVaultConsentDisplay predicates', () => {
       items: [],
     });
     expect(hoisted.withTenantContext).toHaveBeenCalledWith(baseAuthority, expect.any(Function));
+    expect(documents.innerJoin).toHaveBeenCalledWith(schema.claims, {
+      op: 'and',
+      args: [
+        { op: 'eq', left: 'claim.tenantId', right: 'documents.tenantId' },
+        { op: 'eq', left: 'claim.id', right: 'documents.claimId' },
+        { op: 'eq', left: 'claim.userId', right: 'member-1' },
+      ],
+    });
     expect(documents.where).toHaveBeenCalledWith({
       op: 'and',
       args: [

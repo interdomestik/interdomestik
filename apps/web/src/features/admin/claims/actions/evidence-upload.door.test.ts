@@ -7,14 +7,22 @@ const m = vi.hoisted(() => ({
   validate: vi.fn(),
   persist: vi.fn(),
 }));
+vi.mock(import('@interdomestik/domain-claims/claims/inbound-upload'), async original => ({
+  ...(await original()),
+  isInboundPilotCase: () => Promise.resolve(false),
+  readClaimUploadPaused: () => Promise.resolve(false),
+}));
 vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: m.authorize }));
+vi.mock('@/i18n/routing', () => ({ Link: () => null }));
+vi.mock('next-intl/server', () => ({ getTranslations: vi.fn() }));
 vi.mock('next/headers', () => ({
   headers: () =>
     Promise.resolve(
       new Headers({ host: 'ida.localhost', 'x-tenant-id': 'foreign', cookie: 'tenantId=foreign' })
     ),
 }));
-vi.mock('@/lib/storage/evidence-bucket', () => ({
+vi.mock('@/lib/storage/evidence-bucket', async original => ({
+  ...(await original<typeof import('@/lib/storage/evidence-bucket')>()),
   resolveEvidenceBucketName: () => 'claim-evidence',
 }));
 vi.mock('@/features/claims/upload/server/access', () => ({
@@ -69,6 +77,34 @@ describe('canonical admin upload authority', () => {
       );
     }
   );
+  it('loads the staff case register and completes legacy evidence upload for unenrolled KS', async () => {
+    const authority = mintTestTenantAuthority('tenant_ks');
+    m.authorize.mockResolvedValue({
+      session: { user: { id: 'actor', role: 'staff', branchId: 'branch', tenantId: 'tenant_ks' } },
+      authority,
+    });
+
+    // Load the real correspondence actions alongside the legacy uploader on the staff surface.
+    await expect(
+      import('@/features/staff/claims/components/StaffClaimCaseRegister')
+    ).resolves.toHaveProperty('caseRegister', expect.any(Function));
+
+    await expect(
+      generateAdminUploadUrl('claim', 'file.pdf', 'application/pdf', 128)
+    ).resolves.toMatchObject({ success: true });
+    const ksUpload = {
+      ...confirmation,
+      storagePath: 'pii/tenants/tenant_ks/claims/claim/file.pdf',
+    };
+    await expect(confirmAdminUpload(ksUpload)).resolves.toEqual({ success: true });
+    expect(m.persist).toHaveBeenCalledExactlyOnceWith(
+      expect.objectContaining({
+        authority,
+        tenantId: 'tenant_ks',
+        storagePath: ksUpload.storagePath,
+      })
+    );
+  });
   it.each([null, { session: { user: { id: 'actor', role: 'admin' } }, authority: {} }])(
     'fails closed on absent or invalid authority %j',
     async authorized => {

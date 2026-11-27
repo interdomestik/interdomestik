@@ -1,10 +1,13 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import test from 'node:test';
+import { fileURLToPath } from 'node:url';
 import type postgres from 'postgres';
 
+import { assertInboundFunctionGrants, compareNames } from './e2e-runtime-role-inbound-acl.fixture';
 import { provisionE2eRuntimeRole } from './e2e-runtime-role.fixture';
 import { restricted } from './exchange-rates-restricted.fixture';
+import { migrateJournalThrough } from './journal-prefix.support';
 import { scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
 import { quoteIdentifier } from './rls-test-connection';
 
@@ -124,6 +127,134 @@ test('E2E provisioning and reprovisioning preserve the rate-book and case regist
       if (exists) {
         await admin.unsafe(`drop owned by ${quotedRole}`);
         await admin.unsafe(`drop role ${quotedRole}`);
+      }
+    }
+  });
+});
+
+test('late E2E role provisioning preserves the WP-12.1 function and column grants', async t => {
+  const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
+  if (missing) return t.skip(missing);
+  const role = `interdomestik_e2e_runtime_inbound${suffix}`;
+  const expectedInserts = {
+    claim_inbound_pilot_cases: [],
+    claim_inbound_object_verifications: [],
+    claim_inbound_upload_decisions: [
+      'tenant_id',
+      'claim_id',
+      'correlation_id',
+      'classification',
+      'decided_by',
+      'role_basis',
+      'recipient_id',
+      'uploader_id',
+      'office_receipt_ref',
+      'document_id',
+      'bucket',
+      'file_path',
+      'file_name',
+      'mime_type',
+      'file_size',
+      'sha256',
+    ],
+    claim_correspondence_received_seals: [
+      'tenant_id',
+      'claim_id',
+      'correspondence_id',
+      'document_count',
+    ],
+    claim_correspondence_received_documents: [
+      'tenant_id',
+      'claim_id',
+      'correspondence_id',
+      'claim_document_id',
+    ],
+  };
+  await withScratchDatabase('e2e_inbound_grants', async admin => {
+    const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
+    await migrateJournalThrough(admin, migrations, '0113_wp07_rate_check_contract');
+    // Exercise installation-specific direct grants alongside PostgreSQL's PUBLIC default.
+    await admin`alter default privileges in schema public grant execute on functions to pg_read_all_data`;
+    await migrateJournalThrough(admin, migrations, '0114_wp12_1_inbound_documents');
+    const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
+    const scratchUrl = new URL(process.env.DATABASE_URL!);
+    scratchUrl.pathname = `/${name}`;
+    try {
+      await provisionE2eRuntimeRole({ adminUrl: scratchUrl.toString(), env: {}, role });
+      await assertInboundFunctionGrants(admin, role);
+      for (const [table, expected] of Object.entries(expectedInserts)) {
+        const qualified = `public.${table}`;
+        const [posture] = await admin`select relrowsecurity as rls, relforcerowsecurity as forced,
+          has_table_privilege(${role}, ${qualified}, 'SELECT') as readable,
+          has_table_privilege(${role}, ${qualified}, 'INSERT,UPDATE,DELETE,TRUNCATE') as table_write,
+          has_any_column_privilege(${role}, ${qualified}, 'UPDATE') as column_update
+          from pg_class where oid = ${qualified}::regclass`;
+        assert.deepEqual(
+          { ...posture },
+          { rls: true, forced: true, readable: true, table_write: false, column_update: false },
+          table
+        );
+        const columns = await admin<{ name: string }[]>`select attname as name from pg_attribute
+          where attrelid = ${qualified}::regclass and attnum > 0 and not attisdropped
+            and has_column_privilege(${role}, ${qualified}, attname, 'INSERT')`;
+        assert.deepEqual(
+          columns.map(row => row.name).sort(compareNames),
+          [...expected].sort(compareNames),
+          table
+        );
+      }
+      const [guard] = await admin`select rolcanlogin as login, rolbypassrls as bypass,
+        pg_has_role(${role}::name, oid, 'MEMBER') as runtime_member,
+        pg_has_role(${role}::name, oid, 'USAGE') as runtime_inherits,
+        pg_has_role(${role}::name, oid, case when current_setting('server_version_num')::integer >= 160000
+          then 'SET' else 'MEMBER' end) as runtime_can_set,
+        has_function_privilege(${role}, 'public.claim_inbound_owner_guard_fn()', 'EXECUTE') as owner_lookup,
+        has_function_privilege(${role}, 'public.claim_inbound_document_home_guard_fn()', 'EXECUTE') as home_lookup,
+        has_function_privilege(${role}, 'public.record_claim_inbound_object_verification(uuid,text,text,integer,text)', 'EXECUTE') as attest
+        from pg_roles where rolname = 'interdomestik_wp12_guard'`;
+      assert.deepEqual(
+        { ...guard },
+        {
+          login: false,
+          bypass: false,
+          runtime_member: false,
+          runtime_inherits: false,
+          runtime_can_set: false,
+          owner_lookup: false,
+          home_lookup: false,
+          attest: false,
+        }
+      );
+      const [verifier] = await admin`select rolcanlogin as login, rolbypassrls as bypass,
+        rolsuper as superuser, pg_has_role(${role}::name, oid, 'MEMBER') as runtime_member,
+        pg_has_role(${role}::name, oid, 'USAGE') as runtime_inherits,
+        pg_has_role(${role}::name, oid, case when current_setting('server_version_num')::integer >= 160000
+          then 'SET' else 'MEMBER' end) as runtime_can_set,
+        has_function_privilege(oid, 'public.record_claim_inbound_object_verification(uuid,text,text,integer,text)', 'EXECUTE') as attest,
+        has_any_column_privilege(oid, 'public.claim_inbound_object_verifications', 'INSERT') as direct_insert
+        from pg_roles where rolname = 'interdomestik_wp12_verifier'`;
+      assert.deepEqual(
+        { ...verifier },
+        {
+          login: false,
+          bypass: false,
+          superuser: false,
+          runtime_member: false,
+          runtime_inherits: false,
+          runtime_can_set: false,
+          attest: true,
+          direct_insert: false,
+        }
+      );
+      const apiVerifiers = await admin`select rolname from pg_roles
+        where rolname in ('anon', 'authenticated', 'service_role')
+          and has_function_privilege(oid, 'public.record_claim_inbound_object_verification(uuid,text,text,integer,text)', 'EXECUTE')`;
+      assert.deepEqual([...apiVerifiers], []);
+    } finally {
+      const [exists] = await admin`select 1 from pg_roles where rolname = ${role}`;
+      if (exists) {
+        await admin.unsafe(`drop owned by "${role}"`);
+        await admin.unsafe(`drop role "${role}"`);
       }
     }
   });

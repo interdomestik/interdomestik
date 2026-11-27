@@ -164,3 +164,5 @@ export async function confirmClaimEvidence(
   }
   return 'replayed';
 }
+
+export { readCurrentMemberVaultEvidence } from './member-vault-evidence';

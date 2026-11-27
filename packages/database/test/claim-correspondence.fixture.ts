@@ -4,9 +4,14 @@ import { fileURLToPath } from 'node:url';
 
 import type postgres from 'postgres';
 
-import { withDisposableClient } from '../src/disposable-client';
 import { migrateJournal, scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
-import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
+import { withRuntime, type RegisterProof } from './claim-correspondence-runtime.fixture';
+
+export {
+  registerTables,
+  withRuntime,
+  type Connection,
+} from './claim-correspondence-runtime.fixture';
 
 type Sql = postgres.Sql | postgres.TransactionSql;
 
@@ -17,12 +22,6 @@ export const foreignActor = 'wp12-foreign-staff';
 export const bucket = 'claim-evidence';
 export const past = '2020-01-01T00:00:00.000Z';
 export const earlier = '2019-12-31T00:00:00.000Z';
-
-export const registerTables = [
-  'claim_authorities',
-  'claim_correspondence',
-  'claim_correspondence_documents',
-] as const;
 
 export async function seedActors(admin: Sql) {
   await admin`
@@ -59,7 +58,10 @@ export async function insertClaim(sql: Sql, options: ClaimOptions = {}) {
 }
 
 export type Case = Awaited<ReturnType<typeof insertClaim>>;
-export type Document = ReturnType<typeof documentInput>;
+export type Document = ReturnType<typeof documentInput> & {
+  access_tenant_id?: string | null;
+  category?: 'evidence' | 'legal';
+};
 export const assignedPath = (claim: Case, id: string) =>
   `pii/tenants/${claim.tenant}/claims/${claim.id}/${id}.pdf`;
 
@@ -207,56 +209,6 @@ export function insertLink(sql: Sql, link: Link) {
 
 export const isolationLevels = ['read committed', 'repeatable read'] as const;
 type Isolation = (typeof isolationLevels)[number];
-
-export type Connection = {
-  admin: postgres.Sql;
-  runtime: postgres.Sql;
-  peer: postgres.Sql;
-  role: string;
-};
-
-type RegisterProof = (connections: Connection) => Promise<void>;
-
-export async function withRuntime(
-  admin: postgres.Sql,
-  work: RegisterProof,
-  runtimeConnections = 1
-) {
-  const role = `wp12_runtime_${randomBytes(6).toString('hex')}`;
-  const roleSql = quoteIdentifier(role);
-  const password = randomBytes(24).toString('hex');
-  const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
-  const database = quoteIdentifier(name);
-  const runtimeUrl = new URL(process.env.DATABASE_URL!);
-  runtimeUrl.pathname = `/${name}`;
-  runtimeUrl.username = role;
-  runtimeUrl.password = password;
-
-  await admin.unsafe(
-    `create role ${roleSql} login noinherit nosuperuser nobypassrls password ${quoteSqlLiteral(password)}`
-  );
-  try {
-    await admin.unsafe(`grant connect, temporary on database ${database} to ${roleSql}`);
-    await admin.unsafe(`grant usage on schema public to ${roleSql}`);
-    // This mirrors the runtime lane's table-wide DML so every mutation trigger is reachable.
-    await admin.unsafe(
-      `grant select, insert, update, delete on claim, claim_documents, claim_case_fields, ${registerTables.join(', ')} to ${roleSql}`
-    );
-    await withDisposableClient(
-      runtimeUrl.toString(),
-      { applicationName: 'wp12_register_runtime', max: runtimeConnections },
-      runtime =>
-        withDisposableClient(
-          runtimeUrl.toString(),
-          { applicationName: 'wp12_register_peer' },
-          peer => work({ admin, runtime, peer, role })
-        )
-    );
-  } finally {
-    await admin.unsafe(`drop owned by ${roleSql}`);
-    await admin.unsafe(`drop role ${roleSql}`);
-  }
-}
 
 type Scope = { home?: string; access?: string; isolation?: Isolation };
 

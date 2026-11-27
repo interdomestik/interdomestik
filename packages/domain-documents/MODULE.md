@@ -36,3 +36,11 @@ When `allocation` is omitted, the legacy format still applies and the writer
 rejects keys the canonical formatter would change.
 PostgreSQL enforces canonical spelling on
 `documents.storage_path` and `claim_documents.file_path`.
+
+## WP-12.1 pilot evidence
+
+Migration `0114_wp12_1_inbound_documents` adds pilot enrollment, upload decisions and received-document records.
+
+Ordinary publication remains a domain-documents write inside the caller's case transaction. The committed visibility decision supplies the canonical evidence coordinates and approved uploader. Confirmation rechecks the case and returns the existing document ID on exact replay. Publication makes the PDF visible through the ordinary case read; inbound correspondence records the receipt separately.
+
+`./claim-evidence` exports `readCurrentMemberVaultEvidence`. Its evidence statement checks the exact home tenant, case and current member before returning MK vault document metadata in the caller's tenant transaction.

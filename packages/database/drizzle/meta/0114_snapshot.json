@@ -1,5 +1,5 @@
 {
-  "id": "b2d23609-a1d2-423e-bb50-a1527336733b",
+  "id": "727b527c-d4e0-40bd-b258-205aaaf1301e",
   "prevId": "e1126061-3a85-4aa0-9521-027cab740d41",
   "version": "7",
   "dialect": "postgresql",
@@ -22629,6 +22629,606 @@
         "exchange_rate_check_windows_approval_ref": {
           "name": "exchange_rate_check_windows_approval_ref",
           "value": "\"exchange_rate_check_windows\".\"approval_ref\" collate \"C\" ~ '^[A-Za-z0-9][A-Za-z0-9._:/+-]{0,255}$'"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.claim_correspondence_received_documents": {
+      "name": "claim_correspondence_received_documents",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "correspondence_id": {
+          "name": "correspondence_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_document_id": {
+          "name": "claim_document_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "claim_received_documents_entry_document_uq": {
+          "name": "claim_received_documents_entry_document_uq",
+          "columns": [
+            {
+              "expression": "correspondence_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "claim_document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "claim_received_documents_case_idx": {
+          "name": "claim_received_documents_case_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "claim_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "correspondence_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "claim_received_documents_document_idx": {
+          "name": "claim_received_documents_document_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "claim_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "claim_document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "claim_received_documents_entry_fk": {
+          "name": "claim_received_documents_entry_fk",
+          "tableFrom": "claim_correspondence_received_documents",
+          "tableTo": "claim_correspondence",
+          "columnsFrom": [
+            "tenant_id",
+            "claim_id",
+            "correspondence_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "claim_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "claim_received_documents_tenant": {
+          "name": "claim_received_documents_tenant",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"claim_correspondence_received_documents\".\"tenant_id\" = (select current_setting('app.current_tenant_id', true))::text\n        and \"claim_correspondence_received_documents\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"claim_correspondence_received_documents\".\"tenant_id\" = (select current_setting('app.current_tenant_id', true))::text\n        and \"claim_correspondence_received_documents\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.claim_correspondence_received_seals": {
+      "name": "claim_correspondence_received_seals",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "correspondence_id": {
+          "name": "correspondence_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "document_count": {
+          "name": "document_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "claim_received_seals_claim_fk": {
+          "name": "claim_received_seals_claim_fk",
+          "tableFrom": "claim_correspondence_received_seals",
+          "tableTo": "claim",
+          "columnsFrom": [
+            "tenant_id",
+            "claim_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "claim_received_seals_tenant": {
+          "name": "claim_received_seals_tenant",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"claim_correspondence_received_seals\".\"tenant_id\" = (select current_setting('app.current_tenant_id', true))::text\n        and \"claim_correspondence_received_seals\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"claim_correspondence_received_seals\".\"tenant_id\" = (select current_setting('app.current_tenant_id', true))::text\n        and \"claim_correspondence_received_seals\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {
+        "claim_received_seals_count_check": {
+          "name": "claim_received_seals_count_check",
+          "value": "\"claim_correspondence_received_seals\".\"document_count\" between 0 and 20"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.claim_inbound_object_verifications": {
+      "name": "claim_inbound_object_verifications",
+      "schema": "",
+      "columns": {
+        "decision_id": {
+          "name": "decision_id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "verified_at": {
+          "name": "verified_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "claim_inbound_object_verifications_decision_fk": {
+          "name": "claim_inbound_object_verifications_decision_fk",
+          "tableFrom": "claim_inbound_object_verifications",
+          "tableTo": "claim_inbound_upload_decisions",
+          "columnsFrom": [
+            "decision_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "claim_inbound_object_verifications_read": {
+          "name": "claim_inbound_object_verifications_read",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "exists (select 1 from public.claim_inbound_upload_decisions as d where d.id = \"claim_inbound_object_verifications\".\"decision_id\")"
+        }
+      },
+      "checkConstraints": {},
+      "isRLSEnabled": true
+    },
+    "public.claim_inbound_pilot_cases": {
+      "name": "claim_inbound_pilot_cases",
+      "schema": "",
+      "columns": {
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "paused": {
+          "name": "paused",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "enrolled_at": {
+          "name": "enrolled_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "legacy_credential_disposition": {
+          "name": "legacy_credential_disposition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "claim_inbound_pilot_cases_claim_fk": {
+          "name": "claim_inbound_pilot_cases_claim_fk",
+          "tableFrom": "claim_inbound_pilot_cases",
+          "tableTo": "claim",
+          "columnsFrom": [
+            "tenant_id",
+            "claim_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "claim_inbound_pilot_cases_read": {
+          "name": "claim_inbound_pilot_cases_read",
+          "as": "PERMISSIVE",
+          "for": "SELECT",
+          "to": [
+            "public"
+          ],
+          "using": "\"claim_inbound_pilot_cases\".\"tenant_id\" = (select current_setting('app.current_tenant_id', true))::text\n        or exists (select 1 from \"claim\" c where c.tenant_id = \"claim_inbound_pilot_cases\".\"tenant_id\" and c.id = \"claim_inbound_pilot_cases\".\"claim_id\"\n          and coalesce(c.access_tenant_id, c.tenant_id) = (select current_setting('app.current_access_tenant_id', true))::text)"
+        }
+      },
+      "checkConstraints": {
+        "claim_inbound_pilot_cases_disposition_check": {
+          "name": "claim_inbound_pilot_cases_disposition_check",
+          "value": "(\"claim_inbound_pilot_cases\".\"legacy_credential_disposition\" is null and \"claim_inbound_pilot_cases\".\"enrolled_at\" is null)\n        or (\"claim_inbound_pilot_cases\".\"legacy_credential_disposition\" is not null\n          and \"claim_inbound_pilot_cases\".\"legacy_credential_disposition\" in ('expired', 'invalidated', 'none-issued'))"
+        }
+      },
+      "isRLSEnabled": true
+    },
+    "public.claim_inbound_upload_decisions": {
+      "name": "claim_inbound_upload_decisions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "tenant_id": {
+          "name": "tenant_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "claim_id": {
+          "name": "claim_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "correlation_id": {
+          "name": "correlation_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "classification": {
+          "name": "classification",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decided_by": {
+          "name": "decided_by",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "role_basis": {
+          "name": "role_basis",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "decided_at": {
+          "name": "decided_at",
+          "type": "timestamp (3) with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "recipient_id": {
+          "name": "recipient_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "uploader_id": {
+          "name": "uploader_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "office_receipt_ref": {
+          "name": "office_receipt_ref",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "document_id": {
+          "name": "document_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bucket": {
+          "name": "bucket",
+          "type": "varchar(128)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_path": {
+          "name": "file_path",
+          "type": "varchar(768)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_name": {
+          "name": "file_name",
+          "type": "varchar(255)",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "file_size": {
+          "name": "file_size",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sha256": {
+          "name": "sha256",
+          "type": "varchar(64)",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "claim_inbound_decisions_correlation_uq": {
+          "name": "claim_inbound_decisions_correlation_uq",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "correlation_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "claim_inbound_decisions_document_uq": {
+          "name": "claim_inbound_decisions_document_uq",
+          "columns": [
+            {
+              "expression": "document_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "claim_inbound_decisions_object_uq": {
+          "name": "claim_inbound_decisions_object_uq",
+          "columns": [
+            {
+              "expression": "bucket",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "file_path",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "claim_inbound_decisions_case_idx": {
+          "name": "claim_inbound_decisions_case_idx",
+          "columns": [
+            {
+              "expression": "tenant_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "claim_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "claim_inbound_decisions_claim_fk": {
+          "name": "claim_inbound_decisions_claim_fk",
+          "tableFrom": "claim_inbound_upload_decisions",
+          "tableTo": "claim",
+          "columnsFrom": [
+            "tenant_id",
+            "claim_id"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "claim_inbound_decisions_actor_fk": {
+          "name": "claim_inbound_decisions_actor_fk",
+          "tableFrom": "claim_inbound_upload_decisions",
+          "tableTo": "user",
+          "columnsFrom": [
+            "tenant_id",
+            "decided_by"
+          ],
+          "columnsTo": [
+            "tenant_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {
+        "claim_inbound_decisions_tenant": {
+          "name": "claim_inbound_decisions_tenant",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "public"
+          ],
+          "using": "\"claim_inbound_upload_decisions\".\"tenant_id\" = (select current_setting('app.current_tenant_id', true))::text\n        and \"claim_inbound_upload_decisions\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text",
+          "withCheck": "\"claim_inbound_upload_decisions\".\"tenant_id\" = (select current_setting('app.current_tenant_id', true))::text\n        and \"claim_inbound_upload_decisions\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))::text"
+        }
+      },
+      "checkConstraints": {
+        "claim_inbound_decisions_basis_check": {
+          "name": "claim_inbound_decisions_basis_check",
+          "value": "(\"claim_inbound_upload_decisions\".\"classification\" = 'intended-for-member' and \"claim_inbound_upload_decisions\".\"role_basis\" = 'staff')\n        or (\"claim_inbound_upload_decisions\".\"classification\" = 'approved-to-show' and \"claim_inbound_upload_decisions\".\"role_basis\" = 'tenant_admin')"
+        },
+        "claim_inbound_decisions_file_check": {
+          "name": "claim_inbound_decisions_file_check",
+          "value": "\"claim_inbound_upload_decisions\".\"file_size\" between 1 and 1048576 and \"claim_inbound_upload_decisions\".\"mime_type\" = 'application/pdf'\n        and \"claim_inbound_upload_decisions\".\"sha256\" ~ '^[a-f0-9]{64}$' and \"claim_inbound_upload_decisions\".\"file_name\" ~ '\\S'\n        and \"claim_inbound_upload_decisions\".\"office_receipt_ref\" ~ '^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$'"
+        },
+        "claim_inbound_decisions_key_check": {
+          "name": "claim_inbound_decisions_key_check",
+          "value": "\"claim_inbound_upload_decisions\".\"document_id\" ~ '^wp12-inbound-[a-f0-9]{32}$'\n        and \"claim_inbound_upload_decisions\".\"file_path\" = 'pii/tenants/' || \"claim_inbound_upload_decisions\".\"tenant_id\" || '/claims/' || \"claim_inbound_upload_decisions\".\"claim_id\" || '/' || \"claim_inbound_upload_decisions\".\"document_id\" || '.pdf'"
         }
       },
       "isRLSEnabled": true

@@ -2,6 +2,8 @@ import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const hoisted = vi.hoisted(() => ({
+  enrolled: vi.fn(),
+  captureException: vi.fn(),
   authGetSession: vi.fn(),
   headers: vi.fn(),
   resolveEvidenceBucketName: vi.fn(),
@@ -12,6 +14,12 @@ const hoisted = vi.hoisted(() => ({
   validateConfirmedClaimUpload: vi.fn(),
 }));
 
+vi.mock('@sentry/nextjs', () => ({ captureException: hoisted.captureException }));
+
+vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
+  isInboundPilotCase: hoisted.enrolled,
+  readClaimUploadPaused: () => Promise.resolve(false),
+}));
 vi.mock('@/lib/tenant-authority.server', () => ({
   authorizeSessionTenant: () =>
     hoisted
@@ -42,6 +50,7 @@ import { confirmAdminUpload, generateAdminUploadUrl } from './evidence-upload';
 describe('admin claim evidence upload actions', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    hoisted.enrolled.mockReset().mockResolvedValue(false);
     hoisted.headers.mockResolvedValue(
       new Headers([
         ['host', 'mk.127.0.0.1.nip.io:3000'],
@@ -83,6 +92,24 @@ describe('admin claim evidence upload actions', () => {
       );
     }
   );
+
+  it('returns a typed failure without signing when the enrollment read fails', async () => {
+    hoisted.authGetSession.mockResolvedValue({
+      user: { id: 'staff-1', tenantId: 'tenant-1', role: 'staff' },
+    });
+    hoisted.enrolled.mockRejectedValueOnce({ code: '57014' });
+    await expect(
+      generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 128)
+    ).resolves.toEqual({
+      success: false,
+      error: 'evidence_upload_failed',
+      status: 500,
+    });
+    expect(hoisted.captureException).toHaveBeenCalledWith(
+      expect.objectContaining({ message: expect.stringContaining('57014') })
+    );
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
+  });
 
   it.each(['member', 'user', 'agent', 'unknown', null, undefined])(
     'rejects excluded role %s before claim access',
@@ -262,5 +289,12 @@ describe('admin claim evidence upload actions', () => {
     });
 
     expect(hoisted.persistClaimDocumentAndQueueWorkflows).not.toHaveBeenCalled();
+  });
+  it('refuses a legacy issuer for an enrolled case before signing', async () => {
+    hoisted.enrolled.mockResolvedValueOnce(true);
+    await expect(
+      generateAdminUploadUrl('claim-1', 'evidence.pdf', 'application/pdf', 100)
+    ).resolves.toMatchObject({ success: false, status: 403 });
+    expect(hoisted.createSignedUploadUrl).not.toHaveBeenCalled();
   });
 });

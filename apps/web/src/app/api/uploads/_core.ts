@@ -1,3 +1,4 @@
+import { isClaimUploadPaused } from '@/features/claims/upload/server/claim-upload-cutover';
 import { and, claims, eq } from '@interdomestik/database';
 import {
   readTenantAuthority,
@@ -107,6 +108,9 @@ export async function createSignedUploadCore(args: {
   const uploadTenant = await resolveUploadTenantId({ authority, claimId, user: session.user });
   if (!uploadTenant.ok) return uploadTenant.result;
   const storageTenantId = uploadTenant.tenantId;
+  if (claimId && (await isClaimUploadPaused(authority, storageTenantId, claimId, 'self-supply'))) {
+    return FORBIDDEN;
+  }
 
   const generatedEvidenceId = nanoid();
   const evidenceId = /^[A-Za-z0-9]/.test(generatedEvidenceId)

@@ -22,6 +22,12 @@ const invalid = { ok: false, code: 'invalid' };
 const conflict = { ok: false, code: 'conflict' };
 
 describe('correspondence replies, follow-ups and reads', () => {
+  it('rejects duplicate received document IDs before querying the case', async () => {
+    const input = { ...inboundInput, receivedDocumentIds: ['doc-a', 'doc-a'] };
+    expect(await recordInboundCorrespondence(caller(), authority, input)).toEqual(invalid);
+    expect(db.statements).toHaveLength(0);
+  });
+
   it('refuses inbound bases and replies outside the case or to inbound correspondence', async () => {
     const session = caller();
     expect(await recordInboundCorrespondence(session, authority, outboundInput)).toEqual(invalid);
@@ -44,14 +50,21 @@ describe('correspondence replies, follow-ups and reads', () => {
       [],
       [{ id: ids.outbound }],
       now,
+      [], // unenrolled case
       [{ id: ids.inbound }],
       admitted,
       [{ ...recorded, id: ids.inbound, direction: 'inbound', inReplyToId: ids.outbound }],
     ];
+    db.results.push([]); // exact-set replay lookup
     const success = { ok: true, correspondenceId: ids.inbound };
     expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
     expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
-    expect(db.statements.filter(item => item.kind === 'insert')).toHaveLength(1);
+    const writes = db.statements.filter(item => item.kind === 'insert');
+    expect(writes).toHaveLength(1);
+    expect(writes[0]?.values).toMatchObject({
+      direction: 'inbound',
+      inReplyToId: ids.outbound,
+    });
   });
 
   it('lower-cases UUID inputs so an identical upper-case retry replays', async () => {
@@ -68,6 +81,8 @@ describe('correspondence replies, follow-ups and reads', () => {
       [],
       [{ id: outbound }],
       now,
+      [{ enrolledAt: new Date(now[0].now), paused: false }],
+      [], // seal insert
       [{ id: ids.inbound }],
       admitted,
       [
@@ -80,10 +95,19 @@ describe('correspondence replies, follow-ups and reads', () => {
         },
       ],
     ];
+    db.results.push([]); // exact-set replay lookup
     const success = { ok: true, correspondenceId: ids.inbound };
     expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
     expect(await recordInboundCorrespondence(session, authority, input)).toEqual(success);
-    expect(db.statements.filter(item => item.kind === 'insert')).toHaveLength(1);
+    const writes = db.statements.filter(item => item.kind === 'insert');
+    expect(writes).toHaveLength(2);
+    expect(writes[0]?.values).toMatchObject({
+      documentCount: 0,
+      correspondenceId: expect.any(String),
+    });
+    expect(writes[1]?.values).toMatchObject({
+      id: (writes[0]?.values as { correspondenceId: string }).correspondenceId,
+    });
   });
 
   it('refuses a cross-case follow-up and detects a stale follow-up compare-and-set', async () => {

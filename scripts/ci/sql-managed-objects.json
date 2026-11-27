@@ -49,7 +49,7 @@
     {
       "key": "fk [\"public\",\"case_scoped_access_grants\",[\"tenant_id\",\"case_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_authorities\",[\"tenant_id\",\"claim_id\",\"evidence_document_id\"],\"public\",\"claim_documents\",[\"tenant_id\",\"claim_id\",\"id\"]]",
@@ -67,39 +67,49 @@
       "migration": "0106_wp12_claim_correspondence"
     },
     {
+      "key": "fk [\"public\",\"claim_correspondence_received_documents\",[\"tenant_id\",\"claim_id\",\"claim_document_id\"],\"public\",\"claim_documents\",[\"tenant_id\",\"claim_id\",\"id\"]]",
+      "value": "delete=restrict update=restrict match=s",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "fk [\"public\",\"claim_correspondence_received_seals\",[\"tenant_id\",\"claim_id\",\"correspondence_id\"],\"public\",\"claim_correspondence\",[\"tenant_id\",\"claim_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s deferrable initially deferred",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
       "key": "fk [\"public\",\"claim_document_ai_extraction_consents\",[\"tenant_id\",\"claim_id\",\"document_id\"],\"public\",\"claim_documents\",[\"tenant_id\",\"claim_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_document_ai_extraction_consents\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_documents\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_escalation_agreements\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_information_requests\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_messages\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_recovery_no_fee_evidence\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_response_requests\",[\"answered_by\"],\"public\",\"user\",[\"id\"]]",
@@ -124,27 +134,27 @@
     {
       "key": "fk [\"public\",\"claim_stage_history\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_threads\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_tracking_tokens\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_transition_evidence\",[\"tenant_id\",\"claim_id\",\"source_document_id\"],\"public\",\"claim_documents\",[\"tenant_id\",\"claim_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"claim_transition_evidence\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"crm_deals\",[\"membership_plan_id\"],\"public\",\"membership_plans\",[\"id\"]]",
@@ -194,7 +204,7 @@
     {
       "key": "fk [\"public\",\"support_handoffs\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=no action update=no action match=s",
-      "migration": "0114_case_tenant_binding"
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"user_locale_preferences\",[\"tenant_id\",\"user_id\"],\"public\",\"user\",[\"tenant_id\",\"id\"]]",
@@ -272,9 +282,99 @@
       "migration": "0106_wp12_claim_correspondence"
     },
     {
+      "key": "function [\"public\",\"claim_inbound_decision_actor_scope_guard_fn()\"]",
+      "value": "2794a5776d269820815372381d7c5e63",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_decision_deadline(p_decided_at timestamp with time zone)\"]",
+      "value": "338fa79ef01620dbb5e2fe6adf5dcf6c",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_decision_guard_fn()\"]",
+      "value": "b51d7a2e42c2a8b55d0a4b4ae0221e2f",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_decision_visible(p_tenant text, p_case text, p_decider text, p_uploader text, p_recipient text, p_document text, p_bucket character varying, p_path character varying)\"]",
+      "value": "59d0d3ec3952608a1583c641a031c40f",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_document_home_guard_fn()\"]",
+      "value": "9ff535afbf383417b0e09dd018bb1df6",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_document_publication_guard_fn()\"]",
+      "value": "4c4fec5c960408b8f012facab8f449e1",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_document_scope_guard_fn()\"]",
+      "value": "7133973a6d99c27913f6b7c5a01356d0",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_enrollment_guard_fn()\"]",
+      "value": "40e0dabd1a48c6b024c4ebcdbe2b8838",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_lock_staff_branch(p_tenant text, p_branch text)\"]",
+      "value": "206cd8048371b76c953c37c8a260533f",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_owner_guard_fn()\"]",
+      "value": "b46c7e3ec9a1c3c3a5a0cd37f3ba6c24",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_polymorphic_guard_fn()\"]",
+      "value": "04afcbe14853be8bbdf7fcdd543b39b4",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_reserved_path(p_path text)\"]",
+      "value": "95923faa888b2782dd53d9aa2467105e",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_staff_branch_allowed(p_tenant text, p_branch text)\"]",
+      "value": "3b84e62c4ba91be518a191abb3492465",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_inbound_staff_scope_guard_fn()\"]",
+      "value": "4fa3c63875f199d204f0786a2017fcae",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
       "key": "function [\"public\",\"claim_intake_category_guard_fn()\"]",
       "value": "434008e412a5c0cca0844c3a85c28151",
       "migration": "0106_wp12_claim_correspondence"
+    },
+    {
+      "key": "function [\"public\",\"claim_received_document_actor_scope_guard_fn()\"]",
+      "value": "18ba9ecdc559f503e2f1f38990c8edf2",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_received_document_guard_fn()\"]",
+      "value": "4ed5b7ae85686d24a4c584b4bce54ede",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_received_seal_guard_fn()\"]",
+      "value": "4f3180b3c323296af2c81337423c167a",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "function [\"public\",\"claim_received_set_count_fn()\"]",
+      "value": "29a38994ab7e724373d36b18fc94a358",
+      "migration": "0114_wp12_1_inbound_documents"
     },
     {
       "key": "function [\"public\",\"claim_register_reject_mutation_fn()\"]",
@@ -415,6 +515,11 @@
       "key": "function [\"public\",\"provision_exchange_rate_book_fn()\"]",
       "value": "9825802eb7a6c6077fe83f894dc9f95c",
       "migration": "0101_wp07_exchange_rates"
+    },
+    {
+      "key": "function [\"public\",\"record_claim_inbound_object_verification(p_decision_id uuid, p_bucket text, p_path text, p_file_size integer, p_sha256 text)\"]",
+      "value": "85d9292eaa17743954a2491f6f515aa1",
+      "migration": "0114_wp12_1_inbound_documents"
     },
     {
       "key": "function [\"public\",\"sponsor_handover_cancel_attempts_guard_fn()\"]",
@@ -772,6 +877,26 @@
       "migration": "0085_case_scoped_access_grants"
     },
     {
+      "key": "policy [\"public\",\"claim\",\"claim_inbound_guard_case_lock\"]",
+      "value": "permissive for update to [\"interdomestik_wp12_guard\"] using true check false",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "policy [\"public\",\"claim\",\"claim_inbound_guard_case_no_update\"]",
+      "value": "restrictive for update to [\"interdomestik_wp12_guard\"] using true check false",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "policy [\"public\",\"claim\",\"claim_inbound_guard_case_read\"]",
+      "value": "permissive for select to [\"interdomestik_wp12_guard\"] using true check -",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "policy [\"public\",\"claim\",\"claim_inbound_receipt_writer_no_case_update\"]",
+      "value": "restrictive for update to [\"interdomestik_wp12_receipt_writer\"] using true check false",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
       "key": "policy [\"public\",\"claim\",\"tenant_delete_claim\"]",
       "value": "permissive for delete to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting)) check -",
       "migration": "0086_access_tenant_divergent_tables"
@@ -800,6 +925,11 @@
       "key": "policy [\"public\",\"claim_document_ai_extraction_consents\",\"tenant_isolation_claim_document_ai_extraction_consents\"]",
       "value": "permissive for all to [\"public\"] using (tenant_id = ( SELECT current_setting('app.current_tenant_id'::text, true) AS current_setting)) check (tenant_id = ( SELECT current_setting('app.current_tenant_id'::text, true) AS current_setting))",
       "migration": "0087_claim_document_ai_extraction_consents"
+    },
+    {
+      "key": "policy [\"public\",\"claim_documents\",\"claim_documents_inbound_guard_read\"]",
+      "value": "permissive for select to [\"interdomestik_wp12_guard\"] using (id ~~ 'wp12-inbound-%'::text) check -",
+      "migration": "0114_wp12_1_inbound_documents"
     },
     {
       "key": "policy [\"public\",\"claim_documents\",\"tenant_delete_claim_documents\"]",
@@ -840,6 +970,26 @@
       "key": "policy [\"public\",\"claim_escalation_agreements\",\"tenant_write_claim_escalation_agreements\"]",
       "value": "permissive for insert to [\"public\"] using - check (tenant_id = ( SELECT current_setting('app.current_access_tenant_id'::text, true) AS current_setting))",
       "migration": "0086_access_tenant_divergent_tables"
+    },
+    {
+      "key": "policy [\"public\",\"claim_inbound_object_verifications\",\"claim_inbound_object_verifications_record\"]",
+      "value": "permissive for insert to [\"interdomestik_wp12_receipt_writer\"] using - check (EXISTS ( SELECT 1\n   FROM claim_inbound_upload_decisions d\n  WHERE (d.id = claim_inbound_object_verifications.decision_id)))",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "policy [\"public\",\"claim_inbound_pilot_cases\",\"claim_inbound_pilot_cases_guard\"]",
+      "value": "permissive for select to [\"interdomestik_wp12_guard\"] using true check -",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "policy [\"public\",\"claim_inbound_upload_decisions\",\"claim_inbound_decisions_guard\"]",
+      "value": "permissive for select to [\"interdomestik_wp12_guard\"] using true check -",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "policy [\"public\",\"claim_inbound_upload_decisions\",\"claim_inbound_decisions_principal\"]",
+      "value": "restrictive for select to [\"public\"] using claim_inbound_decision_visible(tenant_id, claim_id, decided_by, uploader_id, recipient_id, document_id, bucket, file_path) check -",
+      "migration": "0114_wp12_1_inbound_documents"
     },
     {
       "key": "policy [\"public\",\"claim_messages\",\"tenant_isolation_claim_messages\"]",
@@ -1677,6 +1827,31 @@
       "migration": "0106_wp12_claim_correspondence"
     },
     {
+      "key": "rls-force [\"public\",\"claim_correspondence_received_documents\"]",
+      "value": "forced",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "rls-force [\"public\",\"claim_correspondence_received_seals\"]",
+      "value": "forced",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "rls-force [\"public\",\"claim_inbound_object_verifications\"]",
+      "value": "forced",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "rls-force [\"public\",\"claim_inbound_pilot_cases\"]",
+      "value": "forced",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "rls-force [\"public\",\"claim_inbound_upload_decisions\"]",
+      "value": "forced",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
       "key": "rls-force [\"public\",\"claim_response_requests\"]",
       "value": "forced",
       "migration": "0105_wp11_notification_deliveries"
@@ -1827,6 +2002,11 @@
       "migration": "0034_invoice_append_only_ledger_invariants"
     },
     {
+      "key": "trigger [\"public\",\"claim\",\"claim_inbound_owner_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_owner_guard AFTER UPDATE ON public.claim FOR EACH ROW EXECUTE FUNCTION claim_inbound_owner_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
       "key": "trigger [\"public\",\"claim\",\"claim_intake_category_guard\"]",
       "value": "CREATE TRIGGER claim_intake_category_guard BEFORE INSERT OR UPDATE OF category, case_lifecycle_state ON public.claim FOR EACH ROW EXECUTE FUNCTION claim_intake_category_guard_fn()",
       "migration": "0106_wp12_claim_correspondence"
@@ -1892,14 +2072,94 @@
       "migration": "0106_wp12_claim_correspondence"
     },
     {
+      "key": "trigger [\"public\",\"claim_correspondence_received_documents\",\"claim_received_document_actor_scope_guard\"]",
+      "value": "CREATE TRIGGER claim_received_document_actor_scope_guard AFTER INSERT ON public.claim_correspondence_received_documents FOR EACH ROW EXECUTE FUNCTION claim_received_document_actor_scope_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_correspondence_received_documents\",\"claim_received_document_count\"]",
+      "value": "CREATE CONSTRAINT TRIGGER claim_received_document_count AFTER INSERT ON public.claim_correspondence_received_documents DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION claim_received_set_count_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_correspondence_received_documents\",\"claim_received_document_guard\"]",
+      "value": "CREATE TRIGGER claim_received_document_guard BEFORE INSERT ON public.claim_correspondence_received_documents FOR EACH ROW EXECUTE FUNCTION claim_received_document_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_correspondence_received_documents\",\"claim_received_documents_immutable\"]",
+      "value": "CREATE TRIGGER claim_received_documents_immutable BEFORE DELETE OR UPDATE ON public.claim_correspondence_received_documents FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_correspondence_received_seals\",\"claim_received_seal_count\"]",
+      "value": "CREATE CONSTRAINT TRIGGER claim_received_seal_count AFTER INSERT ON public.claim_correspondence_received_seals DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION claim_received_set_count_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_correspondence_received_seals\",\"claim_received_seal_guard\"]",
+      "value": "CREATE TRIGGER claim_received_seal_guard BEFORE INSERT ON public.claim_correspondence_received_seals FOR EACH ROW EXECUTE FUNCTION claim_received_seal_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_correspondence_received_seals\",\"claim_received_seals_immutable\"]",
+      "value": "CREATE TRIGGER claim_received_seals_immutable BEFORE DELETE OR UPDATE ON public.claim_correspondence_received_seals FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
       "key": "trigger [\"public\",\"claim_documents\",\"claim_documents_coordinates_frozen\"]",
       "value": "CREATE TRIGGER claim_documents_coordinates_frozen AFTER UPDATE ON public.claim_documents FOR EACH ROW EXECUTE FUNCTION claim_documents_coordinates_frozen_fn()",
       "migration": "0106_wp12_claim_correspondence"
     },
     {
+      "key": "trigger [\"public\",\"claim_documents\",\"claim_inbound_document_home_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_document_home_guard AFTER INSERT ON public.claim_documents FOR EACH ROW EXECUTE FUNCTION claim_inbound_document_home_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_documents\",\"claim_inbound_document_publication_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_document_publication_guard AFTER INSERT ON public.claim_documents FOR EACH ROW EXECUTE FUNCTION claim_inbound_document_publication_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_documents\",\"claim_inbound_document_scope_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_document_scope_guard AFTER UPDATE ON public.claim_documents FOR EACH ROW EXECUTE FUNCTION claim_inbound_document_scope_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_documents\",\"claim_inbound_staff_scope_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_staff_scope_guard AFTER INSERT ON public.claim_documents FOR EACH ROW WHEN (((new.id ~~ 'wp12-inbound-%'::text) OR claim_inbound_reserved_path(new.file_path))) EXECUTE FUNCTION claim_inbound_staff_scope_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_inbound_pilot_cases\",\"claim_inbound_enrollment_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_enrollment_guard AFTER INSERT OR DELETE OR UPDATE ON public.claim_inbound_pilot_cases FOR EACH ROW EXECUTE FUNCTION claim_inbound_enrollment_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_inbound_upload_decisions\",\"claim_inbound_decision_actor_scope_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_decision_actor_scope_guard AFTER INSERT ON public.claim_inbound_upload_decisions FOR EACH ROW EXECUTE FUNCTION claim_inbound_decision_actor_scope_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_inbound_upload_decisions\",\"claim_inbound_decision_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_decision_guard BEFORE INSERT ON public.claim_inbound_upload_decisions FOR EACH ROW EXECUTE FUNCTION claim_inbound_decision_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
+      "key": "trigger [\"public\",\"claim_inbound_upload_decisions\",\"claim_inbound_decisions_immutable\"]",
+      "value": "CREATE TRIGGER claim_inbound_decisions_immutable BEFORE DELETE OR UPDATE ON public.claim_inbound_upload_decisions FOR EACH ROW EXECUTE FUNCTION claim_register_reject_mutation_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
+    },
+    {
       "key": "trigger [\"public\",\"claim_transition_evidence\",\"wp16_claim_transition_evidence_runtime_id_guard\"]",
       "value": "CREATE TRIGGER wp16_claim_transition_evidence_runtime_id_guard BEFORE UPDATE OF id ON public.claim_transition_evidence FOR EACH STATEMENT WHEN ((CURRENT_USER = 'interdomestik_runtime_rls'::name)) EXECUTE FUNCTION sponsor_reject_update_fn()",
       "migration": "0111_wp16_1_sponsor_runtime_grants"
+    },
+    {
+      "key": "trigger [\"public\",\"documents\",\"claim_inbound_polymorphic_guard\"]",
+      "value": "CREATE TRIGGER claim_inbound_polymorphic_guard AFTER INSERT OR UPDATE ON public.documents FOR EACH ROW EXECUTE FUNCTION claim_inbound_polymorphic_guard_fn()",
+      "migration": "0114_wp12_1_inbound_documents"
     },
     {
       "key": "trigger [\"public\",\"exchange_rate_books\",\"exchange_rate_books_append_only\"]",

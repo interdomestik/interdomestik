@@ -1,3 +1,5 @@
+import { InboundEvidenceUploadForm } from '@/features/claims/components/InboundEvidenceUploadForm';
+import { isInboundPilotCase } from '@interdomestik/domain-claims/claims/inbound-upload';
 import {
   readBranchCorrespondenceSummary,
   readStaffCaseRegister,
@@ -82,6 +84,7 @@ async function StaffRegister({
     claimId,
     correspondencePage
   );
+  const inboundPilot = canWrite && authority ? await isInboundPilotCase(authority, claimId) : false;
   const documentOptions = documents ?? [];
   const citedDocuments = citationNames.ok ? citationNames.documents : [];
 
@@ -94,7 +97,13 @@ async function StaffRegister({
       )}
       {!citationNames.ok && <RegisterReadError code={citationNames.code} />}
       {canWrite && documents === null && <RegisterReadError code="INTERNAL_SERVER_ERROR" />}
-      {canWrite && authorities.ok && <ClaimRegisterDocumentUpload claimId={claimId} />}
+      {canWrite &&
+        authorities.ok &&
+        (inboundPilot ? (
+          <InboundEvidenceUploadForm claimId={claimId} mode="staff" />
+        ) : (
+          <ClaimRegisterDocumentUpload claimId={claimId} />
+        ))}
       {authorities.ok ? (
         <ClaimAuthoritiesPanel
           claimId={claimId}
@@ -128,6 +137,7 @@ async function StaffRegister({
           documents={documentOptions}
           entries={correspondence.entries}
           maxSharedDocuments={MAX_SHARED_DOCUMENTS}
+          inboundPilot={inboundPilot}
         />
       )}
     </>

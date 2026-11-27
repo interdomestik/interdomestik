@@ -136,6 +136,22 @@
       "title": "Correspondence summary",
       "total": "Correspondence entries • {total}",
       "latest": "Showing the latest dates: {shown} of {total}"
+    },
+    "inbound": {
+      "received": "Received documents",
+      "selection": "Selected documents",
+      "empty": "No approved PDFs available.",
+      "find": "Find approved PDFs",
+      "unavailable": "Document unavailable",
+      "title": "Insurer PDF visibility",
+      "custody": "Held — awaiting member-visibility decision. Keep the file in office custody until it is approved.",
+      "file": "PDF file",
+      "oversize": "This file exceeds 1 MiB. Keep it in office custody.",
+      "officeRef": "Office receipt reference",
+      "intended": "Record intended-for-member decision",
+      "approved": "Record approved-to-show decision",
+      "decisionRef": "Visibility decision reference",
+      "upload": "Upload approved PDF"
     }
   }
 }

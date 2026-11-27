@@ -6,6 +6,7 @@ import postgres from 'postgres';
 
 import { mintTestTenantAuthority } from '../src/testing/tenant-authority';
 import {
+  grantInboundDocumentPathCheck,
   quoteIdentifier,
   quoteSqlLiteral,
   TEST_DB_PASSWORD,
@@ -95,6 +96,7 @@ export async function seedDraftFixtures(
   );
   await admin.unsafe(`grant usage on schema public to ${role}`);
   await admin.unsafe(`grant select, insert, update on "claim", "claim_documents" to ${role}`);
+  await admin.unsafe(grantInboundDocumentPathCheck);
   const userRows = users.map(([id, tenantId, userRole]) => ({
     id,
     tenant_id: tenantId,
