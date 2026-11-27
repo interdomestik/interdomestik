@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import type postgres from 'postgres';
 
 import {
   approve,
@@ -11,6 +12,7 @@ import {
   publish,
   setActor,
 } from './claim-correspondence-inbound-pilot.fixture';
+import { withInboundJournal114 } from './claim-correspondence-inbound-reservation.fixture';
 import {
   documentInput,
   foreignActor,
@@ -30,7 +32,55 @@ const wrongCase = { code: 'P1210' };
 const frozenScope = { code: 'P1212' };
 const frozenOwner = { code: 'P1213' };
 
+async function withPeerEnrollmentHidden<T>(
+  { admin, role }: Connection,
+  claimId: string,
+  run: () => Promise<T>
+) {
+  await admin.unsafe(`create policy wp12_test_hidden_enrollment on claim_inbound_pilot_cases
+    as restrictive for select to ${quoteIdentifier(role)}
+    using (claim_id <> ${quoteSqlLiteral(claimId)}
+      or current_setting('application_name') <> 'wp12_register_peer')`);
+  try {
+    return await run();
+  } finally {
+    await admin`drop policy wp12_test_hidden_enrollment on claim_inbound_pilot_cases`;
+  }
+}
+
+async function proveHiddenEnrollmentRefusal(connections: Connection) {
+  const { admin, peer } = connections;
+  const claim = await enrolledCase(admin);
+  const attempt = documentInput(claim);
+  const readState = () => admin`select c."userId" as owner, to_jsonb(p) as enrollment,
+    exists (select 1 from claim_documents where id = ${attempt.id}) as persisted
+    from claim c join claim_inbound_pilot_cases p
+      on p.tenant_id = c.tenant_id and p.claim_id = c.id
+    where c.id = ${claim.id}`;
+  const before = await readState();
+  assert.equal(before[0]?.owner, ownerA);
+  assert.ok(before[0]?.enrollment.enrolled_at && before[0].enrollment.paused === false);
+  assert.equal(before[0]?.persisted, false);
+  await withPeerEnrollmentHidden(connections, claim.id, () =>
+    assert.rejects(
+      restricted(peer, async tx => {
+        await setActor(tx);
+        assert.equal((await tx`select id from claim where id = ${claim.id}`).length, 1);
+        assert.equal(
+          (await tx`select claim_id from claim_inbound_pilot_cases where claim_id = ${claim.id}`)
+            .length,
+          0
+        );
+        await insertDocument(tx, attempt);
+      }),
+      wrongCase
+    )
+  );
+  assert.deepEqual(await readState(), before);
+}
+
 export async function provePublishedScope(connections: Connection) {
+  await proveHiddenEnrollmentRefusal(connections);
   const { admin, runtime, peer, role } = connections;
   const classifications = ['intended-for-member', 'approved-to-show'] as const;
 
@@ -42,9 +92,10 @@ export async function provePublishedScope(connections: Connection) {
       wrongCase
     );
     const document = await approve(connections, claim, classification);
+    assert.equal(await attest(admin, document), true);
     await assert.rejects(
       restricted(runtime, tx => insertDocument(tx, document)),
-      reserved
+      { ...reserved, message: 'Reserved pilot document is outside assigned staff scope' }
     );
     await assert.rejects(
       restricted(runtime, tx => publish(tx, { ...document, uploaded_by: ownerB })),
@@ -58,7 +109,6 @@ export async function provePublishedScope(connections: Connection) {
       restricted(runtime, tx => publish(tx, { ...document, category: 'legal' })),
       reserved
     );
-    assert.equal(await attest(admin, document), true);
     await restricted(runtime, tx => publish(tx, document, explicitHome));
     const frozen = [ownerB, explicitHome ? null : homeTenant, 'legal'] as const;
     await assert.rejects(
@@ -152,42 +202,99 @@ export async function provePublishedScope(connections: Connection) {
   assert.deepEqual({ ...grants }, { enroll: false, edit: false, date: false, lookup: false });
 }
 
-export async function proveEnrollmentSnapshot({ admin, runtime, peer }: Connection) {
-  await runSequentially([false, true], async staged => {
-    const claim = await insertClaim(admin);
-    const writer = staged ? { ...claim, tenant: foreignTenant, user: foreignActor } : claim;
-    if (staged) {
-      await admin`insert into claim_inbound_pilot_cases (tenant_id, claim_id, paused)
+type EnrollmentRace = 'first enrollment' | 'hidden staged activation' | 'hidden joined activation';
+
+async function proveEnrollmentRace(connections: Connection, race: EnrollmentRace) {
+  const { admin, runtime, peer } = connections;
+  const claim = await insertClaim(admin);
+  const legacyForeign = race === 'hidden staged activation';
+  const hideJoinedEnrollment = race === 'hidden joined activation';
+  const writer = legacyForeign ? { ...claim, tenant: foreignTenant, user: foreignActor } : claim;
+  const staleDocument = documentInput(writer);
+  const freshDocument = documentInput(claim);
+  const readEnrollment = async (sql: postgres.Sql | postgres.TransactionSql) => [
+    ...(await sql`select tenant_id, extract(epoch from enrolled_at)::text as enrolled_at,
+      paused, legacy_credential_disposition
+      from claim_inbound_pilot_cases where claim_id = ${claim.id}`),
+  ];
+
+  const initial =
+    race === 'first enrollment'
+      ? []
+      : [
+          {
+            tenant_id: claim.tenant,
+            enrolled_at: null,
+            paused: true,
+            legacy_credential_disposition: null,
+          },
+        ];
+  if (initial.length) {
+    await admin`insert into claim_inbound_pilot_cases (tenant_id, claim_id, paused)
         values (${claim.tenant}, ${claim.id}, true)`;
-    }
-    await restricted(
+  }
+  // The privileged reader establishes that the legacy foreign writer's empty view hides a real row.
+  assert.deepEqual(await readEnrollment(admin), initial);
+  const staleView = legacyForeign || hideJoinedEnrollment ? [] : initial;
+
+  const activatePastSnapshot = () =>
+    restricted(
       peer,
       async tx => {
         await setActor(tx, writer.user);
-        assert.equal(
-          (
-            await tx`select claim_id from claim_inbound_pilot_cases
-        where claim_id = ${claim.id} and enrolled_at is not null`
-          ).length,
-          0
-        );
+        assert.deepEqual(await readEnrollment(tx), staleView);
         await enroll(admin, claim);
+
+        const freshView = await restricted(runtime, fresh => readEnrollment(fresh));
+        const [enrollment] = freshView;
+        assert.match(enrollment?.enrolled_at ?? '', /^\d+(?:\.\d+)?$/u);
+        assert.deepEqual(freshView, [
+          {
+            tenant_id: claim.tenant,
+            enrolled_at: enrollment.enrolled_at,
+            paused: false,
+            legacy_credential_disposition: 'none-issued',
+          },
+        ]);
+        assert.deepEqual(await readEnrollment(tx), staleView);
         await assert.rejects(
-          tx.savepoint(savepoint => insertDocument(savepoint, documentInput(writer))),
+          tx.savepoint(savepoint => insertDocument(savepoint, staleDocument)),
           { code: '40001' }
         );
+        return freshView;
       },
       { home: writer.tenant, isolation: 'repeatable read' }
     );
-    await assert.rejects(
-      restricted(runtime, async tx => {
-        await setActor(tx);
-        await insertDocument(tx, documentInput(claim));
-      }),
-      wrongCase
-    );
-    const [row] =
-      await admin`select count(*)::int as count from claim_documents where claim_id = ${claim.id}`;
-    assert.equal(row.count, 0);
+
+  const active = hideJoinedEnrollment
+    ? await withPeerEnrollmentHidden(connections, claim.id, activatePastSnapshot)
+    : await activatePastSnapshot();
+
+  const assertUnchanged = async () => {
+    const [result] = await admin`select c."userId" as owner, exists (
+      select 1 from claim_documents where claim_id = c.id
+        or id in (${staleDocument.id}, ${freshDocument.id})
+    ) as persisted from claim c where c.id = ${claim.id}`;
+    assert.deepEqual({ ...result }, { owner: claim.user, persisted: false });
+    assert.deepEqual(await readEnrollment(admin), active);
+  };
+  await assertUnchanged();
+  await assert.rejects(
+    restricted(runtime, async tx => {
+      await setActor(tx);
+      await insertDocument(tx, freshDocument);
+    }),
+    wrongCase
+  );
+  await assertUnchanged();
+}
+
+export async function proveEnrollmentSnapshot(connections: Connection) {
+  await withInboundJournal114(async legacy => {
+    await proveEnrollmentRace(legacy, 'first enrollment');
+    await proveEnrollmentRace(legacy, 'hidden staged activation');
   });
+  await runSequentially(['first enrollment', 'hidden joined activation'] as const, race =>
+    proveEnrollmentRace(connections, race)
+  );
 }

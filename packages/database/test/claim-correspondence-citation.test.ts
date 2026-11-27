@@ -124,6 +124,32 @@ async function proveFreeze(t: TestContext, { admin, runtime }: Connection) {
     }
   );
 
+  await t.test('uncited tenant updates exercise the home FK and the freeze', async () => {
+    const claim = await insertClaim(admin);
+    const uncited = await restricted(runtime, tx => insertDocument(tx, documentInput(claim)));
+
+    await assert.rejects(
+      admin`update claim_documents set tenant_id = ${foreignTenant} where id = ${uncited.id}`,
+      foreignKey('claim_documents_case_home_fk'),
+      'tenant change that breaks the home binding'
+    );
+
+    // Move the claim in the same statement so the home FK sees a matching pair when it checks.
+    // The only document coordinate that changes is tenant_id.
+    await assert.rejects(
+      admin`with moved_claim as (
+        update claim set tenant_id = ${foreignTenant} where id = ${claim.id}
+        returning id, tenant_id
+      )
+      update claim_documents as document
+      set tenant_id = moved_claim.tenant_id
+      from moved_claim
+      where document.id = ${uncited.id} and document.claim_id = moved_claim.id`,
+      frozen,
+      'tenant change that preserves the home binding'
+    );
+  });
+
   await t.test(
     'identity changes are refused: by the freeze, or by RESTRICT when cited',
     async () => {
@@ -137,11 +163,6 @@ async function proveFreeze(t: TestContext, { admin, runtime }: Connection) {
         return { evidence, uncited };
       });
       // The owner bypasses RLS, so only the trigger and the keys can refuse these updates.
-      await assert.rejects(
-        admin`update claim_documents set tenant_id = ${foreignTenant} where id = ${uncited.id}`,
-        frozen,
-        'uncited tenant_id only'
-      );
       for (const patch of [
         { claim_id: otherClaim.id },
         { tenant_id: foreignTenant, claim_id: foreignClaim.id },

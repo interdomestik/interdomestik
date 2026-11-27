@@ -47,6 +47,11 @@
       "migration": "0099_acq3b_sponsor_seats"
     },
     {
+      "key": "fk [\"public\",\"case_scoped_access_grants\",[\"tenant_id\",\"case_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
       "key": "fk [\"public\",\"claim_authorities\",[\"tenant_id\",\"claim_id\",\"evidence_document_id\"],\"public\",\"claim_documents\",[\"tenant_id\",\"claim_id\",\"id\"]]",
       "value": "delete=restrict update=restrict match=s",
       "migration": "0106_wp12_claim_correspondence"
@@ -72,6 +77,41 @@
       "migration": "0114_wp12_1_inbound_documents"
     },
     {
+      "key": "fk [\"public\",\"claim_document_ai_extraction_consents\",[\"tenant_id\",\"claim_id\",\"document_id\"],\"public\",\"claim_documents\",[\"tenant_id\",\"claim_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
+      "key": "fk [\"public\",\"claim_document_ai_extraction_consents\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
+      "key": "fk [\"public\",\"claim_documents\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
+      "key": "fk [\"public\",\"claim_escalation_agreements\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
+      "key": "fk [\"public\",\"claim_information_requests\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
+      "key": "fk [\"public\",\"claim_messages\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
+      "key": "fk [\"public\",\"claim_recovery_no_fee_evidence\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
       "key": "fk [\"public\",\"claim_response_requests\",[\"answered_by\"],\"public\",\"user\",[\"id\"]]",
       "value": "delete=set null update=no action match=s",
       "migration": "0105_wp11_notification_deliveries"
@@ -90,6 +130,31 @@
       "key": "fk [\"public\",\"claim_response_requests\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
       "migration": "0105_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"claim_stage_history\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
+      "key": "fk [\"public\",\"claim_threads\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
+      "key": "fk [\"public\",\"claim_tracking_tokens\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
+      "key": "fk [\"public\",\"claim_transition_evidence\",[\"tenant_id\",\"claim_id\",\"source_document_id\"],\"public\",\"claim_documents\",[\"tenant_id\",\"claim_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
+    },
+    {
+      "key": "fk [\"public\",\"claim_transition_evidence\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"crm_deals\",[\"membership_plan_id\"],\"public\",\"membership_plans\",[\"id\"]]",
@@ -135,6 +200,11 @@
       "key": "fk [\"public\",\"support_handoff_first_responses\",[\"tenant_id\",\"handoff_id\"],\"public\",\"support_handoffs\",[\"tenant_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
       "migration": "0105_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"support_handoffs\",[\"tenant_id\",\"claim_id\"],\"public\",\"claim\",[\"tenant_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0115_case_tenant_binding"
     },
     {
       "key": "fk [\"public\",\"user_locale_preferences\",[\"tenant_id\",\"user_id\"],\"public\",\"user\",[\"tenant_id\",\"id\"]]",

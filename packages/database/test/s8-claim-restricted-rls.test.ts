@@ -2,9 +2,11 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 
 import { eq, inArray, sql } from 'drizzle-orm';
+import postgres from 'postgres';
 
 import { claimMessages, claims, claimThreads } from '../src/schema';
 import type { TenantTransaction } from '../src/tenant';
+import { homeKey, type ChildTable } from './case-tenant-binding.fixture';
 import { TEST_DB_ROLE } from './rls-test-connection';
 import {
   KS_TENANT_ID,
@@ -16,6 +18,15 @@ const RLS_VIOLATION = '42501';
 function pgCode(error: unknown): string | undefined {
   const cause = (error as { cause?: { code?: string } }).cause;
   return cause?.code ?? (error as { code?: string }).code;
+}
+
+function caseHomeViolation(table: ChildTable) {
+  return (error: unknown) => {
+    assert.ok(error instanceof Error && error.cause instanceof postgres.PostgresError);
+    assert.equal(error.cause.code, '23503');
+    assert.equal(error.cause.constraint_name, homeKey(table));
+    return true;
+  };
 }
 
 // Plan070 U2-b: restricted-login SQL proof on the S8 claim tables. The connection is a LOGIN
@@ -203,29 +214,34 @@ test('S8 claim tables confine a restricted LOGIN role to its access tenant', asy
       assert.deepEqual([claim?.tenantId, claim?.accessTenantId], [KS_TENANT_ID, null]);
     });
 
-    const reparentGap = {
-      todo: 'claim_id references claim(id) only; needs a (tenant_id, claim_id) key (owner decision)',
-    };
-    await t.test('reparenting a message onto a foreign-tenant claim is rejected', reparentGap, () =>
-      assert.rejects(
+    await t.test('reparenting a message onto a foreign-tenant claim is rejected', async () => {
+      await assert.rejects(
         asTenant(KS_TENANT_ID, tx =>
           tx
             .update(claimMessages)
             .set({ claimId: mk.claimId })
             .where(eq(claimMessages.id, ks.messageId))
-        )
-      )
-    );
-    await t.test('reparenting a thread onto a foreign-tenant claim is rejected', reparentGap, () =>
-      assert.rejects(
+        ),
+        caseHomeViolation('claim_messages')
+      );
+      assert.equal((await adminMessage(ks.messageId))?.claimId, ks.claimId);
+    });
+    await t.test('reparenting a thread onto a foreign-tenant claim is rejected', async () => {
+      await assert.rejects(
         asTenant(KS_TENANT_ID, tx =>
           tx
             .update(claimThreads)
             .set({ claimId: mk.claimId })
             .where(eq(claimThreads.id, ks.threadId))
-        )
-      )
-    );
+        ),
+        caseHomeViolation('claim_threads')
+      );
+      const [thread] = await adminDb
+        .select()
+        .from(claimThreads)
+        .where(eq(claimThreads.id, ks.threadId));
+      assert.equal(thread?.claimId, ks.claimId);
+    });
   } finally {
     await session.close();
   }
