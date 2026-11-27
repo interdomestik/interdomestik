@@ -7,37 +7,45 @@ const signal = (value: string | undefined) => value?.trim().toLowerCase() || und
 /**
  * Hosted staging must never mail a real inbox by accident, so every recipient must be on
  * EMAIL_RECIPIENT_ALLOWLIST there. Decided only from server-side deployment variables, failing
- * closed: any staging or preview signal (also when another signal says production), and any
- * hosted deployment that is not positively production, is gated. "Positively production" mirrors
- * isProductionEmailDeployment in apps/web/src/lib/email-link-origins.ts (not importable here,
- * R-15). Local development, CI and local E2E carry no hosted or staging signal and are unchanged.
+ * closed: the gate is off only for a process with no deployment marker other than a recognised
+ * local one, or for a positively production deployment. Any staging, preview or unrecognised
+ * marker gates, also when another marker says production. "Positively production" mirrors
+ * isProductionEmailDeployment in apps/web/src/lib/email-link-origins.ts (not importable, R-15).
  */
 export function recipientAllowListActive(env: Env = process.env): boolean {
   const vercelEnv = signal(env.VERCEL_ENV);
   const targetEnv = signal(env.VERCEL_TARGET_ENV);
   const deployEnv = signal(env.INTERDOMESTIK_DEPLOY_ENV);
-  const signals = [vercelEnv, targetEnv, deployEnv];
-  if (signals.some(value => value === 'staging' || value === 'preview')) return true;
+  if (deployEnv && !UNGATED_DEPLOY_ENVS.has(deployEnv)) return true;
+  if (targetEnv && targetEnv !== 'production') return true;
+  if (vercelEnv && vercelEnv !== 'production') return true;
   const hosted = env.VERCEL === '1' || Boolean(env.VERCEL_URL?.trim()) || Boolean(vercelEnv);
-  if (!hosted) return false;
-  return !(vercelEnv === 'production' && (!targetEnv || targetEnv === 'production'));
+  return hosted && vercelEnv !== 'production';
 }
 
-// Matching is case-insensitive for the whole address. Local part: RFC 5322 dot-atom only (no
-// quoted strings). Domain: DNS host name with at least two labels.
-const LOCAL_PART = /^[a-z0-9!#$%&'*+/=?^_`{|}~-]+(?:\.[a-z0-9!#$%&'*+/=?^_`{|}~-]+)*$/;
-const DOMAIN =
-  /^(?=.{1,253}$)(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/;
+const UNGATED_DEPLOY_ENVS: ReadonlySet<string> = new Set(['local', 'development', 'production']);
 
-/** Lower-cased `local@domain` when the address is a plain dot-atom mailbox, otherwise null. */
+// ASCII only, validated before case folding (toLowerCase maps some non-ASCII letters, such as
+// the Kelvin sign, onto ASCII). Local part: RFC 5322 dot-atom (no quoted strings). Domain: DNS
+// host name with at least two labels. Matching is then case-insensitive for the whole address.
+const ATOM = "[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+";
+const LOCAL_PART = new RegExp(`^${ATOM}(?:\\.${ATOM})*$`);
+const LABEL = '[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?';
+const DOMAIN = new RegExp(`^(?=.{1,253}$)(?:${LABEL}\\.)+${LABEL}$`);
+const asDomain = (value: string) => {
+  const domain = value.trim().replace(/\.$/, '');
+  return DOMAIN.test(domain) ? domain.toLowerCase() : null;
+};
+
+/** Lower-cased `local@domain` when the address is a plain ASCII dot-atom mailbox, otherwise null. */
 function parseMailbox(value: string): { local: string; domain: string } | null {
-  const lowered = value.trim().toLowerCase();
-  const at = lowered.indexOf('@');
-  if (at <= 0 || at !== lowered.lastIndexOf('@')) return null;
-  const local = lowered.slice(0, at);
-  const domain = lowered.slice(at + 1).replace(/\.$/, '');
-  return LOCAL_PART.test(local) && local.length <= 64 && DOMAIN.test(domain)
-    ? { local, domain }
+  const trimmed = value.trim();
+  const at = trimmed.indexOf('@');
+  if (at <= 0 || at !== trimmed.lastIndexOf('@')) return null;
+  const local = trimmed.slice(0, at);
+  const domain = asDomain(trimmed.slice(at + 1));
+  return domain && local.length <= 64 && LOCAL_PART.test(local)
+    ? { local: local.toLowerCase(), domain }
     : null;
 }
 
@@ -46,10 +54,11 @@ function readAllowList(env: Env) {
   const mailboxes = new Set<string>();
   const domains = new Set<string>();
   for (const raw of (env.EMAIL_RECIPIENT_ALLOWLIST ?? '').split(/[\s,]+/)) {
-    const entry = raw.trim().toLowerCase();
+    const entry = raw.trim();
     if (!entry) continue;
-    const domain = (entry.startsWith('@') ? entry.slice(1) : entry).replace(/\.$/, '');
-    if (!entry.slice(1).includes('@') && DOMAIN.test(domain)) {
+    const bare = entry.startsWith('@') ? entry.slice(1) : entry;
+    const domain = bare.includes('@') ? null : asDomain(bare);
+    if (domain) {
       domains.add(domain);
       continue;
     }

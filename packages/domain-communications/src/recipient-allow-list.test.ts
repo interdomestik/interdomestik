@@ -76,10 +76,12 @@ describe('staging recipient allow-list', () => {
     ['domain', 'office.example.test', 'anyone@office.example.test'],
     ['@domain', '@office.example.test', 'anyone@OFFICE.example.test.'],
   ])('sends to an allowed recipient on staging (%s)', async (_kind, allowList, to) => {
+    const address = to.includes('<') ? to.slice(to.indexOf('<') + 1, -1) : to;
     hostedStaging(` other@else.example.test , ${allowList}`);
     const { sendEmail, sendEmailOutcome } = await import('./email');
     await expect(sendEmail(to, template)).resolves.toEqual({ success: true, id: 'sent-id' });
     expect(transport.resendSend).toHaveBeenCalledTimes(1);
+    expect(transport.resendSend.mock.calls[0][0].to).toBe(address);
     await expect(sendEmailOutcome('resend', to, template, outcomeOptions)).resolves.toEqual({
       ok: true,
       transport: 'resend',
@@ -87,7 +89,7 @@ describe('staging recipient allow-list', () => {
     expect(transport.fetch).toHaveBeenCalledTimes(1);
     const [url, init] = transport.fetch.mock.calls[0];
     expect(url).toBe('https://api.resend.com/emails');
-    expect(JSON.parse(init.body).to).toHaveLength(1);
+    expect(JSON.parse(init.body).to).toEqual([address]);
     expect(refusals()).toEqual([]);
   });
 
@@ -125,6 +127,16 @@ describe('staging recipient allow-list', () => {
     expect(JSON.stringify(consoleCalls())).not.toContain('@');
   });
 
+  it('refuses a non-ASCII spelling that case folding would map onto a listed mailbox', async () => {
+    hostedStaging('k@office.example.test,kelvin.example.test');
+    const { sendEmail } = await import('./email');
+    for (const to of ['\u212A@office.example.test', 'qa@\u212Aelvin.example.test']) {
+      await expect(sendEmail(to, template)).resolves.toEqual(suppressed);
+    }
+    expect(providerCalls()).toBe(0);
+    expect(refusals()).toHaveLength(2);
+  });
+
   it('keeps only the allowed mailboxes of a mixed recipient list', async () => {
     hostedStaging('office.example.test');
     const { sendEmail } = await import('./email');
@@ -138,22 +150,29 @@ describe('staging recipient allow-list', () => {
     expect(refusals()).toHaveLength(1);
   });
 
-  it.each([undefined, '', '  ,  ', '@', 'garbage', 'qa@garbage', '*.example.test', 'a@b@c.test'])(
-    'refuses everything when the staging allow-list has no valid entry (%s)',
-    async allowList => {
-      hostedStaging(allowList);
-      const { sendEmail, sendPasswordResetEmail } = await import('./email');
-      await expect(sendEmail('qa@garbage', template)).resolves.toEqual(suppressed);
-      await expect(
-        sendPasswordResetEmail('qa@office.example.test', 'https://staging.example/reset')
-      ).resolves.toEqual(suppressed);
-      expect(providerCalls()).toBe(0);
-      expect(refusals()).toEqual([
-        { outcome: 'refused', reason: 'allowlist_empty' },
-        { outcome: 'refused', reason: 'allowlist_empty' },
-      ]);
-    }
-  );
+  it.each([
+    undefined,
+    '',
+    '  ,  ',
+    '@',
+    'garbage',
+    'qa@garbage',
+    '*.example.test',
+    'a@b@c.test',
+    '\u212A@office.example.test',
+  ])('refuses everything when the staging allow-list has no valid entry (%s)', async allowList => {
+    hostedStaging(allowList);
+    const { sendEmail, sendPasswordResetEmail } = await import('./email');
+    await expect(sendEmail('k@office.example.test', template)).resolves.toEqual(suppressed);
+    await expect(
+      sendPasswordResetEmail('qa@office.example.test', 'https://staging.example/reset')
+    ).resolves.toEqual(suppressed);
+    expect(providerCalls()).toBe(0);
+    expect(refusals()).toEqual([
+      { outcome: 'refused', reason: 'allowlist_empty' },
+      { outcome: 'refused', reason: 'allowlist_empty' },
+    ]);
+  });
 
   it('never lifts the reserved-domain rule on staging, even for a listed .invalid domain', async () => {
     hostedStaging('other.invalid');
@@ -190,6 +209,11 @@ describe('when the allow-list applies', () => {
     [{ VERCEL: '1', VERCEL_ENV: 'production', INTERDOMESTIK_DEPLOY_ENV: 'preview' }, true],
     [{ VERCEL: '1', VERCEL_ENV: 'production', INTERDOMESTIK_DEPLOY_ENV: 'staging' }, true],
     [{ INTERDOMESTIK_DEPLOY_ENV: ' Staging ' }, true],
+    [{ INTERDOMESTIK_DEPLOY_ENV: 'stagng' }, true],
+    [{ VERCEL_TARGET_ENV: 'office-dry-run' }, true],
+    [{ VERCEL_ENV: 'something-new' }, true],
+    [{ INTERDOMESTIK_DEPLOY_ENV: 'production', VERCEL_URL: 'x.vercel.app' }, true],
+    [{ VERCEL: '1', VERCEL_ENV: 'production', INTERDOMESTIK_DEPLOY_ENV: 'production' }, false],
     [{ VERCEL: '1', VERCEL_ENV: 'production' }, false],
     [{ VERCEL: '1', VERCEL_ENV: 'production', VERCEL_TARGET_ENV: 'production' }, false],
     [{ INTERDOMESTIK_DEPLOY_ENV: 'local' }, false],
