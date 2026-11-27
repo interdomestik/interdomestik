@@ -132,6 +132,35 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
     }
   };
 
+  // Cancellation, extracted from handleAction unchanged; its errors reach handleAction's catch.
+  const handleCancel = async () => {
+    if (!confirm(t('actions.confirm_cancel'))) return;
+
+    if (isCancelPendingRef.current) return;
+    isCancelPendingRef.current = true;
+    setIsCancelPending(true);
+    let result: Awaited<ReturnType<typeof cancelSubscription>>;
+    try {
+      // Key creation sits inside the pending scope: if it throws, the button is restored too.
+      const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
+      cancellationKeyRef.current = idempotencyKey;
+      result = await cancelSubscription(subscription.id, idempotencyKey);
+    } finally {
+      isCancelPendingRef.current = false;
+      if (isMountedRef.current) setIsCancelPending(false);
+    }
+    if (result.error || !result.success) {
+      cancellationKeyRef.current = null;
+      toast.error(
+        'code' in result && result.code === 'CLOSED' ? t('CLOSED') : t('errors.action_failed')
+      );
+      return;
+    }
+
+    cancellationKeyRef.current = null;
+    toast.success(buildCancellationFeedbackMessage(t, result.cancellationTerms, locale));
+  };
+
   const handleAction = async (id: string) => {
     if (isPaymentUpdateAction(id)) {
       await handlePaymentUpdate();
@@ -144,31 +173,7 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
       }
 
       if (id === 'cancel') {
-        if (!confirm(t('actions.confirm_cancel'))) return;
-
-        if (isCancelPendingRef.current) return;
-        isCancelPendingRef.current = true;
-        setIsCancelPending(true);
-        let result: Awaited<ReturnType<typeof cancelSubscription>>;
-        try {
-          // Key creation sits inside the pending scope: if it throws, the button is restored too.
-          const idempotencyKey = cancellationKeyRef.current ?? crypto.randomUUID();
-          cancellationKeyRef.current = idempotencyKey;
-          result = await cancelSubscription(subscription.id, idempotencyKey);
-        } finally {
-          isCancelPendingRef.current = false;
-          if (isMountedRef.current) setIsCancelPending(false);
-        }
-        if (result.error || !result.success) {
-          cancellationKeyRef.current = null;
-          toast.error(
-            'code' in result && result.code === 'CLOSED' ? t('CLOSED') : t('errors.action_failed')
-          );
-          return;
-        }
-
-        cancellationKeyRef.current = null;
-        toast.success(buildCancellationFeedbackMessage(t, result.cancellationTerms, locale));
+        await handleCancel();
         return;
       }
 
