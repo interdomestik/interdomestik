@@ -80,7 +80,7 @@ describe('getMemberVaultConsentDisplay predicates', () => {
     const consents = orderedRowsChain([]);
     const select = vi.fn().mockReturnValueOnce(consents);
     const database = { select } as unknown as TenantTransaction;
-    const evidence = [{ id: 'document-1', category: 'evidence', createdAt: null }];
+    const evidence = [{ id: 'document-1', category: 'evidence' as const, createdAt: null }];
     await getMemberVaultConsentDisplay(baseParams, { database, evidence });
     expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);
     expect(hoisted.select).not.toHaveBeenCalled();
