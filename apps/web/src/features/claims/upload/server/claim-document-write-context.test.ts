@@ -60,7 +60,11 @@ import {
 
 type PersistParams = Parameters<typeof persistClaimDocumentMetadata>[0];
 
-const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
+const authority = mintTestTenantAuthority('tenant-1', {
+  userId: 'member-1',
+  role: 'member',
+  purpose: 'session',
+});
 const adminAuthority = mintTestTenantAuthority('tenant-1', { userId: 'admin-1', role: 'admin' });
 const CLAIM_ROW = { tenantId: 'tenant-1', userId: 'member-1' };
 const REQUEST_ID = '00000000-0000-4000-8000-000000000001';

@@ -19,7 +19,7 @@ export function actor(
   return {
     session: { user: { id, role, tenantId: homeTenant, branchId, accessTenantId } },
     authority: mintTenantAuthority({
-      purpose: 'test',
+      purpose: 'session',
       tenantId: homeTenant,
       accessTenantId,
       principal: { userId: id, role, branchId, agentId: null },

@@ -197,6 +197,7 @@ export async function openEvidenceConfirmationFixture(t: TestContext) {
         userId: actorId,
         role,
         branchId: options.branchId,
+        purpose: 'session',
       }),
       actorRole: self ? 'member' : role,
       userId: actorId,

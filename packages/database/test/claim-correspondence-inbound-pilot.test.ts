@@ -4,6 +4,7 @@ import { withDomainPools } from './claim-correspondence-domain.fixture';
 import {
   proveDirectDecisionBranch,
   proveDirectPublicationBranch,
+  proveReceivedActorScope,
 } from './claim-correspondence-inbound-branch.fixture';
 import {
   proveDecisionDenials,
@@ -56,6 +57,9 @@ test('WP-12.1 restricted runtime publication and receipt proofs', async t => {
       );
       await t.test('direct publication writes enforce branch', () =>
         proveDirectPublicationBranch(connections)
+      );
+      await t.test('the received-link command binds the assigned staff session in its branch', () =>
+        proveReceivedActorScope(connections)
       );
       await t.test(
         'the authority wrapper refuses expired unpublished decisions and allows only assigned staff to replay a committed decision',

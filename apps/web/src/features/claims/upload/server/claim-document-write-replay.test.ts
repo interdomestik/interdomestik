@@ -33,7 +33,11 @@ const newerId = copy.id(E2E_DOCUMENT_FIXTURES.KS_OTHER_MEMBER.id);
 const foreign = E2E_DOCUMENT_FIXTURES.MK_FOREIGN_TENANT;
 const foreignTenantId = copy.id(foreign.tenantId);
 const foreignOwnerId = copy.id(foreign.uploadedBy);
-const authority = mintTestTenantAuthority(tenantId, { userId: ownerId, role: 'member' });
+const authority = mintTestTenantAuthority(tenantId, {
+  userId: ownerId,
+  role: 'member',
+  purpose: 'session',
+});
 const OWNED_CLAIM = { id: claimId, tenantId, userId: ownerId };
 const REQUEST_ID = copy.id(`${source.id}:information-request`);
 const evidencePath = (fileId: string): string =>

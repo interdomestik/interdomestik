@@ -27,7 +27,7 @@ function findWriters(path: string): string[] {
     if (ts.isTemplateExpression(node) || ts.isStringLiteralLike(node)) {
       const value = node.getText();
       for (const match of value.matchAll(
-        /(?:\bset_config\s*\(\s*['"]|\bset\s+(?:(?:local|session)\s+)?["']?)(app\.current_actor_(?:id|role))\b/giu
+        /(?:\bset_config\s*\(\s*['"]|\bset\s+(?:(?:local|session)\s+)?["']?)(app\.current_actor_(?:id|role|branch_id))\b/giu
       )) {
         writers.push(`${relative(root, path)}#${owner}:${match[1]}`);
       }
@@ -49,11 +49,11 @@ test('only the two admitted transaction functions set actor GUCs', () => {
   ];
   const writers = roots.flatMap(getSources).flatMap(findWriters);
   writers.sort((left, right) => left.localeCompare(right));
-  // WP-12.1 moved the principal GUC writes into the binder that withPrincipalTenantContext calls.
   assert.deepEqual(writers, [
-    `${contextModule}#bindTenantTransactionPrincipal:app.current_actor_id`,
-    `${contextModule}#bindTenantTransactionPrincipal:app.current_actor_role`,
     `${contextModule}#withFreeStartDraftContext:app.current_actor_id`,
+    `${contextModule}#withPrincipalTenantContext:app.current_actor_branch_id`,
+    `${contextModule}#withPrincipalTenantContext:app.current_actor_id`,
+    `${contextModule}#withPrincipalTenantContext:app.current_actor_role`,
   ]);
 });
 

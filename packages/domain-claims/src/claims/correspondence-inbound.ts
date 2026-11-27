@@ -8,7 +8,7 @@ import {
   inArray,
 } from '@interdomestik/database';
 import { insertClaimReceivedLinks } from '@interdomestik/database/claim-evidence-object-lock';
-import { bindTenantTransactionPrincipal } from '@interdomestik/database/free-start-drafts';
+import { withPrincipalTenantContext } from '@interdomestik/database/free-start-drafts';
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 import { withTenant } from '@interdomestik/database/tenant-security';
@@ -179,15 +179,16 @@ export async function recordInboundCorrespondence(
   if (!access.ok) return access;
   const { tenantId, actor } = access;
   const data = normalizeRegisterInput(access.data);
-  if (data.receivedDocumentIds?.length && actor.role !== 'staff') return registerForbidden;
+  const linksReceivedDocuments = Boolean(data.receivedDocumentIds?.length);
+  if (linksReceivedDocuments && actor.role !== 'staff') return registerForbidden;
+  const withRegisterAuthority = linksReceivedDocuments
+    ? withPrincipalTenantContext
+    : withTenantAuthority;
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await withTenantAuthority(access.authority, async tx => {
+      return await withRegisterAuthority(access.authority, async tx => {
         if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor)))
           return registerForbidden;
-        if (data.receivedDocumentIds?.length) {
-          await bindTenantTransactionPrincipal(tx, actor);
-        }
         return recordInbound({ tx, tenantId, actorId: actor.userId }, data);
       });
     } catch (error) {

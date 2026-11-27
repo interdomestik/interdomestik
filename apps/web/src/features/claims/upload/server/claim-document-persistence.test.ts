@@ -78,7 +78,11 @@ const EXISTING_ROW = {
   uploadedBy: 'member-1',
 };
 
-const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
+const authority = mintTestTenantAuthority('tenant-1', {
+  userId: 'member-1',
+  role: 'member',
+  purpose: 'session',
+});
 
 function baseParams() {
   return {
