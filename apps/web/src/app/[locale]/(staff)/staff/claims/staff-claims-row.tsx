@@ -49,10 +49,9 @@ export function StaffClaimsRow({
       : 'staff_queue.attention.overdue_follow_up';
 
   return (
-    <div
+    <li
       className="min-w-0 space-y-4 rounded-2xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] p-4 [overflow-wrap:anywhere] sm:p-5 forced-colors:border-[CanvasText]"
       data-testid="staff-claims-row"
-      role="listitem"
     >
       <div className="flex flex-wrap items-center gap-2">
         <Heading className="min-w-0">
@@ -144,6 +143,6 @@ export function StaffClaimsRow({
           {tClaims(overdueCopy, { date: formatPilotDateTime(overdueDate, locale, overdueDate) })}
         </p>
       )}
-    </div>
+    </li>
   );
 }

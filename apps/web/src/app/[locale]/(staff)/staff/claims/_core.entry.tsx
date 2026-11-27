@@ -12,6 +12,7 @@ import { notFound } from 'next/navigation';
 
 import { StaffClaimsControls } from './staff-claims-controls';
 import { StaffClaimsQueue } from './staff-claims-queue';
+import { buildResultsSummary } from './staff-claims-results-summary';
 import { StaffClaimsRow } from './staff-claims-row';
 import { getSingleParam, parseStaffAssignmentFilter, buildStaffClaimsHref } from './_claims-href';
 
@@ -38,29 +39,6 @@ function parseSearchTerm(value: SearchParamValue) {
 
 function parseDiasporaFilter(value: SearchParamValue): DiasporaOriginFilter {
   return parseDiasporaOriginFilter(getSingleParam(value));
-}
-
-// The settled announcement names the committed query, so two results of equal size still change it.
-function buildResultsSummary(args: {
-  count: number;
-  filterOptions: ReadonlyArray<{ isActive: boolean; label: string; value: string }>;
-  search?: string;
-  tClaims: (key: string, values?: Record<string, string | number>) => string;
-}) {
-  const { count, filterOptions, search, tClaims } = args;
-  const resultsCount = search
-    ? tClaims('staff_queue.results_count_search', { count, search })
-    : tClaims('staff_queue.results_count', { count });
-  const activeFilterLabels = filterOptions
-    .filter(option => option.isActive && option.value !== 'all')
-    .map(option => option.label);
-  const resultsFilters =
-    activeFilterLabels.length > 0
-      ? tClaims('staff_queue.results_filters', {
-          filters: activeFilterLabels.join(tClaims('staff_queue.results_filter_separator')),
-        })
-      : null;
-  return { resultsCount, resultsFilters };
 }
 
 export default async function StaffClaimsPage({
@@ -244,10 +222,10 @@ export default async function StaffClaimsPage({
           {tClaims('claims_queue')}
         </h1>
         <p className="text-muted-foreground">{tClaims('staff_queue.subtitle')}</p>
-        <p className="text-sm font-medium" data-testid="staff-claims-results-count" role="status">
+        <output className="block text-sm font-medium" data-testid="staff-claims-results-count">
           {resultsCount}
           {resultsFilters && <> {resultsFilters}</>}
-        </p>
+        </output>
       </header>
 
       <StaffClaimsControls

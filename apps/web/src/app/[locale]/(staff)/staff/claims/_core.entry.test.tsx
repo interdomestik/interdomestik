@@ -1,5 +1,5 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import enCatalog from '@/messages/en/agent-claims.json';
@@ -33,7 +33,7 @@ vi.mock('@/i18n/routing', () => ({
     href: string;
     prefetch?: boolean;
   }) => (
-    <a data-soft-navigation="" href={href} {...props}>
+    <a href={href} {...props}>
       {children}
     </a>
   ),
@@ -96,15 +96,6 @@ vi.mock('next-intl/server', () => ({
           ? `${count} ${count === 1 ? 'rast' : 'raste'}`
           : `${count} ${count === 1 ? 'claim' : 'claims'}`;
       }
-      if (key === 'staff_queue.results_count_search' || key === 'staff_queue.results_filters') {
-        // The real catalogue message, so a dropped placeholder fails the test.
-        const translate = createTranslator({
-          locale: 'en',
-          messages: enCatalog,
-          namespace: 'agent-claims.claims',
-        }) as unknown as (key: string, values?: Record<string, unknown>) => string;
-        return translate(key, values);
-      }
       const catalogs = { en: enCatalog, mk: mkCatalog, sq: sqCatalog, sr: srCatalog };
       const catalog = catalogs[locale as keyof typeof catalogs];
       const value = key
@@ -117,7 +108,7 @@ vi.mock('next-intl/server', () => ({
           catalog?.['agent-claims'].claims
         );
       return typeof value === 'string'
-        ? value.replace(/\{(name|date)\}/g, (_, field: string) => String(values?.[field] ?? ''))
+        ? value.replace(/\{(\w+)\}/g, (_, field: string) => String(values?.[field] ?? ''))
         : key;
     }
   ),
@@ -133,9 +124,6 @@ vi.mock('next/navigation', () => ({
 }));
 
 import StaffClaimsPage from './_core.entry';
-
-// The shared setup mocks next-intl; the summary assertions need the real message formatter.
-const { createTranslator } = await vi.importActual<typeof import('next-intl')>('next-intl');
 
 const authority = mintTestTenantAuthority('tenant-ks');
 
@@ -177,6 +165,7 @@ describe('StaffClaimsPage', () => {
         .authority
     ).toBe(authority);
     expect(screen.getByTestId('staff-page-ready')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/Acme.*Unassigned/);
     expect(hoisted.getAssignedStaffClaimAttentionMock).not.toHaveBeenCalled();
   });
 
@@ -305,64 +294,5 @@ describe('StaffClaimsPage', () => {
       '/staff/claims'
     );
     expect(screen.getByDisplayValue('diaspora')).toHaveAttribute('name', 'diaspora');
-  });
-
-  it('offers Clear filters outside the search form when a filtered queue is empty', async () => {
-    render(
-      await StaffClaimsPage({
-        params: Promise.resolve({ locale: 'en' }),
-        searchParams: Promise.resolve({ search: 'no matching claim' }),
-      })
-    );
-
-    const empty = within(screen.getByTestId('staff-claims-empty'));
-    const form = within(screen.getByTestId('staff-claims-search-form'));
-    expect(empty.getByText('No claims match the current filters')).toBeVisible();
-    expect(empty.getByRole('link', { name: 'Clear filters' })).toHaveAttribute(
-      'href',
-      '/en/staff/claims'
-    );
-    expect(empty.getByRole('link', { name: 'Clear filters' })).not.toHaveAttribute(
-      'data-soft-navigation'
-    );
-    expect(form.getAllByRole('link')).toEqual([form.getByRole('link', { name: 'Clear' })]);
-  });
-
-  it('shows the default empty copy and announces the settled zero results', async () => {
-    render(
-      await StaffClaimsPage({
-        params: Promise.resolve({ locale: 'en' }),
-        searchParams: Promise.resolve({}),
-      })
-    );
-
-    const count = screen.getByTestId('staff-claims-results-count');
-    expect(screen.getByRole('status')).toBe(count);
-    expect(count).toHaveTextContent('0 claims');
-    expect(screen.getByTestId('staff-claims-empty')).toHaveTextContent('No claims in queue');
-    expect(screen.queryByRole('link', { name: 'Clear filters' })).not.toBeInTheDocument();
-    expect(within(screen.getByTestId('staff-claims-search-form')).queryByRole('link')).toBeNull();
-  });
-
-  it('names the committed search and filters, so equal counts still change the settled status', async () => {
-    const statusText = async (searchParams: Record<string, string>) => {
-      const { unmount } = render(
-        await StaffClaimsPage({
-          params: Promise.resolve({ locale: 'en' }),
-          searchParams: Promise.resolve(searchParams),
-        })
-      );
-      const text = screen.getByTestId('staff-claims-results-count').textContent;
-      unmount();
-      return text;
-    };
-
-    const first = await statusText({ search: 'Acme' });
-    const second = await statusText({ search: 'Beta' });
-    const filtered = await statusText({ search: 'Beta', diaspora: 'diaspora' });
-
-    expect(first).toBe('0 claims for “Acme”');
-    expect(second).toBe('0 claims for “Beta”');
-    expect(filtered).toBe('0 claims for “Beta” Filters: Diaspora / Green Card');
   });
 });

@@ -14,25 +14,15 @@ export type FilterOption = Readonly<{
 type Props = Readonly<{
   isPending: boolean;
   label: string;
-  labelId: string;
   onNavigate: (event: MouseEvent<HTMLAnchorElement>, option: FilterOption) => void;
   options: readonly FilterOption[];
   testId: string;
 }>;
 
-export function StaffClaimsFilterGroup({
-  isPending,
-  label,
-  labelId,
-  onNavigate,
-  options,
-  testId,
-}: Props) {
+export function StaffClaimsFilterGroup({ isPending, label, onNavigate, options, testId }: Props) {
   return (
-    <div aria-labelledby={labelId} className="space-y-2" data-testid={testId} role="group">
-      <p className="text-sm font-semibold" id={labelId}>
-        {label}
-      </p>
+    <fieldset className="m-0 min-w-0 border-0 p-0" data-testid={testId}>
+      <legend className="mb-2 p-0 text-sm font-semibold">{label}</legend>
       <div className="flex flex-wrap gap-2">
         {options.map(option => {
           const isDisabled = isPending || option.isActive;
@@ -58,6 +48,6 @@ export function StaffClaimsFilterGroup({
           );
         })}
       </div>
-    </div>
+    </fieldset>
   );
 }

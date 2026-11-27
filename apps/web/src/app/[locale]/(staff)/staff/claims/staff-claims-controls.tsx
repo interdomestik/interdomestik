@@ -207,23 +207,21 @@ export function StaffClaimsControls({
       </form>
 
       {controlsBusy && (
-        <p
+        <output
           className="flex w-fit max-w-full items-center gap-2 rounded-xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface-strong))] px-3 py-2 text-sm font-medium forced-colors:border-[CanvasText]"
           data-testid="staff-claims-pending"
-          role="status"
         >
           <span
             className="size-2 shrink-0 rounded-full bg-current motion-safe:animate-pulse"
             aria-hidden="true"
           />
           <span className="min-w-0">{pendingLabel}</span>
-        </p>
+        </output>
       )}
 
       <StaffClaimsFilterGroup
         isPending={controlsBusy}
         label={assignmentFilterLabel}
-        labelId={`${id}-assignment`}
         onNavigate={startFilterPending}
         options={assignmentOptions}
         testId="staff-claims-assignment-filters"
@@ -231,7 +229,6 @@ export function StaffClaimsControls({
       <StaffClaimsFilterGroup
         isPending={controlsBusy}
         label={statusFilterLabel}
-        labelId={`${id}-status`}
         onNavigate={startFilterPending}
         options={statusOptions}
         testId="staff-claims-status-filters"
@@ -239,7 +236,6 @@ export function StaffClaimsControls({
       <StaffClaimsFilterGroup
         isPending={controlsBusy}
         label={diasporaFilterLabel}
-        labelId={`${id}-diaspora`}
         onNavigate={startFilterPending}
         options={diasporaOptions}
         testId="staff-claims-diaspora-filters"

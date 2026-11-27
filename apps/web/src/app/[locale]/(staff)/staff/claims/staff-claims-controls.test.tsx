@@ -60,9 +60,9 @@ describe('StaffClaimsControls', () => {
       ['diaspora', 'Origin filter'],
     ]) {
       const region = screen.getByTestId(`staff-claims-${group}-filters`);
-      const visibleLabel = within(region).getByText(label);
-      expect(visibleLabel).toBeVisible();
-      expect(region).toHaveAttribute('aria-labelledby', visibleLabel.id);
+      const legend = within(region).getByText(label, { selector: 'legend' });
+      expect(legend).toBeVisible();
+      expect(region.tagName).toBe('FIELDSET');
       expect(screen.getByRole('group', { name: label })).toBe(region);
     }
   });

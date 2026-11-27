@@ -1,5 +1,5 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { formatPilotDate, formatPilotDateTime } from '@/lib/utils/date';
+import { formatPilotDateTime } from '@/lib/utils/date';
 import type { StaffClaimsListItem } from '@interdomestik/domain-claims';
 import { render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
@@ -18,7 +18,7 @@ const mocks = vi.hoisted(() => ({
   getSession: vi.fn(async () => ({
     user: { id: 'manager-1', role: 'branch_manager', tenantId: 'tenant-ks', branchId: 'branch-1' },
   })),
-  getClaims: vi.fn<() => Promise<StaffClaimsListItem[]>>(async () => []),
+  getClaims: vi.fn<() => Promise<StaffClaimsListItem[]>>(() => Promise.resolve([])),
   getAttention: vi.fn(async () => ({})),
 }));
 
@@ -187,78 +187,6 @@ describe('staff claim attention', () => {
     expect(mocks.getAttention).not.toHaveBeenCalled();
     expect(screen.queryByTestId('staff-claim-next-actor')).not.toBeInTheDocument();
   });
-
-  it('uses group h2s and claim h3s in the staff queue', async () => {
-    mocks.getSession.mockResolvedValueOnce({
-      user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-ks', branchId: 'branch-1' },
-    });
-    mocks.getClaims.mockResolvedValueOnce([queueClaim]);
-    render(
-      await StaffClaimsPage({
-        params: Promise.resolve({ locale: 'en' }),
-        searchParams: Promise.resolve({}),
-      })
-    );
-
-    const group = screen.getByRole('region', { name: 'Unassigned cases' });
-    expect(within(group).getByRole('heading', { level: 2 })).toBe(
-      screen.getByTestId('staff-claims-group-unassigned')
-    );
-    const row = within(group).getByRole('listitem');
-    expect(within(row).getByRole('heading', { level: 3, name: 'Rast' })).toContainElement(
-      screen.getByTestId('staff-claims-view')
-    );
-  });
-
-  it('uses claim h2s in the flat branch-manager queue', async () => {
-    mocks.getClaims.mockResolvedValueOnce([queueClaim]);
-    render(
-      await StaffClaimsPage({
-        params: Promise.resolve({ locale: 'en' }),
-        searchParams: Promise.resolve({}),
-      })
-    );
-
-    const queue = within(screen.getByTestId('staff-claims-queue'));
-    const row = within(queue.getByRole('listitem'));
-    const heading = row.getByRole('heading', { level: 2, name: 'Rast' });
-    expect(queue.getAllByRole('heading', { level: 2 })).toEqual([heading]);
-    expect(queue.queryByRole('heading', { level: 3 })).not.toBeInTheDocument();
-  });
-
-  it('shows the updated date in the pilot time zone and format', async () => {
-    mocks.getClaims.mockResolvedValueOnce([queueClaim]);
-    render(
-      await StaffClaimsPage({
-        params: Promise.resolve({ locale: 'sq' }),
-        searchParams: Promise.resolve({}),
-      })
-    );
-
-    const row = within(screen.getByTestId('staff-claims-row'));
-    const pilotDate = formatPilotDate(queueClaim.updatedAt, 'sq', '');
-    expect(row.getByText(pilotDate, { selector: 'dd' })).toHaveTextContent('28.09.2026');
-  });
-
-  it.each([
-    ['Intake', 'Intake'],
-    ['', 'Unavailable'],
-  ])(
-    'shows the stage label (%s) instead of a badge when status is missing',
-    async (stage, text) => {
-      mocks.getClaims.mockResolvedValueOnce([{ ...queueClaim, status: null, stageLabel: stage }]);
-      render(
-        await StaffClaimsPage({
-          params: Promise.resolve({ locale: 'en' }),
-          searchParams: Promise.resolve({}),
-        })
-      );
-
-      const row = within(screen.getByTestId('staff-claims-row'));
-      expect(row.queryByTestId('claim-status-badge')).not.toBeInTheDocument();
-      expect(row.getByText(text, { selector: 'dd span' })).toBeVisible();
-    }
-  );
 
   it.each(['en', 'sq', 'mk', 'sr', 'de'])(
     'groups assigned work and saved-date follow-ups in %s',

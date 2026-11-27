@@ -38,11 +38,12 @@ export function StaffClaimsQueue({
       <div className="space-y-6" data-testid="staff-claims-list">
         {Array.from(groups, ([group, groupClaims]) => {
           const heading = group ? 'h3' : 'h2';
-          // A styled ul without markers loses its list role in WebKit; a div with the role keeps it.
+          // WebKit drops the list role of a list with list-style none, so keep a native marker
+          // and make it transparent.
           const list = (
-            <div className="space-y-3" role="list">
+            <ul className="list-disc space-y-3 pl-0 marker:text-transparent">
               {groupClaims.map(claim => renderRow(claim, heading))}
-            </div>
+            </ul>
           );
 
           if (group === null) return <Fragment key="manager">{list}</Fragment>;
