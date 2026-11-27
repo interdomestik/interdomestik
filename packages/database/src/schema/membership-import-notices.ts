@@ -34,6 +34,13 @@ export const membershipNoticeObligations = pgTable(
   },
   table => [
     unique('membership_notice_obligations_key_uq').on(table.tenantId, table.obligationKey),
+    // One obligation per exit event, seat and purpose, whatever key a caller supplies.
+    unique('membership_notice_obligations_exit_subject_uq').on(
+      table.tenantId,
+      table.exitEventId,
+      table.seatId,
+      table.purpose
+    ),
     unique('membership_notice_obligations_token_subject_uq').on(
       table.tenantId,
       table.legalEntityId,
@@ -57,18 +64,24 @@ export const membershipNoticeObligations = pgTable(
     ),
     check(
       'membership_notice_obligations_evidence_ck',
-      sql`${table.obligationKey} ~ '[^[:space:]]' and ${table.recipientRef} ~ '[^[:space:]]'
+      sql`${table.obligationKey} ~ '[^[:space:]]' and ${table.recipientRef} ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'
         and isfinite(${table.createdAt})
         and (${table.verifiedPaidEnd} is null or isfinite(${table.verifiedPaidEnd}))`
     ),
-    pgPolicy('membership_notice_obligations_access', {
-      for: 'all',
+    // Obligations are immutable: read and record policies only.
+    pgPolicy('membership_notice_obligations_select', {
+      for: 'select',
       using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null`,
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'`,
+    }),
+    pgPolicy('membership_notice_obligations_record', {
+      for: 'insert',
       withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null`,
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'`,
     }),
   ]
 ).enableRLS();
@@ -130,14 +143,17 @@ export const membershipOptOutTokens = pgTable(
     pgPolicy('membership_opt_out_tokens_select', {
       for: 'select',
       using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null`,
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'`,
     }),
     pgPolicy('membership_opt_out_tokens_issue', {
       for: 'insert',
       withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and ${table.issuedBy} = nullif((select current_setting('app.current_actor_id', true)), '')
+        and ${table.issuedBy} = (select current_setting('app.current_actor_id', true))
         and ${table.invalidatedAt} is null`,
     }),
   ]

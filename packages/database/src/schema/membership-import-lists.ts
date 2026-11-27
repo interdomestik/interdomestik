@@ -145,7 +145,8 @@ export const membershipImportLists = pgTable(
         ${table.employerApprovedAt}, ${table.employerApprovalRef}, ${table.employerApprovedDigest}) = 0)
         or (num_nonnulls(${table.employerApproverRef}, ${table.employerApprovedAt},
           ${table.employerApprovalRef}, ${table.employerApprovedDigest}) = 4
-          and ${table.employerApproverRef} ~ '[^[:space:]]' and ${table.employerApprovalRef} ~ '[^[:space:]]'
+          and ${table.employerApproverRef} ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'
+          and ${table.employerApprovalRef} ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'
           and isfinite(${table.employerApprovedAt}) and ${table.employerApprovedAt} <= ${table.verifiedAt}
           and ${table.employerApprovedDigest} = ${table.digest})`
     ),
@@ -154,49 +155,77 @@ export const membershipImportLists = pgTable(
       sql`num_nonnulls(${table.decision}, ${table.decidedBy}, ${table.decidedAt}, ${table.decidedDigest}) = 0
         or (num_nonnulls(${table.decision}, ${table.decidedBy}, ${table.decidedAt}, ${table.decidedDigest}) = 4
           and ${table.decision} in ('approved', 'rejected') and isfinite(${table.decidedAt})
-          and ${table.decidedAt} >= ${table.verifiedAt} and ${table.decidedDigest} = ${table.digest})`
+          and ${table.decidedAt} >= ${table.verifiedAt} and ${table.decidedDigest} = ${table.digest}
+          and ${table.decidedBy} <> ${table.submittedBy} and ${table.decidedBy} <> ${table.verifiedBy})`
     ),
     pgPolicy('membership_import_lists_select', {
       for: 'select',
       using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'
           or ((select current_setting('app.current_actor_role', true)) = 'staff' and exists (
             select 1 from public.membership_import_assignments as assignment
             where assignment.tenant_id = ${table.tenantId}
               and assignment.legal_entity_id = ${table.legalEntityId}
+              and assignment.capacity = 'import'
+              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
               and (assignment.source_key = ${table.sourceKey} or assignment.sponsor_id = ${table.sponsorId})
               and assignment.revoked_at is null
               and assignment.valid_from <= statement_timestamp()
               and assignment.valid_until > statement_timestamp()
           )))`,
     }),
+    // Only assigned staff submit; the verifier is the submitting staff member.
     pgPolicy('membership_import_lists_insert', {
       for: 'insert',
       withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and ${table.decision} is null
-        and ${table.submittedBy} = nullif((select current_setting('app.current_actor_id', true)), '')
+        and ${table.submittedBy} = (select current_setting('app.current_actor_id', true))
         and ${table.verifiedBy} = ${table.submittedBy}
-        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-          or ((select current_setting('app.current_actor_role', true)) = 'staff' and exists (
+        and (select current_setting('app.current_actor_role', true)) = 'staff'
+        and exists (
             select 1 from public.membership_import_assignments as assignment
             where assignment.tenant_id = ${table.tenantId}
               and assignment.legal_entity_id = ${table.legalEntityId}
+              and assignment.capacity = 'import'
+              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
               and (assignment.source_key = ${table.sourceKey} or assignment.sponsor_id = ${table.sponsorId})
               and assignment.revoked_at is null
               and assignment.valid_from <= statement_timestamp()
               and assignment.valid_until > statement_timestamp()
-          )))`,
+          )`,
     }),
+    // A decision needs a current delegation for the exact entity and target, and a decider
+    // other than the submitter and verifier. The decision trigger checks completeness.
     pgPolicy('membership_import_lists_decide', {
       for: 'update',
       using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
         and ${table.decision} is null`,
       withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and ${table.decidedBy} = nullif((select current_setting('app.current_actor_id', true)), '')
-        and ${table.decision} is not null`,
+        and ${table.decidedBy} = (select current_setting('app.current_actor_id', true))
+        and ${table.decision} is not null
+        and ${table.decidedBy} <> ${table.submittedBy}
+        and ${table.decidedBy} <> ${table.verifiedBy}
+        and exists (
+            select 1 from public.membership_import_assignments as assignment
+            where assignment.tenant_id = ${table.tenantId}
+              and assignment.legal_entity_id = ${table.legalEntityId}
+              and assignment.capacity = 'decision'
+              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
+              and (assignment.source_key = ${table.sourceKey} or assignment.sponsor_id = ${table.sponsorId})
+              and assignment.revoked_at is null
+              and assignment.valid_from <= statement_timestamp()
+              and assignment.valid_until > statement_timestamp()
+          )`,
     }),
   ]
 ).enableRLS();

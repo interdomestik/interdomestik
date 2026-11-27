@@ -49,17 +49,24 @@ export const sponsorExitEvents = pgTable(
     ),
     check(
       'sponsor_exit_events_evidence_ck',
-      sql`${table.operationId} ~ '[^[:space:]]' and ${table.evidenceRef} ~ '[^[:space:]]'
+      sql`${table.operationId} ~ '[^[:space:]]' and ${table.evidenceRef} ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'
         and isfinite(${table.recordedAt}) and isfinite(${table.effectiveAt})`
     ),
-    pgPolicy('sponsor_exit_events_access', {
-      for: 'all',
+    // Exit events are immutable: read and record policies only.
+    pgPolicy('sponsor_exit_events_select', {
+      for: 'select',
       using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null`,
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'`,
+    }),
+    pgPolicy('sponsor_exit_events_record', {
+      for: 'insert',
       withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and ${table.recordedBy} = nullif((select current_setting('app.current_actor_id', true)), '')`,
+        and ${table.recordedBy} = (select current_setting('app.current_actor_id', true))`,
     }),
   ]
 ).enableRLS();

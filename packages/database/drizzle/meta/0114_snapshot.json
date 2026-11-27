@@ -1,5 +1,5 @@
 {
-  "id": "ddff8f38-7bc5-4adf-8366-37239d75af7f",
+  "id": "7e4d1c74-a5c0-4bdb-b53f-22d7b74c8c35",
   "prevId": "e1126061-3a85-4aa0-9521-027cab740d41",
   "version": "7",
   "dialect": "postgresql",
@@ -22661,6 +22661,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "capacity": {
+          "name": "capacity",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "source_key": {
           "name": "source_key",
           "type": "text",
@@ -22826,7 +22832,7 @@
           "to": [
             "public"
           ],
-          "using": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and nullif((select current_setting('app.current_actor_id', true)), '') is not null\n        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n          or ((select current_setting('app.current_actor_role', true)) = 'staff'\n            and \"membership_import_assignments\".\"staff_user_id\" = (select current_setting('app.current_actor_id', true))))"
+          "using": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n          or ((select current_setting('app.current_actor_role', true)) = 'staff'\n            and \"membership_import_assignments\".\"capacity\" = 'import'\n            and \"membership_import_assignments\".\"staff_user_id\" = (select current_setting('app.current_actor_id', true))))"
         },
         "membership_import_assignments_insert": {
           "name": "membership_import_assignments_insert",
@@ -22835,7 +22841,7 @@
           "to": [
             "public"
           ],
-          "withCheck": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_assignments\".\"approved_by\" = nullif((select current_setting('app.current_actor_id', true)), '')\n        and \"membership_import_assignments\".\"revoked_at\" is null"
+          "withCheck": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_assignments\".\"approved_by\" = (select current_setting('app.current_actor_id', true))\n        and \"membership_import_assignments\".\"revoked_at\" is null"
         },
         "membership_import_assignments_revoke": {
           "name": "membership_import_assignments_revoke",
@@ -22844,14 +22850,18 @@
           "to": [
             "public"
           ],
-          "using": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_assignments\".\"revoked_at\" is null",
-          "withCheck": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_assignments\".\"revoked_at\" is not null\n        and \"membership_import_assignments\".\"revoked_by\" = nullif((select current_setting('app.current_actor_id', true)), '')"
+          "using": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_assignments\".\"revoked_at\" is null",
+          "withCheck": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_assignments\".\"revoked_at\" is not null\n        and \"membership_import_assignments\".\"revoked_by\" = (select current_setting('app.current_actor_id', true))"
         }
       },
       "checkConstraints": {
         "membership_import_assignments_scope_ck": {
           "name": "membership_import_assignments_scope_ck",
-          "value": "num_nonnulls(\"membership_import_assignments\".\"source_key\", \"membership_import_assignments\".\"sponsor_id\") = 1\n        and (\"membership_import_assignments\".\"source_key\" is null or \"membership_import_assignments\".\"source_key\" ~ '[^[:space:]]')"
+          "value": "num_nonnulls(\"membership_import_assignments\".\"source_key\", \"membership_import_assignments\".\"sponsor_id\") = 1\n        and (\"membership_import_assignments\".\"source_key\" is null or \"membership_import_assignments\".\"source_key\" ~ '[^[:space:]]')\n        and \"membership_import_assignments\".\"capacity\" in ('import', 'decision')"
+        },
+        "membership_import_assignments_separation_ck": {
+          "name": "membership_import_assignments_separation_ck",
+          "value": "\"membership_import_assignments\".\"approved_by\" <> \"membership_import_assignments\".\"staff_user_id\""
         },
         "membership_import_assignments_validity_ck": {
           "name": "membership_import_assignments_validity_ck",
@@ -22863,7 +22873,7 @@
         },
         "membership_import_assignments_evidence_ck": {
           "name": "membership_import_assignments_evidence_ck",
-          "value": "\"membership_import_assignments\".\"evidence_ref\" ~ '[^[:space:]]'"
+          "value": "\"membership_import_assignments\".\"evidence_ref\" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'"
         }
       },
       "isRLSEnabled": true
@@ -23071,7 +23081,7 @@
           "to": [
             "public"
           ],
-          "using": "\"sponsor_contract_years\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) in ('tenant_admin', 'staff')\n        and nullif((select current_setting('app.current_actor_id', true)), '') is not null\n        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n          or exists (\n            select 1 from public.membership_import_assignments as assignment\n            where assignment.tenant_id = \"sponsor_contract_years\".\"tenant_id\"\n              and assignment.legal_entity_id = \"sponsor_contract_years\".\"legal_entity_id\"\n              and assignment.sponsor_id = \"sponsor_contract_years\".\"sponsor_id\"\n              and assignment.revoked_at is null\n              and assignment.valid_from <= statement_timestamp()\n              and assignment.valid_until > statement_timestamp()\n          ))"
+          "using": "\"sponsor_contract_years\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n          or ((select current_setting('app.current_actor_role', true)) = 'staff' and exists (\n            select 1 from public.membership_import_assignments as assignment\n            where assignment.tenant_id = \"sponsor_contract_years\".\"tenant_id\"\n              and assignment.legal_entity_id = \"sponsor_contract_years\".\"legal_entity_id\"\n              and assignment.capacity = 'import'\n              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))\n              and assignment.sponsor_id = \"sponsor_contract_years\".\"sponsor_id\"\n              and assignment.revoked_at is null\n              and assignment.valid_from <= statement_timestamp()\n              and assignment.valid_until > statement_timestamp()\n          )))"
         },
         "sponsor_contract_years_insert": {
           "name": "sponsor_contract_years_insert",
@@ -23080,7 +23090,7 @@
           "to": [
             "public"
           ],
-          "withCheck": "\"sponsor_contract_years\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"sponsor_contract_years\".\"verified_by\" = nullif((select current_setting('app.current_actor_id', true)), '')"
+          "withCheck": "\"sponsor_contract_years\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"sponsor_contract_years\".\"verified_by\" = (select current_setting('app.current_actor_id', true))"
         },
         "sponsor_contract_years_limit_update": {
           "name": "sponsor_contract_years_limit_update",
@@ -23089,8 +23099,8 @@
           "to": [
             "public"
           ],
-          "using": "\"sponsor_contract_years\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and nullif((select current_setting('app.current_actor_id', true)), '') is not null",
-          "withCheck": "\"sponsor_contract_years\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and nullif((select current_setting('app.current_actor_id', true)), '') is not null"
+          "using": "\"sponsor_contract_years\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'",
+          "withCheck": "\"sponsor_contract_years\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'"
         }
       },
       "checkConstraints": {
@@ -23108,7 +23118,7 @@
         },
         "sponsor_contract_years_evidence_ck": {
           "name": "sponsor_contract_years_evidence_ck",
-          "value": "\"sponsor_contract_years\".\"agreement_key\" ~ '[^[:space:]]' and \"sponsor_contract_years\".\"signed_evidence_ref\" ~ '[^[:space:]]'\n        and jsonb_typeof(\"sponsor_contract_years\".\"benefits\") = 'object' and isfinite(\"sponsor_contract_years\".\"verified_at\")"
+          "value": "\"sponsor_contract_years\".\"agreement_key\" ~ '[^[:space:]]' and \"sponsor_contract_years\".\"signed_evidence_ref\" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'\n        and jsonb_typeof(\"sponsor_contract_years\".\"benefits\") = 'object' and isfinite(\"sponsor_contract_years\".\"verified_at\")"
         }
       },
       "isRLSEnabled": true
@@ -23457,7 +23467,7 @@
           "to": [
             "public"
           ],
-          "using": "\"membership_import_lists\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and nullif((select current_setting('app.current_actor_id', true)), '') is not null\n        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n          or ((select current_setting('app.current_actor_role', true)) = 'staff' and exists (\n            select 1 from public.membership_import_assignments as assignment\n            where assignment.tenant_id = \"membership_import_lists\".\"tenant_id\"\n              and assignment.legal_entity_id = \"membership_import_lists\".\"legal_entity_id\"\n              and (assignment.source_key = \"membership_import_lists\".\"source_key\" or assignment.sponsor_id = \"membership_import_lists\".\"sponsor_id\")\n              and assignment.revoked_at is null\n              and assignment.valid_from <= statement_timestamp()\n              and assignment.valid_until > statement_timestamp()\n          )))"
+          "using": "\"membership_import_lists\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n          or ((select current_setting('app.current_actor_role', true)) = 'staff' and exists (\n            select 1 from public.membership_import_assignments as assignment\n            where assignment.tenant_id = \"membership_import_lists\".\"tenant_id\"\n              and assignment.legal_entity_id = \"membership_import_lists\".\"legal_entity_id\"\n              and assignment.capacity = 'import'\n              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))\n              and (assignment.source_key = \"membership_import_lists\".\"source_key\" or assignment.sponsor_id = \"membership_import_lists\".\"sponsor_id\")\n              and assignment.revoked_at is null\n              and assignment.valid_from <= statement_timestamp()\n              and assignment.valid_until > statement_timestamp()\n          )))"
         },
         "membership_import_lists_insert": {
           "name": "membership_import_lists_insert",
@@ -23466,7 +23476,7 @@
           "to": [
             "public"
           ],
-          "withCheck": "\"membership_import_lists\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and \"membership_import_lists\".\"decision\" is null\n        and \"membership_import_lists\".\"submitted_by\" = nullif((select current_setting('app.current_actor_id', true)), '')\n        and \"membership_import_lists\".\"verified_by\" = \"membership_import_lists\".\"submitted_by\"\n        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n          or ((select current_setting('app.current_actor_role', true)) = 'staff' and exists (\n            select 1 from public.membership_import_assignments as assignment\n            where assignment.tenant_id = \"membership_import_lists\".\"tenant_id\"\n              and assignment.legal_entity_id = \"membership_import_lists\".\"legal_entity_id\"\n              and (assignment.source_key = \"membership_import_lists\".\"source_key\" or assignment.sponsor_id = \"membership_import_lists\".\"sponsor_id\")\n              and assignment.revoked_at is null\n              and assignment.valid_from <= statement_timestamp()\n              and assignment.valid_until > statement_timestamp()\n          )))"
+          "withCheck": "\"membership_import_lists\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and \"membership_import_lists\".\"decision\" is null\n        and \"membership_import_lists\".\"submitted_by\" = (select current_setting('app.current_actor_id', true))\n        and \"membership_import_lists\".\"verified_by\" = \"membership_import_lists\".\"submitted_by\"\n        and (select current_setting('app.current_actor_role', true)) = 'staff'\n        and exists (\n            select 1 from public.membership_import_assignments as assignment\n            where assignment.tenant_id = \"membership_import_lists\".\"tenant_id\"\n              and assignment.legal_entity_id = \"membership_import_lists\".\"legal_entity_id\"\n              and assignment.capacity = 'import'\n              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))\n              and (assignment.source_key = \"membership_import_lists\".\"source_key\" or assignment.sponsor_id = \"membership_import_lists\".\"sponsor_id\")\n              and assignment.revoked_at is null\n              and assignment.valid_from <= statement_timestamp()\n              and assignment.valid_until > statement_timestamp()\n          )"
         },
         "membership_import_lists_decide": {
           "name": "membership_import_lists_decide",
@@ -23475,8 +23485,8 @@
           "to": [
             "public"
           ],
-          "using": "\"membership_import_lists\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_lists\".\"decision\" is null",
-          "withCheck": "\"membership_import_lists\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_lists\".\"decided_by\" = nullif((select current_setting('app.current_actor_id', true)), '')\n        and \"membership_import_lists\".\"decision\" is not null"
+          "using": "\"membership_import_lists\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_lists\".\"decision\" is null",
+          "withCheck": "\"membership_import_lists\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_lists\".\"decided_by\" = (select current_setting('app.current_actor_id', true))\n        and \"membership_import_lists\".\"decision\" is not null\n        and \"membership_import_lists\".\"decided_by\" <> \"membership_import_lists\".\"submitted_by\"\n        and \"membership_import_lists\".\"decided_by\" <> \"membership_import_lists\".\"verified_by\"\n        and exists (\n            select 1 from public.membership_import_assignments as assignment\n            where assignment.tenant_id = \"membership_import_lists\".\"tenant_id\"\n              and assignment.legal_entity_id = \"membership_import_lists\".\"legal_entity_id\"\n              and assignment.capacity = 'decision'\n              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))\n              and (assignment.source_key = \"membership_import_lists\".\"source_key\" or assignment.sponsor_id = \"membership_import_lists\".\"sponsor_id\")\n              and assignment.revoked_at is null\n              and assignment.valid_from <= statement_timestamp()\n              and assignment.valid_until > statement_timestamp()\n          )"
         }
       },
       "checkConstraints": {
@@ -23494,11 +23504,11 @@
         },
         "membership_import_lists_employer_approval_ck": {
           "name": "membership_import_lists_employer_approval_ck",
-          "value": "(\"membership_import_lists\".\"origin\" <> 'new_company' and num_nonnulls(\"membership_import_lists\".\"employer_approver_ref\",\n        \"membership_import_lists\".\"employer_approved_at\", \"membership_import_lists\".\"employer_approval_ref\", \"membership_import_lists\".\"employer_approved_digest\") = 0)\n        or (num_nonnulls(\"membership_import_lists\".\"employer_approver_ref\", \"membership_import_lists\".\"employer_approved_at\",\n          \"membership_import_lists\".\"employer_approval_ref\", \"membership_import_lists\".\"employer_approved_digest\") = 4\n          and \"membership_import_lists\".\"employer_approver_ref\" ~ '[^[:space:]]' and \"membership_import_lists\".\"employer_approval_ref\" ~ '[^[:space:]]'\n          and isfinite(\"membership_import_lists\".\"employer_approved_at\") and \"membership_import_lists\".\"employer_approved_at\" <= \"membership_import_lists\".\"verified_at\"\n          and \"membership_import_lists\".\"employer_approved_digest\" = \"membership_import_lists\".\"digest\")"
+          "value": "(\"membership_import_lists\".\"origin\" <> 'new_company' and num_nonnulls(\"membership_import_lists\".\"employer_approver_ref\",\n        \"membership_import_lists\".\"employer_approved_at\", \"membership_import_lists\".\"employer_approval_ref\", \"membership_import_lists\".\"employer_approved_digest\") = 0)\n        or (num_nonnulls(\"membership_import_lists\".\"employer_approver_ref\", \"membership_import_lists\".\"employer_approved_at\",\n          \"membership_import_lists\".\"employer_approval_ref\", \"membership_import_lists\".\"employer_approved_digest\") = 4\n          and \"membership_import_lists\".\"employer_approver_ref\" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'\n          and \"membership_import_lists\".\"employer_approval_ref\" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'\n          and isfinite(\"membership_import_lists\".\"employer_approved_at\") and \"membership_import_lists\".\"employer_approved_at\" <= \"membership_import_lists\".\"verified_at\"\n          and \"membership_import_lists\".\"employer_approved_digest\" = \"membership_import_lists\".\"digest\")"
         },
         "membership_import_lists_decision_ck": {
           "name": "membership_import_lists_decision_ck",
-          "value": "num_nonnulls(\"membership_import_lists\".\"decision\", \"membership_import_lists\".\"decided_by\", \"membership_import_lists\".\"decided_at\", \"membership_import_lists\".\"decided_digest\") = 0\n        or (num_nonnulls(\"membership_import_lists\".\"decision\", \"membership_import_lists\".\"decided_by\", \"membership_import_lists\".\"decided_at\", \"membership_import_lists\".\"decided_digest\") = 4\n          and \"membership_import_lists\".\"decision\" in ('approved', 'rejected') and isfinite(\"membership_import_lists\".\"decided_at\")\n          and \"membership_import_lists\".\"decided_at\" >= \"membership_import_lists\".\"verified_at\" and \"membership_import_lists\".\"decided_digest\" = \"membership_import_lists\".\"digest\")"
+          "value": "num_nonnulls(\"membership_import_lists\".\"decision\", \"membership_import_lists\".\"decided_by\", \"membership_import_lists\".\"decided_at\", \"membership_import_lists\".\"decided_digest\") = 0\n        or (num_nonnulls(\"membership_import_lists\".\"decision\", \"membership_import_lists\".\"decided_by\", \"membership_import_lists\".\"decided_at\", \"membership_import_lists\".\"decided_digest\") = 4\n          and \"membership_import_lists\".\"decision\" in ('approved', 'rejected') and isfinite(\"membership_import_lists\".\"decided_at\")\n          and \"membership_import_lists\".\"decided_at\" >= \"membership_import_lists\".\"verified_at\" and \"membership_import_lists\".\"decided_digest\" = \"membership_import_lists\".\"digest\"\n          and \"membership_import_lists\".\"decided_by\" <> \"membership_import_lists\".\"submitted_by\" and \"membership_import_lists\".\"decided_by\" <> \"membership_import_lists\".\"verified_by\")"
         }
       },
       "isRLSEnabled": true
@@ -23681,7 +23691,7 @@
           "to": [
             "public"
           ],
-          "using": "\"membership_import_rows\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and exists (\n          select 1 from public.membership_import_lists as import_list\n          where import_list.tenant_id = \"membership_import_rows\".\"tenant_id\"\n            and import_list.legal_entity_id = \"membership_import_rows\".\"legal_entity_id\"\n            and import_list.id = \"membership_import_rows\".\"list_id\"\n        )"
+          "using": "\"membership_import_rows\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and exists (\n          select 1 from public.membership_import_lists as import_list\n          where import_list.tenant_id = \"membership_import_rows\".\"tenant_id\"\n            and import_list.legal_entity_id = \"membership_import_rows\".\"legal_entity_id\"\n            and import_list.id = \"membership_import_rows\".\"list_id\"\n        )"
         },
         "membership_import_rows_insert": {
           "name": "membership_import_rows_insert",
@@ -23690,7 +23700,7 @@
           "to": [
             "public"
           ],
-          "withCheck": "\"membership_import_rows\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and \"membership_import_rows\".\"fulfillment_state\" = 'pending'\n        and exists (\n          select 1 from public.membership_import_lists as import_list\n          where import_list.tenant_id = \"membership_import_rows\".\"tenant_id\"\n            and import_list.legal_entity_id = \"membership_import_rows\".\"legal_entity_id\"\n            and import_list.id = \"membership_import_rows\".\"list_id\"\n            and import_list.decision is null\n        )"
+          "withCheck": "\"membership_import_rows\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and \"membership_import_rows\".\"fulfillment_state\" = 'pending'\n        and exists (\n          select 1 from public.membership_import_lists as import_list\n          where import_list.tenant_id = \"membership_import_rows\".\"tenant_id\"\n            and import_list.legal_entity_id = \"membership_import_rows\".\"legal_entity_id\"\n            and import_list.id = \"membership_import_rows\".\"list_id\"\n            and import_list.decision is null\n            and import_list.submitted_by = (select current_setting('app.current_actor_id', true))\n            and \"membership_import_rows\".\"source_row\" <= import_list.row_count\n        )"
         }
       },
       "checkConstraints": {
@@ -23700,7 +23710,7 @@
         },
         "membership_import_rows_review_ck": {
           "name": "membership_import_rows_review_ck",
-          "value": "\"membership_import_rows\".\"source_row\" > 0 and jsonb_typeof(\"membership_import_rows\".\"review_facts\") = 'object'"
+          "value": "\"membership_import_rows\".\"source_row\" > 0 and \"membership_import_rows\".\"review_facts\" = '{}'::jsonb"
         },
         "membership_import_rows_identity_ck": {
           "name": "membership_import_rows_identity_ck",
@@ -23708,11 +23718,11 @@
         },
         "membership_import_rows_proof_ck": {
           "name": "membership_import_rows_proof_ck",
-          "value": "(\"membership_import_rows\".\"evidence_class\" is null) = (\"membership_import_rows\".\"evidence_ref\" is null)\n        and (\"membership_import_rows\".\"evidence_ref\" is null or\n          (\"membership_import_rows\".\"evidence_class\" ~ '[^[:space:]]' and \"membership_import_rows\".\"evidence_ref\" ~ '[^[:space:]]'))\n        and (\"membership_import_rows\".\"source_paid_through\" is null or isfinite(\"membership_import_rows\".\"source_paid_through\"))\n        and (\"membership_import_rows\".\"origin\" = 'new_company'\n          or (\"membership_import_rows\".\"evidence_ref\" is not null and \"membership_import_rows\".\"source_paid_through\" is not null))"
+          "value": "(\"membership_import_rows\".\"evidence_class\" is null) = (\"membership_import_rows\".\"evidence_ref\" is null)\n        and (\"membership_import_rows\".\"evidence_ref\" is null or\n          (\"membership_import_rows\".\"evidence_class\" ~ '^[a-z][a-z0-9_-]{0,63}$' and \"membership_import_rows\".\"evidence_ref\" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'))\n        and (\"membership_import_rows\".\"source_paid_through\" is null or isfinite(\"membership_import_rows\".\"source_paid_through\"))\n        and (\"membership_import_rows\".\"origin\" = 'new_company'\n          or (\"membership_import_rows\".\"evidence_ref\" is not null and \"membership_import_rows\".\"source_paid_through\" is not null))"
         },
         "membership_import_rows_fulfillment_ck": {
           "name": "membership_import_rows_fulfillment_ck",
-          "value": "\"membership_import_rows\".\"fulfillment_state\" in ('pending', 'fulfilled', 'rejected', 'withdrawn', 'expired')\n        and (\"membership_import_rows\".\"fulfillment_state\" = 'fulfilled') = (\"membership_import_rows\".\"period_origin_ref\" is not null)\n        and (\"membership_import_rows\".\"period_origin_ref\" is null or \"membership_import_rows\".\"period_origin_ref\" ~ '[^[:space:]]')\n        and (\"membership_import_rows\".\"identity_released_at\" is null\n          or (\"membership_import_rows\".\"fulfillment_state\" <> 'pending' and isfinite(\"membership_import_rows\".\"identity_released_at\")))"
+          "value": "\"membership_import_rows\".\"fulfillment_state\" in ('pending', 'fulfilled', 'rejected', 'withdrawn', 'expired')\n        and (\"membership_import_rows\".\"fulfillment_state\" = 'fulfilled') = (\"membership_import_rows\".\"period_origin_ref\" is not null)\n        and (\"membership_import_rows\".\"period_origin_ref\" is null or \"membership_import_rows\".\"period_origin_ref\" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$')\n        and (\"membership_import_rows\".\"identity_released_at\" is null\n          or (\"membership_import_rows\".\"fulfillment_state\" <> 'pending' and isfinite(\"membership_import_rows\".\"identity_released_at\")))"
         }
       },
       "isRLSEnabled": true
@@ -23815,15 +23825,23 @@
         }
       },
       "policies": {
-        "sponsor_contract_year_seats_access": {
-          "name": "sponsor_contract_year_seats_access",
+        "sponsor_contract_year_seats_select": {
+          "name": "sponsor_contract_year_seats_select",
           "as": "PERMISSIVE",
-          "for": "ALL",
+          "for": "SELECT",
           "to": [
             "public"
           ],
-          "using": "\"sponsor_contract_year_seats\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and exists (\n          select 1 from public.membership_import_rows as import_row\n          where import_row.tenant_id = \"sponsor_contract_year_seats\".\"tenant_id\"\n            and import_row.legal_entity_id = \"sponsor_contract_year_seats\".\"legal_entity_id\"\n            and import_row.id = \"sponsor_contract_year_seats\".\"import_row_id\"\n        )",
-          "withCheck": "\"sponsor_contract_year_seats\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and exists (\n          select 1 from public.membership_import_rows as import_row\n          where import_row.tenant_id = \"sponsor_contract_year_seats\".\"tenant_id\"\n            and import_row.legal_entity_id = \"sponsor_contract_year_seats\".\"legal_entity_id\"\n            and import_row.id = \"sponsor_contract_year_seats\".\"import_row_id\"\n        )"
+          "using": "\"sponsor_contract_year_seats\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and exists (\n          select 1 from public.membership_import_rows as import_row\n          where import_row.tenant_id = \"sponsor_contract_year_seats\".\"tenant_id\"\n            and import_row.legal_entity_id = \"sponsor_contract_year_seats\".\"legal_entity_id\"\n            and import_row.id = \"sponsor_contract_year_seats\".\"import_row_id\"\n        )"
+        },
+        "sponsor_contract_year_seats_reserve": {
+          "name": "sponsor_contract_year_seats_reserve",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "public"
+          ],
+          "withCheck": "\"sponsor_contract_year_seats\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and exists (\n          select 1 from public.membership_import_rows as import_row\n          where import_row.tenant_id = \"sponsor_contract_year_seats\".\"tenant_id\"\n            and import_row.legal_entity_id = \"sponsor_contract_year_seats\".\"legal_entity_id\"\n            and import_row.id = \"sponsor_contract_year_seats\".\"import_row_id\"\n        )"
         }
       },
       "checkConstraints": {
@@ -23964,15 +23982,23 @@
         }
       },
       "policies": {
-        "sponsor_exit_events_access": {
-          "name": "sponsor_exit_events_access",
+        "sponsor_exit_events_select": {
+          "name": "sponsor_exit_events_select",
           "as": "PERMISSIVE",
-          "for": "ALL",
+          "for": "SELECT",
           "to": [
             "public"
           ],
-          "using": "\"sponsor_exit_events\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and nullif((select current_setting('app.current_actor_id', true)), '') is not null",
-          "withCheck": "\"sponsor_exit_events\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"sponsor_exit_events\".\"recorded_by\" = nullif((select current_setting('app.current_actor_id', true)), '')"
+          "using": "\"sponsor_exit_events\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'"
+        },
+        "sponsor_exit_events_record": {
+          "name": "sponsor_exit_events_record",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "public"
+          ],
+          "withCheck": "\"sponsor_exit_events\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"sponsor_exit_events\".\"recorded_by\" = (select current_setting('app.current_actor_id', true))"
         }
       },
       "checkConstraints": {
@@ -23982,7 +24008,7 @@
         },
         "sponsor_exit_events_evidence_ck": {
           "name": "sponsor_exit_events_evidence_ck",
-          "value": "\"sponsor_exit_events\".\"operation_id\" ~ '[^[:space:]]' and \"sponsor_exit_events\".\"evidence_ref\" ~ '[^[:space:]]'\n        and isfinite(\"sponsor_exit_events\".\"recorded_at\") and isfinite(\"sponsor_exit_events\".\"effective_at\")"
+          "value": "\"sponsor_exit_events\".\"operation_id\" ~ '[^[:space:]]' and \"sponsor_exit_events\".\"evidence_ref\" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'\n        and isfinite(\"sponsor_exit_events\".\"recorded_at\") and isfinite(\"sponsor_exit_events\".\"effective_at\")"
         }
       },
       "isRLSEnabled": true
@@ -24089,6 +24115,16 @@
             "obligation_key"
           ]
         },
+        "membership_notice_obligations_exit_subject_uq": {
+          "name": "membership_notice_obligations_exit_subject_uq",
+          "nullsNotDistinct": false,
+          "columns": [
+            "tenant_id",
+            "exit_event_id",
+            "seat_id",
+            "purpose"
+          ]
+        },
         "membership_notice_obligations_token_subject_uq": {
           "name": "membership_notice_obligations_token_subject_uq",
           "nullsNotDistinct": false,
@@ -24103,15 +24139,23 @@
         }
       },
       "policies": {
-        "membership_notice_obligations_access": {
-          "name": "membership_notice_obligations_access",
+        "membership_notice_obligations_select": {
+          "name": "membership_notice_obligations_select",
           "as": "PERMISSIVE",
-          "for": "ALL",
+          "for": "SELECT",
           "to": [
             "public"
           ],
-          "using": "\"membership_notice_obligations\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and nullif((select current_setting('app.current_actor_id', true)), '') is not null",
-          "withCheck": "\"membership_notice_obligations\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and nullif((select current_setting('app.current_actor_id', true)), '') is not null"
+          "using": "\"membership_notice_obligations\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'"
+        },
+        "membership_notice_obligations_record": {
+          "name": "membership_notice_obligations_record",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "public"
+          ],
+          "withCheck": "\"membership_notice_obligations\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'"
         }
       },
       "checkConstraints": {
@@ -24121,7 +24165,7 @@
         },
         "membership_notice_obligations_evidence_ck": {
           "name": "membership_notice_obligations_evidence_ck",
-          "value": "\"membership_notice_obligations\".\"obligation_key\" ~ '[^[:space:]]' and \"membership_notice_obligations\".\"recipient_ref\" ~ '[^[:space:]]'\n        and isfinite(\"membership_notice_obligations\".\"created_at\")\n        and (\"membership_notice_obligations\".\"verified_paid_end\" is null or isfinite(\"membership_notice_obligations\".\"verified_paid_end\"))"
+          "value": "\"membership_notice_obligations\".\"obligation_key\" ~ '[^[:space:]]' and \"membership_notice_obligations\".\"recipient_ref\" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'\n        and isfinite(\"membership_notice_obligations\".\"created_at\")\n        and (\"membership_notice_obligations\".\"verified_paid_end\" is null or isfinite(\"membership_notice_obligations\".\"verified_paid_end\"))"
         }
       },
       "isRLSEnabled": true
@@ -24279,7 +24323,7 @@
           "to": [
             "public"
           ],
-          "using": "\"membership_opt_out_tokens\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and nullif((select current_setting('app.current_actor_id', true)), '') is not null"
+          "using": "\"membership_opt_out_tokens\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'"
         },
         "membership_opt_out_tokens_issue": {
           "name": "membership_opt_out_tokens_issue",
@@ -24288,7 +24332,7 @@
           "to": [
             "public"
           ],
-          "withCheck": "\"membership_opt_out_tokens\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_opt_out_tokens\".\"issued_by\" = nullif((select current_setting('app.current_actor_id', true)), '')\n        and \"membership_opt_out_tokens\".\"invalidated_at\" is null"
+          "withCheck": "\"membership_opt_out_tokens\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_opt_out_tokens\".\"issued_by\" = (select current_setting('app.current_actor_id', true))\n        and \"membership_opt_out_tokens\".\"invalidated_at\" is null"
         }
       },
       "checkConstraints": {

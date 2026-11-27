@@ -9,6 +9,7 @@ import {
   migrateJournalThrough,
 } from './journal-prefix.support';
 import { scratchServerMissing, withScratchDatabase } from './pg16/scratch-database';
+import { runSequentially } from './in-order';
 import { quoteIdentifier } from './rls-test-connection';
 import {
   END,
@@ -34,12 +35,17 @@ export const tables = [
   'membership_opt_out_tokens',
 ] as const;
 export type Table = (typeof tables)[number];
-type Records = Record<Table, Row & { id: string }>;
+export type Records = Record<Table, Row & { id: string }>;
 
 const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
 
 export function digest(value: string): string {
   return createHash('sha256').update(value).digest('hex');
+}
+
+/** An opaque protected reference: a kind prefix and a UUID, never content. */
+export function ref(kind: string): string {
+  return `${kind}:${randomUUID()}`;
 }
 
 function records(scope: Scope): Records {
@@ -58,9 +64,10 @@ function records(scope: Scope): Records {
       ...tenant,
       id: ids.membership_import_assignments,
       staff_user_id: scope.staff,
+      capacity: 'import',
       sponsor_id: scope.sponsors,
       approved_by: scope.user,
-      evidence_ref: 'fixture-assignment-proof',
+      evidence_ref: ref('assignment'),
       valid_from: '2000-01-01T00:00:00Z',
       valid_until: END,
     },
@@ -77,7 +84,7 @@ function records(scope: Scope): Records {
       currency: 'EUR',
       signed_ceiling: 500,
       current_limit: 2,
-      signed_evidence_ref: 'fixture-signed-agreement',
+      signed_evidence_ref: ref('agreement'),
       verified_by: scope.user,
       verified_at: START,
     },
@@ -96,13 +103,13 @@ function records(scope: Scope): Records {
       canonicalization_version: 'fixture-canonicalization',
       digest: listDigest,
       row_count: 3,
-      submitted_by: scope.user,
+      submitted_by: scope.staff,
       submitted_at: START,
-      verified_by: scope.user,
+      verified_by: scope.staff,
       verified_at: START,
-      employer_approver_ref: 'fixture-signatory',
+      employer_approver_ref: ref('signatory'),
       employer_approved_at: START,
-      employer_approval_ref: 'fixture-roster-proof',
+      employer_approval_ref: ref('roster_approval'),
       employer_approved_digest: listDigest,
     },
     membership_import_rows: {
@@ -133,14 +140,14 @@ function records(scope: Scope): Records {
       employee_seat_id: ids.sponsor_contract_year_seats,
       recorded_by: scope.user,
       effective_at: MID,
-      evidence_ref: 'fixture-exit-proof',
+      evidence_ref: ref('exit'),
     },
     membership_notice_obligations: {
       ...roster,
       id: ids.membership_notice_obligations,
       purpose: 'individual_notice',
       obligation_key: 'fixture-individual-notice',
-      recipient_ref: 'fixture-approved-recipient',
+      recipient_ref: ref('recipient'),
     },
     membership_opt_out_tokens: {
       ...company,
@@ -179,6 +186,52 @@ export function adminOf(scope: Scope) {
   return { tenant: scope.tenant, actor: scope.user, role: 'tenant_admin' };
 }
 
+export function staffOf(scope: Scope) {
+  return { tenant: scope.tenant, actor: scope.staff, role: 'staff' };
+}
+
+/** The admin holding the fixture's list-decision delegation, approved by the other admin. */
+export function deciderOf(scope: Scope) {
+  return { tenant: scope.tenant, actor: scope.decider, role: 'tenant_admin' };
+}
+
+const staffWritten = new Set<Table>([
+  'membership_import_lists',
+  'membership_import_rows',
+  'sponsor_contract_year_seats',
+]);
+
+/** Assigned staff submit lists, rows and seats; a tenant admin writes the other tables. */
+export function writerOf(scope: Scope, table: Table) {
+  return staffWritten.has(table) ? staffOf(scope) : adminOf(scope);
+}
+
+export function delegation(scope: Scope, legalEntityId = scope.entity): Row & { id: string } {
+  return {
+    id: uid(),
+    tenant_id: scope.tenant,
+    legal_entity_id: legalEntityId,
+    staff_user_id: scope.decider,
+    capacity: 'decision',
+    sponsor_id: scope.sponsors,
+    approved_by: scope.user,
+    evidence_ref: ref('delegation'),
+    valid_from: '2000-01-01T00:00:00Z',
+    valid_until: END,
+  };
+}
+
+/**
+ * What the dormant migration grants nobody. The writer PR's commands will need these, so the
+ * suite grants them to the runtime role after the migration to prove the policies themselves.
+ */
+export const PROSPECTIVE_GRANTS = [
+  `grant select, insert on table ${tables.map(table => `public.${table}`).join(', ')}`,
+  'grant update (revoked_at, revoked_by) on public.membership_import_assignments',
+  'grant update (decision, decided_by, decided_at, decided_digest) on public.membership_import_lists',
+  'grant update (current_limit) on public.sponsor_contract_years',
+];
+
 type Fixture = {
   db: postgres.Sql;
   a: Scope;
@@ -186,6 +239,8 @@ type Fixture = {
   home: Records;
   away: Records;
   unprivilegedRole: string;
+  /** The runtime role's table privileges on the eight tables right after the migration. */
+  migratedPrivileges: { table: string; privilege: string }[];
 };
 
 export async function insertRecord(tx: Tx, table: Table, row: Row): Promise<void> {
@@ -198,11 +253,38 @@ export async function insertRecord(tx: Tx, table: Table, row: Row): Promise<void
 }
 
 async function insertRecords(db: postgres.Sql, scope: Scope, rows: Records) {
-  await asPrincipal(db, adminOf(scope), async tx => {
-    for (const table of tables) {
-      await insertRecord(tx, table, rows[table]);
-    }
+  // Later tables reference earlier ones, so insert in declaration order, each as its writer.
+  await runSequentially(tables, table =>
+    asPrincipal(db, writerOf(scope, table), tx => insertRecord(tx, table, rows[table]))
+  );
+  await asPrincipal(db, adminOf(scope), tx =>
+    insertRecord(tx, 'membership_import_assignments', delegation(scope))
+  );
+}
+
+async function seedDecider(db: postgres.Sql, scope: Scope) {
+  scope.decider = uid();
+  await insert(db, 'user', {
+    id: scope.decider,
+    tenant_id: scope.tenant,
+    name: 'Test',
+    email: `${scope.decider}@example.test`,
+    emailVerified: false,
+    createdAt: START,
+    updatedAt: START,
   });
+}
+
+function runtimePrivileges(db: postgres.Sql) {
+  return db<{ table: string; privilege: string }[]>`
+    select table_name as table, privilege_type as privilege
+    from information_schema.role_table_grants
+    where grantee = ${runtimeRole} and table_schema = 'public' and table_name in ${db(tables)}
+    union
+    select table_name, 'column ' || privilege_type || ' ' || column_name
+    from information_schema.role_column_grants
+    where grantee = ${runtimeRole} and table_schema = 'public' and table_name in ${db(tables)}
+    order by 1, 2`;
 }
 
 export async function withWp09Fixture(t: TestContext, run: (fixture: Fixture) => Promise<void>) {
@@ -219,20 +301,25 @@ export async function withWp09Fixture(t: TestContext, run: (fixture: Fixture) =>
       try {
         await db.unsafe(`create role ${otherRole} nologin nosuperuser nobypassrls`);
         try {
-          // The migrations grant to the runtime role when it exists, as in every environment.
-          // Supply 0105's row-lock prerequisite at its checkpoint, then build through WP-09.
+          // The runtime role exists before the migrations, as in every environment. Supply
+          // 0105's row-lock prerequisite at its checkpoint, then build through WP-09.
           await migrateJournalBeforeNotificationDeliveries(db, migrations);
           await grantNotificationDeliveryRowLocks(db);
           await migrateJournalThrough(db, migrations, { name: 'wp09_import_assignment_capacity' });
-          // Exercise the migration's table ACLs directly. Both roles can use the schema.
+          const migratedPrivileges = [...(await runtimePrivileges(db))];
+          await runSequentially(PROSPECTIVE_GRANTS, grant =>
+            db.unsafe(`${grant} to ${runtimeRole}`).then(() => undefined)
+          );
           await db.unsafe(`grant usage on schema public to ${runtimeRole}, ${otherRole}`);
           const a = await seedSponsorScope(db);
           const b = await seedSponsorScope(db);
+          await seedDecider(db, a);
+          await seedDecider(db, b);
           const home = records(a);
           const away = records(b);
           await insertRecords(db, a, home);
           await insertRecords(db, b, away);
-          await run({ db, a, b, home, away, unprivilegedRole });
+          await run({ db, a, b, home, away, unprivilegedRole, migratedPrivileges });
         } finally {
           await db.unsafe(`drop owned by ${otherRole}`);
           await db.unsafe(`drop role ${otherRole}`);

@@ -39,16 +39,24 @@ export const sponsorContractYearSeats = pgTable(
       'sponsor_contract_year_seats_slot_ck',
       sql`${table.slot} between 1 and ${table.yearCurrentLimit} and isfinite(${table.reservedAt})`
     ),
-    pgPolicy('sponsor_contract_year_seats_access', {
-      for: 'all',
+    // Separate read and reserve policies: no update or delete policy exists, so a seat,
+    // once reserved, keeps counting whatever table privileges a role is given.
+    pgPolicy('sponsor_contract_year_seats_select', {
+      for: 'select',
       using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and exists (
           select 1 from public.membership_import_rows as import_row
           where import_row.tenant_id = ${table.tenantId}
             and import_row.legal_entity_id = ${table.legalEntityId}
             and import_row.id = ${table.importRowId}
         )`,
+    }),
+    pgPolicy('sponsor_contract_year_seats_reserve', {
+      for: 'insert',
       withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and exists (
           select 1 from public.membership_import_rows as import_row
           where import_row.tenant_id = ${table.tenantId}

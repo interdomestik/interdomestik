@@ -58,7 +58,8 @@ export const membershipImportRows = pgTable(
     ),
     check(
       'membership_import_rows_review_ck',
-      sql`${table.sourceRow} > 0 and jsonb_typeof(${table.reviewFacts}) = 'object'`
+      // Until the review-fact allow-list is approved (O3), only the empty object is stored.
+      sql`${table.sourceRow} > 0 and ${table.reviewFacts} = '{}'::jsonb`
     ),
     check(
       'membership_import_rows_identity_ck',
@@ -74,7 +75,7 @@ export const membershipImportRows = pgTable(
       'membership_import_rows_proof_ck',
       sql`(${table.evidenceClass} is null) = (${table.evidenceRef} is null)
         and (${table.evidenceRef} is null or
-          (${table.evidenceClass} ~ '[^[:space:]]' and ${table.evidenceRef} ~ '[^[:space:]]'))
+          (${table.evidenceClass} ~ '^[a-z][a-z0-9_-]{0,63}$' and ${table.evidenceRef} ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'))
         and (${table.sourcePaidThrough} is null or isfinite(${table.sourcePaidThrough}))
         and (${table.origin} = 'new_company'
           or (${table.evidenceRef} is not null and ${table.sourcePaidThrough} is not null))`
@@ -83,13 +84,14 @@ export const membershipImportRows = pgTable(
       'membership_import_rows_fulfillment_ck',
       sql`${table.fulfillmentState} in ('pending', 'fulfilled', 'rejected', 'withdrawn', 'expired')
         and (${table.fulfillmentState} = 'fulfilled') = (${table.periodOriginRef} is not null)
-        and (${table.periodOriginRef} is null or ${table.periodOriginRef} ~ '[^[:space:]]')
+        and (${table.periodOriginRef} is null or ${table.periodOriginRef} ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$')
         and (${table.identityReleasedAt} is null
           or (${table.fulfillmentState} <> 'pending' and isfinite(${table.identityReleasedAt})))`
     ),
     pgPolicy('membership_import_rows_select', {
       for: 'select',
       using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and exists (
           select 1 from public.membership_import_lists as import_list
           where import_list.tenant_id = ${table.tenantId}
@@ -97,9 +99,13 @@ export const membershipImportRows = pgTable(
             and import_list.id = ${table.listId}
         )`,
     }),
+    // Only the submitter adds rows, to a pending list, at a position within its row count.
+    // With unique positions, a complete list (the decision trigger's condition) admits no row.
     pgPolicy('membership_import_rows_insert', {
       for: 'insert',
       withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and ${table.fulfillmentState} = 'pending'
         and exists (
           select 1 from public.membership_import_lists as import_list
@@ -107,6 +113,8 @@ export const membershipImportRows = pgTable(
             and import_list.legal_entity_id = ${table.legalEntityId}
             and import_list.id = ${table.listId}
             and import_list.decision is null
+            and import_list.submitted_by = (select current_setting('app.current_actor_id', true))
+            and ${table.sourceRow} <= import_list.row_count
         )`,
     }),
   ]

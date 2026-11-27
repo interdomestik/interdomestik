@@ -7,6 +7,7 @@ CREATE TABLE "membership_import_assignments" (
 	"tenant_id" text NOT NULL,
 	"legal_entity_id" text NOT NULL,
 	"staff_user_id" text NOT NULL,
+	"capacity" text NOT NULL,
 	"source_key" text,
 	"sponsor_id" text,
 	"approved_by" text NOT NULL,
@@ -16,12 +17,14 @@ CREATE TABLE "membership_import_assignments" (
 	"revoked_at" timestamp with time zone,
 	"revoked_by" text,
 	CONSTRAINT "membership_import_assignments_scope_ck" CHECK (num_nonnulls("membership_import_assignments"."source_key", "membership_import_assignments"."sponsor_id") = 1
-        and ("membership_import_assignments"."source_key" is null or "membership_import_assignments"."source_key" ~ '[^[:space:]]')),
+        and ("membership_import_assignments"."source_key" is null or "membership_import_assignments"."source_key" ~ '[^[:space:]]')
+        and "membership_import_assignments"."capacity" in ('import', 'decision')),
+	CONSTRAINT "membership_import_assignments_separation_ck" CHECK ("membership_import_assignments"."approved_by" <> "membership_import_assignments"."staff_user_id"),
 	CONSTRAINT "membership_import_assignments_validity_ck" CHECK (isfinite("membership_import_assignments"."valid_from") and isfinite("membership_import_assignments"."valid_until")
         and "membership_import_assignments"."valid_from" < "membership_import_assignments"."valid_until"),
 	CONSTRAINT "membership_import_assignments_revocation_ck" CHECK (("membership_import_assignments"."revoked_at" is null) = ("membership_import_assignments"."revoked_by" is null)
         and ("membership_import_assignments"."revoked_at" is null or isfinite("membership_import_assignments"."revoked_at"))),
-	CONSTRAINT "membership_import_assignments_evidence_ck" CHECK ("membership_import_assignments"."evidence_ref" ~ '[^[:space:]]')
+	CONSTRAINT "membership_import_assignments_evidence_ck" CHECK ("membership_import_assignments"."evidence_ref" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$')
 );
 --> statement-breakpoint
 ALTER TABLE "membership_import_assignments" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -52,7 +55,7 @@ CREATE TABLE "sponsor_contract_years" (
         and "sponsor_contract_years"."signed_ceiling" <= 500),
 	CONSTRAINT "sponsor_contract_years_window_ck" CHECK (isfinite("sponsor_contract_years"."starts_on") and isfinite("sponsor_contract_years"."ends_before") and "sponsor_contract_years"."starts_on" < "sponsor_contract_years"."ends_before"),
 	CONSTRAINT "sponsor_contract_years_fee_ck" CHECK ("sponsor_contract_years"."fee_model" in ('fixed_fee', 'per_seat') and "sponsor_contract_years"."fee_minor" >= 0 and "sponsor_contract_years"."currency" ~ '^[A-Z]{3}$'),
-	CONSTRAINT "sponsor_contract_years_evidence_ck" CHECK ("sponsor_contract_years"."agreement_key" ~ '[^[:space:]]' and "sponsor_contract_years"."signed_evidence_ref" ~ '[^[:space:]]'
+	CONSTRAINT "sponsor_contract_years_evidence_ck" CHECK ("sponsor_contract_years"."agreement_key" ~ '[^[:space:]]' and "sponsor_contract_years"."signed_evidence_ref" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'
         and jsonb_typeof("sponsor_contract_years"."benefits") = 'object' and isfinite("sponsor_contract_years"."verified_at"))
 );
 --> statement-breakpoint
@@ -110,13 +113,15 @@ CREATE TABLE "membership_import_lists" (
         "membership_import_lists"."employer_approved_at", "membership_import_lists"."employer_approval_ref", "membership_import_lists"."employer_approved_digest") = 0)
         or (num_nonnulls("membership_import_lists"."employer_approver_ref", "membership_import_lists"."employer_approved_at",
           "membership_import_lists"."employer_approval_ref", "membership_import_lists"."employer_approved_digest") = 4
-          and "membership_import_lists"."employer_approver_ref" ~ '[^[:space:]]' and "membership_import_lists"."employer_approval_ref" ~ '[^[:space:]]'
+          and "membership_import_lists"."employer_approver_ref" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'
+          and "membership_import_lists"."employer_approval_ref" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'
           and isfinite("membership_import_lists"."employer_approved_at") and "membership_import_lists"."employer_approved_at" <= "membership_import_lists"."verified_at"
           and "membership_import_lists"."employer_approved_digest" = "membership_import_lists"."digest")),
 	CONSTRAINT "membership_import_lists_decision_ck" CHECK (num_nonnulls("membership_import_lists"."decision", "membership_import_lists"."decided_by", "membership_import_lists"."decided_at", "membership_import_lists"."decided_digest") = 0
         or (num_nonnulls("membership_import_lists"."decision", "membership_import_lists"."decided_by", "membership_import_lists"."decided_at", "membership_import_lists"."decided_digest") = 4
           and "membership_import_lists"."decision" in ('approved', 'rejected') and isfinite("membership_import_lists"."decided_at")
-          and "membership_import_lists"."decided_at" >= "membership_import_lists"."verified_at" and "membership_import_lists"."decided_digest" = "membership_import_lists"."digest"))
+          and "membership_import_lists"."decided_at" >= "membership_import_lists"."verified_at" and "membership_import_lists"."decided_digest" = "membership_import_lists"."digest"
+          and "membership_import_lists"."decided_by" <> "membership_import_lists"."submitted_by" and "membership_import_lists"."decided_by" <> "membership_import_lists"."verified_by"))
 );
 --> statement-breakpoint
 ALTER TABLE "membership_import_lists" ENABLE ROW LEVEL SECURITY;--> statement-breakpoint
@@ -145,7 +150,7 @@ CREATE TABLE "membership_import_rows" (
 	CONSTRAINT "membership_import_rows_position_uq" UNIQUE("tenant_id","list_id","source_row"),
 	CONSTRAINT "membership_import_rows_origin_ck" CHECK (("membership_import_rows"."origin" = 'prior_paid_individual' and "membership_import_rows"."contract_year_id" is null)
         or ("membership_import_rows"."origin" in ('prior_paid_company', 'new_company') and "membership_import_rows"."contract_year_id" is not null)),
-	CONSTRAINT "membership_import_rows_review_ck" CHECK ("membership_import_rows"."source_row" > 0 and jsonb_typeof("membership_import_rows"."review_facts") = 'object'),
+	CONSTRAINT "membership_import_rows_review_ck" CHECK ("membership_import_rows"."source_row" > 0 and "membership_import_rows"."review_facts" = '{}'::jsonb),
 	CONSTRAINT "membership_import_rows_identity_ck" CHECK (num_nonnulls("membership_import_rows"."stable_identity_key", "membership_import_rows"."email_alias_key", "membership_import_rows"."member_user_id") >= 1
         and ("membership_import_rows"."stable_identity_key" is null) = ("membership_import_rows"."stable_identity_namespace" is null)
         and ("membership_import_rows"."stable_identity_key" is null or
@@ -155,13 +160,13 @@ CREATE TABLE "membership_import_rows" (
         and ("membership_import_rows"."member_verified_at" is null or isfinite("membership_import_rows"."member_verified_at"))),
 	CONSTRAINT "membership_import_rows_proof_ck" CHECK (("membership_import_rows"."evidence_class" is null) = ("membership_import_rows"."evidence_ref" is null)
         and ("membership_import_rows"."evidence_ref" is null or
-          ("membership_import_rows"."evidence_class" ~ '[^[:space:]]' and "membership_import_rows"."evidence_ref" ~ '[^[:space:]]'))
+          ("membership_import_rows"."evidence_class" ~ '^[a-z][a-z0-9_-]{0,63}$' and "membership_import_rows"."evidence_ref" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'))
         and ("membership_import_rows"."source_paid_through" is null or isfinite("membership_import_rows"."source_paid_through"))
         and ("membership_import_rows"."origin" = 'new_company'
           or ("membership_import_rows"."evidence_ref" is not null and "membership_import_rows"."source_paid_through" is not null))),
 	CONSTRAINT "membership_import_rows_fulfillment_ck" CHECK ("membership_import_rows"."fulfillment_state" in ('pending', 'fulfilled', 'rejected', 'withdrawn', 'expired')
         and ("membership_import_rows"."fulfillment_state" = 'fulfilled') = ("membership_import_rows"."period_origin_ref" is not null)
-        and ("membership_import_rows"."period_origin_ref" is null or "membership_import_rows"."period_origin_ref" ~ '[^[:space:]]')
+        and ("membership_import_rows"."period_origin_ref" is null or "membership_import_rows"."period_origin_ref" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$')
         and ("membership_import_rows"."identity_released_at" is null
           or ("membership_import_rows"."fulfillment_state" <> 'pending' and isfinite("membership_import_rows"."identity_released_at"))))
 );
@@ -202,7 +207,7 @@ CREATE TABLE "sponsor_exit_events" (
 	CONSTRAINT "sponsor_exit_events_employee_uq" UNIQUE("tenant_id","legal_entity_id","contract_year_id","id","employee_seat_id"),
 	CONSTRAINT "sponsor_exit_events_target_ck" CHECK (("sponsor_exit_events"."kind" = 'agreement_termination' and "sponsor_exit_events"."employee_seat_id" is null)
         or ("sponsor_exit_events"."kind" = 'employee_departure' and "sponsor_exit_events"."employee_seat_id" is not null)),
-	CONSTRAINT "sponsor_exit_events_evidence_ck" CHECK ("sponsor_exit_events"."operation_id" ~ '[^[:space:]]' and "sponsor_exit_events"."evidence_ref" ~ '[^[:space:]]'
+	CONSTRAINT "sponsor_exit_events_evidence_ck" CHECK ("sponsor_exit_events"."operation_id" ~ '[^[:space:]]' and "sponsor_exit_events"."evidence_ref" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'
         and isfinite("sponsor_exit_events"."recorded_at") and isfinite("sponsor_exit_events"."effective_at"))
 );
 --> statement-breakpoint
@@ -223,6 +228,7 @@ CREATE TABLE "membership_notice_obligations" (
 	"verified_paid_end" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "membership_notice_obligations_key_uq" UNIQUE("tenant_id","obligation_key"),
+	CONSTRAINT "membership_notice_obligations_exit_subject_uq" UNIQUE("tenant_id","exit_event_id","seat_id","purpose"),
 	CONSTRAINT "membership_notice_obligations_token_subject_uq" UNIQUE("tenant_id","legal_entity_id","contract_year_id","seat_id","id","purpose"),
 	CONSTRAINT "membership_notice_obligations_shape_ck" CHECK (("membership_notice_obligations"."seat_id" is null) = ("membership_notice_obligations"."contract_year_id" is null)
         and (
@@ -234,7 +240,7 @@ CREATE TABLE "membership_notice_obligations" (
               or ("membership_notice_obligations"."exit_kind" = 'employee_departure' and "membership_notice_obligations"."employee_exit_seat_id" is not null
                 and "membership_notice_obligations"."employee_exit_seat_id" = "membership_notice_obligations"."seat_id")))
         )),
-	CONSTRAINT "membership_notice_obligations_evidence_ck" CHECK ("membership_notice_obligations"."obligation_key" ~ '[^[:space:]]' and "membership_notice_obligations"."recipient_ref" ~ '[^[:space:]]'
+	CONSTRAINT "membership_notice_obligations_evidence_ck" CHECK ("membership_notice_obligations"."obligation_key" ~ '[^[:space:]]' and "membership_notice_obligations"."recipient_ref" ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'
         and isfinite("membership_notice_obligations"."created_at")
         and ("membership_notice_obligations"."verified_paid_end" is null or isfinite("membership_notice_obligations"."verified_paid_end")))
 );
@@ -282,74 +288,113 @@ ALTER TABLE "membership_opt_out_tokens" ADD CONSTRAINT "membership_opt_out_token
 ALTER TABLE "membership_opt_out_tokens" ADD CONSTRAINT "membership_opt_out_tokens_issuer_fk" FOREIGN KEY ("tenant_id","issued_by") REFERENCES "public"."user"("tenant_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 CREATE INDEX "membership_import_assignments_staff_idx" ON "membership_import_assignments" USING btree ("tenant_id","staff_user_id","legal_entity_id");--> statement-breakpoint
 CREATE POLICY "membership_import_assignments_select" ON "membership_import_assignments" AS PERMISSIVE FOR SELECT TO public USING ("membership_import_assignments"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'
           or ((select current_setting('app.current_actor_role', true)) = 'staff'
+            and "membership_import_assignments"."capacity" = 'import'
             and "membership_import_assignments"."staff_user_id" = (select current_setting('app.current_actor_id', true)))));--> statement-breakpoint
 CREATE POLICY "membership_import_assignments_insert" ON "membership_import_assignments" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("membership_import_assignments"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and "membership_import_assignments"."approved_by" = nullif((select current_setting('app.current_actor_id', true)), '')
+        and "membership_import_assignments"."approved_by" = (select current_setting('app.current_actor_id', true))
         and "membership_import_assignments"."revoked_at" is null);--> statement-breakpoint
 CREATE POLICY "membership_import_assignments_revoke" ON "membership_import_assignments" AS PERMISSIVE FOR UPDATE TO public USING ("membership_import_assignments"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
         and "membership_import_assignments"."revoked_at" is null) WITH CHECK ("membership_import_assignments"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
         and "membership_import_assignments"."revoked_at" is not null
-        and "membership_import_assignments"."revoked_by" = nullif((select current_setting('app.current_actor_id', true)), ''));--> statement-breakpoint
+        and "membership_import_assignments"."revoked_by" = (select current_setting('app.current_actor_id', true)));--> statement-breakpoint
 CREATE POLICY "sponsor_contract_years_select" ON "sponsor_contract_years" AS PERMISSIVE FOR SELECT TO public USING ("sponsor_contract_years"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_actor_role', true)) in ('tenant_admin', 'staff')
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-          or exists (
+          or ((select current_setting('app.current_actor_role', true)) = 'staff' and exists (
             select 1 from public.membership_import_assignments as assignment
             where assignment.tenant_id = "sponsor_contract_years"."tenant_id"
               and assignment.legal_entity_id = "sponsor_contract_years"."legal_entity_id"
+              and assignment.capacity = 'import'
+              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
               and assignment.sponsor_id = "sponsor_contract_years"."sponsor_id"
               and assignment.revoked_at is null
               and assignment.valid_from <= statement_timestamp()
               and assignment.valid_until > statement_timestamp()
-          )));--> statement-breakpoint
+          ))));--> statement-breakpoint
 CREATE POLICY "sponsor_contract_years_insert" ON "sponsor_contract_years" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("sponsor_contract_years"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and "sponsor_contract_years"."verified_by" = nullif((select current_setting('app.current_actor_id', true)), ''));--> statement-breakpoint
+        and "sponsor_contract_years"."verified_by" = (select current_setting('app.current_actor_id', true)));--> statement-breakpoint
 CREATE POLICY "sponsor_contract_years_limit_update" ON "sponsor_contract_years" AS PERMISSIVE FOR UPDATE TO public USING ("sponsor_contract_years"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null) WITH CHECK ("sponsor_contract_years"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null);--> statement-breakpoint
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin') WITH CHECK ("sponsor_contract_years"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin');--> statement-breakpoint
 CREATE POLICY "membership_import_lists_select" ON "membership_import_lists" AS PERMISSIVE FOR SELECT TO public USING ("membership_import_lists"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'
           or ((select current_setting('app.current_actor_role', true)) = 'staff' and exists (
             select 1 from public.membership_import_assignments as assignment
             where assignment.tenant_id = "membership_import_lists"."tenant_id"
               and assignment.legal_entity_id = "membership_import_lists"."legal_entity_id"
+              and assignment.capacity = 'import'
+              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
               and (assignment.source_key = "membership_import_lists"."source_key" or assignment.sponsor_id = "membership_import_lists"."sponsor_id")
               and assignment.revoked_at is null
               and assignment.valid_from <= statement_timestamp()
               and assignment.valid_until > statement_timestamp()
           ))));--> statement-breakpoint
 CREATE POLICY "membership_import_lists_insert" ON "membership_import_lists" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("membership_import_lists"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and "membership_import_lists"."decision" is null
-        and "membership_import_lists"."submitted_by" = nullif((select current_setting('app.current_actor_id', true)), '')
+        and "membership_import_lists"."submitted_by" = (select current_setting('app.current_actor_id', true))
         and "membership_import_lists"."verified_by" = "membership_import_lists"."submitted_by"
-        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-          or ((select current_setting('app.current_actor_role', true)) = 'staff' and exists (
+        and (select current_setting('app.current_actor_role', true)) = 'staff'
+        and exists (
             select 1 from public.membership_import_assignments as assignment
             where assignment.tenant_id = "membership_import_lists"."tenant_id"
               and assignment.legal_entity_id = "membership_import_lists"."legal_entity_id"
+              and assignment.capacity = 'import'
+              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
               and (assignment.source_key = "membership_import_lists"."source_key" or assignment.sponsor_id = "membership_import_lists"."sponsor_id")
               and assignment.revoked_at is null
               and assignment.valid_from <= statement_timestamp()
               and assignment.valid_until > statement_timestamp()
-          ))));--> statement-breakpoint
+          ));--> statement-breakpoint
 CREATE POLICY "membership_import_lists_decide" ON "membership_import_lists" AS PERMISSIVE FOR UPDATE TO public USING ("membership_import_lists"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
         and "membership_import_lists"."decision" is null) WITH CHECK ("membership_import_lists"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and "membership_import_lists"."decided_by" = nullif((select current_setting('app.current_actor_id', true)), '')
-        and "membership_import_lists"."decision" is not null);--> statement-breakpoint
+        and "membership_import_lists"."decided_by" = (select current_setting('app.current_actor_id', true))
+        and "membership_import_lists"."decision" is not null
+        and "membership_import_lists"."decided_by" <> "membership_import_lists"."submitted_by"
+        and "membership_import_lists"."decided_by" <> "membership_import_lists"."verified_by"
+        and exists (
+            select 1 from public.membership_import_assignments as assignment
+            where assignment.tenant_id = "membership_import_lists"."tenant_id"
+              and assignment.legal_entity_id = "membership_import_lists"."legal_entity_id"
+              and assignment.capacity = 'decision'
+              and assignment.staff_user_id = (select current_setting('app.current_actor_id', true))
+              and (assignment.source_key = "membership_import_lists"."source_key" or assignment.sponsor_id = "membership_import_lists"."sponsor_id")
+              and assignment.revoked_at is null
+              and assignment.valid_from <= statement_timestamp()
+              and assignment.valid_until > statement_timestamp()
+          ));--> statement-breakpoint
 CREATE POLICY "membership_import_rows_select" ON "membership_import_rows" AS PERMISSIVE FOR SELECT TO public USING ("membership_import_rows"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and exists (
           select 1 from public.membership_import_lists as import_list
           where import_list.tenant_id = "membership_import_rows"."tenant_id"
@@ -357,6 +402,8 @@ CREATE POLICY "membership_import_rows_select" ON "membership_import_rows" AS PER
             and import_list.id = "membership_import_rows"."list_id"
         ));--> statement-breakpoint
 CREATE POLICY "membership_import_rows_insert" ON "membership_import_rows" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("membership_import_rows"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and "membership_import_rows"."fulfillment_state" = 'pending'
         and exists (
           select 1 from public.membership_import_lists as import_list
@@ -364,36 +411,52 @@ CREATE POLICY "membership_import_rows_insert" ON "membership_import_rows" AS PER
             and import_list.legal_entity_id = "membership_import_rows"."legal_entity_id"
             and import_list.id = "membership_import_rows"."list_id"
             and import_list.decision is null
+            and import_list.submitted_by = (select current_setting('app.current_actor_id', true))
+            and "membership_import_rows"."source_row" <= import_list.row_count
         ));--> statement-breakpoint
-CREATE POLICY "sponsor_contract_year_seats_access" ON "sponsor_contract_year_seats" AS PERMISSIVE FOR ALL TO public USING ("sponsor_contract_year_seats"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and exists (
-          select 1 from public.membership_import_rows as import_row
-          where import_row.tenant_id = "sponsor_contract_year_seats"."tenant_id"
-            and import_row.legal_entity_id = "sponsor_contract_year_seats"."legal_entity_id"
-            and import_row.id = "sponsor_contract_year_seats"."import_row_id"
-        )) WITH CHECK ("sponsor_contract_year_seats"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+CREATE POLICY "sponsor_contract_year_seats_select" ON "sponsor_contract_year_seats" AS PERMISSIVE FOR SELECT TO public USING ("sponsor_contract_year_seats"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and exists (
           select 1 from public.membership_import_rows as import_row
           where import_row.tenant_id = "sponsor_contract_year_seats"."tenant_id"
             and import_row.legal_entity_id = "sponsor_contract_year_seats"."legal_entity_id"
             and import_row.id = "sponsor_contract_year_seats"."import_row_id"
         ));--> statement-breakpoint
-CREATE POLICY "sponsor_exit_events_access" ON "sponsor_exit_events" AS PERMISSIVE FOR ALL TO public USING ("sponsor_exit_events"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+CREATE POLICY "sponsor_contract_year_seats_reserve" ON "sponsor_contract_year_seats" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("sponsor_contract_year_seats"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and exists (
+          select 1 from public.membership_import_rows as import_row
+          where import_row.tenant_id = "sponsor_contract_year_seats"."tenant_id"
+            and import_row.legal_entity_id = "sponsor_contract_year_seats"."legal_entity_id"
+            and import_row.id = "sponsor_contract_year_seats"."import_row_id"
+        ));--> statement-breakpoint
+CREATE POLICY "sponsor_exit_events_select" ON "sponsor_exit_events" AS PERMISSIVE FOR SELECT TO public USING ("sponsor_exit_events"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin');--> statement-breakpoint
+CREATE POLICY "sponsor_exit_events_record" ON "sponsor_exit_events" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("sponsor_exit_events"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null) WITH CHECK ("sponsor_exit_events"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and "sponsor_exit_events"."recorded_by" = nullif((select current_setting('app.current_actor_id', true)), ''));--> statement-breakpoint
-CREATE POLICY "membership_notice_obligations_access" ON "membership_notice_obligations" AS PERMISSIVE FOR ALL TO public USING ("membership_notice_obligations"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null) WITH CHECK ("membership_notice_obligations"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null);--> statement-breakpoint
+        and "sponsor_exit_events"."recorded_by" = (select current_setting('app.current_actor_id', true)));--> statement-breakpoint
+CREATE POLICY "membership_notice_obligations_select" ON "membership_notice_obligations" AS PERMISSIVE FOR SELECT TO public USING ("membership_notice_obligations"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin');--> statement-breakpoint
+CREATE POLICY "membership_notice_obligations_record" ON "membership_notice_obligations" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("membership_notice_obligations"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin');--> statement-breakpoint
 CREATE POLICY "membership_opt_out_tokens_select" ON "membership_opt_out_tokens" AS PERMISSIVE FOR SELECT TO public USING ("membership_opt_out_tokens"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and nullif((select current_setting('app.current_actor_id', true)), '') is not null);--> statement-breakpoint
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin');--> statement-breakpoint
 CREATE POLICY "membership_opt_out_tokens_issue" ON "membership_opt_out_tokens" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("membership_opt_out_tokens"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
+        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
+        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and "membership_opt_out_tokens"."issued_by" = nullif((select current_setting('app.current_actor_id', true)), '')
+        and "membership_opt_out_tokens"."issued_by" = (select current_setting('app.current_actor_id', true))
         and "membership_opt_out_tokens"."invalidated_at" is null);
 --> statement-breakpoint
 -- Cross-module references and PostgreSQL features outside the additive Drizzle builder grammar.
@@ -486,6 +549,53 @@ ALTER TABLE public.membership_notice_obligations FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint
 ALTER TABLE public.membership_opt_out_tokens FORCE ROW LEVEL SECURITY;
 --> statement-breakpoint
+-- One individual notice per import row, whatever key a caller supplies.
+CREATE UNIQUE INDEX membership_notice_obligations_individual_uq
+  ON public.membership_notice_obligations (tenant_id, import_row_id)
+  WHERE purpose = 'individual_notice';
+--> statement-breakpoint
+-- A decision changes only the decision columns, and approval needs the complete list. Row
+-- positions are unique and bounded by row_count, so an approved list can take no further row.
+CREATE FUNCTION public.membership_import_list_decision_guard()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY INVOKER
+SET search_path = pg_catalog
+AS $$
+DECLARE
+  decision_columns constant text[] := ARRAY['decision', 'decided_by', 'decided_at', 'decided_digest'];
+  present integer;
+BEGIN
+  IF (to_jsonb(NEW) - decision_columns) IS DISTINCT FROM (to_jsonb(OLD) - decision_columns) THEN
+    RAISE check_violation USING
+      MESSAGE = 'WP-09: a list decision changes only the decision columns',
+      CONSTRAINT = 'membership_import_lists_decision_scope';
+  END IF;
+  IF NEW.decision = 'approved' THEN
+    SELECT count(*) INTO present
+    FROM public.membership_import_rows AS import_row
+    WHERE import_row.tenant_id = NEW.tenant_id
+      AND import_row.legal_entity_id = NEW.legal_entity_id
+      AND import_row.list_id = NEW.id;
+    IF present <> NEW.row_count THEN
+      RAISE check_violation USING
+        MESSAGE = 'WP-09: only a complete list can be approved',
+        CONSTRAINT = 'membership_import_lists_complete';
+    END IF;
+  END IF;
+  RETURN NEW;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER membership_import_lists_decision_guard
+  BEFORE UPDATE ON public.membership_import_lists
+  FOR EACH ROW EXECUTE FUNCTION public.membership_import_list_decision_guard();
+--> statement-breakpoint
+REVOKE ALL ON FUNCTION public.membership_import_list_decision_guard() FROM PUBLIC;
+--> statement-breakpoint
+-- Dormant: no runtime call path reads or writes these tables yet, so no role receives any
+-- privilege here (the B1 derivation rule). The writer PR adds its exact grants through the
+-- runtime-grants function. Clear any inherited defaults from the migration owner's default ACLs.
 REVOKE ALL ON TABLE
   public.membership_import_assignments, public.membership_import_lists, public.membership_import_rows,
   public.sponsor_contract_years, public.sponsor_contract_year_seats, public.sponsor_exit_events,
@@ -496,7 +606,6 @@ DO $$
 DECLARE
   target_role name;
 BEGIN
-  -- Clear any inherited defaults from the migration owner's default ACLs for these roles.
   FOR target_role IN
     SELECT rolname FROM pg_catalog.pg_roles
     WHERE rolname IN ('anon', 'authenticated', 'service_role', 'interdomestik_runtime_rls')
@@ -508,18 +617,5 @@ BEGIN
         public.membership_notice_obligations, public.membership_opt_out_tokens FROM %I', target_role
     );
   END LOOP;
-
-  IF EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'interdomestik_runtime_rls') THEN
-    GRANT SELECT, INSERT ON TABLE
-      public.membership_import_assignments, public.membership_import_lists, public.membership_import_rows,
-      public.sponsor_contract_years, public.sponsor_contract_year_seats, public.sponsor_exit_events,
-      public.membership_notice_obligations, public.membership_opt_out_tokens
-      TO interdomestik_runtime_rls;
-    GRANT UPDATE (revoked_at, revoked_by) ON public.membership_import_assignments
-      TO interdomestik_runtime_rls;
-    GRANT UPDATE (decision, decided_at, decided_by, decided_digest) ON public.membership_import_lists
-      TO interdomestik_runtime_rls;
-    GRANT UPDATE (current_limit) ON public.sponsor_contract_years TO interdomestik_runtime_rls;
-  END IF;
 END;
 $$;
