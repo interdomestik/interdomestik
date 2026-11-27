@@ -178,14 +178,15 @@ export function DetailView({ subscription, documents, t }: DetailViewProps): Rea
       await handlePaymentUpdate();
       return;
     }
+    // Cancellation has its own single error handler; keeping it outside the try below means an error
+    // is never handled twice.
+    if (id === 'cancel') {
+      await handleCancel();
+      return;
+    }
     try {
       if (id === 'complete_membership') {
         router.push(getMembershipPricingHref(subscription.planId));
-        return;
-      }
-
-      if (id === 'cancel') {
-        await handleCancel();
         return;
       }
 
