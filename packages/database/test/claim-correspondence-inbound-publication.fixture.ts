@@ -32,7 +32,45 @@ const wrongCase = { code: 'P1210' };
 const frozenScope = { code: 'P1212' };
 const frozenOwner = { code: 'P1213' };
 
+async function proveHiddenEnrollmentRefusal({ admin, runtime, role }: Connection) {
+  const claim = await enrolledCase(admin);
+  const attempt = documentInput(claim);
+  const readState = () => admin`select c."userId" as owner, to_jsonb(p) as enrollment,
+    exists (select 1 from claim_documents where id = ${attempt.id}) as persisted
+    from claim c join claim_inbound_pilot_cases p
+      on p.tenant_id = c.tenant_id and p.claim_id = c.id
+    where c.id = ${claim.id}`;
+  const before = await readState();
+  assert.equal(before[0]?.owner, ownerA);
+  assert.ok(before[0]?.enrollment.enrolled_at && before[0].enrollment.paused === false);
+  assert.equal(before[0]?.persisted, false);
+
+  // Hide only the runtime role's SELECT view of this row. The enrolled case remains FK-valid.
+  await admin.unsafe(`create policy wp12_test_hidden_enrollment on claim_inbound_pilot_cases
+    as restrictive for select to ${quoteIdentifier(role)}
+    using (claim_id <> ${quoteSqlLiteral(claim.id)})`);
+  try {
+    await assert.rejects(
+      restricted(runtime, async tx => {
+        await setActor(tx);
+        assert.equal((await tx`select id from claim where id = ${claim.id}`).length, 1);
+        assert.equal(
+          (await tx`select claim_id from claim_inbound_pilot_cases where claim_id = ${claim.id}`)
+            .length,
+          0
+        );
+        await insertDocument(tx, attempt);
+      }),
+      wrongCase
+    );
+    assert.deepEqual(await readState(), before);
+  } finally {
+    await admin`drop policy wp12_test_hidden_enrollment on claim_inbound_pilot_cases`;
+  }
+}
+
 export async function provePublishedScope(connections: Connection) {
+  await proveHiddenEnrollmentRefusal(connections);
   const { admin, runtime, peer, role } = connections;
   const classifications = ['intended-for-member', 'approved-to-show'] as const;
 
@@ -236,7 +274,10 @@ async function proveEnrollmentRace({ admin, runtime, peer }: Connection, race: E
 }
 
 export async function proveEnrollmentSnapshot(connections: Connection) {
-  await withInboundJournal114(legacy => proveEnrollmentRace(legacy, 'hidden staged activation'));
+  await withInboundJournal114(async legacy => {
+    await proveEnrollmentRace(legacy, 'first enrollment');
+    await proveEnrollmentRace(legacy, 'hidden staged activation');
+  });
   await runSequentially(['first enrollment', 'staged activation'] as const, race =>
     proveEnrollmentRace(connections, race)
   );
