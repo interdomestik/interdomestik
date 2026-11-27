@@ -1,6 +1,5 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { render, screen, within } from '@testing-library/react';
-import { createTranslator } from 'next-intl';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import enCatalog from '@/messages/en/agent-claims.json';
@@ -34,7 +33,7 @@ vi.mock('@/i18n/routing', () => ({
     href: string;
     prefetch?: boolean;
   }) => (
-    <a href={href} {...props}>
+    <a data-soft-navigation="" href={href} {...props}>
       {children}
     </a>
   ),
@@ -134,6 +133,9 @@ vi.mock('next/navigation', () => ({
 }));
 
 import StaffClaimsPage from './_core.entry';
+
+// The shared setup mocks next-intl; the summary assertions need the real message formatter.
+const { createTranslator } = await vi.importActual<typeof import('next-intl')>('next-intl');
 
 const authority = mintTestTenantAuthority('tenant-ks');
 
@@ -319,6 +321,9 @@ describe('StaffClaimsPage', () => {
     expect(empty.getByRole('link', { name: 'Clear filters' })).toHaveAttribute(
       'href',
       '/en/staff/claims'
+    );
+    expect(empty.getByRole('link', { name: 'Clear filters' })).not.toHaveAttribute(
+      'data-soft-navigation'
     );
     expect(form.getAllByRole('link')).toEqual([form.getByRole('link', { name: 'Clear' })]);
   });
