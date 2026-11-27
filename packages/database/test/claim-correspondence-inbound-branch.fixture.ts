@@ -46,8 +46,8 @@ export async function proveReceivedActorScope(connections: Connection) {
     await importDomain<typeof import('@interdomestik/domain-claims/claims/correspondence')>(
       '/claims/correspondence'
     );
-  const [previous] = await admin<{ branch_id: string | null }[]>`
-    select branch_id from "user" where id = ${homeActor}`;
+  const [previous] = await admin<{ role: string | null; branch_id: string | null }[]>`
+    select role, branch_id from "user" where id = ${homeActor}`;
   await admin`update "user" set branch_id = ${assignedBranch} where id = ${homeActor}`;
   try {
     const claim = await enrolledCase(admin, assignedBranch);
@@ -55,7 +55,7 @@ export async function proveReceivedActorScope(connections: Connection) {
     assert.equal(await attest(admin, document), true);
     await restricted(runtime, tx => publish(tx, document));
 
-    const input = {
+    const inputWithoutDocumentIds = {
       claimId: claim.id,
       correlationId: randomUUID(),
       partyKind: 'insurer',
@@ -63,8 +63,8 @@ export async function proveReceivedActorScope(connections: Connection) {
       channel: 'email',
       occurredAt: '2020-01-01T00:00:00.000Z',
       body: 'Synthetic receipt in assigned branch',
-      receivedDocumentIds: [document.id],
     };
+    const input = { ...inputWithoutDocumentIds, receivedDocumentIds: [document.id] };
     const assigned = actor(homeActor, 'staff', homeTenant, assignedBranch);
     const peer = actor(staffPeer, 'staff', homeTenant, assignedBranch);
     const denied = [
@@ -88,11 +88,43 @@ export async function proveReceivedActorScope(connections: Connection) {
 
     const result = await recordInboundCorrespondence(assigned.session, assigned.authority, input);
     assert.ok(result.ok);
+    assert.deepEqual(
+      await recordInboundCorrespondence(assigned.session, assigned.authority, input),
+      result
+    );
     const [link] = await admin`select claim_document_id from claim_correspondence_received_documents
       where correspondence_id = ${result.correspondenceId}`;
     assert.equal(link?.claim_document_id, document.id);
+
+    const receiptRows = () => admin`
+      select
+        (select jsonb_agg(to_jsonb(entry) order by entry.id)
+         from claim_correspondence entry where entry.claim_id = ${claim.id}) as entries,
+        (select jsonb_agg(to_jsonb(seal) order by seal.correspondence_id)
+         from claim_correspondence_received_seals seal where seal.claim_id = ${claim.id}) as seals,
+        (select jsonb_agg(to_jsonb(link) order by link.correspondence_id, link.claim_document_id)
+         from claim_correspondence_received_documents link where link.claim_id = ${claim.id}) as links
+    `;
+    const committed = await receiptRows();
+    const revocations = [
+      { label: 'staff role', role: 'member', branchId: assignedBranch },
+      { label: 'staff branch', role: 'staff', branchId: otherBranch },
+    ];
+    await runSequentially(revocations, async ({ label, role, branchId }) => {
+      await admin`update "user" set role = ${role}, branch_id = ${branchId} where id = ${homeActor}`;
+      await runSequentially([input, inputWithoutDocumentIds], async replay => {
+        const links = 'receivedDocumentIds' in replay ? 'exact links' : 'omitted links';
+        assert.deepEqual(
+          await recordInboundCorrespondence(assigned.session, assigned.authority, replay),
+          { ok: false, code: 'forbidden' },
+          `replay with ${links} after revoking ${label}`
+        );
+        assert.deepEqual(await receiptRows(), committed);
+      });
+    });
   } finally {
-    await admin`update "user" set branch_id = ${previous.branch_id} where id = ${homeActor}`;
+    await admin`update "user" set role = ${previous.role}, branch_id = ${previous.branch_id}
+      where id = ${homeActor}`;
   }
 }
 

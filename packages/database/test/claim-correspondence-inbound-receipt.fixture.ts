@@ -5,6 +5,7 @@ import type postgres from 'postgres';
 import { actor, importDomain } from './claim-correspondence-domain.fixture';
 import {
   approve,
+  approver,
   attest,
   enroll,
   enrolledCase,
@@ -44,11 +45,12 @@ export async function proveReceivedSet(connections: Connection) {
     occurredAt: '2020-01-01T00:00:00.000Z',
     body: 'Synthetic exact receipt',
   };
-  const write = (ids: string[]) =>
-    recordInboundCorrespondence(staff.session, staff.authority, {
-      ...inbound,
-      receivedDocumentIds: ids,
-    });
+  const write = (ids?: string[]) =>
+    recordInboundCorrespondence(
+      staff.session,
+      staff.authority,
+      ids === undefined ? inbound : { ...inbound, receivedDocumentIds: ids }
+    );
   const unavailable = { ok: false, code: 'document_invalid' };
   assert.deepEqual(await write([document.id]), unavailable);
   assert.equal(
@@ -123,7 +125,9 @@ export async function proveReceivedSet(connections: Connection) {
   const [created, duplicate] = await Promise.all([write(ids), write([...ids].reverse())]);
   assert.ok(created.ok);
   assert.deepEqual(duplicate, created);
+  assert.deepEqual(await write(), { ok: false, code: 'conflict' });
   assert.deepEqual(await write([second.id]), { ok: false, code: 'conflict' });
+  assert.deepEqual(await write([...ids, randomUUID()]), { ok: false, code: 'conflict' });
   const rows = await admin`select claim_document_id, isfinite(created_at) as has_timestamp
     from claim_correspondence_received_documents
     where correspondence_id = ${created.correspondenceId}`;
@@ -174,6 +178,14 @@ export async function proveUnenrolledSeals({ admin, runtime }: Connection) {
   const seals = await admin`select correspondence_id from claim_correspondence_received_seals
     where correspondence_id = ${ordinary.correspondenceId}`;
   assert.equal(seals.length, 0);
+
+  const administrator = actor(approver, 'tenant_admin', homeTenant, null);
+  const adminInput = { ...input, correlationId: randomUUID() };
+  const recordAsAdmin = () =>
+    recordInboundCorrespondence(administrator.session, administrator.authority, adminInput);
+  const recorded = await recordAsAdmin();
+  assert.ok(recorded.ok);
+  assert.deepEqual(await recordAsAdmin(), recorded);
 }
 
 export async function proveRollbackPause(connections: Connection) {
