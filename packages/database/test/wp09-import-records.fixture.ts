@@ -103,7 +103,7 @@ export function records(scope: Scope): Records {
       id: ids.sponsor_contract_year_seats,
       import_row_id: ids.membership_import_rows,
       slot: 2,
-      year_current_limit: 2,
+      year_current_limit: 10,
     },
     sponsor_exit_events: {
       ...company,
