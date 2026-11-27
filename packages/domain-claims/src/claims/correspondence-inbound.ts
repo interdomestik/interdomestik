@@ -186,11 +186,13 @@ export async function recordInboundCorrespondence(
     if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor))) return registerForbidden;
     return recordInbound({ tx, tenantId, actorId: actor.userId }, data);
   };
+  const writeInTransaction = () =>
+    linksReceivedDocuments
+      ? withPrincipalTenantContext(access.authority, write)
+      : withTenantAuthority(access.authority, write);
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await (linksReceivedDocuments
-        ? withPrincipalTenantContext(access.authority, write)
-        : withTenantAuthority(access.authority, write));
+      return await writeInTransaction();
     } catch (error) {
       if (error instanceof ReceivedCorrelationConflict) {
         if (attempt !== 1) return { ok: false, code: 'conflict' } as const;

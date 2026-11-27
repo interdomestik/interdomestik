@@ -74,12 +74,12 @@ export async function proveReceivedActorScope(connections: Connection) {
       actor(homeActor, 'staff', homeTenant, otherBranch),
       { session: peer.session, authority: assigned.authority },
     ];
-    for (const { session, authority } of denied) {
+    await runSequentially(denied, async ({ session, authority }) => {
       assert.deepEqual(await recordInboundCorrespondence(session, authority, input), {
         ok: false,
         code: 'forbidden',
       });
-    }
+    });
     const [before] = await admin`select
       exists(select 1 from claim_correspondence where correlation_id = ${input.correlationId}) as entry,
       exists(select 1 from claim_correspondence_received_documents
