@@ -1,5 +1,5 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import enCatalog from '@/messages/en/agent-claims.json';
@@ -293,5 +293,39 @@ describe('StaffClaimsPage', () => {
       '/staff/claims'
     );
     expect(screen.getByDisplayValue('diaspora')).toHaveAttribute('name', 'diaspora');
+  });
+
+  it('offers Clear filters outside the search form when a filtered queue is empty', async () => {
+    render(
+      await StaffClaimsPage({
+        params: Promise.resolve({ locale: 'en' }),
+        searchParams: Promise.resolve({ search: 'no matching claim' }),
+      })
+    );
+
+    const empty = within(screen.getByTestId('staff-claims-empty'));
+    const form = within(screen.getByTestId('staff-claims-search-form'));
+    expect(empty.getByText('No claims match the current filters')).toBeVisible();
+    expect(empty.getByRole('link', { name: 'Clear filters' })).toHaveAttribute(
+      'href',
+      '/staff/claims'
+    );
+    expect(form.getAllByRole('link')).toEqual([form.getByRole('link', { name: 'Clear' })]);
+  });
+
+  it('shows the default empty copy and announces the settled zero results', async () => {
+    render(
+      await StaffClaimsPage({
+        params: Promise.resolve({ locale: 'en' }),
+        searchParams: Promise.resolve({}),
+      })
+    );
+
+    const count = screen.getByTestId('staff-claims-results-count');
+    expect(screen.getByRole('status')).toBe(count);
+    expect(count).toHaveTextContent('0 claims');
+    expect(screen.getByTestId('staff-claims-empty')).toHaveTextContent('No claims in queue');
+    expect(screen.queryByRole('link', { name: 'Clear filters' })).not.toBeInTheDocument();
+    expect(within(screen.getByTestId('staff-claims-search-form')).queryByRole('link')).toBeNull();
   });
 });

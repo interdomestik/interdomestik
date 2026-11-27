@@ -1,6 +1,7 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
-import { formatPilotDateTime } from '@/lib/utils/date';
-import { render, screen } from '@testing-library/react';
+import { formatPilotDate, formatPilotDateTime } from '@/lib/utils/date';
+import type { StaffClaimsListItem } from '@interdomestik/domain-claims';
+import { render, screen, within } from '@testing-library/react';
 import type { ReactNode } from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -8,6 +9,7 @@ import deCatalog from '@/messages/de/agent-claims.json';
 import enCatalog from '@/messages/en/agent-claims.json';
 import mkCatalog from '@/messages/mk/agent-claims.json';
 import sqCatalog from '@/messages/sq/agent-claims.json';
+import sqClaimsCatalog from '@/messages/sq/claims.json';
 import srCatalog from '@/messages/sr/agent-claims.json';
 
 const mocks = vi.hoisted(() => ({
@@ -16,7 +18,7 @@ const mocks = vi.hoisted(() => ({
   getSession: vi.fn(async () => ({
     user: { id: 'manager-1', role: 'branch_manager', tenantId: 'tenant-ks', branchId: 'branch-1' },
   })),
-  getClaims: vi.fn(async () => []),
+  getClaims: vi.fn<() => Promise<StaffClaimsListItem[]>>(async () => []),
   getAttention: vi.fn(async () => ({})),
 }));
 
@@ -51,7 +53,15 @@ vi.mock('@interdomestik/domain-claims', () => ({
   parseDiasporaOriginFilter: (value?: string | null) => (value === 'diaspora' ? 'diaspora' : 'all'),
 }));
 vi.mock('@/components/dashboard/claims/claim-status-badge', () => ({
-  ClaimStatusBadge: ({ status }: { status: string }) => <span>{status}</span>,
+  ClaimStatusBadge: ({ status }: Readonly<{ status: string | null }>) => {
+    const labels: Readonly<Record<string, string>> = sqClaimsCatalog.claims.status;
+    const key = status ?? 'Unknown';
+    return (
+      <span data-testid="claim-status-badge">
+        {mocks.locale === 'sq' ? (labels[key] ?? key) : key}
+      </span>
+    );
+  },
 }));
 vi.mock('next-intl/server', () => ({
   setRequestLocale: vi.fn((locale: string) => {
@@ -109,6 +119,20 @@ vi.mock('next/navigation', () => ({
 import StaffClaimsPage from './_core.entry';
 
 const authority = mintTestTenantAuthority('tenant-ks');
+const queueClaim: StaffClaimsListItem = {
+  id: 'claim-1',
+  claimNumber: null,
+  companyName: null,
+  title: 'Rast',
+  status: 'verification',
+  stageLabel: 'Verification',
+  updatedAt: '2026-09-27T22:30:00.000Z',
+  memberName: 'Anëtar',
+  memberNumber: null,
+  staffId: null,
+  isDiasporaOrigin: false,
+  diasporaCountry: null,
+};
 
 describe('staff claim attention', () => {
   beforeEach(() => {
@@ -127,20 +151,7 @@ describe('staff claim attention', () => {
   });
 
   it('preserves localized branch-manager queue copy without assigned-staff request progress', async () => {
-    mocks.getClaims.mockResolvedValueOnce([
-      {
-        id: 'claim-1',
-        claimNumber: null,
-        companyName: null,
-        title: 'Rast',
-        status: 'verification',
-        stageLabel: 'Verification',
-        updatedAt: '2026-03-01T00:00:00.000Z',
-        memberName: 'Anëtar',
-        memberNumber: null,
-        staffId: null,
-      },
-    ] as never);
+    mocks.getClaims.mockResolvedValueOnce([queueClaim]);
     render(
       await StaffClaimsPage({
         params: Promise.resolve({ locale: 'sq' }),
@@ -149,11 +160,11 @@ describe('staff claim attention', () => {
     );
 
     expect(screen.getByTestId('page-title')).toHaveTextContent('Radha Operative e Kërkesave');
-    expect(screen.getByText('Rasti')).toBeInTheDocument();
+    expect(screen.getByText('Referenca e rastit')).toBeInTheDocument();
     expect(screen.getByText('Anëtari')).toBeInTheDocument();
     expect(screen.getByText('Statusi + faza')).toBeInTheDocument();
     expect(screen.getByText('Përditësuar')).toBeInTheDocument();
-    expect(screen.getByText('Veprimi')).toBeInTheDocument();
+    expect(screen.getByText('Caktimi')).toBeInTheDocument();
     expect(screen.getByTestId('staff-claims-assigned-filter-unassigned')).toHaveTextContent(
       'Pa përgjegjës'
     );
@@ -162,13 +173,85 @@ describe('staff claim attention', () => {
     );
     expect(screen.getAllByText('Verifikim').length).toBeGreaterThan(0);
     expect(screen.queryByText('Verification')).not.toBeInTheDocument();
+    const row = within(screen.getByTestId('staff-claims-row'));
+    expect(row.getByTestId('claim-status-badge')).toHaveTextContent('Në Verifikim');
+    expect(row.queryByText('Verifikim')).not.toBeInTheDocument();
     expect(screen.getByText('Pa numër rasti')).toBeInTheDocument();
     expect(screen.getByText('Nuk ka kompani të dhënë')).toBeInTheDocument();
     expect(screen.getByText('Pa numër anëtarësie')).toBeInTheDocument();
     expect(screen.getByTestId('staff-claim-assignment-state')).toHaveTextContent('Pa përgjegjës');
-    expect(screen.getByTestId('staff-claims-view')).toHaveTextContent('Hap');
+    const detailLink = screen.getByTestId('staff-claims-view');
+    expect(detailLink).toHaveAttribute('href', '/staff/claims/claim-1');
+    expect(detailLink).toHaveTextContent(/^Rast$/);
+    expect(row.getAllByRole('link')).toEqual([detailLink]);
     expect(mocks.getAttention).not.toHaveBeenCalled();
     expect(screen.queryByTestId('staff-claim-next-actor')).not.toBeInTheDocument();
+  });
+
+  it('uses group h2s and claim h3s in the staff queue', async () => {
+    mocks.getSession.mockResolvedValueOnce({
+      user: { id: 'staff-1', role: 'staff', tenantId: 'tenant-ks', branchId: 'branch-1' },
+    });
+    mocks.getClaims.mockResolvedValueOnce([queueClaim]);
+    render(
+      await StaffClaimsPage({
+        params: Promise.resolve({ locale: 'en' }),
+        searchParams: Promise.resolve({}),
+      })
+    );
+
+    const group = screen.getByRole('region', { name: 'Unassigned cases' });
+    expect(within(group).getByRole('heading', { level: 2 })).toBe(
+      screen.getByTestId('staff-claims-group-unassigned')
+    );
+    const row = within(group).getByRole('listitem');
+    expect(within(row).getByRole('heading', { level: 3, name: 'Rast' })).toContainElement(
+      screen.getByTestId('staff-claims-view')
+    );
+  });
+
+  it('uses claim h2s in the flat branch-manager queue', async () => {
+    mocks.getClaims.mockResolvedValueOnce([queueClaim]);
+    render(
+      await StaffClaimsPage({
+        params: Promise.resolve({ locale: 'en' }),
+        searchParams: Promise.resolve({}),
+      })
+    );
+
+    const queue = within(screen.getByTestId('staff-claims-queue'));
+    const row = within(queue.getByRole('listitem'));
+    const heading = row.getByRole('heading', { level: 2, name: 'Rast' });
+    expect(queue.getAllByRole('heading', { level: 2 })).toEqual([heading]);
+    expect(queue.queryByRole('heading', { level: 3 })).not.toBeInTheDocument();
+  });
+
+  it('shows the updated date in the pilot time zone and format', async () => {
+    mocks.getClaims.mockResolvedValueOnce([queueClaim]);
+    render(
+      await StaffClaimsPage({
+        params: Promise.resolve({ locale: 'sq' }),
+        searchParams: Promise.resolve({}),
+      })
+    );
+
+    const row = within(screen.getByTestId('staff-claims-row'));
+    const pilotDate = formatPilotDate(queueClaim.updatedAt, 'sq', '');
+    expect(row.getByText(pilotDate, { selector: 'dd' })).toHaveTextContent('28.09.2026');
+  });
+
+  it('shows the stage label alongside the badge when status is null', async () => {
+    mocks.getClaims.mockResolvedValueOnce([{ ...queueClaim, status: null, stageLabel: 'Intake' }]);
+    render(
+      await StaffClaimsPage({
+        params: Promise.resolve({ locale: 'en' }),
+        searchParams: Promise.resolve({}),
+      })
+    );
+
+    const badge = screen.getByTestId('claim-status-badge');
+    expect(badge).toHaveTextContent('Unknown');
+    expect(badge.closest('dd')).toHaveTextContent('Intake');
   });
 
   it.each(['en', 'sq', 'mk', 'sr', 'de'])(

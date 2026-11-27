@@ -20,9 +20,11 @@
       "staff_queue": {
         "subtitle": "What needs action today.",
         "results_count": "{count, plural, one {# claim} other {# claims}}",
+        "search_label": "Search claims",
         "search_placeholder": "Search claim, member, company, or number",
         "search": "Search",
         "clear_search": "Clear",
+        "clear_filters": "Clear filters",
         "pending_search": "Searching claims...",
         "pending_filter": "Updating filters...",
         "assignment_filter_label": "Assignment filter",
@@ -62,14 +64,18 @@
           "diaspora": "Diaspora / Green Card"
         },
         "table": {
+          "reference": "Claim reference",
           "claim": "Claim",
           "member": "Member",
           "status_stage": "Status + stage",
           "updated": "Updated",
+          "assignment": "Assignment",
+          "next_step": "Next step",
           "action": "Action",
           "no_claim_number": "No claim number",
           "no_company": "No company provided",
-          "no_member_number": "No member number"
+          "no_member_number": "No member number",
+          "unavailable": "Unavailable"
         },
         "origin_badge": "Diaspora / Green Card"
       },

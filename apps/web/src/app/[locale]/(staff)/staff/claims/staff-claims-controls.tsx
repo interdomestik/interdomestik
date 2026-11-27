@@ -1,40 +1,36 @@
 'use client';
 
+import { OUTLINED_LINK, PRIMARY_LINK } from '@/components/dashboard/member-portal-link-styles';
 import { Link, useRouter } from '@/i18n/routing';
-import { Button, Input } from '@interdomestik/ui';
+import { Input } from '@interdomestik/ui';
 import type { FormEvent, MouseEvent } from 'react';
-import { useLayoutEffect, useRef, useState, useTransition } from 'react';
+import { useId, useLayoutEffect, useRef, useState, useTransition } from 'react';
 
-type HiddenField = {
+import { StaffClaimsFilterGroup, type FilterOption } from './staff-claims-filter-group';
+
+type HiddenField = Readonly<{
   name: string;
   value: string;
-};
+}>;
 
-type FilterOption = {
-  href: string;
-  isActive: boolean;
-  label: string;
-  testId: string;
-  value: string;
-};
-
-type Props = {
+type Props = Readonly<{
   assignmentFilterLabel: string;
-  assignmentOptions: FilterOption[];
+  assignmentOptions: readonly FilterOption[];
   clearSearchHref?: string;
   clearSearchLabel: string;
   currentSearch?: string;
   diasporaFilterLabel: string;
-  diasporaOptions: FilterOption[];
+  diasporaOptions: readonly FilterOption[];
   formAction: string;
-  hiddenFields: HiddenField[];
+  hiddenFields: readonly HiddenField[];
   pendingFilterLabel: string;
   pendingSearchLabel: string;
+  searchInputLabel: string;
   searchLabel: string;
   searchPlaceholder: string;
   statusFilterLabel: string;
-  statusOptions: FilterOption[];
-};
+  statusOptions: readonly FilterOption[];
+}>;
 
 type PendingKind = 'filter' | 'search';
 
@@ -54,12 +50,16 @@ export function StaffClaimsControls({
   hiddenFields,
   pendingFilterLabel,
   pendingSearchLabel,
+  searchInputLabel,
   searchLabel,
   searchPlaceholder,
   statusFilterLabel,
   statusOptions,
-}: Readonly<Props>) {
+}: Props) {
   const router = useRouter();
+  const id = useId();
+  const searchId = `${id}-search`;
+  const searchInputRef = useRef<HTMLInputElement>(null);
   // The router runs the navigation inside this transition, so isPending stays
   // true until the destination tree commits (or a history traversal supersedes
   // it). It is the only signal that releases the controls; no timer does.
@@ -78,6 +78,7 @@ export function StaffClaimsControls({
   });
 
   const activePendingKind = isNavigationPending ? pendingKind : null;
+  const controlsBusy = activePendingKind !== null;
 
   function navigateTo(href: string, kind: PendingKind) {
     navigationOwnerRef.current = true;
@@ -134,129 +135,110 @@ export function StaffClaimsControls({
     navigateTo(option.href, 'filter');
   }
 
-  function renderFilterOptions(options: FilterOption[]) {
-    return options.map(option => {
-      const isDisabled = Boolean(activePendingKind || option.isActive);
+  function handleClearSearch(event: MouseEvent<HTMLAnchorElement>, href: string) {
+    if (event.defaultPrevented || !isPrimaryNavigationClick(event)) return;
 
-      return (
-        <Button
-          asChild
-          key={option.value}
-          size="sm"
-          variant={option.isActive ? 'default' : 'outline'}
-        >
-          <Link
-            href={option.href}
-            aria-disabled={isDisabled ? 'true' : undefined}
-            onClick={event => startFilterPending(event, option)}
-            prefetch={false}
-            data-testid={option.testId}
-            tabIndex={isDisabled ? -1 : undefined}
-          >
-            {option.label}
-          </Link>
-        </Button>
-      );
-    });
+    event.preventDefault();
+    if (navigationOwnerRef.current) return;
+
+    searchInputRef.current?.focus();
+    navigateTo(href, 'filter');
   }
 
   const pendingLabel = activePendingKind === 'search' ? pendingSearchLabel : pendingFilterLabel;
 
   return (
     <section
-      aria-busy={activePendingKind ? 'true' : undefined}
-      className="rounded-lg border bg-white p-4 shadow-sm"
+      aria-busy={controlsBusy ? 'true' : undefined}
+      className="min-w-0 space-y-4 rounded-2xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface))] p-4 [overflow-wrap:anywhere] sm:p-6 forced-colors:border-[CanvasText]"
       data-testid="staff-claims-filters"
     >
       <form
         action={formAction}
-        className="flex flex-col gap-3 md:flex-row md:items-center"
+        className="space-y-2"
         data-testid="staff-claims-search-form"
+        method="get"
         onSubmit={handleSearchSubmit}
       >
         {hiddenFields.map(field => (
           <input key={field.name} type="hidden" name={field.name} value={field.value} />
         ))}
-        <Input
-          name="search"
-          defaultValue={currentSearch}
-          placeholder={searchPlaceholder}
-          data-testid="staff-claims-search-input"
-        />
-        <div className="flex shrink-0 flex-wrap items-center gap-2">
-          <Button
-            disabled={Boolean(activePendingKind)}
-            className="shrink-0 !whitespace-nowrap [overflow-wrap:normal]"
-            type="submit"
-            data-testid="staff-claims-search-submit"
-          >
-            {searchLabel}
-          </Button>
-          {currentSearch && clearSearchHref ? (
-            <Button
-              asChild
-              type="button"
-              variant="ghost"
-              className="shrink-0 !whitespace-nowrap [overflow-wrap:normal]"
+        <label className="block text-sm font-semibold" htmlFor={searchId}>
+          {searchInputLabel}
+        </label>
+        <div className="flex min-w-0 flex-col gap-2 md:flex-row md:items-start">
+          <Input
+            className="h-auto min-h-11 min-w-11 scroll-my-24 border-foreground/60 bg-[hsl(var(--surface))] placeholder:text-foreground/70 forced-colors:border-[CanvasText] forced-colors:focus-visible:outline"
+            id={searchId}
+            name="search"
+            ref={searchInputRef}
+            defaultValue={currentSearch}
+            placeholder={searchPlaceholder}
+            data-testid="staff-claims-search-input"
+          />
+          <div className="flex min-w-0 flex-wrap gap-2 md:max-w-[55%] md:shrink-0">
+            <button
+              disabled={controlsBusy}
+              className={`${PRIMARY_LINK} scroll-my-24 text-start disabled:cursor-not-allowed disabled:opacity-50`}
+              type="submit"
+              data-testid="staff-claims-search-submit"
             >
+              {searchLabel}
+            </button>
+            {currentSearch && clearSearchHref && (
               <Link
                 href={clearSearchHref}
-                aria-disabled={activePendingKind ? 'true' : undefined}
-                onClick={event => {
-                  if (event.defaultPrevented || !isPrimaryNavigationClick(event)) {
-                    return;
-                  }
-
-                  if (navigationOwnerRef.current) {
-                    event.preventDefault();
-                    return;
-                  }
-
-                  event.preventDefault();
-                  navigateTo(clearSearchHref, 'filter');
-                }}
+                aria-disabled={controlsBusy ? 'true' : undefined}
+                className={`${OUTLINED_LINK} scroll-my-24`}
+                onClick={event => handleClearSearch(event, clearSearchHref)}
                 prefetch={false}
-                tabIndex={activePendingKind ? -1 : undefined}
+                tabIndex={controlsBusy ? -1 : undefined}
               >
                 {clearSearchLabel}
               </Link>
-            </Button>
-          ) : null}
+            )}
+          </div>
         </div>
       </form>
 
-      {activePendingKind ? (
-        <div
-          className="mt-3 inline-flex items-center gap-2 rounded-md border border-cyan-200 bg-cyan-50 px-3 py-2 text-sm font-medium text-cyan-900"
+      {controlsBusy && (
+        <p
+          className="flex w-fit max-w-full items-center gap-2 rounded-xl border border-[hsl(var(--border-strong))] bg-[hsl(var(--surface-strong))] px-3 py-2 text-sm font-medium forced-colors:border-[CanvasText]"
           data-testid="staff-claims-pending"
           role="status"
-          aria-live="polite"
         >
-          <span className="h-2 w-2 animate-pulse rounded-full bg-cyan-700" aria-hidden="true" />
-          {pendingLabel}
-        </div>
-      ) : null}
-
-      <div className="mt-4 space-y-2" data-testid="staff-claims-assignment-filters">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {assignmentFilterLabel}
+          <span
+            className="size-2 shrink-0 rounded-full bg-current motion-safe:animate-pulse"
+            aria-hidden="true"
+          />
+          <span className="min-w-0">{pendingLabel}</span>
         </p>
-        <div className="flex flex-wrap gap-2">{renderFilterOptions(assignmentOptions)}</div>
-      </div>
+      )}
 
-      <div className="mt-3 space-y-2" data-testid="staff-claims-status-filters">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {statusFilterLabel}
-        </p>
-        <div className="flex flex-wrap gap-2">{renderFilterOptions(statusOptions)}</div>
-      </div>
-
-      <div className="mt-3 space-y-2" data-testid="staff-claims-diaspora-filters">
-        <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          {diasporaFilterLabel}
-        </p>
-        <div className="flex flex-wrap gap-2">{renderFilterOptions(diasporaOptions)}</div>
-      </div>
+      <StaffClaimsFilterGroup
+        isPending={controlsBusy}
+        label={assignmentFilterLabel}
+        labelId={`${id}-assignment`}
+        onNavigate={startFilterPending}
+        options={assignmentOptions}
+        testId="staff-claims-assignment-filters"
+      />
+      <StaffClaimsFilterGroup
+        isPending={controlsBusy}
+        label={statusFilterLabel}
+        labelId={`${id}-status`}
+        onNavigate={startFilterPending}
+        options={statusOptions}
+        testId="staff-claims-status-filters"
+      />
+      <StaffClaimsFilterGroup
+        isPending={controlsBusy}
+        label={diasporaFilterLabel}
+        labelId={`${id}-diaspora`}
+        onNavigate={startFilterPending}
+        options={diasporaOptions}
+        testId="staff-claims-diaspora-filters"
+      />
     </section>
   );
 }

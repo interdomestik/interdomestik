@@ -20,9 +20,11 @@
       "staff_queue": {
         "subtitle": "Šta danas traži akciju.",
         "results_count": "{count, plural, one {# zahtev} other {# zahteva}}",
+        "search_label": "Pretraga zahteva",
         "search_placeholder": "Pretraži zahtev, člana, kompaniju ili broj",
         "search": "Pretraži",
         "clear_search": "Obriši",
+        "clear_filters": "Obriši filtere",
         "pending_search": "Pretraživanje zahteva...",
         "pending_filter": "Ažuriranje filtera...",
         "assignment_filter_label": "Filter dodele",
@@ -62,14 +64,18 @@
           "diaspora": "Dijaspora / Zeleni karton"
         },
         "table": {
+          "reference": "Referenca zahteva",
           "claim": "Zahtev",
           "member": "Član",
           "status_stage": "Status + faza",
           "updated": "Ažurirano",
+          "assignment": "Dodela",
+          "next_step": "Sledeći korak",
           "action": "Radnja",
           "no_claim_number": "Nema broja zahteva",
           "no_company": "Nije navedena kompanija",
-          "no_member_number": "Nema članskog broja"
+          "no_member_number": "Nema članskog broja",
+          "unavailable": "Nije dostupno"
         },
         "origin_badge": "Dijaspora / Zeleni karton"
       },
