@@ -218,7 +218,9 @@
         "progress": "Fortschritt",
         "evidence": "Nachweise",
         "history": "Verlauf",
-        "messages": "Nachrichten"
+        "messages": "Nachrichten",
+        "referenceLabel": "Referenz",
+        "statusLabel": "Bearbeitungsstand"
       },
       "caseDetails": "Falldetails",
       "description": "Beschreibung",

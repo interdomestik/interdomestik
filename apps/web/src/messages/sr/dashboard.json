@@ -554,6 +554,9 @@
         "legacy": "Nasleđeni",
         "v3": "V3"
       }
+    },
+    "settings_page": {
+      "residence_unavailable": "Nismo mogli da učitamo vašu državu prebivališta. Ponovo učitajte stranicu pre nego što je promenite."
     }
   }
 }

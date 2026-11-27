@@ -3,7 +3,7 @@
     "CLOSED": "Pagesat dhe menaxhimi i abonimeve nuk janë aktualisht të disponueshme.",
     "page": {
       "title": "Anëtarësia",
-      "description": "Menaxho abonimin dhe detajet e planit."
+      "description": "Statusi i anëtarësimit tuaj, periudha aktuale dhe çfarë mbulon anëtarësimi."
     },
     "scope": {
       "eyebrow": "Fusha e planit",
@@ -95,14 +95,20 @@
     "ops": {
       "title": "Abonimet",
       "empty_list": "Nuk ka abonime",
-      "no_membership_title": "Përfundo anëtarësinë",
-      "no_membership_body": "Ende nuk keni një anëtarësi të paguar aktive. Zgjidhni një plan për të vazhduar në checkout dhe për të zhbllokuar qasjen te rastet.",
+      "no_membership_title": "Nuk keni anëtarësim aktiv",
+      "no_membership_body": "Ende nuk keni anëtarësim aktiv. Mund të shihni planet dhe çfarë mbulon secili.",
       "membership_not_active_title": "Ky anëtarësim është joaktiv",
-      "membership_not_active_body": "Kjo anëtarësi nuk është ende aktive. Përfundoni checkout-in për të rikthyer mbrojtjen dhe qasjen te rastet.",
-      "complete_membership": "Përfundo anëtarësinë",
-      "choose_plan": "Zgjidh një plan",
+      "membership_not_active_body": "Ky anëtarësim nuk është aktiv. Ndërsa është joaktiv, nuk jep qasje në raste të reja.",
+      "complete_membership": "Shiko planet",
+      "choose_plan": "Shiko planet",
       "select_subscription": "Zgjidhni një abonim",
-      "back_to_list": "Kthehu te lista"
+      "back_to_list": "Kthehu te lista",
+      "about_title": "Rreth anëtarësimit tuaj",
+      "sponsor_coverage_label": "Programi i kompanisë",
+      "renewal_label": "Rinovimi",
+      "renewal_stops": "Nuk rinovohet pas periudhës aktuale",
+      "selection_unavailable": "Ky regjistrim anëtarësimi nuk është më i disponueshëm. Anëtarësimi juaj aktual mund të ketë ndryshuar.",
+      "open_current": "Hap anëtarësimin aktual"
     },
     "actions": {
       "confirm_cancel": "A jeni i sigurt që dëshironi ta anuloni? Anulimi ndryshon vetëm rinovimin e ardhshëm dhe qasja juaj aktuale mbetet aktive deri në fund të periudhës së tanishme të faturimit.",
@@ -115,7 +121,8 @@
       "payment_update_preparing": "Po përgatisim lidhjen tuaj të sigurt për përditësimin e pagesës…",
       "payment_update_opening": "Po hapim faqen e sigurt të pagesës…",
       "renew": "Rinovo",
-      "cancel": "Kërko anulim"
+      "cancel": "Kërko anulim",
+      "cancel_pending": "Duke kërkuar anulimin…"
     },
     "errors": {
       "action_failed": "Nuk mundëm ta përfundojmë atë veprim të anëtarësisë. Ju lutem provoni përsëri.",

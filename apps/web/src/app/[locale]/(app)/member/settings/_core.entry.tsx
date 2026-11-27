@@ -12,30 +12,25 @@ import { NotificationSettings } from '@/components/settings/notification-setting
 import { ResidenceCountrySettings } from '@/components/settings/residence-country-settings';
 import { eq, user } from '@interdomestik/database';
 import { withTenant } from '@interdomestik/database/tenant-security';
-import { Separator } from '@interdomestik/ui/components/separator';
-import { Skeleton } from '@interdomestik/ui/components/skeleton';
+import {
+  MemberSettingsFrame,
+  MemberSettingsUnavailable,
+} from '@/components/settings/member-settings-frame';
 import { getTranslations } from 'next-intl/server';
-import { Suspense } from 'react';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
-
-function SettingsSkeleton() {
-  return (
-    <div className="space-y-4">
-      <Skeleton className="h-[200px] w-full max-w-xl rounded-lg" />
-    </div>
-  );
-}
 
 interface SettingsPageProps {
   params: Promise<{ locale: string }>;
 }
 
-async function getResidenceCountry() {
+type ResidenceCountryRead = Readonly<{ ok: true; value: string | null } | { ok: false }>;
+
+async function getResidenceCountry(): Promise<ResidenceCountryRead> {
   const admission = await requireAdmittedMember();
-  if (!admission.ok) return null;
+  if (!admission.ok) return { ok: false };
   const { session, authority } = admission.authorized;
   const tenantId = session.user.tenantId;
-  if (!tenantId) return null;
+  if (!tenantId) return { ok: false };
 
   try {
     // db-access-guard: tenant-scoped -- reason: member settings reads the signed-in user by session tenant and user id
@@ -45,10 +40,13 @@ async function getResidenceCountry() {
         columns: { residenceCountry: true },
       })
     );
-    return row?.residenceCountry ?? null;
+    // No row for the signed-in member is not "no country stored": treat it as an unavailable read.
+    if (!row) return { ok: false };
+    return { ok: true, value: row.residenceCountry ?? null };
   } catch (error) {
+    // A failed read is not an empty value: the form stays closed so it cannot save a blank.
     console.error('Failed to load residence country:', error);
-    return null;
+    return { ok: false };
   }
 }
 
@@ -58,78 +56,55 @@ export default async function SettingsPage({ params }: SettingsPageProps) {
   if (!admission.ok) return <MemberAcceptanceStep locale={locale} refusal={admission} />;
   const { session } = admission.authorized;
 
-  const [t, commercialTerms, residenceCountry] = await Promise.all([
+  const [t, tPortal, tCommon, commercialTerms, residenceCountry] = await Promise.all([
     getTranslations({ locale, namespace: 'settings' }),
+    getTranslations({ locale, namespace: 'dashboard.settings_page' }),
+    getTranslations({ locale, namespace: 'common' }),
     getTranslations({ locale, namespace: 'commercialTerms' }),
     getResidenceCountry(),
   ]);
 
   return (
-    <div className="min-w-0 space-y-8 [overflow-wrap:anywhere]">
-      {/* Page Header */}
-      <div>
-        <h2 className="text-2xl font-bold tracking-tight">{t('title')}</h2>
-        <p className="text-muted-foreground">{t('description')}</p>
-      </div>
-
-      <Separator />
-
-      <div className="grid grid-cols-[minmax(0,1fr)] gap-8 lg:grid-cols-2">
-        {/* Left Column - Profile & Security */}
-        <div className="min-w-0 space-y-8 [overflow-wrap:anywhere]">
-          {/* Profile Section */}
-          <section id="profile">
-            <h3 className="text-lg font-medium mb-4">{t('profile.sectionTitle')}</h3>
-            <Suspense fallback={<SettingsSkeleton />}>
-              <ProfileForm
-                user={{
-                  name: session!.user.name || '',
-                  image: session!.user.image,
-                }}
-              />
-            </Suspense>
-          </section>
-
-          <section id="residence-country">
-            <h3 className="text-lg font-medium mb-4">{t('residenceCountry.sectionTitle')}</h3>
-            <Suspense fallback={<SettingsSkeleton />}>
-              <ResidenceCountrySettings initialResidenceCountry={residenceCountry} />
-            </Suspense>
-          </section>
-
-          {/* Security Section */}
-          <section>
-            <h3 className="text-lg font-medium mb-4">{t('security.sectionTitle')}</h3>
-            <Suspense fallback={<SettingsSkeleton />}>
-              <ChangePasswordForm />
-            </Suspense>
-          </section>
-        </div>
-
-        {/* Right Column - Preferences */}
-        <div className="min-w-0 space-y-8 [overflow-wrap:anywhere]">
-          {/* Language Section */}
-          <section>
-            <h3 className="text-lg font-medium mb-4">{t('language.sectionTitle')}</h3>
-            <Suspense fallback={<SettingsSkeleton />}>
-              <LanguageSettings />
-            </Suspense>
-          </section>
-
-          {/* Notifications Section */}
-          <section id="notifications">
-            <h3 className="text-lg font-medium mb-4">{t('notifications.sectionTitle')}</h3>
-            <Suspense fallback={<SettingsSkeleton />}>
-              <NotificationSettings />
-            </Suspense>
-          </section>
-        </div>
-      </div>
-
-      <CommercialBillingTerms
-        {...buildCommercialTermsProps(commercialTerms, 'settings-billing-terms')}
-      />
-    </div>
+    <MemberSettingsFrame
+      title={t('title')}
+      description={t('description')}
+      account={[
+        {
+          id: 'profile',
+          title: t('profile.sectionTitle'),
+          content: (
+            <ProfileForm user={{ name: session.user.name || '', image: session.user.image }} />
+          ),
+        },
+        {
+          id: 'residence-country-section',
+          title: t('residenceCountry.sectionTitle'),
+          content: residenceCountry.ok ? (
+            <ResidenceCountrySettings initialResidenceCountry={residenceCountry.value} />
+          ) : (
+            <MemberSettingsUnavailable
+              href={`/${locale}/member/settings`}
+              message={tPortal('residence_unavailable')}
+              retryLabel={tCommon('tryAgain')}
+            />
+          ),
+        },
+        { id: 'security', title: t('security.sectionTitle'), content: <ChangePasswordForm /> },
+      ]}
+      preferences={[
+        { id: 'language', title: t('language.sectionTitle'), content: <LanguageSettings /> },
+        {
+          id: 'notifications',
+          title: t('notifications.sectionTitle'),
+          content: <NotificationSettings />,
+        },
+      ]}
+      terms={
+        <CommercialBillingTerms
+          {...buildCommercialTermsProps(commercialTerms, 'settings-billing-terms')}
+        />
+      }
+    />
   );
 }
 

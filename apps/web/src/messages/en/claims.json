@@ -229,7 +229,9 @@
         "progress": "Progress",
         "evidence": "Evidence",
         "history": "History",
-        "messages": "Messages"
+        "messages": "Messages",
+        "referenceLabel": "Reference",
+        "statusLabel": "Status"
       },
       "caseDetails": "Case Details",
       "description": "Description",
