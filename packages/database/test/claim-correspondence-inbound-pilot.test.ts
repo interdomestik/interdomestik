@@ -1,19 +1,19 @@
 import test from 'node:test';
 
 import { withDomainPools } from './claim-correspondence-domain.fixture';
+import { proveAdminDecisionActorLock } from './claim-correspondence-inbound-admin-lock.fixture';
 import {
   proveDirectDecisionBranch,
   proveDirectPublicationBranch,
   proveReceivedActorScope,
-  proveReceivedWriteLockOrders,
 } from './claim-correspondence-inbound-branch.fixture';
 import {
-  proveAdminDecisionActorLock,
   proveDecisionDenials,
   proveDecisionExpiry,
   proveDecisionGrants,
   provePendingDecisionVisibility,
 } from './claim-correspondence-inbound-decision.fixture';
+import { proveReceivedWriteLockOrders } from './claim-correspondence-inbound-link-lock.fixture';
 import {
   proveDarkPublication,
   proveStorageVerification,
