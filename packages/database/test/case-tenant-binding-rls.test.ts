@@ -43,6 +43,7 @@ test('case children bind to the home of their case and evidence document', async
     await admin.unsafe(`grant insert on table ${tables.join(', ')} to ${quoteIdentifier(role)}`);
 
     const scope = { home: foreignTenant };
+    const relations: string[] = [...tables, 'claim'];
     const [posture] = await restricted(
       runtime,
       tx => tx`
@@ -53,7 +54,7 @@ test('case children bind to the home of their case and evidence document', async
                rolcanlogin, rolsuper, rolbypassrls,
                (select bool_or(pg_has_role(c.relowner, 'MEMBER'))
                 from pg_class c join pg_namespace n on c.relnamespace = n.oid
-                where n.nspname = 'public' and c.relname in ${tx([...tables, 'claim'])}) as owns_table
+                where n.nspname = 'public' and c.relname in ${tx(relations)}) as owns_table
         from pg_roles where rolname = current_user`,
       scope
     );

@@ -116,7 +116,7 @@ test('case-tenant binding validates a populated upgrade atomically', async t => 
     assert.deepEqual(await snapshot(), before);
     assert.deepEqual(
       [...(await keys())],
-      names
+      [...names]
         .sort((a, b) => Number(a > b) - Number(a < b))
         .map(name => ({
           name,
