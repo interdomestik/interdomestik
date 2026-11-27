@@ -16,6 +16,7 @@ export const INBOUND = `${SCHEMA}/claim-inbound-documents.ts`;
 export const INBOUND_EXPORT = "export * from './claim-inbound-documents';\n";
 export const VERIFIER = RECEIPT_KEY.split('#')[0];
 export const BINDER = 'packages/database/src/free-start-drafts/context.ts';
+export const PRINCIPAL_CONTEXT = 'packages/database/src/principal-context.ts';
 export const DB_MANIFEST = 'packages/database/package.json';
 export const READER = 'apps/web/src/app/api/documents/document-access-reads.ts';
 export const MODEL = 'apps/web/src/app/api/documents/document-access-model.ts';
@@ -101,6 +102,10 @@ export const storage = edit(dark, [
   ],
   [
     `${DB}/free-start-drafts.ts`,
+    "export { withPrincipalTenantContext } from './principal-context';\n",
+  ],
+  [
+    PRINCIPAL_CONTEXT,
     "export { withPrincipalTenantContext } from './free-start-drafts/context';\n",
   ],
 ]);

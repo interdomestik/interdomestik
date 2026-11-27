@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import ts from 'typescript';
 import { C1_ADMISSIONS } from '../c1-admissions.mjs';
-import { CONTRACTS } from '../manifest.mjs';
+import { CONNECTION_CONTROL, CONTRACTS } from '../manifest.mjs';
 import { createModuleGraph } from '../modules.mjs';
 import { installAdmission } from '../rules-admission.mjs';
 import { evaluate } from '../rules.mjs';
@@ -16,6 +17,7 @@ import {
   DB_MANIFEST,
   INBOUND,
   MODEL,
+  PRINCIPAL_CONTEXT,
   READER,
   SPLITTER,
   VERIFIER,
@@ -45,16 +47,50 @@ function check(base, candidate) {
   return {
     proof: ctx.schemaAdmission,
     reader: ctx.telemetry.c1Admissions === 1,
-    receipt: storageReceiptAdmission(ctx, candidate),
+    receipt: storageReceiptAdmission(ctx, candidate, CONNECTION_CONTROL),
     violations: ctx.violations,
   };
+}
+
+function checkReceiptControls(receipt) {
+  const transaction = receipt.admin.parent.parent;
+  assert.ok(ts.isCallExpression(transaction));
+  const callback = transaction.arguments[0];
+  assert.ok(ts.isArrowFunction(callback) && ts.isBlock(callback.body));
+  const [role, rls, tenant, accessTenant, actor] = callback.body.statements
+    .slice(0, 5)
+    .map(statement => statement.expression.expression.arguments[0].template);
+
+  assert.ok(ts.isNoSubstitutionTemplateLiteral(role));
+  assert.ok(ts.isNoSubstitutionTemplateLiteral(rls));
+  assert.ok(ts.isTemplateExpression(tenant));
+  assert.ok(ts.isTemplateExpression(accessTenant));
+  assert.ok(ts.isTemplateExpression(actor));
+  assert.equal(actor.templateSpans.length, 3);
+  const [firstActorSpan, secondActorSpan, lastActorSpan] = actor.templateSpans;
+  assert.ok(ts.isTemplateMiddle(firstActorSpan.literal));
+  assert.ok(ts.isTemplateMiddle(secondActorSpan.literal));
+  assert.ok(ts.isTemplateTail(lastActorSpan.literal));
+
+  const groups = [
+    [role],
+    [rls],
+    [tenant.head],
+    [accessTenant.head],
+    [actor.head, firstActorSpan.literal, secondActorSpan.literal],
+  ];
+  assert.deepEqual(
+    groups.map(group => group.filter(node => receipt.controls.has(node)).length),
+    [1, 1, 1, 1, 3]
+  );
+  assert.equal(receipt.controls.size, 7);
 }
 
 function checkBoth(result, enabled) {
   assert.equal(result.reader, enabled);
   assert.equal(Boolean(result.receipt), enabled, JSON.stringify(result.violations));
   if (enabled) {
-    assert.equal(result.receipt.controls.size, 4);
+    checkReceiptControls(result.receipt);
     assert.equal(result.receipt.admin.getText(), 'dbAdmin');
     assert.equal(result.receipt.caller.getText(), 'recordClaimInboundObjectVerification');
   }
@@ -111,8 +147,8 @@ test('B on D and an ordinary follow-up on B pass both admissions', () => {
       journal(journalEntry, {
         ...journalEntry,
         idx: 115,
-        tag: '0115_followup',
-        when: journalEntry.when + 1,
+        tag: '0115_case_tenant_binding',
+        when: 1795798261577,
       }),
     ],
     ['apps/web/src/path-c-followup.ts', 'export const followup = true;\n'],
@@ -132,8 +168,10 @@ test('B on D and an ordinary follow-up on B pass both admissions', () => {
 for (const [label, changes] of [
   ['partial D', [[INBOUND, null]]],
   ['missing 0114 SQL', [[RECEIPT_SQL, null]]],
+  ['empty 0114 SQL', [[RECEIPT_SQL, '']]],
   ['one-byte change in 0114 SQL', [[RECEIPT_SQL, `${dark.blobs.get(RECEIPT_SQL)} `]]],
   ['missing journal', [[MIGRATION_JOURNAL, null]]],
+  ['empty journal', [[MIGRATION_JOURNAL, '']]],
   ['malformed journal', [[MIGRATION_JOURNAL, '{"entries":']]],
   ['missing 0114 journal entry', [[MIGRATION_JOURNAL, journal()]]],
   [
@@ -190,6 +228,10 @@ for (const [file, before, after] of [
   [VERIFIER, "principal?.role !== 'staff'", "principal?.role !== 'admin'"],
   [VERIFIER, 'set local row_security = on', 'set local row_security = off'],
   [VERIFIER, 'app.current_access_tenant_id', 'app.current_tenant_id'],
+  [VERIFIER, 'principal.userId', 'observed.decisionId'],
+  [VERIFIER, 'principal.role', 'principal.userId'],
+  [VERIFIER, "principal.branchId ?? ''", 'principal.branchId'],
+  [VERIFIER, "principal.branchId ?? ''}, true", "principal.branchId ?? ''}, false"],
   [
     VERIFIER,
     'return dbAdmin.transaction',
@@ -212,21 +254,27 @@ for (const [file, before, after] of [
 }
 
 test('exact receipt bytes still require the reviewed resolver bindings', () => {
-  const shadow = edit(storage, [
-    [BINDER.replace(/\.ts$/u, '.js'), 'export const bindTenantTransactionPrincipal = () => {};\n'],
+  const redirected = edit(storage, [
+    [PRINCIPAL_CONTEXT, 'export const withPrincipalTenantContext = () => {};\n'],
   ]);
+  const redirectResult = check(dark, redirected);
+  assert.equal(redirectResult.proof.ok, true, redirectResult.proof.reason);
+  assert.equal(redirectResult.receipt, null);
+  assert.ok(
+    redirectResult.violations.some(
+      ({ rule, detail }) =>
+        rule === 'R-a' &&
+        detail ===
+          `storage receipt binding mismatch: ${RECEIPT_CALLER} imports withPrincipalTenantContext from @interdomestik/database/free-start-drafts`
+    )
+  );
   const manifest = JSON.parse(storage.blobs.get(DB_MANIFEST));
   delete manifest.exports['./claim-evidence-object-lock'];
   const missingExport = edit(storage, [[DB_MANIFEST, JSON.stringify(manifest)]]);
-  for (const [candidate, schemaOk] of [
-    [shadow, true],
-    [missingExport, false],
-  ]) {
-    const result = check(dark, candidate);
-    assert.equal(result.proof.ok, schemaOk, result.proof.reason);
-    assert.equal(result.receipt, null);
-    assert.ok(has(result, /storage receipt binding mismatch/u));
-  }
+  const missingResult = check(dark, missingExport);
+  assert.equal(missingResult.proof.ok, false, missingResult.proof.reason);
+  assert.equal(missingResult.receipt, null);
+  assert.ok(has(missingResult, /storage receipt binding mismatch/u));
 });
 
 test('the approved WP-07 C3 contract still requires one counted raw execution', () => {
