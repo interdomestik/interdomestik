@@ -13,6 +13,7 @@ import {
 import { originKey } from './modules.mjs';
 import { byCodeUnit } from './rules-digest.mjs';
 import { checkSeedTlsModuleUse } from './rules-seed-tls.mjs';
+import { RECEIPT_ADMIN, RECEIPT_KEY } from './storage-receipt-admission.mjs';
 import { unitOf } from './syntax.mjs';
 
 const DECLARATION_FILE = /\.d\.[cm]?ts$/u;
@@ -40,6 +41,7 @@ export function scanFiles(ctx) {
     isTest,
     legacyOps,
     seedTls: ctx.seedTls,
+    storageReceipt: ctx.storageReceipt,
   };
 
   for (const file of [...sources.keys()].sort(byCodeUnit)) {
@@ -92,7 +94,15 @@ function scanOrigin(scan, use) {
 }
 
 function checkPrivilegedUse(scan, { reference, origin, form }, key, privileged) {
+  if (key === RECEIPT_ADMIN && form === 'member' && reference.node === scan.storageReceipt?.admin)
+    return;
   const reexported = form === 'export' && privileged.reexports.includes(scan.file);
+  if (key === RECEIPT_KEY) {
+    const call = form === privileged.form && reference.node === scan.storageReceipt?.caller;
+    if (!scan.storageReceipt || (!call && !reexported))
+      scan.report(reference.node, 'R-a', `unadmitted use of ${key}`);
+    return;
+  }
   const allowedForm = form === privileged.form || reexported;
   if (!privileged.callers.includes(scan.file) && !reexported) {
     scan.report(reference.node, 'R-a', `${key} is not available to this file`);
@@ -162,7 +172,10 @@ function checkReexport(scan, node) {
   for (const origin of reexportOrigins(scan, node, node.moduleSpecifier.text)) {
     const key = originKey(origin);
     const privileged = key && PRIVILEGED.get(key);
-    if (privileged && !privileged.reexports.includes(scan.file)) {
+    if (
+      privileged &&
+      (!privileged.reexports.includes(scan.file) || (key === RECEIPT_KEY && !scan.storageReceipt))
+    ) {
       scan.report(node, 'R-a', `re-export of ${key}`);
     }
   }
@@ -276,6 +289,7 @@ function checkConnectionControl(scan, node) {
     ts.isTemplateTail(node);
   if (!text || !CONNECTION_CONTROL.test(node.text) || CONNECTION_CONTROL_MODULES.has(scan.file))
     return;
+  if (scan.storageReceipt?.controls.has(node)) return;
   if (scan.covered(scan.fact, node, 'connection-control'))
     scan.connectionControlUnits.push({ fact: scan.fact, unit: unitOf(node) });
   else scan.report(node, 'R-d', 'connection-control SQL outside tenant.ts');

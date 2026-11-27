@@ -229,7 +229,9 @@
         "progress": "Напредок",
         "evidence": "Докази",
         "history": "Хронологија",
-        "messages": "Пораки"
+        "messages": "Пораки",
+        "referenceLabel": "Референца",
+        "statusLabel": "Статус"
       },
       "caseDetails": "Детали за случајот",
       "description": "Опис",

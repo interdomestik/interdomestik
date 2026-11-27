@@ -39,6 +39,8 @@ vi.mock('next-intl', () => ({
       evidence: 'Evidence',
       history: 'History',
       messages: 'Messages',
+      referenceLabel: 'Reference',
+      statusLabel: 'Status',
     };
 
     return translations[key] ?? key;
@@ -86,6 +88,23 @@ describe('MemberClaimDetailHeader', () => {
     expect(screen.getByText('Case')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Delayed flight' })).toBeInTheDocument();
     expect(screen.getByText(claimId)).toBeInTheDocument();
+    const reference = screen.getByText('Reference');
+    expect(reference.tagName).toBe('DT');
+    expect(reference.nextElementSibling).toHaveTextContent(claimId);
+    const statusTerm = screen.getByText('Status');
+    expect(statusTerm).toHaveClass('sr-only');
+    expect(statusTerm.nextElementSibling).toBe(screen.getByTestId('ops-status-badge'));
+    expect(screen.getByRole('heading', { level: 1, name: 'Delayed flight' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Upload evidence' })).toHaveClass('min-h-11');
+    expect(screen.getByRole('button', { name: 'Upload evidence' })).not.toHaveClass(
+      'text-foreground'
+    );
+    expect(screen.getByRole('button', { name: 'Send message' })).toHaveClass('text-foreground');
+    expect(screen.getByRole('button', { name: 'Send message' })).not.toHaveClass('text-slate-900');
+    expect(backLink.closest('div')).toHaveClass('bg-card');
+    expect(backLink.closest('div')).toContainElement(
+      screen.getByRole('navigation', { name: 'Case sections' })
+    );
     expect(screen.getByTestId('ops-status-badge').textContent?.replace(/\s+/g, ' ').trim()).toBe(
       'Evaluation'
     );

@@ -1,4 +1,5 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { describe, expect, it, vi } from 'vitest';
 import { expectCoverageMatrix, getNamespacedTranslation } from '@/test/coverage-matrix-test-utils';
@@ -21,7 +22,12 @@ const hoisted = vi.hoisted(() => ({
   ),
   getSubscriptionsMock: vi.fn(async () => []),
   getLeaveMock: vi.fn(async () => 'entry-future'),
-  membershipOpsPageMock: vi.fn((_: unknown) => <div>membership-ops-page</div>),
+  membershipOpsPageMock: vi.fn((props: { coverage?: ReactNode }) => (
+    <div data-testid="membership-ops-page">
+      membership-ops-page
+      {props.coverage}
+    </div>
+  )),
   redirectMock: vi.fn(),
 }));
 
@@ -57,13 +63,13 @@ vi.mock('./_core', () => ({
 }));
 
 vi.mock('@/features/member/membership/components/MembershipOpsPage', () => ({
-  MembershipOpsPage: (props: unknown) => hoisted.membershipOpsPageMock(props),
+  MembershipOpsPage: (props: { coverage?: ReactNode }) => hoisted.membershipOpsPageMock(props),
 }));
 
 import MembershipPage from './page';
 
 describe('MembershipPage commercial coverage matrix', () => {
-  it('renders the shared coverage matrix above member operations', async () => {
+  it('renders the shared coverage matrix inside the membership screen, after its status', async () => {
     const tree = await MembershipPage({
       params: Promise.resolve({ locale: 'en' }),
     });
@@ -92,7 +98,13 @@ describe('MembershipPage commercial coverage matrix', () => {
       userId: 'member-1',
       tenantId: 'tenant-ks',
     });
-    expect(screen.getByText('membership-ops-page')).toBeInTheDocument();
+    // The matrix is a slot of the screen, so it renders below the status the screen leads with.
+    expect(
+      within(screen.getByTestId('membership-ops-page')).getByTestId('membership-coverage-matrix')
+    ).toBeInTheDocument();
+    expect(screen.getByTestId('membership-page-ready')).toContainElement(
+      screen.getByTestId('membership-ops-page')
+    );
     // No subscription record: a bound future sponsorship still reaches the leave action.
     expect(hoisted.membershipOpsPageMock).toHaveBeenCalledWith(
       expect.objectContaining({ leaveEntryId: 'entry-future' })

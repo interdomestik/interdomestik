@@ -1,0 +1,67 @@
+import { sql } from 'drizzle-orm';
+import type { TenantTransaction } from './tenant';
+
+export { recordClaimInboundObjectVerification } from './claim-inbound-verification';
+export { insertClaimInboundDecision, insertClaimReceivedLinks } from './claim-inbound-writes';
+
+export type ClaimEvidenceObject = { bucket: string; path: string };
+
+/** The advisory-lock key of one stored evidence object of a tenant. */
+export function claimEvidenceObjectLockKey(tenantId: string, object: ClaimEvidenceObject): string {
+  return JSON.stringify(['claim-evidence-object', tenantId, object.bucket, object.path]);
+}
+
+/**
+ * Serializes every transaction that attaches one of these stored objects to a claim, whichever
+ * claim it writes to. Held until the caller's tenant transaction ends.
+ *
+ * The caller re-reads the document rows after this returns and relies on seeing a commit made by
+ * the previous holder: that holds only under READ COMMITTED (a REPEATABLE READ snapshot taken
+ * earlier in the transaction would miss it), so any other isolation level is refused before a
+ * lock is taken, also when `objects` is empty (a caller whose decision rests on the re-read alone
+ * still calls this). Locks are taken one at a time in ascending order of the 64-bit lock ids
+ * themselves, the same order in every process, so writers never wait on each other in a cycle;
+ * keys whose hashes collide share one lock.
+ */
+export async function lockClaimEvidenceObjects(
+  tx: TenantTransaction,
+  tenantId: string,
+  objects: readonly ClaimEvidenceObject[]
+): Promise<void> {
+  // Checked even with nothing to lock: a caller that only re-reads rows depends on it too.
+  await assertReadCommitted(tx);
+  if (objects.length === 0) return;
+  const keys = [...new Set(objects.map(object => claimEvidenceObjectLockKey(tenantId, object)))];
+  const values = sql.join(
+    keys.map(key => sql`(${key}::text)`),
+    sql`, `
+  );
+  const rows = await tx.execute(
+    sql`select distinct hashtextextended(v.key, 0)::text as id from (values ${values}) as v(key)`
+  );
+  const ids = rows.map(row => BigInt(String(row.id)));
+  ids.sort((a, b) => (a < b ? -1 : Number(a > b)));
+  await lockIdsInOrder(
+    tx,
+    ids.map(id => id.toString()),
+    0
+  );
+}
+
+async function assertReadCommitted(tx: TenantTransaction): Promise<void> {
+  const [row] = await tx.execute(sql`select current_setting('transaction_isolation') as isolation`);
+  const isolation = String(row?.isolation);
+  if (isolation !== 'read committed') {
+    throw new Error(`claim evidence writes require read committed, not ${isolation}`);
+  }
+}
+
+async function lockIdsInOrder(
+  tx: TenantTransaction,
+  ids: readonly string[],
+  index: number
+): Promise<void> {
+  if (index >= ids.length) return;
+  await tx.execute(sql`select pg_advisory_xact_lock(${ids[index]}::bigint)`);
+  await lockIdsInOrder(tx, ids, index + 1);
+}

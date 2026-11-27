@@ -1,6 +1,7 @@
 // The owner-reviewed WP-07 edge, measured on 7a461f277 → cc2b4f444.
 // Keep this record in the statically loaded protected guard source.
 
+import ts from 'typescript';
 import { LEGACY } from './manifest.mjs';
 import { sha256 } from './rules-digest.mjs';
 import { SCHEMA_DIR } from './schema-builder-imports.mjs';
@@ -48,7 +49,11 @@ export const RATE_BOOK_TRANSITION = `{
 const RATES = `${SCHEMA_DIR}exchange-rates.ts`;
 const VERIFICATIONS = `${SCHEMA_DIR}exchange-rate-verifications.ts`;
 const CHECKS = `${SCHEMA_DIR}exchange-rate-checks.ts`;
-const FILES = [RATES, VERIFICATIONS, CHECKS, `${SCHEMA_DIR}index.ts`];
+const BARREL = `${SCHEMA_DIR}index.ts`;
+const INBOUND = `${SCHEMA_DIR}claim-inbound-documents.ts`;
+const INBOUND_SPECIFIER = './claim-inbound-documents';
+const INBOUND_EXPORT = `export * from '${INBOUND_SPECIFIER}';\n`;
+const FILES = [RATES, VERIFICATIONS, CHECKS, BARREL];
 const IMPORT = [VERIFICATIONS, './exchange-rate-checks', CHECKS];
 const V2 = /^v2:[a-f0-9]{64}$/u;
 const HASH = /^[a-f0-9]{64}$/u;
@@ -66,6 +71,20 @@ const pair = (value, before, after) =>
   value[0] !== value[1] &&
   before(value[0]) &&
   after(value[1]);
+
+// The dark WP-12.1 continuation binds the complete kernel tuple, including resolved edges.
+// The W record supplies the unchanged rate files and the exact prefix of the new barrel.
+export const INBOUND_TRANSITION = `{
+  "entries": {
+    "packages/database/src/tenant.ts#withTenantContext": "v2:716fb33d032f9501720dec5f8cc0582e60c80661ec1e1454c9a79e27c14d62e9",
+    "packages/database/src/tenant.ts#withTenantDb": "v2:776dbb415a8e6407ad8feeefdf5b9b2c0c9dfc03b35b55dd1c52db31efde5fe0",
+    "packages/database/src/db.ts#db": "v2:c7c3640d4316b625e72b9b6c0b4d0d249e28e470687ebc9814b9099a2a95d1a3"
+  },
+  "files": {
+    "packages/database/src/schema/index.ts": "c09de18298d038bbd503a1ee7e5af2ef805bb9d18c8e6d1f38f99874ff03ff3f",
+    "packages/database/src/schema/claim-inbound-documents.ts": "fe3c8c00114a9353a03f35c76dd088ff8da9c8f0dd6b1273d4cd22f012d20cec"
+  }
+}`;
 
 export function parseRateBookTransition(text) {
   if (text == null) return { reason: 'missing rate-book transition record' };
@@ -98,26 +117,91 @@ export function isRateBookImport(edge, [, specifier, target]) {
   return same(edge, [specifier, [target], null, false]);
 }
 
-function matchesImage(tree, record, side) {
-  if ([...tree.walks].some(([key, walk]) => walk.versioned !== record.entries[key][side]))
-    return false;
-  for (const [file, hashes] of Object.entries(record.files)) {
-    const hash = hashes[side];
-    const text = tree.sources.get(file);
-    if (hash === null ? tree.files.has(file) : text === undefined || sha256(text) !== hash)
-      return false;
+export function parseInboundTransition(text) {
+  if (text == null) return { reason: 'missing inbound schema transition record' };
+  if (typeof text !== 'string') return { reason: 'unparseable inbound schema transition record' };
+  if (!text.trim()) return { reason: 'empty inbound schema transition record' };
+  let record;
+  try {
+    record = JSON.parse(text);
+  } catch {
+    return { reason: 'unparseable inbound schema transition record' };
   }
+  if (
+    !keysAre(record, ['entries', 'files']) ||
+    !keysAre(record.entries, [...LEGACY.keys()]) ||
+    !Object.values(record.entries).every(value => matches(value, V2)) ||
+    !keysAre(record.files, [BARREL, INBOUND]) ||
+    !Object.values(record.files).every(value => matches(value, HASH))
+  )
+    return { reason: 'invalid inbound schema transition record' };
+  return record;
+}
+
+function matchesFile(tree, file, hash) {
+  if (hash === null) return !tree.files.has(file);
+  const text = tree.sources.get(file);
+  return text !== undefined && sha256(text) === hash;
+}
+
+function matchesImport(tree, record, count) {
   return [...tree.walks.values()].every(walk => {
     const edges = walk.resolutions.get(record.import[0]);
-    return edges && edges.filter(edge => isRateBookImport(edge, record.import)).length === side;
+    return edges && edges.filter(edge => isRateBookImport(edge, record.import)).length === count;
   });
 }
 
+function matchesRateBook(tree, record, side) {
+  return (
+    [...tree.walks].every(([key, walk]) => walk.versioned === record.entries[key][side]) &&
+    FILES.every(file => matchesFile(tree, file, record.files[file][side])) &&
+    matchesImport(tree, record, side)
+  );
+}
+
+export function schemaTransitionImage(tree, rateBook, inbound) {
+  const barrel = tree.sources.get(BARREL);
+  const inboundExport = tree.graph
+    .sourceFileOf(BARREL)
+    .statements.some(
+      node =>
+        ts.isExportDeclaration(node) &&
+        node.moduleSpecifier &&
+        ts.isStringLiteral(node.moduleSpecifier) &&
+        node.moduleSpecifier.text === INBOUND_SPECIFIER
+    );
+  if (tree.files.has(INBOUND) || inboundExport) {
+    const exact =
+      [...tree.walks].every(([key, walk]) => walk.versioned === inbound.entries[key]) &&
+      Object.entries(inbound.files).every(([file, hash]) => matchesFile(tree, file, hash)) &&
+      barrel.endsWith(INBOUND_EXPORT) &&
+      sha256(barrel.slice(0, -INBOUND_EXPORT.length)) === rateBook.files[BARREL][1] &&
+      [RATES, VERIFICATIONS, CHECKS].every(file =>
+        matchesFile(tree, file, rateBook.files[file][1])
+      ) &&
+      matchesImport(tree, rateBook, 1);
+    return exact ? 'inbound' : 'partial inbound';
+  }
+  if (matchesRateBook(tree, rateBook, 1)) return 'rate book';
+  return matchesRateBook(tree, rateBook, 0) ? 'predecessor' : null;
+}
+
+export function inboundSequenceProblem(before, after, accumulated) {
+  if (before === 'partial inbound' || after === 'partial inbound')
+    return 'partial or changed inbound schema image';
+  if (accumulated) return null;
+  if (after === 'inbound' && before !== 'rate book' && before !== 'inbound')
+    return 'inbound schema requires the exact rate-book base';
+  return null;
+}
+
 export function rateBookTransition(before, after, accumulated, record) {
-  // The protected base may already carry the exact successor. Crossing to it in a candidate
-  // requires the complete predecessor. An ordinary comparison still runs in both cases.
-  if (!matchesImage(after, record, 1) || (!accumulated && !matchesImage(before, record, 0)))
-    return null;
+  // Accumulated proof reuses the WP-07 exceptions through the exact D image. W → D itself
+  // goes through the ordinary proof, with every retained module held byte-identical.
+  const applies = accumulated
+    ? after === 'rate book' || after === 'inbound'
+    : before === 'predecessor' && after === 'rate book';
+  if (!applies) return null;
   return {
     import: record.import,
     retainedChanges: new Set([RATES, VERIFICATIONS]),
