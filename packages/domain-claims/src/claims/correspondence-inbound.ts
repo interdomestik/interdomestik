@@ -6,6 +6,7 @@ import {
   claimInboundUploadDecisions,
   eq,
   inArray,
+  type TenantTransaction,
 } from '@interdomestik/database';
 import { insertClaimReceivedLinks } from '@interdomestik/database/claim-evidence-object-lock';
 import { withPrincipalTenantContext } from '@interdomestik/database/free-start-drafts';
@@ -181,16 +182,15 @@ export async function recordInboundCorrespondence(
   const data = normalizeRegisterInput(access.data);
   const linksReceivedDocuments = Boolean(data.receivedDocumentIds?.length);
   if (linksReceivedDocuments && actor.role !== 'staff') return registerForbidden;
-  const withRegisterAuthority = linksReceivedDocuments
-    ? withPrincipalTenantContext
-    : withTenantAuthority;
+  const write = async (tx: TenantTransaction) => {
+    if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor))) return registerForbidden;
+    return recordInbound({ tx, tenantId, actorId: actor.userId }, data);
+  };
   for (let attempt = 1; ; attempt += 1) {
     try {
-      return await withRegisterAuthority(access.authority, async tx => {
-        if (!(await lockCaseForRegister(tx, tenantId, data.claimId, actor)))
-          return registerForbidden;
-        return recordInbound({ tx, tenantId, actorId: actor.userId }, data);
-      });
+      return await (linksReceivedDocuments
+        ? withPrincipalTenantContext(access.authority, write)
+        : withTenantAuthority(access.authority, write));
     } catch (error) {
       if (error instanceof ReceivedCorrelationConflict) {
         if (attempt !== 1) return { ok: false, code: 'conflict' } as const;
