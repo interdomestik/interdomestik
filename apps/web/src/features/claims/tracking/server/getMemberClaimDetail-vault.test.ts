@@ -90,18 +90,16 @@ describe('getMemberClaimDetail Vault evidence', () => {
     };
     expect(hoisted.openMemberVaultConsentDisplay).toHaveBeenCalledWith(params);
     const tx = hoisted.getMatterAllowanceVisibility.mock.calls[0]![0].tx;
-    expect(hoisted.readCurrentMemberVaultEvidence).toHaveBeenCalledWith(
-      tx,
-      'tenant-1',
-      'claim-vault',
-      'viewer-1'
-    );
-    expect(hoisted.completeMemberVaultConsentDisplay).toHaveBeenCalledWith(
-      params,
-      gate,
-      tx,
-      evidence
-    );
+    // Identity, not structure: both Vault reads must use the claim's own transaction object.
+    const [readerTx, ...readerArgs] = hoisted.readCurrentMemberVaultEvidence.mock.calls[0]!;
+    expect(readerTx).toBe(tx);
+    expect(readerArgs).toEqual(['tenant-1', 'claim-vault', 'viewer-1']);
+    const [completeParams, completeGate, completeTx, completeEvidence] =
+      hoisted.completeMemberVaultConsentDisplay.mock.calls[0]!;
+    expect(completeTx).toBe(tx);
+    expect(completeParams).toEqual(params);
+    expect(completeGate).toBe(gate);
+    expect(completeEvidence).toBe(evidence);
     expect(result?.vaultConsentDisplay).toEqual(display);
     const [, sentryOptions] = hoisted.withServerActionInstrumentation.mock.calls[0]!;
     expect(sentryOptions).toEqual({ recordResponse: false });
