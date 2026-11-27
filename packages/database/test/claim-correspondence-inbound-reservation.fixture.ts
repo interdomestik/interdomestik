@@ -146,7 +146,7 @@ export async function proveReservation(connections: Connection) {
     document.file_path + '?query',
     document.file_path + '%3Fquery',
     encoded,
-    encoded.replace('%77', '%2577'),
+    encoded.replaceAll('%77', '%2577'),
   ];
   await runSequentially(aliases, async path => {
     await restricted(peer, async tx => {

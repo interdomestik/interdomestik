@@ -45,7 +45,8 @@ async function readCredential(
   expect(response.status()).toBe(200);
   try {
     const reply: unknown = await response.json();
-    if (!reply || typeof reply !== 'object' || !('upload' in reply)) throw new Error();
+    if (!reply || typeof reply !== 'object' || !('upload' in reply))
+      throw new Error('Expected a JSON upload reply');
     const upload = reply.upload;
     if (
       !upload ||
@@ -59,12 +60,12 @@ async function readCredential(
       !('signedUrl' in upload) ||
       typeof upload.signedUrl !== 'string'
     )
-      throw new Error();
+      throw new Error('Expected id, bucket, path and signedUrl in the upload reply');
     const url = new URL(upload.signedUrl);
     const token = url.searchParams.get('token')?.split('.') ?? [];
     const target = `/storage/v1/object/upload/sign/${upload.bucket}/${upload.path}`;
     if (url.origin !== storage.origin || url.pathname !== target || token.length !== 3)
-      throw new Error();
+      throw new Error('Expected a local storage signed upload URL with a three-part token');
     const parsed: unknown = JSON.parse(Buffer.from(token[1], 'base64url').toString('utf8'));
     if (
       !parsed ||
@@ -74,7 +75,7 @@ async function readCredential(
       !Number.isSafeInteger(parsed.exp) ||
       parsed.exp * 1000 <= Date.now()
     )
-      throw new Error();
+      throw new Error('Expected a future safe-integer exp in the signed token');
     return {
       id: upload.id,
       bucket: upload.bucket,

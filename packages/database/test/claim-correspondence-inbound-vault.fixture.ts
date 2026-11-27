@@ -17,7 +17,7 @@ import {
 } from './claim-correspondence-inbound-pilot.fixture';
 import { homeTenant, restricted, type Connection } from './claim-correspondence.fixture';
 
-async function readWithMemberScope<T>(
+function readWithMemberScope<T>(
   client: postgres.Sql,
   viewer: string,
   run: (reader: TenantTransaction) => Promise<T>

@@ -9,7 +9,7 @@ export async function readCurrentMemberVaultEvidence(
   viewerId: string
 ) {
   // db-access-guard: tenant-scoped -- reason: exact MK tenant and current case ownership are checked in the evidence statement
-  return database
+  const rows = await database
     .select({
       id: claimDocuments.id,
       category: claimDocuments.category,
@@ -32,4 +32,5 @@ export async function readCurrentMemberVaultEvidence(
       )
     )
     .orderBy(desc(claimDocuments.createdAt), desc(claimDocuments.id));
+  return rows;
 }

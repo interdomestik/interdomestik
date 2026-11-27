@@ -95,6 +95,25 @@ function captureConfirmFailure(params: {
   });
 }
 
+// WP-12.1 cutover: a paused case refuses its channel; staff never self-upload to a pilot case.
+async function isEvidenceUploadClosed(
+  authority: AuthorizedSession['authority'],
+  tenantId: string,
+  claimId: string,
+  isAdminSurface: boolean
+) {
+  if (
+    await isClaimUploadPaused(
+      authority,
+      tenantId,
+      claimId,
+      isAdminSurface ? 'staff' : 'self-supply'
+    )
+  )
+    return true;
+  return isAdminSurface && (await isInboundPilotCase(authority, claimId));
+}
+
 async function uploadEvidence(authorized: AuthorizedSession, request: Request) {
   const { session, authority } = authorized;
   const { tenantId } = readTenantAuthority(authority);
@@ -123,15 +142,7 @@ async function uploadEvidence(authorized: AuthorizedSession, request: Request) {
     );
   }
 
-  if (
-    (await isClaimUploadPaused(
-      authority,
-      tenantId,
-      claimId,
-      claimAccess.isAdminSurface ? 'staff' : 'self-supply'
-    )) ||
-    (claimAccess.isAdminSurface && (await isInboundPilotCase(authority, claimId)))
-  ) {
+  if (await isEvidenceUploadClosed(authority, tenantId, claimId, claimAccess.isAdminSurface)) {
     return jsonError('Forbidden', 403);
   }
 

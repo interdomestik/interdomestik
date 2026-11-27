@@ -87,7 +87,7 @@ export async function enrollMkCase(claim: MkCase) {
   });
 }
 
-export async function transferMkCase(claim: MkCase, ownerId: string) {
+export function transferMkCase(claim: MkCase, ownerId: string) {
   const roleName = decodeURIComponent(new URL(process.env.E2E_SERVER_DATABASE_URL_RLS!).username);
   return dbAdmin
     .transaction(async tx => {
