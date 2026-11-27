@@ -111,7 +111,7 @@ function createTx(staged: StagedWrite[]) {
     staged.push({ table, values });
   };
   return {
-    execute: async () => [],
+    execute: () => Promise.resolve([]),
     select: vi.fn(() => {
       const rows = hoisted.selectRows.shift() ?? [];
       const chain: QueryChain = {

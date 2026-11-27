@@ -124,12 +124,16 @@ export async function expectBothDocumentGetsDenied(
   id: string,
   statuses: number[]
 ) {
-  for (const path of documentPaths(id)) {
+  const expectDenied = async (path: string) => {
     const result = await requestFromDoor(page, origin + path);
     expect(statuses).toContain(result.status);
     expect(result.contentType).toContain('application/json');
     expect(Object.keys(JSON.parse(result.body.toString('utf8')))).toEqual(['error']);
-  }
+  };
+  await documentPaths(id).reduce(
+    (previous, path) => previous.then(() => expectDenied(path)),
+    Promise.resolve()
+  );
 }
 
 export async function expectMemberOpensPdf(
@@ -164,7 +168,7 @@ export async function expectMemberOpensPdf(
     typeof response.url === 'string'
       ? URL.parse(response.url)
       : null;
-  if (!url || url.origin !== storage.origin || !url.searchParams.has('token')) {
+  if (url?.origin !== storage.origin || !url.searchParams.has('token')) {
     throw new Error('Expected a real local signed download');
   }
   const bytes = await fetch(url, { redirect: 'error' }).catch(() => null);

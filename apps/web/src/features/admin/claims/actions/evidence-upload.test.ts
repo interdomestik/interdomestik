@@ -18,7 +18,7 @@ vi.mock('@sentry/nextjs', () => ({ captureException: hoisted.captureException })
 
 vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
   isInboundPilotCase: hoisted.enrolled,
-  readClaimUploadPaused: async () => false,
+  readClaimUploadPaused: () => Promise.resolve(false),
 }));
 vi.mock('@/lib/tenant-authority.server', () => ({
   authorizeSessionTenant: () =>

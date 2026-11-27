@@ -10,8 +10,8 @@ const m = vi.hoisted(() => ({
   confirm: vi.fn(),
 }));
 vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
-  isInboundPilotCase: async () => false,
-  readClaimUploadPaused: async () => false,
+  isInboundPilotCase: () => Promise.resolve(false),
+  readClaimUploadPaused: () => Promise.resolve(false),
 }));
 vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: m.authorize }));
 vi.mock('@/lib/storage/evidence-bucket', () => ({

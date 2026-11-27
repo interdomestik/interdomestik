@@ -23,7 +23,7 @@ const effects = vi.hoisted(() => ({
 }));
 
 vi.mock('@/features/claims/upload/server/claim-upload-cutover', () => ({
-  isClaimUploadPaused: async () => false,
+  isClaimUploadPaused: () => Promise.resolve(false),
 }));
 vi.mock('@/actions/admin-users/get-users', () => ({ getUsersCore: effects.directory }));
 vi.mock('@/actions/agent-settings/get', () => ({ getAgentSettingsCore: effects.agentSettings }));

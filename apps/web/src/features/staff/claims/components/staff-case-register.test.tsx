@@ -13,8 +13,8 @@ const read = vi.hoisted(() => ({ staff: vi.fn(), summary: vi.fn() }));
 
 vi.mock(import('@interdomestik/domain-claims/claims/inbound-upload'), async original => ({
   ...(await original()),
-  isInboundPilotCase: async () => false,
-  readClaimUploadPaused: async () => false,
+  isInboundPilotCase: () => Promise.resolve(false),
+  readClaimUploadPaused: () => Promise.resolve(false),
 }));
 vi.mock('@/i18n/routing', () => ({
   Link: ({ children, href }: { children: ReactNode; href: string }) => (

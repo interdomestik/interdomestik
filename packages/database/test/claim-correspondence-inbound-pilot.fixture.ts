@@ -14,6 +14,7 @@ import {
   type Connection,
   type Document,
 } from './claim-correspondence.fixture';
+import { runSequentially } from './in-order';
 
 export const ownerA = 'wp12-pilot-owner-a';
 export const ownerB = 'wp12-pilot-owner-b';
@@ -26,15 +27,16 @@ export async function setup({ admin }: Connection) {
   await admin`insert into branches (id, tenant_id, name, slug) values
     (${assignedBranch}, ${homeTenant}, 'Assigned branch', 'assigned'),
     (${otherBranch}, ${homeTenant}, 'Other branch', 'other')`;
-  for (const [id, role] of [
+  const actors = [
     [ownerA, 'member'],
     [ownerB, 'member'],
     [approver, 'tenant_admin'],
     [staffPeer, 'staff'],
-  ]) {
+  ];
+  await runSequentially(actors, async ([id, role]) => {
     await admin`insert into "user" (id, tenant_id, name, email, role, "emailVerified", "createdAt", "updatedAt")
       values (${id}, ${homeTenant}, 'Synthetic pilot actor', ${id + '@example.test'}, ${role}, true, now(), now())`;
-  }
+  });
 }
 
 export async function enrolledCase(admin: postgres.Sql, branch?: string) {
@@ -201,19 +203,20 @@ export async function proveStorageVerification(connections: Connection) {
     ),
     { code: '42501' }
   );
-  for (const scope of [
+  const refusedScopes = [
     { home: foreignTenant },
     { access: foreignTenant },
     { actor: staffPeer },
     { branch: assignedBranch },
-  ]) {
+  ];
+  await runSequentially(refusedScopes, async scope => {
     const [{ verified }] = await asVerifier(
       admin,
       tx => recordVerification(tx, decisionId, document, fixtureDigest),
       scope
     );
     assert.equal(verified, false);
-  }
+  });
   assert.equal(await attest(admin, document, 'b'.repeat(64)), false);
   assert.equal(
     await attest(admin, { ...document, file_path: document.file_path + '.other' }),
@@ -242,16 +245,17 @@ export async function proveDarkPublication({ admin, runtime }: Connection) {
   const write = (document: Document) =>
     restricted(runtime, tx => publish(tx, { ...document, category: 'evidence' }));
 
-  for (const document of [
+  const reservedDocuments = [
     reserved,
     { ...reserved, file_path: ordinary.file_path },
     { ...ordinary, file_path: reserved.file_path },
-  ]) {
+  ];
+  await runSequentially(reservedDocuments, async document => {
     await assert.rejects(write(document), {
       code: 'P1211',
       message: 'Reserved pilot document requires active enrollment',
     });
-  }
+  });
 
   await write(ordinary);
   const rows = await admin`select id, file_path from claim_documents where claim_id = ${claim.id}`;

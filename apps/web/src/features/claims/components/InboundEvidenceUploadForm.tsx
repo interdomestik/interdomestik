@@ -137,8 +137,10 @@ export function InboundEvidenceUploadForm({
             </>
           ) : (
             recorded && (
-              <p role="status">
-                {t('decisionRef')} <code>{decisionId}</code>
+              <p>
+                <output>
+                  {t('decisionRef')} <code>{decisionId}</code>
+                </output>
               </p>
             )
           )}

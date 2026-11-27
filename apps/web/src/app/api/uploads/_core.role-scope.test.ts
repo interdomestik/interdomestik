@@ -10,7 +10,7 @@ const hoisted = vi.hoisted(() => ({
 hoisted.tx.query = { claims: { findFirst: (...args) => hoisted.findClaimFirst(...args) } };
 
 vi.mock('@/features/claims/upload/server/claim-upload-cutover', () => ({
-  isClaimUploadPaused: async () => false,
+  isClaimUploadPaused: () => Promise.resolve(false),
 }));
 vi.mock('@interdomestik/database', () => ({
   and: vi.fn(),

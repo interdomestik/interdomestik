@@ -148,13 +148,13 @@ export async function proveForwardAclRollback(
       claimGuard
     );
     assert.equal(restored.length, reference.length);
-    for (const [index, table] of restored.entries()) {
+    await runSequentially([...restored.entries()], async ([index, table]) => {
       const expected = reference[index];
       assert.equal(table.relation, expected.relation);
       assert.equal(table.tableAcl, expected.tableAcl);
       assert.deepEqual(table.effectiveTable, expected.effectiveTable);
       assert.equal(table.columns.length, expected.columns.length, table.relation);
-      await runSequentially(table.columns.entries(), async ([position, column]) => {
+      await runSequentially([...table.columns.entries()], async ([position, column]) => {
         const baseline = expected.columns[position];
         const label = `${table.relation}.${column.name}`;
         assert.equal(column.name, baseline.name, label);
@@ -182,7 +182,7 @@ export async function proveForwardAclRollback(
           guard
         );
       }
-    }
+    });
   } finally {
     sql.release();
   }

@@ -77,7 +77,9 @@ export function ClaimCorrespondenceForm({
         body: formText(data, 'body'),
       };
       if (direction === 'inbound') {
-        const receivedDocumentIds = receivedDocuments.map(document => document.id).sort();
+        const receivedDocumentIds = receivedDocuments
+          .map(document => document.id)
+          .sort((left, right) => Number(left > right) - Number(left < right));
         const input = {
           ...common,
           inReplyToId: formText(data, 'inReplyToId') || null,

@@ -9,8 +9,8 @@ const m = vi.hoisted(() => ({
 }));
 vi.mock(import('@interdomestik/domain-claims/claims/inbound-upload'), async original => ({
   ...(await original()),
-  isInboundPilotCase: async () => false,
-  readClaimUploadPaused: async () => false,
+  isInboundPilotCase: () => Promise.resolve(false),
+  readClaimUploadPaused: () => Promise.resolve(false),
 }));
 vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: m.authorize }));
 vi.mock('@/i18n/routing', () => ({ Link: () => null }));

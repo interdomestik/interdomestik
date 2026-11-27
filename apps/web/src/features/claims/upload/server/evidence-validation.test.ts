@@ -16,7 +16,7 @@ const m = vi.hoisted(() => ({
   remove: vi.fn(),
 }));
 vi.mock('@/features/claims/upload/server/claim-upload-cutover', () => ({
-  isClaimUploadPaused: async () => false,
+  isClaimUploadPaused: () => Promise.resolve(false),
 }));
 vi.mock('@/lib/storage/service-role', () => ({
   createTenantSignedUploadUrl: m.sign,

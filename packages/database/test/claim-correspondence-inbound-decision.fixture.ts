@@ -27,6 +27,7 @@ import {
   type Case,
   type Connection,
 } from './claim-correspondence.fixture';
+import { runSequentially } from './in-order';
 
 function sessionAuthority(
   tenantId: string,
@@ -103,13 +104,14 @@ export async function provePendingDecisionVisibility(connections: Connection) {
   const { admin, runtime } = connections;
   const claim = await enrolledCase(admin);
   const { decisionId } = await createDecision(connections, claim, 'approved-to-show');
-  for (const [actor, role, visible] of [
+  const visibilityCases = [
     [ownerA, 'member', false],
     [ownerB, 'member', false],
     [staffPeer, 'staff', false],
     [homeActor, 'staff', true],
     [approver, 'tenant_admin', true],
-  ] as const) {
+  ] as const;
+  await runSequentially(visibilityCases, async ([actor, role, visible]) => {
     await restricted(runtime, async tx => {
       await setActor(tx, actor, role);
       const rows =
@@ -117,7 +119,7 @@ export async function provePendingDecisionVisibility(connections: Connection) {
         from claim_inbound_upload_decisions where id = ${decisionId}`;
       assert.equal(rows.length, Number(visible), role + ' ' + actor);
     });
-  }
+  });
 }
 
 export async function proveDecisionExpiry(connections: Connection) {
@@ -169,13 +171,14 @@ export async function proveDecisionExpiry(connections: Connection) {
   assert.equal(committed?.withinDeadline, false);
   assert.equal(committed?.published, true);
   assert.equal(committed?.documentId, fresh.id);
-  for (const [reason, authority] of [
+  const refusedAuthorities = [
     ['wrong user', sessionAuthority(homeTenant, staffPeer, 'staff')],
     ['wrong role', sessionAuthority(homeTenant, homeActor, 'tenant_admin')],
     ['wrong tenant', sessionAuthority(foreignTenant, homeActor, 'staff')],
-  ] as const) {
+  ] as const;
+  await runSequentially(refusedAuthorities, async ([reason, authority]) => {
     assert.equal(await load(freshId, authority), null, reason);
-  }
+  });
 }
 
 export async function proveDecisionDenials({ admin }: Connection) {
@@ -202,14 +205,15 @@ export async function proveDecisionDenials({ admin }: Connection) {
     pathForDocument: (id: string) => assignedPath(claim, id),
   };
   const refused = { ok: false, code: 'forbidden' };
-  for (const authority of [
+  const refusedAuthorities = [
     sessionAuthority(homeTenant, ownerB, 'member'),
     sessionAuthority(homeTenant, approver, 'tenant_admin'),
     sessionAuthority(foreignTenant, foreignActor, 'staff'),
     sessionAuthority(homeTenant, homeActor, 'staff', 'different-branch'),
-  ]) {
+  ];
+  await runSequentially(refusedAuthorities, async authority => {
     assert.deepEqual(await recordInboundUploadDecision(authority, input, storage), refused);
-  }
+  });
   const staff = sessionAuthority(homeTenant, homeActor, 'staff');
   assert.deepEqual(
     await recordInboundUploadDecision(staff, { ...input, claimId: draft.id }, storage),

@@ -12,10 +12,12 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@/lib/tenant-authority.server', () => ({ authorizeSessionTenant: mocks.authorize }));
-vi.mock('@/lib/audit.core', () => ({ writeAuditEvent: vi.fn(async () => ({ ok: true })) }));
+vi.mock('@/lib/audit.core', () => ({
+  writeAuditEvent: vi.fn(() => Promise.resolve({ ok: true })),
+}));
 vi.mock('@sentry/nextjs', () => ({ captureException: vi.fn(), setUser: vi.fn(), setTag: vi.fn() }));
 vi.mock('@/features/claims/upload/server/claim-upload-cutover', () => ({
-  isClaimUploadPaused: async () => false,
+  isClaimUploadPaused: () => Promise.resolve(false),
 }));
 vi.mock('@/features/claims/upload/server/shared-upload', () => ({
   revalidatePathForAllLocales: vi.fn(),
@@ -28,7 +30,7 @@ vi.mock('@interdomestik/domain-documents/claim-evidence', () => ({
   confirmClaimEvidence: mocks.confirm,
 }));
 vi.mock('@interdomestik/database/free-start-drafts', () => ({
-  withPrincipalTenantContext: async (_authority: unknown, work: (tx: object) => unknown) =>
+  withPrincipalTenantContext: async (_authority: unknown, work: (tx: object) => Promise<unknown>) =>
     work({}),
 }));
 vi.mock('@interdomestik/domain-claims/claims/inbound-upload', async original => ({

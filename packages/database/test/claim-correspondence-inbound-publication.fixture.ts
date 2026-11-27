@@ -22,6 +22,7 @@ import {
   restricted,
   type Connection,
 } from './claim-correspondence.fixture';
+import { runSequentially } from './in-order';
 import { quoteIdentifier, quoteSqlLiteral } from './rls-test-connection';
 
 const reserved = { code: 'P1211' };
@@ -31,8 +32,9 @@ const frozenOwner = { code: 'P1213' };
 
 export async function provePublishedScope(connections: Connection) {
   const { admin, runtime, peer, role } = connections;
+  const classifications = ['intended-for-member', 'approved-to-show'] as const;
 
-  for (const classification of ['intended-for-member', 'approved-to-show'] as const) {
+  await runSequentially(classifications, async classification => {
     const claim = await enrolledCase(admin);
     const explicitHome = classification === 'approved-to-show';
     await assert.rejects(
@@ -123,7 +125,7 @@ export async function provePublishedScope(connections: Connection) {
     }
     const [stored] = await admin`select "userId" from claim where id = ${claim.id}`;
     assert.equal(stored.userId, ownerA);
-  }
+  });
 
   const claim = await enrolledCase(admin);
   const document = await approve(connections, claim, 'intended-for-member');
@@ -151,7 +153,7 @@ export async function provePublishedScope(connections: Connection) {
 }
 
 export async function proveEnrollmentSnapshot({ admin, runtime, peer }: Connection) {
-  for (const staged of [false, true]) {
+  await runSequentially([false, true], async staged => {
     const claim = await insertClaim(admin);
     const writer = staged ? { ...claim, tenant: foreignTenant, user: foreignActor } : claim;
     if (staged) {
@@ -187,5 +189,5 @@ export async function proveEnrollmentSnapshot({ admin, runtime, peer }: Connecti
     const [row] =
       await admin`select count(*)::int as count from claim_documents where claim_id = ${claim.id}`;
     assert.equal(row.count, 0);
-  }
+  });
 }

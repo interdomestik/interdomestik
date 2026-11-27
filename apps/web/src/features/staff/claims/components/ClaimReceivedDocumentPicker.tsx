@@ -60,7 +60,7 @@ export function ClaimReceivedDocumentPicker({
           ))}
         </ul>
       )}
-      {page && page.documents.length === 0 && <p>{t('empty')}</p>}
+      {page?.documents.length === 0 && <p>{t('empty')}</p>}
       {page?.documents
         .filter(document => !selection.some(item => item.id === document.id))
         .map(document => (

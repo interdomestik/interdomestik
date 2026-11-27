@@ -19,8 +19,8 @@ const mocks = vi.hoisted(() => ({
 }));
 
 vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
-  isInboundPilotCase: async () => false,
-  readClaimUploadPaused: async () => false,
+  isInboundPilotCase: () => Promise.resolve(false),
+  readClaimUploadPaused: () => Promise.resolve(false),
 }));
 vi.mock('next-intl/server', () => ({ setRequestLocale: vi.fn() }));
 vi.mock('next/navigation', () => ({

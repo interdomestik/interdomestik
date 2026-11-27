@@ -15,6 +15,7 @@ import {
 import { quoteIdentifier } from './rls-test-connection';
 
 const suffix = randomBytes(6).toString('hex');
+const compareNames = (left: string, right: string) => Number(left > right) - Number(left < right);
 
 test('E2E provisioning and reprovisioning preserve the rate-book and case register grants', async t => {
   const missing = scratchServerMissing('REQUIRE_RLS_INTEGRATION');
@@ -166,14 +167,16 @@ async function assertInboundFunctionGrants(admin: ScratchClient, role: string) {
     'claim_received_set_count_fn()': [],
   };
   for (const [signature, grantees] of Object.entries(expectedGrants)) {
+    const qualified = `public.${signature}`;
     const [posture] = await admin<{ runtime_execute: boolean; grantees: string[] }[]>`select
       has_function_privilege(${role}, p.oid, 'EXECUTE') as runtime_execute,
       array(select coalesce(r.rolname::text, 'PUBLIC') || case when acl.is_grantable then '*' else '' end
         from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) as acl
         left join pg_roles as r on r.oid = acl.grantee
         where acl.grantee <> p.proowner and acl.privilege_type = 'EXECUTE') as grantees
-      from pg_proc as p where p.oid = ${`public.${signature}`}::regprocedure`;
-    assert.deepEqual(posture.grantees.sort(), [...grantees].sort(), signature);
+      from pg_proc as p where p.oid = ${qualified}::regprocedure`;
+    posture.grantees.sort(compareNames);
+    assert.deepEqual(posture.grantees, [...grantees].sort(compareNames), signature);
     assert.equal(posture.runtime_execute, grantees.includes(role), signature);
   }
 }
@@ -242,7 +245,11 @@ test('late E2E role provisioning preserves the WP-12.1 function and column grant
         const columns = await admin<{ name: string }[]>`select attname as name from pg_attribute
           where attrelid = ${qualified}::regclass and attnum > 0 and not attisdropped
             and has_column_privilege(${role}, ${qualified}, attname, 'INSERT')`;
-        assert.deepEqual(columns.map(row => row.name).sort(), [...expected].sort(), table);
+        assert.deepEqual(
+          columns.map(row => row.name).sort(compareNames),
+          [...expected].sort(compareNames),
+          table
+        );
       }
       const [guard] = await admin`select rolcanlogin as login, rolbypassrls as bypass,
         has_function_privilege(${role}, 'public.claim_inbound_owner_guard_fn()', 'EXECUTE') as owner_lookup,

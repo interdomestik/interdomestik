@@ -23,6 +23,7 @@ import {
   restricted,
   type Connection,
 } from './claim-correspondence.fixture';
+import { runSequentially } from './in-order';
 
 export async function proveReceivedSet(connections: Connection) {
   const { admin, runtime } = connections;
@@ -93,7 +94,7 @@ export async function proveReceivedSet(connections: Connection) {
     await admin`select count(*)::int as count from claim_correspondence_received_documents
     where correspondence_id = ${entry.id}`;
   assert.equal(count.count, 1);
-  for (const id of [historical.id, entry.id]) {
+  await runSequentially([historical.id, entry.id], async id => {
     await assert.rejects(
       restricted(runtime, async tx => {
         await setActor(tx);
@@ -101,7 +102,7 @@ export async function proveReceivedSet(connections: Connection) {
       }),
       { code: 'P1204' }
     );
-  }
+  });
   const [sent] = await admin`select count(*)::int as count from claim_correspondence_documents
     where correspondence_id = ${entry.id}`;
   assert.equal(sent.count, 0);
@@ -126,7 +127,11 @@ export async function proveReceivedSet(connections: Connection) {
   const rows = await admin`select claim_document_id, isfinite(created_at) as has_timestamp
     from claim_correspondence_received_documents
     where correspondence_id = ${created.correspondenceId}`;
-  assert.deepEqual(rows.map(row => row.claim_document_id).sort(), [...ids].sort());
+  const compareIds = (left: string, right: string) => Number(left > right) - Number(left < right);
+  assert.deepEqual(
+    rows.map(row => row.claim_document_id).sort(compareIds),
+    [...ids].sort(compareIds)
+  );
   assert.ok(rows.every(row => row.has_timestamp === true));
 }
 

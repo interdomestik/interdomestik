@@ -49,8 +49,8 @@ function journalThrough(t: TestContext, stop: 'prior' | 'register' | 'before-inb
     entry.tag.endsWith('_wp12_1_inbound_documents')
   );
   assert.ok(inbound > register, 'the pilot migration follows the case register');
-  const index =
-    stop === 'before-inbound' ? inbound - 1 : stop === 'register' ? register : register - 1;
+  const registerIndex = stop === 'register' ? register : register - 1;
+  const index = stop === 'before-inbound' ? inbound - 1 : registerIndex;
   const entries: { tag: string }[] = journal.entries.slice(0, index + 1);
   const dir = mkdtempSync(join(tmpdir(), 'wp12-journal-'));
   t.after(() => rmSync(dir, { recursive: true, force: true }));

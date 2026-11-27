@@ -23,6 +23,7 @@ import {
   restricted,
   type Connection,
 } from './claim-correspondence.fixture';
+import { runSequentially } from './in-order';
 
 const reserved = { code: 'P1211' };
 const wrongCase = { code: 'P1210' };
@@ -147,7 +148,7 @@ export async function proveReservation(connections: Connection) {
     encoded,
     encoded.replace('%77', '%2577'),
   ];
-  for (const path of aliases) {
+  await runSequentially(aliases, async path => {
     await restricted(peer, async tx => {
       const [classification] =
         await tx`select public.claim_inbound_reserved_path(${path}) as reserved`;
@@ -164,7 +165,7 @@ export async function proveReservation(connections: Connection) {
         constraint_name: 'documents_storage_path_canonical_ck',
       }
     );
-  }
+  });
   await restricted(peer, async tx => {
     const updated =
       await tx`update documents set deleted_at = now() where id = ${ordinaryId} returning id`;

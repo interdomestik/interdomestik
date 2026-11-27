@@ -192,10 +192,10 @@ export async function recordInboundCorrespondence(
       });
     } catch (error) {
       if (error instanceof ReceivedCorrelationConflict) {
-        if (attempt === 1) continue;
-        return { ok: false, code: 'conflict' } as const;
+        if (attempt !== 1) return { ok: false, code: 'conflict' } as const;
+      } else if (!retryRegisterDeadlock(error, attempt)) {
+        return registerFailure(error);
       }
-      if (!retryRegisterDeadlock(error, attempt)) return registerFailure(error);
     }
   }
 }

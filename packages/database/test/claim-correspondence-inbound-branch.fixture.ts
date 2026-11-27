@@ -20,6 +20,7 @@ import {
   restricted,
   type Connection,
 } from './claim-correspondence.fixture';
+import { runSequentially } from './in-order';
 
 // The case is in otherBranch. Exercise omission, forgery and narrower sessions against the live row.
 const refusedBranchScopes = [
@@ -68,7 +69,7 @@ export async function proveDirectDecisionBranch(connections: Connection) {
     { code: '42501' }
   );
   try {
-    for (const [staffBranch, sessionBranch] of refusedBranchScopes) {
+    await runSequentially(refusedBranchScopes, async ([staffBranch, sessionBranch]) => {
       await admin`update "user" set branch_id = ${staffBranch} where id = ${homeActor}`;
       await assert.rejects(
         restricted(runtime, async tx => {
@@ -77,7 +78,7 @@ export async function proveDirectDecisionBranch(connections: Connection) {
         }),
         refusal
       );
-    }
+    });
     await admin`update "user" set branch_id = ${otherBranch} where id = ${homeActor}`;
     await restricted(runtime, async tx => {
       await setActor(tx, homeActor, 'staff', otherBranch);
@@ -107,7 +108,7 @@ export async function proveDirectPublicationBranch(connections: Connection) {
     await admin`update claim set branch_id = ${otherBranch} where id = ${claim.id}`;
     const write = (tx: postgres.TransactionSql) =>
       insertDocument(tx, { ...document, category: 'evidence' });
-    for (const [staffBranch, sessionBranch] of refusedBranchScopes) {
+    await runSequentially(refusedBranchScopes, async ([staffBranch, sessionBranch]) => {
       await admin`update "user" set branch_id = ${staffBranch} where id = ${homeActor}`;
       await restricted(runtime, async tx => {
         await setActor(tx, homeActor, 'staff', sessionBranch);
@@ -123,7 +124,7 @@ export async function proveDirectPublicationBranch(connections: Connection) {
         }),
         refusal
       );
-    }
+    });
     await admin`update "user" set branch_id = ${otherBranch} where id = ${homeActor}`;
     await proveStaleStaffBranch(connections, write, refusal);
     await admin`update "user" set branch_id = ${otherBranch} where id = ${homeActor}`;
