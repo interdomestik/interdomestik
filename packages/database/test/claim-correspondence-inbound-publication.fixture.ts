@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import type postgres from 'postgres';
 
 import {
   approve,
@@ -11,6 +12,7 @@ import {
   publish,
   setActor,
 } from './claim-correspondence-inbound-pilot.fixture';
+import { withInboundJournal114 } from './claim-correspondence-inbound-reservation.fixture';
 import {
   documentInput,
   foreignActor,
@@ -152,42 +154,89 @@ export async function provePublishedScope(connections: Connection) {
   assert.deepEqual({ ...grants }, { enroll: false, edit: false, date: false, lookup: false });
 }
 
-export async function proveEnrollmentSnapshot({ admin, runtime, peer }: Connection) {
-  await runSequentially([false, true], async staged => {
-    const claim = await insertClaim(admin);
-    const writer = staged ? { ...claim, tenant: foreignTenant, user: foreignActor } : claim;
-    if (staged) {
-      await admin`insert into claim_inbound_pilot_cases (tenant_id, claim_id, paused)
+type EnrollmentRace = 'first enrollment' | 'staged activation' | 'hidden staged activation';
+
+async function proveEnrollmentRace({ admin, runtime, peer }: Connection, race: EnrollmentRace) {
+  const claim = await insertClaim(admin);
+  const hidden = race === 'hidden staged activation';
+  const writer = hidden ? { ...claim, tenant: foreignTenant, user: foreignActor } : claim;
+  const staleDocument = documentInput(writer);
+  const freshDocument = documentInput(claim);
+  const readEnrollment = async (sql: postgres.Sql | postgres.TransactionSql) => [
+    ...(await sql`select tenant_id, enrolled_at, paused, legacy_credential_disposition
+      from claim_inbound_pilot_cases where claim_id = ${claim.id}`),
+  ];
+
+  const initial =
+    race === 'first enrollment'
+      ? []
+      : [
+          {
+            tenant_id: claim.tenant,
+            enrolled_at: null,
+            paused: true,
+            legacy_credential_disposition: null,
+          },
+        ];
+  if (initial.length) {
+    await admin`insert into claim_inbound_pilot_cases (tenant_id, claim_id, paused)
         values (${claim.tenant}, ${claim.id}, true)`;
-    }
-    await restricted(
-      peer,
-      async tx => {
-        await setActor(tx, writer.user);
-        assert.equal(
-          (
-            await tx`select claim_id from claim_inbound_pilot_cases
-        where claim_id = ${claim.id} and enrolled_at is not null`
-          ).length,
-          0
-        );
-        await enroll(admin, claim);
-        await assert.rejects(
-          tx.savepoint(savepoint => insertDocument(savepoint, documentInput(writer))),
-          { code: '40001' }
-        );
-      },
-      { home: writer.tenant, isolation: 'repeatable read' }
-    );
-    await assert.rejects(
-      restricted(runtime, async tx => {
-        await setActor(tx);
-        await insertDocument(tx, documentInput(claim));
-      }),
-      wrongCase
-    );
-    const [row] =
-      await admin`select count(*)::int as count from claim_documents where claim_id = ${claim.id}`;
-    assert.equal(row.count, 0);
-  });
+  }
+  // The privileged reader establishes that the legacy foreign writer's empty view hides a real row.
+  assert.deepEqual(await readEnrollment(admin), initial);
+  const staleView = hidden ? [] : initial;
+
+  const active = await restricted(
+    peer,
+    async tx => {
+      await setActor(tx, writer.user);
+      assert.deepEqual(await readEnrollment(tx), staleView);
+      await enroll(admin, claim);
+
+      const freshView = await restricted(runtime, fresh => readEnrollment(fresh));
+      const [enrollment] = freshView;
+      assert.ok(enrollment?.enrolled_at instanceof Date);
+      assert.deepEqual(freshView, [
+        {
+          tenant_id: claim.tenant,
+          enrolled_at: enrollment.enrolled_at,
+          paused: false,
+          legacy_credential_disposition: 'none-issued',
+        },
+      ]);
+      assert.deepEqual(await readEnrollment(tx), staleView);
+      await assert.rejects(
+        tx.savepoint(savepoint => insertDocument(savepoint, staleDocument)),
+        { code: '40001' }
+      );
+      return freshView;
+    },
+    { home: writer.tenant, isolation: 'repeatable read' }
+  );
+
+  const assertUnchanged = async () => {
+    const [result] = await admin`select c."userId" as owner, exists (
+      select 1 from claim_documents where claim_id = c.id
+        or id in (${staleDocument.id}, ${freshDocument.id})
+    ) as persisted from claim c where c.id = ${claim.id}`;
+    assert.deepEqual({ ...result }, { owner: claim.user, persisted: false });
+    assert.deepEqual(await readEnrollment(admin), active);
+  };
+  await assertUnchanged();
+
+  await assert.rejects(
+    restricted(runtime, async tx => {
+      await setActor(tx);
+      await insertDocument(tx, freshDocument);
+    }),
+    wrongCase
+  );
+  await assertUnchanged();
+}
+
+export async function proveEnrollmentSnapshot(connections: Connection) {
+  await withInboundJournal114(legacy => proveEnrollmentRace(legacy, 'hidden staged activation'));
+  await runSequentially(['first enrollment', 'staged activation'] as const, race =>
+    proveEnrollmentRace(connections, race)
+  );
 }
