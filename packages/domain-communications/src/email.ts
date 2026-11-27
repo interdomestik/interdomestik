@@ -189,7 +189,7 @@ export async function sendPaymentReminderEmail(
   }
 ): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
-  console.log(`[Dunning] Sending Day 7 reminder to ${to}`);
+  console.log('[Dunning] Sending Day 7 reminder');
   return sendEmail(to, renderPaymentReminderEmail(params));
 }
 
@@ -205,7 +205,7 @@ export async function sendPaymentFinalWarningEmail(
   }
 ): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
-  console.log(`[Dunning] Sending Day 13 FINAL WARNING to ${to}`);
+  console.log('[Dunning] Sending Day 13 final warning');
   return sendEmail(to, renderPaymentFinalWarningEmail(params));
 }
 
