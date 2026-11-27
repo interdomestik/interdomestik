@@ -18,6 +18,7 @@ vi.mock('@/lib/ai/claim-workflows', () => ({
 
 vi.mock('@interdomestik/database', () => {
   const tenantTx = () => ({
+    execute: () => Promise.resolve([]),
     insert: hoisted.insert,
     select: () => ({
       from: () => ({

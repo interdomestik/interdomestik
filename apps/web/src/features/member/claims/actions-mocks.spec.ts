@@ -64,6 +64,10 @@ vi.mock('@/features/claims/upload/server/access', () => ({
   findOwnedMemberUploadClaim: hoisted.findOwnedMemberUploadClaim,
 }));
 
+vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
+  readClaimUploadPaused: () => Promise.resolve(false),
+}));
+
 vi.mock('@interdomestik/database', () => ({
   withTenantContext: hoisted.withTenantContext,
   createAdminClient: () => ({
@@ -152,6 +156,7 @@ beforeEach(() => {
   );
   hoisted.withTenantContext.mockImplementation(async (_context, callback) =>
     callback({
+      execute: () => Promise.resolve([]),
       insert: hoisted.insert,
       select: () => ({
         from: (table: unknown) => ({

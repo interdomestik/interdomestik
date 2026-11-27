@@ -16,6 +16,10 @@ vi.mock('@/app/api/documents/agent-document-scope', () => ({
   hasAgentClaimDocumentScope: hoisted.agentScope,
 }));
 
+vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
+  readClaimUploadPaused: () => Promise.resolve(false),
+}));
+
 vi.mock('@/lib/auth', () => ({
   auth: {
     api: {
