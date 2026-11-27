@@ -30,9 +30,9 @@ export const recipientAllowListActive = (env: Env = process.env) => recipientPol
 // the Kelvin sign, onto ASCII). Local part: RFC 5322 dot-atom (no quoted strings). Domain: DNS
 // host name with at least two labels. Matching is then case-insensitive for the whole address.
 const ATOM = "[A-Za-z0-9!#$%&'*+/=?^_`{|}~-]+";
-const LOCAL_PART = new RegExp(`^${ATOM}(?:\\.${ATOM})*$`);
+const LOCAL_PART = new RegExp(String.raw`^${ATOM}(?:\.${ATOM})*$`);
 const LABEL = '[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?';
-const DOMAIN = new RegExp(`^(?=.{1,253}$)(?:${LABEL}\\.)+${LABEL}$`);
+const DOMAIN = new RegExp(String.raw`^(?=.{1,253}$)(?:${LABEL}\.)+${LABEL}$`);
 const asDomain = (value: string) => {
   const domain = value.trim().replace(/\.$/, '');
   return DOMAIN.test(domain) ? domain.toLowerCase() : null;
