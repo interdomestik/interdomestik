@@ -55,17 +55,13 @@ function storedReservation(admin: postgres.Sql, claimId: string, attemptedId: st
     where c.id = ${claimId}`;
 }
 
-async function proveForeignPair(
-  connections: Connection,
-  claimId: string,
-  refusal: { code: string }
-) {
-  const { admin, runtime } = connections;
+async function proveWrongHome(context: Connection, claimId: string, refusal: { code: string }) {
+  const { admin, runtime } = context;
   const foreign = await insertClaim(admin, { tenant: foreignTenant });
   const before = await storedReservation(admin, claimId, null);
   assert.equal(before[0]?.userId, ownerA);
   assert.ok(before[0]?.enrollment.enrolled_at && before[0].enrollment.paused === false);
-  await runSequentially(['staff', 'member'], async role => {
+  const proveRoleRefusal = async (role: 'staff' | 'member') => {
     const attempt = { ...documentInput(foreign), claim_id: claimId };
     const write = async (tx: postgres.TransactionSql) => {
       await setActor(tx, foreignActor, role);
@@ -75,21 +71,23 @@ async function proveForeignPair(
     };
     await assert.rejects(restricted(runtime, write, { home: foreignTenant }), refusal);
     assert.deepEqual(await storedReservation(admin, claimId, attempt.id), before);
-  });
+  };
+  await proveRoleRefusal('staff');
+  await proveRoleRefusal('member');
   return { foreign, before };
 }
 
 export async function proveReservation(connections: Connection) {
   await withInboundJournal114(async prefix => {
     const claim = await enrolledCase(prefix.admin);
-    await proveForeignPair(prefix, claim.id, wrongCase);
+    await proveWrongHome(prefix, claim.id, wrongCase);
   });
 
   const { admin, runtime, peer } = connections;
   const claim = await enrolledCase(admin);
   const other = await insertClaim(admin);
   const homeForeignKey = foreignKey('claim_documents_case_home_fk');
-  const { foreign, before } = await proveForeignPair(connections, claim.id, homeForeignKey);
+  const { foreign, before } = await proveWrongHome(connections, claim.id, homeForeignKey);
   const wrongOwner = { ...documentInput(claim), uploaded_by: ownerB };
   await assert.rejects(
     restricted(runtime, async tx => {

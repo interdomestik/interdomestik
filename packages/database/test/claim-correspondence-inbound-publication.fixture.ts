@@ -163,7 +163,8 @@ async function proveEnrollmentRace({ admin, runtime, peer }: Connection, race: E
   const staleDocument = documentInput(writer);
   const freshDocument = documentInput(claim);
   const readEnrollment = async (sql: postgres.Sql | postgres.TransactionSql) => [
-    ...(await sql`select tenant_id, enrolled_at, paused, legacy_credential_disposition
+    ...(await sql`select tenant_id, extract(epoch from enrolled_at)::text as enrolled_at,
+      paused, legacy_credential_disposition
       from claim_inbound_pilot_cases where claim_id = ${claim.id}`),
   ];
 
@@ -195,7 +196,7 @@ async function proveEnrollmentRace({ admin, runtime, peer }: Connection, race: E
 
       const freshView = await restricted(runtime, fresh => readEnrollment(fresh));
       const [enrollment] = freshView;
-      assert.ok(enrollment?.enrolled_at instanceof Date);
+      assert.match(enrollment?.enrolled_at ?? '', /^\d+(?:\.\d+)?$/u);
       assert.deepEqual(freshView, [
         {
           tenant_id: claim.tenant,
