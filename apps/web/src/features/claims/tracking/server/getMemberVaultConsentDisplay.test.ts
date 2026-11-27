@@ -42,7 +42,11 @@ vi.mock('drizzle-orm', async importOriginal => ({
   inArray: hoisted.inArray,
 }));
 
-import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
+import {
+  getMemberVaultConsentDisplay,
+  openMemberVaultConsentDisplay,
+} from './getMemberVaultConsentDisplay';
+import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 
 describe('getMemberVaultConsentDisplay gates', () => {
   beforeEach(() => {
@@ -95,5 +99,27 @@ describe('getMemberVaultConsentDisplay gates', () => {
     expect('items' in result).toBe(false);
     expect(hoisted.locale).toHaveBeenCalledWith(baseTenantId);
     expect(hoisted.select).not.toHaveBeenCalled();
+  });
+
+  it('refuses a principal-less authority before reading metadata', async () => {
+    hoisted.admit.mockResolvedValueOnce({
+      ok: true,
+      authorized: { authority: mintTestTenantAuthority(baseTenantId) },
+    });
+    await expect(openMemberVaultConsentDisplay(baseParams)).rejects.toThrow(UnauthorizedError);
+    expect(hoisted.locale).not.toHaveBeenCalled();
+  });
+
+  it('opens an eligible MK gate with the admitted viewer and no document read', async () => {
+    hoisted.locale.mockResolvedValueOnce({ code: 'MK', countryCode: 'MK' });
+    await expect(openMemberVaultConsentDisplay(baseParams)).resolves.toEqual({
+      open: true,
+      display: { kind: 'ready', items: [] },
+      tenantId: baseTenantId,
+      viewerId: 'member-1',
+      tenant: { code: 'MK', countryCode: 'MK' },
+    });
+    expect(hoisted.select).not.toHaveBeenCalled();
+    expect(hoisted.withTenantContext).not.toHaveBeenCalled();
   });
 });

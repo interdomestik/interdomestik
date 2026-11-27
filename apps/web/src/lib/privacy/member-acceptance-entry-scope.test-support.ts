@@ -18,6 +18,7 @@ export const protectedLoaderIds = [
   'features/claims/tracking/server/getMemberClaimDetail.ts#getMemberClaimDetail',
   'features/claims/tracking/server/member-domain-event-timeline.ts#getMemberTimelineFromDomainEvents',
   'features/claims/tracking/server/getMemberVaultConsentDisplay.ts#getMemberVaultConsentDisplay',
+  'features/claims/tracking/server/getMemberVaultConsentDisplay.ts#openMemberVaultConsentDisplay',
   'features/member/policies/components/MemberPoliciesV2Page.tsx#MemberPoliciesV2Page',
 ];
 

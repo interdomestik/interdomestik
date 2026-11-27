@@ -29,7 +29,7 @@ describe('getMemberClaimDetail', () => {
     hoisted.claimFindFirst.mockResolvedValueOnce(undefined);
     await expect(getMemberClaimDetail('not-owned')).resolves.toBeNull();
     expect(hoisted.getMemberTimelineFromDomainEvents).not.toHaveBeenCalled();
-    expect(hoisted.getMemberVaultConsentDisplay).not.toHaveBeenCalled();
+    expect(hoisted.openMemberVaultConsentDisplay).not.toHaveBeenCalled();
     expect(hoisted.readCurrentMemberVaultEvidence).not.toHaveBeenCalled();
     expect(hoisted.getMatterAllowanceVisibility).not.toHaveBeenCalled();
   });
@@ -72,8 +72,8 @@ describe('getMemberClaimDetail', () => {
     expect(hoisted.context).toHaveBeenCalledWith(memberDetailAuthority);
     const tx = hoisted.getMatterAllowanceVisibility.mock.calls[0]![0].tx;
     expect(hoisted.getMemberTimelineFromDomainEvents.mock.calls[0]![1]).toBe(tx);
-    expect(hoisted.readCurrentMemberVaultEvidence.mock.calls[0]![0]).toBe(tx);
-    expect(hoisted.getMemberVaultConsentDisplay.mock.calls[0]![1].database).toBe(tx);
+    expect(hoisted.openMemberVaultConsentDisplay).toHaveBeenCalledTimes(1);
+    expect(hoisted.readCurrentMemberVaultEvidence).not.toHaveBeenCalled();
     expect(result).not.toBeNull();
     expect(result?.timeline).toHaveLength(1);
     expect(result?.timeline[0]).toMatchObject({

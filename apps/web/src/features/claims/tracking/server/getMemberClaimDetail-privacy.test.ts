@@ -100,7 +100,10 @@ vi.mock('./member-domain-event-timeline', () => ({
   getMemberTimelineFromDomainEvents: mocks.timeline,
 }));
 vi.mock('./getMemberVaultConsentDisplay', () => ({
-  getMemberVaultConsentDisplay: async () => ({ kind: 'hidden' }),
+  openMemberVaultConsentDisplay: async () => ({ open: false, display: { kind: 'hidden' } }),
+  completeMemberVaultConsentDisplay: async () => {
+    throw new Error('closed Vault gate must not complete');
+  },
 }));
 vi.mock('@interdomestik/domain-documents/claim-evidence', () => ({
   readCurrentMemberVaultEvidence: async () => [],
@@ -108,7 +111,7 @@ vi.mock('@interdomestik/domain-documents/claim-evidence', () => ({
 
 import { getMemberClaimDetail } from './getMemberClaimDetail';
 
-const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
+const authority = mintTestTenantAuthority('tenant-1');
 
 describe('member claim detail privacy', () => {
   it('scopes timeline reads to the authorized claim and tenant', async () => {

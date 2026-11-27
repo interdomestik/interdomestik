@@ -1717,6 +1717,10 @@
     "disposition": "checked",
     "via": "requireAdmittedMember"
   },
+  "features/claims/tracking/server/getMemberVaultConsentDisplay.ts#openMemberVaultConsentDisplay": {
+    "disposition": "checked",
+    "via": "requireAdmittedMember"
+  },
   "features/claims/tracking/server/member-domain-event-timeline.ts#getMemberTimelineFromDomainEvents": {
     "disposition": "checked",
     "via": "requireAdmittedMember"

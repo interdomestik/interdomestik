@@ -1,10 +1,7 @@
 import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { vi } from 'vitest';
 
-export const memberDetailAuthority = mintTestTenantAuthority('tenant-1', {
-  userId: 'member-1',
-  role: 'member',
-});
+export const memberDetailAuthority = mintTestTenantAuthority('tenant-1');
 
 const hoisted = vi.hoisted(() => ({
   caseCompanionNextStep: {
@@ -23,7 +20,8 @@ const hoisted = vi.hoisted(() => ({
   recoveryDecisionRows: vi.fn(),
   select: vi.fn(),
   getMemberTimelineFromDomainEvents: vi.fn(),
-  getMemberVaultConsentDisplay: vi.fn(),
+  openMemberVaultConsentDisplay: vi.fn(),
+  completeMemberVaultConsentDisplay: vi.fn(),
   readCurrentMemberVaultEvidence: vi.fn(),
   ensureClaimsAccess: vi.fn(),
   buildClaimVisibilityWhere: vi.fn(),
@@ -127,7 +125,8 @@ vi.mock('./member-domain-event-timeline', () => ({
 }));
 
 vi.mock('./getMemberVaultConsentDisplay', () => ({
-  getMemberVaultConsentDisplay: hoisted.getMemberVaultConsentDisplay,
+  openMemberVaultConsentDisplay: hoisted.openMemberVaultConsentDisplay,
+  completeMemberVaultConsentDisplay: hoisted.completeMemberVaultConsentDisplay,
 }));
 
 vi.mock('@interdomestik/domain-documents/claim-evidence', () => ({

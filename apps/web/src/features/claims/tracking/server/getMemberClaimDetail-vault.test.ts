@@ -1,5 +1,4 @@
 import { UnauthorizedError } from '@interdomestik/shared-auth/errors';
-import { mintTestTenantAuthority } from '@interdomestik/database/testing/tenant-authority';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { getMemberDetailMocks, memberDetailAuthority } from './getMemberClaimDetail-test-support';
@@ -25,68 +24,85 @@ describe('getMemberClaimDetail Vault evidence', () => {
     });
   });
 
-  it('refuses before the Vault evidence read when the authority has no principal', async () => {
-    hoisted.admit.mockResolvedValueOnce({
-      ok: true,
-      authorized: { session: memberSession, authority: mintTestTenantAuthority('tenant-1') },
-    });
-    hoisted.claimFindFirst.mockResolvedValueOnce({
-      id: 'claim-vault',
-      userId: 'member-1',
-      category: 'vehicle',
-      title: 'Vehicle evidence',
-      status: 'evaluation',
-      createdAt: new Date('2026-07-01Z'),
-      updatedAt: null,
-      description: null,
-      claimAmount: null,
-      currency: 'EUR',
-      documents: [],
-    });
-    hoisted.timelineRows.mockResolvedValueOnce([]);
-    await expect(getMemberClaimDetail('claim-vault')).rejects.toThrow(UnauthorizedError);
-    expect(hoisted.readCurrentMemberVaultEvidence).not.toHaveBeenCalled();
-    expect(hoisted.getMemberVaultConsentDisplay).not.toHaveBeenCalled();
+  const vaultClaim = (piiUserId = 'member-1') => ({
+    id: 'claim-vault',
+    userId: piiUserId,
+    category: 'vehicle',
+    title: 'Vehicle evidence',
+    status: 'evaluation',
+    createdAt: new Date('2026-07-01Z'),
+    updatedAt: null,
+    description: null,
+    claimAmount: null,
+    currency: 'EUR',
+    documents: [],
   });
 
-  it('adds the safe Vault display after resolving the member-owned claim', async () => {
-    hoisted.claimFindFirst.mockResolvedValueOnce({
-      id: 'claim-vault',
-      userId: 'member-1',
-      category: 'vehicle',
-      title: 'Vehicle evidence',
-      status: 'evaluation',
-      createdAt: new Date('2026-07-01Z'),
-      updatedAt: null,
-      description: null,
-      claimAmount: null,
-      currency: 'EUR',
-      documents: [],
-    });
+  it.each([
+    ['member-1', 'available', { kind: 'hidden' }],
+    ['[erased]', 'erased_or_unavailable', { kind: 'subject_erased' }],
+  ])(
+    'skips the Vault evidence read when the gate is closed (%s)',
+    async (claimUserId, piiStatus, display) => {
+      hoisted.claimFindFirst.mockResolvedValueOnce(vaultClaim(claimUserId));
+      hoisted.timelineRows.mockResolvedValueOnce([]);
+      hoisted.openMemberVaultConsentDisplay.mockResolvedValueOnce({ open: false, display });
+      const result = await getMemberClaimDetail('claim-vault');
+      expect(hoisted.openMemberVaultConsentDisplay).toHaveBeenCalledWith(
+        expect.objectContaining({ claimId: 'claim-vault', piiStatus })
+      );
+      expect(hoisted.readCurrentMemberVaultEvidence).not.toHaveBeenCalled();
+      expect(hoisted.completeMemberVaultConsentDisplay).not.toHaveBeenCalled();
+      expect(result?.vaultConsentDisplay).toEqual(display);
+    }
+  );
+
+  it('propagates a refused Vault gate before any evidence read', async () => {
+    hoisted.claimFindFirst.mockResolvedValueOnce(vaultClaim());
     hoisted.timelineRows.mockResolvedValueOnce([]);
+    hoisted.openMemberVaultConsentDisplay.mockRejectedValueOnce(new UnauthorizedError());
+    await expect(getMemberClaimDetail('claim-vault')).rejects.toThrow(UnauthorizedError);
+    expect(hoisted.readCurrentMemberVaultEvidence).not.toHaveBeenCalled();
+    expect(hoisted.completeMemberVaultConsentDisplay).not.toHaveBeenCalled();
+  });
+
+  it('reads the viewer-bound evidence in the claim transaction once the gate is open', async () => {
+    hoisted.claimFindFirst.mockResolvedValueOnce(vaultClaim());
+    hoisted.timelineRows.mockResolvedValueOnce([]);
+    const gate = {
+      open: true,
+      display: { kind: 'ready', items: [] },
+      tenantId: 'tenant-1',
+      viewerId: 'viewer-1',
+      tenant: { code: 'MK', countryCode: 'MK' },
+    };
+    hoisted.openMemberVaultConsentDisplay.mockResolvedValueOnce(gate);
     const evidence = [{ id: 'document-1', category: 'evidence' as const, createdAt: null }];
     hoisted.readCurrentMemberVaultEvidence.mockResolvedValueOnce(evidence);
-    hoisted.getMemberVaultConsentDisplay.mockResolvedValueOnce({ kind: 'ready', items: [] });
+    const display = { kind: 'ready', items: [{ documentId: 'document-1' }] };
+    hoisted.completeMemberVaultConsentDisplay.mockResolvedValueOnce(display);
     const result = await getMemberClaimDetail('claim-vault');
-    const tx = expect.objectContaining({
-      query: { claims: { findFirst: hoisted.claimFindFirst } },
-    });
+    const params = {
+      memberId: 'member-1',
+      claimId: 'claim-vault',
+      claimCategory: 'vehicle',
+      piiStatus: 'available',
+    };
+    expect(hoisted.openMemberVaultConsentDisplay).toHaveBeenCalledWith(params);
+    const tx = hoisted.getMatterAllowanceVisibility.mock.calls[0]![0].tx;
     expect(hoisted.readCurrentMemberVaultEvidence).toHaveBeenCalledWith(
       tx,
       'tenant-1',
       'claim-vault',
-      'member-1'
+      'viewer-1'
     );
-    expect(hoisted.getMemberVaultConsentDisplay).toHaveBeenCalledWith(
-      {
-        memberId: 'member-1',
-        claimId: 'claim-vault',
-        claimCategory: 'vehicle',
-        piiStatus: 'available',
-      },
-      { database: tx, evidence }
+    expect(hoisted.completeMemberVaultConsentDisplay).toHaveBeenCalledWith(
+      params,
+      gate,
+      tx,
+      evidence
     );
-    expect(result?.vaultConsentDisplay).toEqual({ kind: 'ready', items: [] });
+    expect(result?.vaultConsentDisplay).toEqual(display);
     const [, sentryOptions] = hoisted.withServerActionInstrumentation.mock.calls[0]!;
     expect(sentryOptions).toEqual({ recordResponse: false });
   });
