@@ -2,7 +2,7 @@ import assert from 'node:assert/strict';
 import test from 'node:test';
 import postgres from 'postgres';
 
-import { rejected } from './sponsor-test-fixture';
+import { rejected, uid } from './sponsor-test-fixture';
 import { decide, freshList, insertCompleteList, listRow } from './wp09-import-actions.fixture';
 import {
   asPrincipal,
@@ -34,9 +34,27 @@ test('WP-09 a list cannot commit without all of its rows', async t => {
   });
 });
 
+test('WP-09 a company list cannot commit without one seat per row', async t => {
+  await withWp09Fixture(t, async ({ db, a, home }) => {
+    const list = freshList(home, 1);
+    await assert.rejects(
+      asPrincipal(db, staffOf(a), async tx => {
+        await insertRecord(tx, 'membership_import_lists', list);
+        await insertRecord(tx, 'membership_import_rows', listRow(home, 1, list.id));
+      }),
+      (error: unknown) => {
+        assert.ok(error instanceof postgres.PostgresError);
+        assert.equal(error.code, '23514');
+        assert.equal(error.constraint_name, 'membership_import_lists_seated');
+        return true;
+      }
+    );
+  });
+});
+
 test('WP-09 a committed list admits no row before or after its decision, approved or rejected', async t => {
   await withWp09Fixture(t, async ({ db, a, home }) => {
-    const created = await asPrincipal(db, staffOf(a), tx => insertCompleteList(tx, home, 2));
+    const created = await asPrincipal(db, staffOf(a), tx => insertCompleteList(tx, home, [3, 4]));
     const { list } = created;
     const count = () =>
       asPrincipal(db, staffOf(a), async tx => {
@@ -68,7 +86,7 @@ test('WP-09 a committed list admits no row before or after its decision, approve
       release = resolve;
     });
     const writer = asPrincipal(db, staffOf(a), async tx => {
-      await insertCompleteList(tx, home, 1);
+      await insertCompleteList(tx, home, [5]);
       opened();
       await released;
     });
@@ -86,6 +104,43 @@ test('WP-09 a committed list admits no row before or after its decision, approve
     await writer;
     assert.equal(await count(), 2);
     await refuseEveryPosition(false);
+    // No seat can follow the decision either: the policy refuses a decided list.
+    await asPrincipal(db, staffOf(a), async tx => {
+      await rejected(
+        tx,
+        sp =>
+          insertRecord(sp, 'sponsor_contract_year_seats', {
+            ...home.sponsor_contract_year_seats,
+            id: uid(),
+            import_row_id: created.rows[0].id,
+            slot: 6,
+          }),
+        '42501'
+      );
+      const [seats] = await tx<{ n: number }[]>`select count(*)::int as n
+        from sponsor_contract_year_seats where import_row_id in ${tx(created.rows.map(r => r.id))}`;
+      assert.equal(seats.n, 2);
+    });
     assert.equal(await count(), 2);
+  });
+});
+
+test("WP-09 a fulfilled row's period reference is opaque", async t => {
+  await withWp09Fixture(t, async ({ db, home }) => {
+    // Only a fulfilled row carries a period reference, so the owner writes this case.
+    await db.begin(tx =>
+      rejected(
+        tx,
+        sp =>
+          insertRecord(sp, 'membership_import_rows', {
+            ...home.membership_import_rows,
+            id: uid(),
+            fulfillment_state: 'fulfilled',
+            period_origin_ref: 'period of Jane Doe',
+          }),
+        '23514',
+        'membership_import_rows_fulfillment_ck'
+      )
+    );
   });
 });

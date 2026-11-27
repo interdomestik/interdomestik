@@ -292,22 +292,6 @@ CREATE POLICY "membership_import_assignments_select" ON "membership_import_assig
           or ((select current_setting('app.current_actor_role', true)) = 'staff'
             and "membership_import_assignments"."capacity" = 'import'
             and "membership_import_assignments"."staff_user_id" = (select current_setting('app.current_actor_id', true)))));--> statement-breakpoint
-CREATE POLICY "membership_import_assignments_insert" ON "membership_import_assignments" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("membership_import_assignments"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and "membership_import_assignments"."approved_by" = (select current_setting('app.current_actor_id', true))
-        and "membership_import_assignments"."revoked_at" is null);--> statement-breakpoint
-CREATE POLICY "membership_import_assignments_revoke" ON "membership_import_assignments" AS PERMISSIVE FOR UPDATE TO public USING ("membership_import_assignments"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and "membership_import_assignments"."revoked_at" is null) WITH CHECK ("membership_import_assignments"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and "membership_import_assignments"."revoked_at" is not null
-        and "membership_import_assignments"."revoked_by" = (select current_setting('app.current_actor_id', true)));--> statement-breakpoint
 CREATE POLICY "sponsor_contract_years_select" ON "sponsor_contract_years" AS PERMISSIVE FOR SELECT TO public USING ("sponsor_contract_years"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
         and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
@@ -475,11 +459,6 @@ CREATE POLICY "sponsor_exit_events_select" ON "sponsor_exit_events" AS PERMISSIV
         and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin');--> statement-breakpoint
-CREATE POLICY "sponsor_exit_events_record" ON "sponsor_exit_events" AS PERMISSIVE FOR INSERT TO public WITH CHECK ("sponsor_exit_events"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and "sponsor_exit_events"."recorded_by" = (select current_setting('app.current_actor_id', true)));--> statement-breakpoint
 CREATE POLICY "membership_notice_obligations_select" ON "membership_notice_obligations" AS PERMISSIVE FOR SELECT TO public USING ("membership_notice_obligations"."tenant_id" = (select current_setting('app.current_access_tenant_id', true))
         and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
@@ -625,8 +604,9 @@ CREATE TRIGGER sponsor_contract_years_update_scope
   BEFORE UPDATE ON public.sponsor_contract_years
   FOR EACH ROW EXECUTE FUNCTION public.wp09_update_scope_guard('current_limit');
 --> statement-breakpoint
--- A list commits with all of its rows. Positions are unique and bounded by row_count, so a
--- committed list admits no further row, and a decision never races a row insert.
+-- A list commits with all of its rows, and a company list with exactly one seat per row.
+-- Positions are unique and bounded by row_count and a row takes one seat, so a committed list
+-- admits no further row or seat, and a decision never races either.
 CREATE FUNCTION public.membership_import_list_complete_guard()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -635,6 +615,7 @@ SET search_path = pg_catalog
 AS $$
 DECLARE
   present integer;
+  seated integer;
 BEGIN
   SELECT count(*) INTO present
   FROM public.membership_import_rows AS import_row
@@ -645,6 +626,22 @@ BEGIN
     RAISE check_violation USING
       MESSAGE = 'WP-09: a list commits with all of its rows',
       CONSTRAINT = 'membership_import_lists_complete';
+  END IF;
+  IF NEW.origin IN ('prior_paid_company', 'new_company') THEN
+    SELECT count(*) INTO seated
+    FROM public.membership_import_rows AS import_row
+    JOIN public.sponsor_contract_year_seats AS seat
+      ON seat.tenant_id = import_row.tenant_id
+      AND seat.legal_entity_id = import_row.legal_entity_id
+      AND seat.import_row_id = import_row.id
+    WHERE import_row.tenant_id = NEW.tenant_id
+      AND import_row.legal_entity_id = NEW.legal_entity_id
+      AND import_row.list_id = NEW.id;
+    IF seated <> NEW.row_count THEN
+      RAISE check_violation USING
+        MESSAGE = 'WP-09: a company list commits with one seat per row',
+        CONSTRAINT = 'membership_import_lists_seated';
+    END IF;
   END IF;
   RETURN NULL;
 END;

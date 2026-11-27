@@ -40,31 +40,21 @@ test('WP-09 years for the same signed agreement exclude overlap and allow adjace
   });
 });
 
-test('WP-09 concurrent reservations contend for the last annual slot', async t => {
+test('WP-09 concurrent list commits contend for the same annual slot', async t => {
   await withWp09Fixture(t, async ({ db, a, home }) => {
-    // Two rows of one new pending list contend for the year's one remaining slot.
-    const contenders = await asPrincipal(db, staffOf(a), async tx => {
-      const { rows } = await insertCompleteList(tx, home, 2);
-      return rows.map(entry => entry.id);
-    });
-
     let ready = 0;
     let release = () => {};
     const bothStarted = new Promise<void>(resolve => {
       release = resolve;
     });
+    // Two submissions each reserve slot 1 for their only row; one commit wins.
     const results = await Promise.allSettled(
-      contenders.map(id =>
+      [0, 1].map(() =>
         asPrincipal(db, staffOf(a), async tx => {
           ready += 1;
-          if (ready === contenders.length) release();
+          if (ready === 2) release();
           await bothStarted;
-          await insertRecord(tx, 'sponsor_contract_year_seats', {
-            ...home.sponsor_contract_year_seats,
-            id: uid(),
-            import_row_id: id,
-            slot: 1,
-          });
+          await insertCompleteList(tx, home, [1]);
         }).catch((error: unknown) => {
           release();
           throw error;

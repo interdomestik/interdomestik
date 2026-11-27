@@ -54,13 +54,23 @@ export function freshList(home: Records, rowCount: number) {
   };
 }
 
-/** Inserts a complete new list with its rows on the caller's transaction (assigned staff). */
-export async function insertCompleteList(tx: Tx, home: Records, rowCount: number) {
-  const list = freshList(home, rowCount);
+/**
+ * Inserts a complete new company list on the caller's transaction (assigned staff): its rows
+ * and one seat per row, taking the given annual slots in order.
+ */
+export async function insertCompleteList(tx: Tx, home: Records, slots: readonly number[]) {
+  const list = freshList(home, slots.length);
   await insertRecord(tx, 'membership_import_lists', list);
-  const rows = Array.from({ length: rowCount }, (_, index) => listRow(home, index + 1, list.id));
+  const rows = slots.map((_, index) => listRow(home, index + 1, list.id));
   await runSequentially(rows, row => insertRecord(tx, 'membership_import_rows', row));
-  return { list, rows };
+  const seats = rows.map((row, index) => ({
+    ...home.sponsor_contract_year_seats,
+    id: uid(),
+    import_row_id: row.id,
+    slot: slots[index],
+  }));
+  await runSequentially(seats, seat => insertRecord(tx, 'sponsor_contract_year_seats', seat));
+  return { list, rows, seats };
 }
 
 export async function insertUser(db: postgres.Sql, tenantId: string): Promise<string> {

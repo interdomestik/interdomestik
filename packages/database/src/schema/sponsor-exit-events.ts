@@ -52,21 +52,13 @@ export const sponsorExitEvents = pgTable(
       sql`${table.operationId} ~ '[^[:space:]]' and ${table.evidenceRef} ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'
         and isfinite(${table.recordedAt}) and isfinite(${table.effectiveAt})`
     ),
-    // Exit events are immutable: read and record policies only.
+    // Recording an exit stays closed until the writer PR brings delegated termination authority.
     pgPolicy('sponsor_exit_events_select', {
       for: 'select',
       using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
         and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
         and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'`,
-    }),
-    pgPolicy('sponsor_exit_events_record', {
-      for: 'insert',
-      withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and ${table.recordedBy} = (select current_setting('app.current_actor_id', true))`,
     }),
   ]
 ).enableRLS();

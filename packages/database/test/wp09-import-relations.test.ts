@@ -92,13 +92,20 @@ test('WP-09 binds replay sets, prior-paid evidence, seats, exit notices and toke
         ...paid,
         source_paid_through: '2041-01-01',
       });
-      // Each list of the ordered set commits with its own row.
+      // Each list of the ordered set commits with its own row and that row's seat.
+      const secondRowId = uid();
       await insertRecord(tx, 'membership_import_rows', {
         ...paid,
-        id: uid(),
+        id: secondRowId,
         list_id: second.id,
         email_alias_key: digest('second identity'),
         source_paid_through: '2041-01-01',
+      });
+      await insertRecord(tx, 'sponsor_contract_year_seats', {
+        ...seat,
+        id: uid(),
+        slot: 3,
+        import_row_id: secondRowId,
       });
       await rejected(
         tx,
@@ -193,18 +200,11 @@ test('WP-09 binds replay sets, prior-paid evidence, seats, exit notices and toke
       assert.deepEqual(kept, { slot: 2, year_current_limit: 500 });
     });
 
-    const awaySeatId = uid();
-    let awayRowId = '';
-    await asPrincipal(db, staffOf(b), async tx => {
-      const { rows } = await insertCompleteList(tx, away, 1);
-      awayRowId = rows[0].id;
-      await insertRecord(tx, 'sponsor_contract_year_seats', {
-        ...away.sponsor_contract_year_seats,
-        id: awaySeatId,
-        import_row_id: awayRowId,
-        slot: 1,
-      });
-    });
+    const { rows, seats } = await asPrincipal(db, staffOf(b), tx =>
+      insertCompleteList(tx, away, [1])
+    );
+    const awayRowId = rows[0].id;
+    const awaySeatId = seats[0].id;
     await asPrincipal(db, adminOf(b), async tx => {
       const newNotice = {
         ...away.membership_notice_obligations,
@@ -235,6 +235,6 @@ async function proveLimitChanges(tx: Tx, yearId: string) {
     set current_limit = ${limit} where id = ${yearId} returning current_limit`;
   await rejected(tx, sp => change(sp, 1), '23514', 'sponsor_contract_year_seats_slot_ck');
   const [before] = await tx`select current_limit from sponsor_contract_years where id = ${yearId}`;
-  assert.equal(before.current_limit, 2);
+  assert.equal(before.current_limit, 10);
   assert.deepEqual([...(await change(tx, 500))], [{ current_limit: 500 }]);
 }

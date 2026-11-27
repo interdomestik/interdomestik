@@ -28,23 +28,19 @@ test('WP-09 list decisions need a delegated decider for the entity, never the su
       assert.equal(foreign.length, 0);
       // An admin without a delegation does not even see the list.
       assert.equal((await decide(tx, list.id, a.user, listDigest)).length, 0);
-      // Nobody delegates to themselves.
-      await rejected(
+    });
+    // Delegations are issued by the owner in this dormant PR. Nobody delegates to themselves.
+    await db.begin(tx =>
+      rejected(
         tx,
         sp =>
-          insertRecord(sp, 'membership_import_assignments', {
-            ...delegation(a),
-            staff_user_id: a.user,
-          }),
+          insert(sp, 'membership_import_assignments', { ...delegation(a), staff_user_id: a.user }),
         '23514',
         'membership_import_assignments_separation_ck'
-      );
-      // The submitter receives a delegation for this exact list target.
-      await insertRecord(tx, 'membership_import_assignments', {
-        ...delegation(a),
-        staff_user_id: a.staff,
-      });
-    });
+      )
+    );
+    // The submitter receives a delegation for this exact list target.
+    await insert(db, 'membership_import_assignments', { ...delegation(a), staff_user_id: a.staff });
     // The delegated decider, on a complete list, naming a third user in decided_by: refused.
     await asPrincipal(db, deciderOf(a), async tx => {
       await rejected(tx, sp => decide(sp, list.id, third, listDigest), '42501');
@@ -62,12 +58,10 @@ test('WP-09 list decisions need a delegated decider for the entity, never the su
       country_code: 'XK',
       updated_at: START,
     });
-    await asPrincipal(db, adminOf(a), tx =>
-      insertRecord(tx, 'membership_import_assignments', {
-        ...delegation(a, otherEntity),
-        staff_user_id: third,
-      })
-    );
+    await insert(db, 'membership_import_assignments', {
+      ...delegation(a, otherEntity),
+      staff_user_id: third,
+    });
     await asPrincipal(db, { ...adminOf(a), actor: third }, async tx => {
       assert.equal((await decide(tx, list.id, third, listDigest)).length, 0);
     });

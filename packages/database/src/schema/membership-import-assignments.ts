@@ -80,6 +80,8 @@ export const membershipImportAssignments = pgTable(
       'membership_import_assignments_evidence_ck',
       sql`${table.evidenceRef} ~ '^[a-z][a-z0-9_]{0,31}:([0-9a-f]{64}|[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$'`
     ),
+    // Issuing and revoking assignments stays closed: no INSERT or UPDATE policy exists until the
+    // writer PR brings the entity-administration authority (its own design, review and R-37).
     pgPolicy('membership_import_assignments_select', {
       for: 'select',
       using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
@@ -89,29 +91,6 @@ export const membershipImportAssignments = pgTable(
           or ((select current_setting('app.current_actor_role', true)) = 'staff'
             and ${table.capacity} = 'import'
             and ${table.staffUserId} = (select current_setting('app.current_actor_id', true))))`,
-    }),
-    pgPolicy('membership_import_assignments_insert', {
-      for: 'insert',
-      withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and ${table.approvedBy} = (select current_setting('app.current_actor_id', true))
-        and ${table.revokedAt} is null`,
-    }),
-    pgPolicy('membership_import_assignments_revoke', {
-      for: 'update',
-      using: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and ${table.revokedAt} is null`,
-      withCheck: sql`${table.tenantId} = (select current_setting('app.current_access_tenant_id', true))
-        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'
-        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'
-        and ${table.revokedAt} is not null
-        and ${table.revokedBy} = (select current_setting('app.current_actor_id', true))`,
     }),
   ]
 ).enableRLS();

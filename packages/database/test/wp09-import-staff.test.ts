@@ -14,7 +14,7 @@ import {
 } from './wp09-import.fixture';
 
 test('WP-09 staff access follows an active named assignment before import rows and seats are visible', async t => {
-  await withWp09Fixture(t, async ({ db, a, home, away }) => {
+  await withWp09Fixture(t, async ({ db, a, home }) => {
     const staff = staffOf(a);
     const readable = tables.slice(0, 5);
     for (const actor of [a.staff, a.user]) {
@@ -98,31 +98,30 @@ test('WP-09 staff access follows an active named assignment before import rows a
         '42501'
       );
     });
+    // Revocation is closed to the runtime role in this dormant PR; the owner revokes.
+    const id = home.membership_import_assignments.id;
     await asPrincipal(db, adminOf(a), async tx => {
-      const id = home.membership_import_assignments.id;
-      const foreign = await tx`update membership_import_assignments
-        set revoked_at = now(), revoked_by = ${a.user}
-        where id = ${away.membership_import_assignments.id} returning id`;
-      assert.equal(foreign.length, 0);
-      await rejected(
-        tx,
-        sp => sp`update membership_import_assignments
-        set revoked_at = now(), revoked_by = ${a.staff} where id = ${id}`,
-        '42501'
-      );
       const revoked = await tx`update membership_import_assignments
         set revoked_at = now(), revoked_by = ${a.user} where id = ${id} returning id`;
-      assert.deepEqual([...revoked], [{ id }]);
-      const reset = await tx`update membership_import_assignments
-        set revoked_at = null, revoked_by = null where id = ${id} returning id`;
-      assert.equal(reset.length, 0);
+      assert.equal(revoked.length, 0);
     });
+    await db`update membership_import_assignments
+      set revoked_at = now(), revoked_by = ${a.user} where id = ${id}`;
+    await db.begin(tx =>
+      rejected(
+        tx,
+        sp => sp`update membership_import_assignments
+          set staff_user_id = ${a.decider} where id = ${id}`,
+        '23514',
+        'membership_import_assignments_update_scope'
+      )
+    );
     await asPrincipal(db, staff, async tx => {
       for (const table of readable.slice(1)) {
         assert.equal((await visibleIds(tx, table)).length, 0, table);
       }
       // A revoked submitter can submit nothing further.
-      await rejected(tx, sp => insertCompleteList(sp, home, 1), '42501');
+      await rejected(tx, sp => insertCompleteList(sp, home, [3]), '42501');
     });
     // An admin without a decision delegation sees no list, row or seat.
     await asPrincipal(db, adminOf(a), async tx => {

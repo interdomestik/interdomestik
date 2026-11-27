@@ -123,7 +123,10 @@ export async function insertRecord(tx: Tx, table: Table, row: Row): Promise<void
 async function insertRecords(db: postgres.Sql, scope: Scope, rows: Records) {
   const asWriter = (table: Table) =>
     asPrincipal(db, writerOf(scope, table), tx => insertRecord(tx, table, rows[table]));
-  await asWriter('membership_import_assignments');
+  // Assignment administration and exit recording stay closed to the runtime role in this
+  // dormant PR, so the owner seeds those rows.
+  await insert(db, 'membership_import_assignments', rows.membership_import_assignments);
+  await insert(db, 'membership_import_assignments', delegation(scope));
   await asWriter('sponsor_contract_years');
   // A list commits together with all of its rows, and its seats are reserved at that commit.
   await asPrincipal(db, staffOf(scope), async tx => {
@@ -131,12 +134,9 @@ async function insertRecords(db: postgres.Sql, scope: Scope, rows: Records) {
     await insertRecord(tx, 'membership_import_rows', rows.membership_import_rows);
     await insertRecord(tx, 'sponsor_contract_year_seats', rows.sponsor_contract_year_seats);
   });
-  await asWriter('sponsor_exit_events');
+  await insert(db, 'sponsor_exit_events', rows.sponsor_exit_events);
   await asWriter('membership_notice_obligations');
   await asWriter('membership_opt_out_tokens');
-  await asPrincipal(db, adminOf(scope), tx =>
-    insertRecord(tx, 'membership_import_assignments', delegation(scope))
-  );
 }
 
 async function seedDecider(db: postgres.Sql, scope: Scope) {

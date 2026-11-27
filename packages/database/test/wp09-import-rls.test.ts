@@ -8,6 +8,7 @@ import {
   adminOf,
   asPrincipal,
   deciderOf,
+  delegation,
   digest,
   insertRecord,
   staffOf,
@@ -149,10 +150,6 @@ test('WP-09 policies and update triggers hold even under table-wide DML grants',
       to ${runtimeRole}`);
     const admitted: Partial<Record<Table, [Record<string, unknown>, string]>> = {
       membership_import_lists: [{ row_count: 2 }, 'membership_import_lists_update_scope'],
-      membership_import_assignments: [
-        { evidence_ref: 'assignment:' + 'a'.repeat(64) },
-        'membership_import_assignments_update_scope',
-      ],
       sponsor_contract_years: [{ signed_ceiling: 499 }, 'sponsor_contract_years_update_scope'],
     };
     for (const table of tables) {
@@ -172,5 +169,46 @@ test('WP-09 policies and update triggers hold even under table-wide DML grants',
         );
       });
     }
+  });
+});
+
+test('WP-09 assignment administration and exit recording stay closed, even with table grants', async t => {
+  await withWp09Fixture(t, async ({ db, a, home }) => {
+    const closed = ['membership_import_assignments', 'sponsor_exit_events'] as const;
+    await db.unsafe(`grant select, insert, update, delete on table
+      ${closed.map(table => 'public.' + table).join(', ')} to ${runtimeRole}`);
+    const assignment = home.membership_import_assignments;
+    await asPrincipal(db, adminOf(a), async tx => {
+      // Issue an import assignment, issue a decision delegation, record an exit: all refused.
+      await rejected(
+        tx,
+        sp => insertRecord(sp, 'membership_import_assignments', { ...assignment, id: uid() }),
+        '42501'
+      );
+      await rejected(
+        tx,
+        sp => insertRecord(sp, 'membership_import_assignments', delegation(a)),
+        '42501'
+      );
+      await rejected(
+        tx,
+        sp =>
+          insertRecord(sp, 'sponsor_exit_events', {
+            ...home.sponsor_exit_events,
+            id: uid(),
+            operation_id: uid(),
+          }),
+        '42501'
+      );
+      // Revocation and any exit change affect nothing.
+      const revoked = await tx`update membership_import_assignments
+        set revoked_at = now(), revoked_by = ${a.user} where id = ${assignment.id} returning id`;
+      assert.equal(revoked.length, 0);
+      assert.equal((await tx`update sponsor_exit_events set id = id`).count, 0);
+      assert.equal((await tx`delete from membership_import_assignments`).count, 0);
+    });
+    const [kept] = await db`select revoked_at from membership_import_assignments
+      where id = ${assignment.id}`;
+    assert.equal(kept.revoked_at, null);
   });
 });

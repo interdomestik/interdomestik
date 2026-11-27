@@ -59,7 +59,7 @@ export function records(scope: Scope): Records {
       fee_minor: 100000,
       currency: 'EUR',
       signed_ceiling: 500,
-      current_limit: 2,
+      current_limit: 10,
       signed_evidence_ref: ref('agreement'),
       verified_by: scope.user,
       verified_at: START,

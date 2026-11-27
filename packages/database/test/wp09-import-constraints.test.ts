@@ -1,6 +1,6 @@
 import test from 'node:test';
 
-import { END, rejected, uid, type Row } from './sponsor-test-fixture';
+import { END, rejected, uid, type Row, type Tx } from './sponsor-test-fixture';
 import { freshList } from './wp09-import-actions.fixture';
 import {
   asPrincipal,
@@ -199,7 +199,7 @@ test('WP-09 rejects invalid scopes, proof, raw personal data and replay claims',
         '23505',
         'membership_import_rows_position_uq',
       ],
-      ['sponsor_contract_year_seats', { slot: 3 }, '23514', 'sponsor_contract_year_seats_slot_ck'],
+      ['sponsor_contract_year_seats', { slot: 11 }, '23514', 'sponsor_contract_year_seats_slot_ck'],
       ['sponsor_contract_year_seats', { slot: 1 }, '23505', 'sponsor_contract_year_seats_row_uq'],
       ['sponsor_exit_events', {}, '23505', 'sponsor_exit_events_operation_uq'],
       [
@@ -262,8 +262,13 @@ test('WP-09 rejects invalid scopes, proof, raw personal data and replay claims',
         'membership_opt_out_tokens_notice_fk',
       ],
     ];
+    // Assignment administration and exit recording are closed to the runtime role, so the
+    // owner writes those cases; every other case runs as the table's writer.
+    const closed = new Set<Table>(['membership_import_assignments', 'sponsor_exit_events']);
     for (const [table, patch, code, name] of cases) {
-      await asPrincipal(db, writerOf(a, table), tx =>
+      const run = (work: (tx: Tx) => Promise<void>) =>
+        closed.has(table) ? db.begin(work) : asPrincipal(db, writerOf(a, table), work);
+      await run(tx =>
         rejected(
           tx,
           async sp => {
@@ -280,20 +285,5 @@ test('WP-09 rejects invalid scopes, proof, raw personal data and replay claims',
         )
       );
     }
-    // Only a fulfilled row carries a period reference, so the owner writes this case.
-    await db.begin(tx =>
-      rejected(
-        tx,
-        sp =>
-          insertRecord(sp, 'membership_import_rows', {
-            ...home.membership_import_rows,
-            id: uid(),
-            fulfillment_state: 'fulfilled',
-            period_origin_ref: 'period of Jane Doe',
-          }),
-        '23514',
-        'membership_import_rows_fulfillment_ck'
-      )
-    );
   });
 });

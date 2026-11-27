@@ -352,11 +352,6 @@
       "migration": "0102_wp07_membership_sales"
     },
     {
-      "key": "function [\"public\",\"membership_import_list_complete_guard()\"]",
-      "value": "2760ed7fffd1ebe3e5ed5a03a2cd1997",
-      "migration": "0114_wp09_import_assignment_capacity"
-    },
-    {
       "key": "function [\"public\",\"membership_individual_sale_guard_fn()\"]",
       "value": "5f4f551a12be11642dfc88431dac2162",
       "migration": "0102_wp07_membership_sales"

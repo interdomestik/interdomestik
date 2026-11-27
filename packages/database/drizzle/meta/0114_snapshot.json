@@ -1,5 +1,5 @@
 {
-  "id": "8530e77b-bc18-45cd-a7d7-1413a096b7cc",
+  "id": "a756d291-16f7-4002-98c6-344536c49371",
   "prevId": "e1126061-3a85-4aa0-9521-027cab740d41",
   "version": "7",
   "dialect": "postgresql",
@@ -22833,25 +22833,6 @@
             "public"
           ],
           "using": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and ((select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n          or ((select current_setting('app.current_actor_role', true)) = 'staff'\n            and \"membership_import_assignments\".\"capacity\" = 'import'\n            and \"membership_import_assignments\".\"staff_user_id\" = (select current_setting('app.current_actor_id', true))))"
-        },
-        "membership_import_assignments_insert": {
-          "name": "membership_import_assignments_insert",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "public"
-          ],
-          "withCheck": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_assignments\".\"approved_by\" = (select current_setting('app.current_actor_id', true))\n        and \"membership_import_assignments\".\"revoked_at\" is null"
-        },
-        "membership_import_assignments_revoke": {
-          "name": "membership_import_assignments_revoke",
-          "as": "PERMISSIVE",
-          "for": "UPDATE",
-          "to": [
-            "public"
-          ],
-          "using": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_assignments\".\"revoked_at\" is null",
-          "withCheck": "\"membership_import_assignments\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"membership_import_assignments\".\"revoked_at\" is not null\n        and \"membership_import_assignments\".\"revoked_by\" = (select current_setting('app.current_actor_id', true))"
         }
       },
       "checkConstraints": {
@@ -23990,15 +23971,6 @@
             "public"
           ],
           "using": "\"sponsor_exit_events\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'"
-        },
-        "sponsor_exit_events_record": {
-          "name": "sponsor_exit_events_record",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "public"
-          ],
-          "withCheck": "\"sponsor_exit_events\".\"tenant_id\" = (select current_setting('app.current_access_tenant_id', true))\n        and (select current_setting('app.current_access_tenant_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_id', true)) ~ '[^[:space:]]'\n        and (select current_setting('app.current_actor_role', true)) = 'tenant_admin'\n        and \"sponsor_exit_events\".\"recorded_by\" = (select current_setting('app.current_actor_id', true))"
         }
       },
       "checkConstraints": {
