@@ -50,7 +50,8 @@ export async function withInboundJournal114(work: RegisterProof): Promise<void> 
 
 function storedReservation(admin: postgres.Sql, claimId: string, attemptedId: string | null) {
   return admin`select c."userId", to_jsonb(p) as enrollment,
-      exists (select 1 from claim_documents where id = ${attemptedId}) as attempted
+      exists (select 1 from claim_documents where id = ${attemptedId}) as attempted,
+      (select count(*)::int from claim_documents where claim_id = c.id and tenant_id = ${foreignTenant}) as foreign_count
     from claim c join claim_inbound_pilot_cases p on p.tenant_id = c.tenant_id and p.claim_id = c.id
     where c.id = ${claimId}`;
 }
@@ -60,6 +61,7 @@ async function proveWrongHome(context: Connection, claimId: string, refusal: { c
   const foreign = await insertClaim(admin, { tenant: foreignTenant });
   const before = await storedReservation(admin, claimId, null);
   assert.equal(before[0]?.userId, ownerA);
+  assert.equal(before[0]?.foreign_count, 0);
   assert.ok(before[0]?.enrollment.enrolled_at && before[0].enrollment.paused === false);
   const proveRoleRefusal = async (role: 'staff' | 'member') => {
     const attempt = { ...documentInput(foreign), claim_id: claimId };
