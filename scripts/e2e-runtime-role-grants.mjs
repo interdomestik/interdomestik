@@ -5,6 +5,8 @@
 const verificationGrants = new Map([
   ['public.exchange_rate_verifications', 'SELECT, INSERT'],
   ['public.exchange_rate_verification_limits', 'SELECT'],
+  ['public.exchange_rate_check_windows', 'SELECT'],
+  ['public.exchange_rate_check_events', 'SELECT, INSERT'],
 ]);
 
 /**

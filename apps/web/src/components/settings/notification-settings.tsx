@@ -16,6 +16,10 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState, useTransition } from 'react';
 import { toast } from 'sonner';
 import { syncPushSubscription } from '@/lib/pwa/push-subscription';
+import {
+  NotificationSettingsLoading,
+  NotificationSettingsUnavailable,
+} from './notification-settings-states';
 
 import {
   getNotificationPreferences,
@@ -38,29 +42,53 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 
 export function NotificationSettings({ initialPreferences }: NotificationSettingsProps) {
   const t = useTranslations('settings');
+  const tCommon = useTranslations('common');
   const [isPending, startTransition] = useTransition();
-  const [isLoading, setIsLoading] = useState(!initialPreferences);
+  // Fail closed: the form opens only on a stored read. A failed or rejected read never shows
+  // defaults, because saving them would overwrite what the member chose before.
+  const [readState, setReadState] = useState<'loading' | 'failed' | 'ready'>(
+    initialPreferences ? 'ready' : 'loading'
+  );
+  const [readAttempt, setReadAttempt] = useState(0);
   const [preferences, setPreferences] = useState<NotificationPreferences>({
     ...DEFAULT_PREFERENCES,
     ...initialPreferences,
   });
 
-  // Load preferences on mount if not provided as props
+  // Load preferences on mount (and on each retry) if not provided as props
   useEffect(() => {
     if (initialPreferences) return;
+    let active = true;
 
     const loadPreferences = async () => {
-      const result = await getNotificationPreferences();
-      if (result.success && result.preferences) {
-        setPreferences(result.preferences);
-      } else if (result.error) {
+      try {
+        const result = await getNotificationPreferences();
+        if (!active) return;
+        if (result.success && result.preferences) {
+          setPreferences(result.preferences);
+          setReadState('ready');
+          return;
+        }
+        setReadState('failed');
+        toast.error(t('notifications.loadError'));
+      } catch (error) {
+        if (!active) return;
+        console.error('Failed to load notification preferences:', error);
+        setReadState('failed');
         toast.error(t('notifications.loadError'));
       }
-      setIsLoading(false);
     };
 
     loadPreferences();
-  }, [t, initialPreferences]);
+    return () => {
+      active = false;
+    };
+  }, [t, initialPreferences, readAttempt]);
+
+  const retryRead = () => {
+    setReadState('loading');
+    setReadAttempt(attempt => attempt + 1);
+  };
 
   const handleToggle = (key: keyof NotificationPreferences) => {
     setPreferences(prev => ({
@@ -88,27 +116,24 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
     });
   };
 
-  if (isLoading) {
+  if (readState === 'failed') {
     return (
-      <Card className="border-border/50 bg-card/30 backdrop-blur-md shadow-premium relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-primary/5 pointer-events-none" />
-        <CardHeader>
-          <div className="flex items-center gap-2">
-            <Bell className="h-5 w-5 shrink-0 text-muted-foreground" />
-            <CardTitle className="min-w-0 text-xl font-semibold [overflow-wrap:anywhere]">
-              {t('notifications.title')}
-            </CardTitle>
-          </div>
-          <CardDescription>{t('notifications.description')}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="h-20 bg-muted/20 animate-pulse rounded" />
-            <div className="h-20 bg-muted/20 animate-pulse rounded" />
-            <div className="h-20 bg-muted/20 animate-pulse rounded" />
-          </div>
-        </CardContent>
-      </Card>
+      <NotificationSettingsUnavailable
+        title={t('notifications.title')}
+        description={t('notifications.description')}
+        message={t('notifications.loadError')}
+        retryLabel={tCommon('tryAgain')}
+        onRetry={retryRead}
+      />
+    );
+  }
+
+  if (readState === 'loading') {
+    return (
+      <NotificationSettingsLoading
+        title={t('notifications.title')}
+        description={t('notifications.description')}
+      />
     );
   }
 
@@ -257,7 +282,7 @@ export function NotificationSettings({ initialPreferences }: NotificationSetting
         <div className="flex flex-wrap justify-end gap-2 pt-4">
           <Button
             onClick={handleSave}
-            disabled={isPending}
+            disabled={isPending || readState !== 'ready'}
             className="h-auto min-h-10 max-w-full whitespace-normal shadow-lg hover:shadow-primary/25 transition-all duration-300"
           >
             {isPending ? t('notifications.saving') : t('notifications.save')}

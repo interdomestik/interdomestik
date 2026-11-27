@@ -554,6 +554,9 @@
         "legacy": "legacy",
         "v3": "v3"
       }
+    },
+    "settings_page": {
+      "residence_unavailable": "We could not load your residence country. Load the page again before you change it."
     }
   }
 }

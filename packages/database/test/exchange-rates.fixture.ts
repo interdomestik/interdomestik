@@ -1,35 +1,32 @@
-import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
-import { fileURLToPath } from 'node:url';
 
 import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import type postgres from 'postgres';
 
-import { withDisposableClient } from '../src/disposable-client';
 import type { TenantTransaction } from '../src/index';
 import { mintIngressCapability, type IngressCapability } from '../src/ingress-capability';
 import * as schema from '../src/schema';
 import { mintTenantAuthority, type TenantAuthority } from '../src/tenant-authority';
+import {
+  requirePaymentPortTestRunner,
+  withPaymentPortDatabase,
+  type RateMigrationPhase,
+} from './exchange-rates-database.fixture';
 import { restricted, runtimeRole } from './exchange-rates-restricted.fixture';
 import { runSequentially } from './in-order';
-import { migrateJournalBeforeNotificationDeliveries } from './journal-prefix.support';
-import { withScratchDatabase } from './pg16/scratch-database';
-import {
-  applyRlsTestConnectionEnv,
-  quoteIdentifier,
-  quoteSqlLiteral,
-  TEST_DB_ROLE,
-} from './rls-test-connection';
-import { grantRlsTestRole } from './rls-test-grants';
-import { provisionRestrictedRole } from './s8-claim-restricted-rls.fixture';
+import { quoteIdentifier, TEST_DB_ROLE } from './rls-test-connection';
 
+export {
+  migratePaymentPortPhase,
+  tables,
+  withPaymentPortDatabase,
+  type PaymentPortDatabase,
+} from './exchange-rates-database.fixture';
 export { signal, waitForLockWaiters, withLockedBook } from './exchange-rates-lock.fixture';
 export { restricted, runtimeRole } from './exchange-rates-restricted.fixture';
 export { withPaymentPortReleaseClient } from './exchange-rates-release-client.fixture';
 export { TEST_DB_ROLE as paymentPortTestGuardRole } from './rls-test-connection';
-export const tables = ['exchange_rate_books', 'exchange_rates'] as const;
-const migrations = fileURLToPath(new URL('../drizzle', import.meta.url));
 export const rateInput = (effectiveOn: string) => ({
   base: 'EUR',
   quote: 'MKD',
@@ -84,55 +81,46 @@ export type ExchangeRateFixture = Awaited<ReturnType<typeof createFixture>> & {
   authority: TenantAuthority;
 };
 
-async function withRuntimeLogin(
-  admin: postgres.Sql,
-  run: (username: string, password: string) => Promise<void>
+export async function provisionRateWindow(
+  client: postgres.Sql,
+  tenantId: string,
+  bookId: string,
+  effectiveOn: string,
+  opensAt?: string,
+  deadlineAt?: string
 ) {
-  const role = quoteIdentifier(runtimeRole);
-  const [existing] = await admin`select 1 from pg_roles where rolname = ${runtimeRole}`;
-  if (!existing) await admin.unsafe(`create role ${role} nologin nosuperuser nobypassrls`);
-
-  try {
-    const username = `wp07_rates_${randomUUID().replaceAll('-', '')}`;
-    const login = quoteIdentifier(username);
-    const password = randomUUID();
-    await admin.begin(async tx => {
-      await tx.unsafe(`create role ${login} login noinherit password ${quoteSqlLiteral(password)}`);
-      await tx.unsafe(`grant ${role} to ${login}`);
-    });
-    try {
-      await run(username, password);
-    } finally {
-      await admin.unsafe(`drop role ${login}`);
-    }
-  } finally {
-    if (!existing) {
-      await admin.unsafe(`drop owned by ${role}`);
-      await admin.unsafe(`drop role ${role}`);
-    }
-  }
+  const role = quoteIdentifier(TEST_DB_ROLE);
+  await client.unsafe(`grant select on exchange_rate_books to ${role}`);
+  await client.unsafe(`grant update (id) on exchange_rate_books to ${role}`);
+  await client.unsafe(`grant select, insert on exchange_rate_check_windows to ${role}`);
+  const id = randomUUID();
+  await restricted(
+    client,
+    tenantId,
+    tx => tx`
+    insert into exchange_rate_check_windows (id, tenant_id, book_id, effective_on, opens_at, deadline_at, approval_ref)
+    values (${id}, ${tenantId}, ${bookId}, ${effectiveOn}::date,
+      coalesce(${opensAt ?? null}::timestamptz, ${effectiveOn}::date::timestamp at time zone 'Europe/Skopje'),
+      coalesce(${deadlineAt ?? null}::timestamptz, (${effectiveOn}::date + 1)::timestamp at time zone 'Europe/Skopje'),
+      'finance/wp07-test')`,
+    TEST_DB_ROLE
+  );
+  return id;
 }
-
-export type PaymentPortDatabase = { admin: postgres.Sql; peer: postgres.Sql };
 export type PaymentPortTestTransaction = postgres.TransactionSql;
 
 export { scratchServerMissing } from './pg16/scratch-database';
 
-function requireTestRunner() {
-  if (!process.env.NODE_TEST_CONTEXT && process.env.VITEST !== 'true') {
-    throw new Error('Payment port fixtures require a test runner');
-  }
-}
-
 export function mintPaymentPortTestIngress<T extends 'cron' | 'inngest'>(
-  kind: T
+  kind: T,
+  issuedAt?: number
 ): IngressCapability<T> {
-  requireTestRunner();
-  return mintIngressCapability(kind);
+  requirePaymentPortTestRunner();
+  return mintIngressCapability(kind, issuedAt);
 }
 
 export function paymentPortTestScheduledAuthority(tenantId: string): TenantAuthority {
-  requireTestRunner();
+  requirePaymentPortTestRunner();
   return mintTenantAuthority({ tenantId, purpose: 'scheduled-work' });
 }
 
@@ -143,87 +131,13 @@ export function paymentPortTestSession(
   branchId: string | null = null,
   accessTenantId = tenantId
 ): TenantAuthority {
-  requireTestRunner();
+  requirePaymentPortTestRunner();
   return mintTenantAuthority({
     tenantId,
     accessTenantId,
     purpose: 'session',
     principal: { userId, role, branchId, agentId: null },
   });
-}
-
-export async function withPaymentPortDatabase(
-  run: (fixture: PaymentPortDatabase) => Promise<void>
-) {
-  requireTestRunner();
-  // The scratch database owns all append-only rows and disappears after the proof.
-  await withScratchDatabase('wp07_payment', admin =>
-    withRuntimeLogin(admin, async (username, password) => {
-      // The billing migrations grant privileges to the runtime role when it exists.
-      await migrateJournalBeforeNotificationDeliveries(admin, migrations);
-      const [{ name }] = await admin<{ name: string }[]>`select current_database() as name`;
-      const url = new URL(process.env.DATABASE_URL!);
-      url.pathname = `/${name}`;
-
-      const adminDb = drizzle(admin);
-      await provisionRestrictedRole(adminDb);
-      await grantRlsTestRole(adminDb, tables);
-      // The append-only tests need permission on the rate tables and their CASCADE dependents.
-      await admin.unsafe(
-        `grant update, delete, truncate on exchange_rate_books, exchange_rates to ${quoteIdentifier(TEST_DB_ROLE)}`
-      );
-      await admin.unsafe(
-        `grant truncate on public.membership_sales, public.membership_ledger_entries, public.exchange_rate_verifications to ${quoteIdentifier(TEST_DB_ROLE)}`
-      );
-      const [acl] = await admin`select
-        has_table_privilege(${runtimeRole}, 'exchange_rate_books', 'INSERT') as can_insert_book,
-        has_table_privilege(${runtimeRole}, 'exchange_rates', 'INSERT') as can_insert_rate,
-        has_column_privilege(${runtimeRole}, 'exchange_rate_books', 'id', 'UPDATE') as can_lock_book,
-        has_table_privilege(${runtimeRole}, 'exchange_rate_books', 'UPDATE,DELETE,TRUNCATE')
-          or has_table_privilege(${runtimeRole}, 'exchange_rates', 'UPDATE,DELETE,TRUNCATE') as can_mutate`;
-      assert.deepEqual(acl, {
-        can_insert_book: true,
-        can_insert_rate: true,
-        can_lock_book: true,
-        can_mutate: false,
-      });
-
-      const env = applyRlsTestConnectionEnv(url.toString());
-      const rlsUrl = new URL(url);
-      rlsUrl.username = username;
-      rlsUrl.password = password;
-      process.env.DATABASE_URL_RLS = rlsUrl.toString();
-      process.env.DB_RLS_ROLE = runtimeRole;
-      const previousEnv = {
-        DATABASE_URL: process.env.DATABASE_URL,
-        DB_MAX_CONNECTIONS: process.env.DB_MAX_CONNECTIONS,
-      };
-      Object.assign(process.env, { DATABASE_URL: url.toString(), DB_MAX_CONNECTIONS: '4' });
-      const pools = globalThis as typeof globalThis & {
-        queryClientAdmin?: postgres.Sql;
-        queryClientRls?: postgres.Sql;
-      };
-      try {
-        await withDisposableClient(
-          url.toString(),
-          { applicationName: 'wp07_rates_peer', max: 2 },
-          peer => run({ admin, peer })
-        );
-      } finally {
-        env.restore();
-        for (const [key, value] of Object.entries(previousEnv)) {
-          if (value === undefined) delete process.env[key];
-          else process.env[key] = value;
-        }
-        // This isolated test file points the app's pools at the scratch database.
-        await Promise.all(
-          [...new Set([pools.queryClientAdmin, pools.queryClientRls])].map(pool =>
-            pool?.end({ timeout: 1 })
-          )
-        );
-      }
-    })
-  );
 }
 
 export function withPaymentPortTestTransaction<T>(
@@ -233,7 +147,7 @@ export function withPaymentPortTestTransaction<T>(
   work: (tx: TenantTransaction) => Promise<T>,
   isolationLevel: 'read committed' | 'repeatable read'
 ) {
-  requireTestRunner();
+  requirePaymentPortTestRunner();
   return drizzle(client, { schema }).transaction(
     async tx => {
       await tx.execute(sql.raw(`set local role ${quoteIdentifier(runtimeRole)}`));
@@ -247,7 +161,10 @@ export function withPaymentPortTestTransaction<T>(
   );
 }
 
-export function withExchangeRateFixture(run: (fixture: ExchangeRateFixture) => Promise<void>) {
+export function withExchangeRateFixture(
+  run: (fixture: ExchangeRateFixture) => Promise<void>,
+  phase?: RateMigrationPhase
+) {
   return withPaymentPortDatabase(async ({ admin, peer }) => {
     const fixture = await createFixture(admin);
     const { tenantId, actor } = fixture;
@@ -258,7 +175,7 @@ export function withExchangeRateFixture(run: (fixture: ExchangeRateFixture) => P
       userId = actor.id
     ) => paymentPortTestSession(home, userId, roleName, null, access);
     await run({ ...fixture, peer, session, authority: session() });
-  });
+  }, phase);
 }
 
 async function createFixture(admin: postgres.Sql) {

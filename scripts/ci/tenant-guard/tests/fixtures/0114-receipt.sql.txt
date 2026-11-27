@@ -1,0 +1,273 @@
+CREATE POLICY claim_inbound_decisions_principal ON public.claim_inbound_upload_decisions
+  AS RESTRICTIVE FOR SELECT TO public USING (
+    public.claim_inbound_decision_visible(tenant_id, claim_id, decided_by, uploader_id,
+      recipient_id, document_id, bucket, file_path)
+  );
+--> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_decision_deadline(p_decided_at timestamptz) RETURNS timestamptz
+LANGUAGE sql IMMUTABLE STRICT SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+  SELECT p_decided_at + interval '15 minutes';
+$$;
+--> statement-breakpoint
+CREATE POLICY claim_inbound_object_verifications_read ON public.claim_inbound_object_verifications
+  FOR SELECT TO public USING (EXISTS (
+    SELECT 1 FROM public.claim_inbound_upload_decisions AS d
+    WHERE d.id = claim_inbound_object_verifications.decision_id
+  ));
+--> statement-breakpoint
+-- The receipt owner remains subject to decision RLS. Only the fixed verifier command can use it.
+GRANT USAGE, CREATE ON SCHEMA public TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
+GRANT SELECT (id, tenant_id, claim_id, uploader_id, recipient_id,
+  bucket, file_path, decided_at, file_size, sha256)
+  ON public.claim_inbound_upload_decisions TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
+GRANT SELECT (tenant_id, id, access_tenant_id, branch_id, case_lifecycle_state, "staffId", "userId"),
+  UPDATE (id) ON public.claim TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
+CREATE POLICY claim_inbound_receipt_writer_no_case_update ON public.claim
+  AS RESTRICTIVE FOR UPDATE TO interdomestik_wp12_receipt_writer USING (true) WITH CHECK (false);
+--> statement-breakpoint
+GRANT SELECT (tenant_id, claim_id, enrolled_at, paused) ON public.claim_inbound_pilot_cases
+  TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
+GRANT INSERT (decision_id) ON public.claim_inbound_object_verifications TO interdomestik_wp12_receipt_writer;
+--> statement-breakpoint
+CREATE POLICY claim_inbound_object_verifications_record ON public.claim_inbound_object_verifications
+  FOR INSERT TO interdomestik_wp12_receipt_writer WITH CHECK (EXISTS (
+    SELECT 1 FROM public.claim_inbound_upload_decisions AS d
+    WHERE d.id = claim_inbound_object_verifications.decision_id
+  ));
+--> statement-breakpoint
+CREATE FUNCTION public.record_claim_inbound_object_verification(
+  p_decision_id uuid, p_bucket text, p_path text, p_file_size integer, p_sha256 text
+) RETURNS boolean
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp SET row_security = on AS $$
+DECLARE
+  tenant text := nullif(current_setting('app.current_tenant_id', true), '');
+  actor text := nullif(current_setting('app.current_actor_id', true), '');
+  approved_case text;
+  approved_at timestamptz;
+  case_branch text;
+BEGIN
+  IF tenant IS NULL OR tenant IS DISTINCT FROM current_setting('app.current_access_tenant_id', true)
+    OR actor IS NULL OR current_setting('app.current_actor_role', true) IS DISTINCT FROM 'staff' THEN
+    RETURN false;
+  END IF;
+
+  SELECT d.claim_id, d.decided_at, c.branch_id INTO approved_case, approved_at, case_branch
+  FROM public.claim_inbound_upload_decisions AS d
+  JOIN public.claim AS c ON c.tenant_id = d.tenant_id AND c.id = d.claim_id
+  WHERE d.tenant_id = tenant AND d.id = p_decision_id AND d.uploader_id = actor
+    AND d.bucket = p_bucket AND d.file_path = p_path AND d.file_size = p_file_size AND d.sha256 = p_sha256
+    AND coalesce(c.access_tenant_id, c.tenant_id) = tenant AND c.case_lifecycle_state <> 'draft'
+    AND c."staffId" = actor AND c."userId" = d.recipient_id
+  FOR SHARE OF c;
+
+  IF NOT FOUND OR public.claim_inbound_lock_staff_branch(tenant, case_branch) IS NOT TRUE
+    OR NOT EXISTS (
+      SELECT 1 FROM public.claim_inbound_pilot_cases AS e
+      WHERE e.tenant_id = tenant AND e.claim_id = approved_case AND e.enrolled_at IS NOT NULL AND NOT e.paused
+    )
+    OR public.claim_inbound_decision_deadline(approved_at) <= clock_timestamp() THEN
+    RETURN false;
+  END IF;
+  INSERT INTO public.claim_inbound_object_verifications (decision_id) VALUES (p_decision_id)
+  ON CONFLICT DO NOTHING;
+  RETURN true;
+END;
+$$;
+--> statement-breakpoint
+REVOKE ALL ON public.claim_inbound_object_verifications FROM PUBLIC;
+--> statement-breakpoint
+DO $$
+DECLARE
+  api_role name;
+BEGIN
+  FOR api_role IN SELECT rolname FROM pg_catalog.pg_roles WHERE rolname IN ('anon', 'authenticated', 'service_role') LOOP
+    EXECUTE format('REVOKE ALL ON public.claim_inbound_object_verifications FROM %I', api_role);
+  END LOOP;
+END;
+$$;
+--> statement-breakpoint
+GRANT USAGE ON SCHEMA public TO interdomestik_wp12_verifier;
+--> statement-breakpoint
+-- The direct pool uses the database admin login. Require an explicit SET ROLE for attestation.
+DO $$
+BEGIN
+  IF pg_catalog.current_setting('server_version_num')::integer >= 160000 THEN
+    EXECUTE 'GRANT interdomestik_wp12_verifier TO CURRENT_USER WITH INHERIT FALSE, SET TRUE';
+  ELSIF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = CURRENT_USER AND rolsuper) THEN
+    -- PG15 stops inheritance at the intermediate NOINHERIT role but permits SET ROLE through it.
+    IF NOT EXISTS (SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'interdomestik_wp12_verifier_pg15') THEN
+      CREATE ROLE interdomestik_wp12_verifier_pg15 NOLOGIN NOINHERIT NOBYPASSRLS;
+      GRANT interdomestik_wp12_verifier TO interdomestik_wp12_verifier_pg15;
+    END IF;
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_catalog.pg_roles WHERE rolname = 'interdomestik_wp12_verifier_pg15'
+        AND NOT (rolcanlogin OR rolinherit OR rolbypassrls OR rolsuper OR rolcreaterole OR rolcreatedb OR rolreplication)
+        AND pg_catalog.pg_has_role(oid, 'interdomestik_wp12_verifier', 'MEMBER')
+    ) THEN
+      RAISE EXCEPTION 'WP-12.1 PG15 verifier membership role has unexpected authority';
+    END IF;
+    GRANT interdomestik_wp12_verifier_pg15 TO CURRENT_USER;
+  END IF;
+END;
+$$;
+--> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_enrollment_guard_fn() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  IF TG_OP = 'UPDATE' AND (NEW.tenant_id, NEW.claim_id) IS DISTINCT FROM (OLD.tenant_id, OLD.claim_id) THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot enrollment cannot move cases';
+  END IF;
+
+  -- Force old repeatable-read snapshots to conflict on the parent even if they see no enrollment.
+  UPDATE public.claim AS c SET "userId" = c."userId"
+  WHERE c.id = CASE WHEN TG_OP = 'DELETE' THEN OLD.claim_id ELSE NEW.claim_id END
+    AND c.tenant_id = CASE WHEN TG_OP = 'DELETE' THEN OLD.tenant_id ELSE NEW.tenant_id END;
+  IF NOT FOUND THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot enrollment requires a writable case';
+  END IF;
+  RETURN NULL;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER claim_inbound_enrollment_guard AFTER INSERT OR UPDATE OR DELETE ON public.claim_inbound_pilot_cases
+  FOR EACH ROW EXECUTE FUNCTION public.claim_inbound_enrollment_guard_fn();
+--> statement-breakpoint
+-- This is a trigger-only check; no runtime role can call it to discover enrollment.
+CREATE FUNCTION public.claim_inbound_document_home_guard_fn() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  home_tenant text;
+  ordinary_document constant boolean := NEW.id NOT LIKE 'wp12-inbound-%'
+    AND NOT public.claim_inbound_reserved_path(NEW.file_path);
+  actor text := nullif(current_setting('app.current_actor_id', true), '');
+  actor_role text := nullif(current_setting('app.current_actor_role', true), '');
+  access_tenant text := current_setting('app.current_access_tenant_id', true);
+BEGIN
+  -- Ordinary keys must take the lock even when the snapshot predates the enrollment row.
+  -- The reserved publication path obtains its own update lock before it can succeed.
+  IF ordinary_document THEN
+    PERFORM c.id FROM public.claim AS c WHERE c.id = NEW.claim_id FOR SHARE;
+  END IF;
+  SELECT e.tenant_id INTO home_tenant
+    FROM public.claim_inbound_pilot_cases AS e WHERE e.claim_id = NEW.claim_id AND e.enrolled_at IS NOT NULL;
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  IF home_tenant IS DISTINCT FROM NEW.tenant_id THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot case document refused';
+  END IF;
+  IF ordinary_document AND (
+    actor_role IS NULL OR actor_role NOT IN ('member', 'user', 'agent')
+    OR NEW.uploaded_by IS DISTINCT FROM actor
+    OR home_tenant IS DISTINCT FROM access_tenant
+    OR NOT EXISTS (
+      SELECT 1 FROM public.claim AS c
+      WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id
+        AND coalesce(c.access_tenant_id, c.tenant_id) = access_tenant AND c."userId" = actor
+    )
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot case document refused';
+  END IF;
+  RETURN NULL;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER claim_inbound_document_home_guard AFTER INSERT ON public.claim_documents
+  FOR EACH ROW EXECUTE FUNCTION public.claim_inbound_document_home_guard_fn();
+--> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_decision_guard_fn() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  recipient text;
+  uploader text;
+BEGIN
+  SELECT c."userId", c."staffId" INTO recipient, uploader FROM public.claim AS c
+    WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id
+      AND c.case_lifecycle_state <> 'draft'
+      AND (NEW.role_basis <> 'staff' OR public.claim_inbound_staff_branch_allowed(c.tenant_id, c.branch_id))
+    FOR UPDATE OF c;
+  IF NOT FOUND OR recipient IS NULL OR uploader IS NULL
+    OR NOT EXISTS (
+      SELECT 1 FROM public.claim_inbound_pilot_cases AS e
+      WHERE e.tenant_id = NEW.tenant_id AND e.claim_id = NEW.claim_id
+        AND e.enrolled_at IS NOT NULL AND NOT e.paused
+    )
+    OR NEW.recipient_id IS DISTINCT FROM recipient OR NEW.uploader_id IS DISTINCT FROM uploader
+    OR NEW.decided_by IS DISTINCT FROM current_setting('app.current_actor_id', true)
+    OR NEW.role_basis IS DISTINCT FROM current_setting('app.current_actor_role', true)
+    OR NEW.tenant_id COLLATE "C" !~ '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+    OR NEW.claim_id COLLATE "C" !~ '^[A-Za-z0-9][A-Za-z0-9._-]*$'
+    OR strpos(NEW.tenant_id, '..') > 0 OR strpos(NEW.claim_id, '..') > 0
+    OR (NEW.role_basis = 'staff' AND NEW.decided_by IS DISTINCT FROM uploader) THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot visibility decision refused';
+  END IF;
+  NEW.decided_at := clock_timestamp();
+  RETURN NEW;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER claim_inbound_decision_guard BEFORE INSERT ON public.claim_inbound_upload_decisions
+  FOR EACH ROW EXECUTE FUNCTION public.claim_inbound_decision_guard_fn();
+--> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_document_publication_guard_fn() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  approval public.claim_inbound_upload_decisions%ROWTYPE;
+  recipient text;
+  uploader text;
+  actor text := nullif(current_setting('app.current_actor_id', true), '');
+  actor_role text := nullif(current_setting('app.current_actor_role', true), '');
+BEGIN
+  -- The home guard handles ordinary documents without requiring the writer to read enrollment.
+  IF NEW.id NOT LIKE 'wp12-inbound-%' AND NOT public.claim_inbound_reserved_path(NEW.file_path) THEN
+    RETURN NULL;
+  END IF;
+
+  SELECT c."userId", c."staffId" INTO recipient, uploader FROM public.claim AS c
+    WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id
+      AND c.case_lifecycle_state <> 'draft'
+      AND public.claim_inbound_staff_branch_allowed(c.tenant_id, c.branch_id)
+    FOR UPDATE OF c;
+  IF NOT FOUND OR actor_role IS DISTINCT FROM 'staff' OR actor IS DISTINCT FROM uploader THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document is outside assigned staff scope';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.claim_inbound_pilot_cases AS e
+    WHERE e.tenant_id = NEW.tenant_id AND e.claim_id = NEW.claim_id
+      AND e.enrolled_at IS NOT NULL AND NOT e.paused
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document requires active enrollment';
+  END IF;
+
+  SELECT d.* INTO approval FROM public.claim_inbound_upload_decisions AS d
+    WHERE d.document_id = NEW.id AND d.bucket = NEW.bucket AND d.file_path = NEW.file_path
+      AND d.tenant_id = NEW.tenant_id AND d.claim_id = NEW.claim_id;
+  IF NOT FOUND OR actor IS DISTINCT FROM approval.uploader_id
+    OR NEW.uploaded_by IS DISTINCT FROM approval.uploader_id OR NEW.category IS DISTINCT FROM 'evidence'
+    OR coalesce(NEW.access_tenant_id, NEW.tenant_id) IS DISTINCT FROM NEW.tenant_id
+    OR NEW.name IS DISTINCT FROM approval.file_name OR NEW.file_type IS DISTINCT FROM approval.mime_type
+    OR NEW.file_size IS DISTINCT FROM approval.file_size THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document refused';
+  END IF;
+
+  IF public.claim_inbound_decision_deadline(approval.decided_at) <= clock_timestamp()
+    OR recipient IS DISTINCT FROM approval.recipient_id
+    OR uploader IS DISTINCT FROM approval.uploader_id THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document refused';
+  END IF;
+
+  IF NOT EXISTS (
+    SELECT 1 FROM public.claim_inbound_object_verifications AS v WHERE v.decision_id = approval.id
+  ) THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1211', MESSAGE = 'Reserved pilot document requires verified storage';
+  END IF;
+
+  -- Advance the row version so a waiting owner update with an old snapshot must conflict.
+  UPDATE public.claim SET "userId" = recipient WHERE tenant_id = NEW.tenant_id AND id = NEW.claim_id;
+  RETURN NULL;
+END;
+$$;
+--> statement-breakpoint

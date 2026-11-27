@@ -200,7 +200,7 @@ export function registerScopeCases(fixture: () => Promise<SaleFixture>) {
     expect(await f.sale({ ...visibleDecoy, channel: 'bank_transfer' }, f.agent)).toEqual(
       refused('not_found')
     );
-    await f.addRate('60.00', '2000-01-10');
+    await f.checkedCorrection({ id: input.rateId, effective_on: f.today }, '60.00');
     expect(success(await f.sale(input, f.otherAgent)).sale).toEqual(first);
     expect(await f.counts(input.operationKey)).toEqual(completed);
   });

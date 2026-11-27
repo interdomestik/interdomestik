@@ -23,7 +23,8 @@
     "commands": {
       "security_guard": "pnpm security:guard",
       "i18n_production_gate": "pnpm i18n:check && pnpm i18n:purity:check",
-      "pr_verify_hosts": "pnpm pr:verify:hosts"
+      "pr_verify_hosts": "pnpm pr:verify:hosts",
+      "wp07_legacy_upgrade": "pnpm exec node scripts/ci/run-wp07-legacy-upgrade.mjs"
     }
   },
   "no_touch_zones": [
