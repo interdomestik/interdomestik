@@ -96,6 +96,7 @@ export async function provePublishedScope(connections: Connection) {
       restricted(runtime, tx => insertDocument(tx, document)),
       reserved
     );
+    assert.equal(await attest(admin, document), true);
     await assert.rejects(
       restricted(runtime, tx => publish(tx, { ...document, uploaded_by: ownerB })),
       reserved
@@ -108,7 +109,6 @@ export async function provePublishedScope(connections: Connection) {
       restricted(runtime, tx => publish(tx, { ...document, category: 'legal' })),
       reserved
     );
-    assert.equal(await attest(admin, document), true);
     await restricted(runtime, tx => publish(tx, document, explicitHome));
     const frozen = [ownerB, explicitHome ? null : homeTenant, 'legal'] as const;
     await assert.rejects(
