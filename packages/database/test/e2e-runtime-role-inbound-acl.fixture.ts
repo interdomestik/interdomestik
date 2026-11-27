@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { runSequentially } from './in-order';
 import type { ScratchClient } from './pg16/scratch-database';
 
 export const compareNames = (left: string, right: string) =>
@@ -39,7 +40,7 @@ export async function assertInboundFunctionGrants(admin: ScratchClient, role: st
     'claim_received_set_count_fn()': [],
     ...Object.fromEntries(actorGuards.map(signature => [signature, []])),
   };
-  for (const [signature, grantees] of Object.entries(expectedGrants)) {
+  await runSequentially(Object.entries(expectedGrants), async ([signature, grantees]) => {
     const qualified = `public.${signature}`;
     const [posture] = await admin<
       { runtime_execute: boolean; grantees: string[]; owner: string; security_definer: boolean }[]
@@ -58,5 +59,5 @@ export async function assertInboundFunctionGrants(admin: ScratchClient, role: st
       assert.equal(posture.owner, guard, signature);
       assert.equal(posture.security_definer, true, signature);
     }
-  }
+  });
 }
