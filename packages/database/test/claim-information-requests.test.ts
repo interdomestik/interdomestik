@@ -155,7 +155,11 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
       storagePath: `pii/tenants/tenant_ks/claims/${claimId}/${documentId}.pdf`,
       tenantId: 'tenant_ks',
       userId: member,
-      authority: mintTestTenantAuthority('tenant_ks', { userId: member, role: 'member' }),
+      authority: mintTestTenantAuthority('tenant_ks', {
+        userId: member,
+        role: 'member',
+        purpose: 'session',
+      }),
     });
     assert.equal(
       (
