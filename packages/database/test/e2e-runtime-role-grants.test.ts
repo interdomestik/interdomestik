@@ -143,6 +143,10 @@ async function assertInboundFunctionGrants(admin: ScratchClient, role: string) {
   const appRole = 'interdomestik_runtime_rls';
   const [app] = await admin`select 1 from pg_roles where rolname = ${appRole}`;
   const runtimeRoles = app ? [role, appRole] : [role];
+  const actorGuards = [
+    'claim_inbound_admin_decision_scope_guard_fn()',
+    'claim_received_document_actor_scope_guard_fn()',
+  ];
   const expectedGrants: Record<string, readonly string[]> = {
     'claim_inbound_reserved_path(text)': [...runtimeRoles, guard],
     'claim_inbound_staff_branch_allowed(text,text)': runtimeRoles,
@@ -165,11 +169,15 @@ async function assertInboundFunctionGrants(admin: ScratchClient, role: string) {
     'claim_received_seal_guard_fn()': [],
     'claim_received_document_guard_fn()': [],
     'claim_received_set_count_fn()': [],
+    ...Object.fromEntries(actorGuards.map(signature => [signature, []])),
   };
   for (const [signature, grantees] of Object.entries(expectedGrants)) {
     const qualified = `public.${signature}`;
-    const [posture] = await admin<{ runtime_execute: boolean; grantees: string[] }[]>`select
+    const [posture] = await admin<
+      { runtime_execute: boolean; grantees: string[]; owner: string; security_definer: boolean }[]
+    >`select
       has_function_privilege(${role}, p.oid, 'EXECUTE') as runtime_execute,
+      p.proowner::regrole::text as owner, p.prosecdef as security_definer,
       array(select coalesce(r.rolname::text, 'PUBLIC') || case when acl.is_grantable then '*' else '' end
         from aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) as acl
         left join pg_roles as r on r.oid = acl.grantee
@@ -178,6 +186,10 @@ async function assertInboundFunctionGrants(admin: ScratchClient, role: string) {
     posture.grantees.sort(compareNames);
     assert.deepEqual(posture.grantees, [...grantees].sort(compareNames), signature);
     assert.equal(posture.runtime_execute, grantees.includes(role), signature);
+    if (actorGuards.includes(signature)) {
+      assert.equal(posture.owner, guard, signature);
+      assert.equal(posture.security_definer, true, signature);
+    }
   }
 }
 
@@ -235,11 +247,12 @@ test('late E2E role provisioning preserves the WP-12.1 function and column grant
         const qualified = `public.${table}`;
         const [posture] = await admin`select relrowsecurity as rls, relforcerowsecurity as forced,
           has_table_privilege(${role}, ${qualified}, 'SELECT') as readable,
-          has_table_privilege(${role}, ${qualified}, 'INSERT,UPDATE,DELETE,TRUNCATE') as table_write
+          has_table_privilege(${role}, ${qualified}, 'INSERT,UPDATE,DELETE,TRUNCATE') as table_write,
+          has_any_column_privilege(${role}, ${qualified}, 'UPDATE') as column_update
           from pg_class where oid = ${qualified}::regclass`;
         assert.deepEqual(
           { ...posture },
-          { rls: true, forced: true, readable: true, table_write: false },
+          { rls: true, forced: true, readable: true, table_write: false, column_update: false },
           table
         );
         const columns = await admin<{ name: string }[]>`select attname as name from pg_attribute
@@ -252,13 +265,26 @@ test('late E2E role provisioning preserves the WP-12.1 function and column grant
         );
       }
       const [guard] = await admin`select rolcanlogin as login, rolbypassrls as bypass,
+        pg_has_role(${role}::name, oid, 'MEMBER') as runtime_member,
+        pg_has_role(${role}::name, oid, 'USAGE') as runtime_inherits,
+        pg_has_role(${role}::name, oid, case when current_setting('server_version_num')::integer >= 160000
+          then 'SET' else 'MEMBER' end) as runtime_can_set,
         has_function_privilege(${role}, 'public.claim_inbound_owner_guard_fn()', 'EXECUTE') as owner_lookup,
         has_function_privilege(${role}, 'public.claim_inbound_document_home_guard_fn()', 'EXECUTE') as home_lookup,
         has_function_privilege(${role}, 'public.record_claim_inbound_object_verification(uuid,text,text,integer,text)', 'EXECUTE') as attest
         from pg_roles where rolname = 'interdomestik_wp12_guard'`;
       assert.deepEqual(
         { ...guard },
-        { login: false, bypass: false, owner_lookup: false, home_lookup: false, attest: false }
+        {
+          login: false,
+          bypass: false,
+          runtime_member: false,
+          runtime_inherits: false,
+          runtime_can_set: false,
+          owner_lookup: false,
+          home_lookup: false,
+          attest: false,
+        }
       );
       const [verifier] = await admin`select rolcanlogin as login, rolbypassrls as bypass,
         rolsuper as superuser, pg_has_role(${role}::name, oid, 'MEMBER') as runtime_member,

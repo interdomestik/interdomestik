@@ -5,8 +5,10 @@ import {
   proveDirectDecisionBranch,
   proveDirectPublicationBranch,
   proveReceivedActorScope,
+  proveReceivedWriteLockOrders,
 } from './claim-correspondence-inbound-branch.fixture';
 import {
+  proveAdminDecisionActorLock,
   proveDecisionDenials,
   proveDecisionExpiry,
   proveDecisionGrants,
@@ -52,6 +54,9 @@ test('WP-12.1 restricted runtime publication and receipt proofs', async t => {
       await t.test('production decision command works with restricted insert columns', () =>
         proveDecisionGrants(connections)
       );
+      await t.test('new administrator approvals retain the live actor lock through commit', () =>
+        proveAdminDecisionActorLock(connections)
+      );
       await t.test('direct decision writes enforce branch', () =>
         proveDirectDecisionBranch(connections)
       );
@@ -61,6 +66,9 @@ test('WP-12.1 restricted runtime publication and receipt proofs', async t => {
       await t.test(
         'the received-link command enforces the assigned staff scope for new links and replays',
         () => proveReceivedActorScope(connections)
+      );
+      await t.test('first received links retain the live staff lock through commit', () =>
+        proveReceivedWriteLockOrders(connections)
       );
       await t.test(
         'the authority wrapper refuses expired unpublished decisions and allows only assigned staff to replay a committed decision',

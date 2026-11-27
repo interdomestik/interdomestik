@@ -182,7 +182,7 @@ GRANT SELECT (tenant_id, claim_id, document_id, bucket, file_path)
 --> statement-breakpoint
 GRANT SELECT (tenant_id, id, role, branch_id) ON public."user" TO interdomestik_wp12_guard;
 --> statement-breakpoint
--- A row lock requires UPDATE privilege on one column. The guard only locks staff rows.
+-- A row lock requires UPDATE privilege on one column. The guard holds actor row locks for writes.
 GRANT UPDATE ("updatedAt") ON public."user" TO interdomestik_wp12_guard;
 --> statement-breakpoint
 GRANT SELECT (tenant_id, claim_id, id, bucket, file_path)
@@ -577,6 +577,27 @@ $$;
 CREATE TRIGGER claim_inbound_staff_scope_guard AFTER INSERT ON public.claim_inbound_upload_decisions
   FOR EACH ROW WHEN (NEW.role_basis = 'staff') EXECUTE FUNCTION public.claim_inbound_staff_scope_guard_fn();
 --> statement-breakpoint
+CREATE FUNCTION public.claim_inbound_admin_decision_scope_guard_fn() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+BEGIN
+  IF NEW.tenant_id IS NOT DISTINCT FROM current_setting('app.current_tenant_id', true)
+    AND NEW.tenant_id IS NOT DISTINCT FROM current_setting('app.current_access_tenant_id', true)
+    AND NEW.decided_by IS NOT DISTINCT FROM current_setting('app.current_actor_id', true)
+    AND current_setting('app.current_actor_role', true) = 'tenant_admin' THEN
+    PERFORM administrator.id FROM public."user" AS administrator
+      WHERE administrator.tenant_id = NEW.tenant_id AND administrator.id = NEW.decided_by
+        AND administrator.role = 'tenant_admin'
+      FOR SHARE OF administrator;
+    IF FOUND THEN RETURN NULL; END IF;
+  END IF;
+  RAISE EXCEPTION USING ERRCODE = 'P1210', MESSAGE = 'Pilot visibility decision refused';
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER claim_inbound_admin_decision_scope_guard AFTER INSERT ON public.claim_inbound_upload_decisions
+  FOR EACH ROW WHEN (NEW.role_basis = 'tenant_admin')
+  EXECUTE FUNCTION public.claim_inbound_admin_decision_scope_guard_fn();
+--> statement-breakpoint
 CREATE TRIGGER claim_inbound_staff_scope_guard AFTER INSERT ON public.claim_documents
   FOR EACH ROW WHEN (NEW.id LIKE 'wp12-inbound-%' OR public.claim_inbound_reserved_path(NEW.file_path))
   EXECUTE FUNCTION public.claim_inbound_staff_scope_guard_fn();
@@ -680,6 +701,24 @@ $$;
 CREATE TRIGGER claim_received_document_guard BEFORE INSERT ON public.claim_correspondence_received_documents
   FOR EACH ROW EXECUTE FUNCTION public.claim_received_document_guard_fn();
 --> statement-breakpoint
+CREATE FUNCTION public.claim_received_document_actor_scope_guard_fn() RETURNS trigger
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = pg_catalog, pg_temp AS $$
+DECLARE
+  case_branch text;
+BEGIN
+  -- The preceding guard holds the case lock before the actor row is locked.
+  SELECT c.branch_id INTO case_branch FROM public.claim AS c
+    WHERE c.tenant_id = NEW.tenant_id AND c.id = NEW.claim_id;
+  IF NOT FOUND OR public.claim_inbound_lock_staff_branch(NEW.tenant_id, case_branch) IS NOT TRUE THEN
+    RAISE EXCEPTION USING ERRCODE = 'P1203', MESSAGE = 'An inbound link requires approved case evidence';
+  END IF;
+  RETURN NULL;
+END;
+$$;
+--> statement-breakpoint
+CREATE TRIGGER claim_received_document_actor_scope_guard AFTER INSERT ON public.claim_correspondence_received_documents
+  FOR EACH ROW EXECUTE FUNCTION public.claim_received_document_actor_scope_guard_fn();
+--> statement-breakpoint
 CREATE FUNCTION public.claim_received_set_count_fn() RETURNS trigger
 LANGUAGE plpgsql SECURITY INVOKER SET search_path = pg_catalog, pg_temp AS $$
 BEGIN
@@ -732,6 +771,7 @@ BEGIN
     'public.record_claim_inbound_object_verification(uuid, text, text, integer, text)',
     'public.claim_inbound_enrollment_guard_fn()',
     'public.claim_inbound_document_home_guard_fn()',
+    'public.claim_inbound_admin_decision_scope_guard_fn()',
     'public.claim_inbound_decision_guard_fn()',
     'public.claim_inbound_document_publication_guard_fn()',
     'public.claim_inbound_staff_scope_guard_fn()',
@@ -739,6 +779,7 @@ BEGIN
     'public.claim_inbound_polymorphic_guard_fn()',
     'public.claim_inbound_owner_guard_fn()',
     'public.claim_received_seal_guard_fn()',
+    'public.claim_received_document_actor_scope_guard_fn()',
     'public.claim_received_document_guard_fn()',
     'public.claim_received_set_count_fn()'
   ]::regprocedure[] LOOP
@@ -818,8 +859,10 @@ BEGIN
 
   ALTER FUNCTION public.claim_inbound_lock_staff_branch(text, text) OWNER TO interdomestik_wp12_guard;
   ALTER FUNCTION public.claim_inbound_document_home_guard_fn() OWNER TO interdomestik_wp12_guard;
+  ALTER FUNCTION public.claim_inbound_admin_decision_scope_guard_fn() OWNER TO interdomestik_wp12_guard;
   ALTER FUNCTION public.claim_inbound_staff_scope_guard_fn() OWNER TO interdomestik_wp12_guard;
   ALTER FUNCTION public.claim_inbound_owner_guard_fn() OWNER TO interdomestik_wp12_guard;
+  ALTER FUNCTION public.claim_received_document_actor_scope_guard_fn() OWNER TO interdomestik_wp12_guard;
   ALTER FUNCTION public.record_claim_inbound_object_verification(uuid, text, text, integer, text)
     OWNER TO interdomestik_wp12_receipt_writer;
 
