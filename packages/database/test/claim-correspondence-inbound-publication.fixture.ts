@@ -32,7 +32,24 @@ const wrongCase = { code: 'P1210' };
 const frozenScope = { code: 'P1212' };
 const frozenOwner = { code: 'P1213' };
 
-async function proveHiddenEnrollmentRefusal({ admin, runtime, role }: Connection) {
+async function withPeerEnrollmentHidden<T>(
+  { admin, role }: Connection,
+  claimId: string,
+  run: () => Promise<T>
+) {
+  await admin.unsafe(`create policy wp12_test_hidden_enrollment on claim_inbound_pilot_cases
+    as restrictive for select to ${quoteIdentifier(role)}
+    using (claim_id <> ${quoteSqlLiteral(claimId)}
+      or current_setting('application_name') <> 'wp12_register_peer')`);
+  try {
+    return await run();
+  } finally {
+    await admin`drop policy wp12_test_hidden_enrollment on claim_inbound_pilot_cases`;
+  }
+}
+
+async function proveHiddenEnrollmentRefusal(connections: Connection) {
+  const { admin, peer } = connections;
   const claim = await enrolledCase(admin);
   const attempt = documentInput(claim);
   const readState = () => admin`select c."userId" as owner, to_jsonb(p) as enrollment,
@@ -44,14 +61,9 @@ async function proveHiddenEnrollmentRefusal({ admin, runtime, role }: Connection
   assert.equal(before[0]?.owner, ownerA);
   assert.ok(before[0]?.enrollment.enrolled_at && before[0].enrollment.paused === false);
   assert.equal(before[0]?.persisted, false);
-
-  // Hide only the runtime role's SELECT view of this row. The enrolled case remains FK-valid.
-  await admin.unsafe(`create policy wp12_test_hidden_enrollment on claim_inbound_pilot_cases
-    as restrictive for select to ${quoteIdentifier(role)}
-    using (claim_id <> ${quoteSqlLiteral(claim.id)})`);
-  try {
-    await assert.rejects(
-      restricted(runtime, async tx => {
+  await withPeerEnrollmentHidden(connections, claim.id, () =>
+    assert.rejects(
+      restricted(peer, async tx => {
         await setActor(tx);
         assert.equal((await tx`select id from claim where id = ${claim.id}`).length, 1);
         assert.equal(
@@ -62,11 +74,9 @@ async function proveHiddenEnrollmentRefusal({ admin, runtime, role }: Connection
         await insertDocument(tx, attempt);
       }),
       wrongCase
-    );
-    assert.deepEqual(await readState(), before);
-  } finally {
-    await admin`drop policy wp12_test_hidden_enrollment on claim_inbound_pilot_cases`;
-  }
+    )
+  );
+  assert.deepEqual(await readState(), before);
 }
 
 export async function provePublishedScope(connections: Connection) {
@@ -192,12 +202,14 @@ export async function provePublishedScope(connections: Connection) {
   assert.deepEqual({ ...grants }, { enroll: false, edit: false, date: false, lookup: false });
 }
 
-type EnrollmentRace = 'first enrollment' | 'staged activation' | 'hidden staged activation';
+type EnrollmentRace = 'first enrollment' | 'hidden staged activation' | 'hidden joined activation';
 
-async function proveEnrollmentRace({ admin, runtime, peer }: Connection, race: EnrollmentRace) {
+async function proveEnrollmentRace(connections: Connection, race: EnrollmentRace) {
+  const { admin, runtime, peer } = connections;
   const claim = await insertClaim(admin);
-  const hidden = race === 'hidden staged activation';
-  const writer = hidden ? { ...claim, tenant: foreignTenant, user: foreignActor } : claim;
+  const legacyForeign = race === 'hidden staged activation';
+  const hideJoinedEnrollment = race === 'hidden joined activation';
+  const writer = legacyForeign ? { ...claim, tenant: foreignTenant, user: foreignActor } : claim;
   const staleDocument = documentInput(writer);
   const freshDocument = documentInput(claim);
   const readEnrollment = async (sql: postgres.Sql | postgres.TransactionSql) => [
@@ -223,35 +235,40 @@ async function proveEnrollmentRace({ admin, runtime, peer }: Connection, race: E
   }
   // The privileged reader establishes that the legacy foreign writer's empty view hides a real row.
   assert.deepEqual(await readEnrollment(admin), initial);
-  const staleView = hidden ? [] : initial;
+  const staleView = legacyForeign || hideJoinedEnrollment ? [] : initial;
 
-  const active = await restricted(
-    peer,
-    async tx => {
-      await setActor(tx, writer.user);
-      assert.deepEqual(await readEnrollment(tx), staleView);
-      await enroll(admin, claim);
+  const activatePastSnapshot = () =>
+    restricted(
+      peer,
+      async tx => {
+        await setActor(tx, writer.user);
+        assert.deepEqual(await readEnrollment(tx), staleView);
+        await enroll(admin, claim);
 
-      const freshView = await restricted(runtime, fresh => readEnrollment(fresh));
-      const [enrollment] = freshView;
-      assert.match(enrollment?.enrolled_at ?? '', /^\d+(?:\.\d+)?$/u);
-      assert.deepEqual(freshView, [
-        {
-          tenant_id: claim.tenant,
-          enrolled_at: enrollment.enrolled_at,
-          paused: false,
-          legacy_credential_disposition: 'none-issued',
-        },
-      ]);
-      assert.deepEqual(await readEnrollment(tx), staleView);
-      await assert.rejects(
-        tx.savepoint(savepoint => insertDocument(savepoint, staleDocument)),
-        { code: '40001' }
-      );
-      return freshView;
-    },
-    { home: writer.tenant, isolation: 'repeatable read' }
-  );
+        const freshView = await restricted(runtime, fresh => readEnrollment(fresh));
+        const [enrollment] = freshView;
+        assert.match(enrollment?.enrolled_at ?? '', /^\d+(?:\.\d+)?$/u);
+        assert.deepEqual(freshView, [
+          {
+            tenant_id: claim.tenant,
+            enrolled_at: enrollment.enrolled_at,
+            paused: false,
+            legacy_credential_disposition: 'none-issued',
+          },
+        ]);
+        assert.deepEqual(await readEnrollment(tx), staleView);
+        await assert.rejects(
+          tx.savepoint(savepoint => insertDocument(savepoint, staleDocument)),
+          { code: '40001' }
+        );
+        return freshView;
+      },
+      { home: writer.tenant, isolation: 'repeatable read' }
+    );
+
+  const active = hideJoinedEnrollment
+    ? await withPeerEnrollmentHidden(connections, claim.id, activatePastSnapshot)
+    : await activatePastSnapshot();
 
   const assertUnchanged = async () => {
     const [result] = await admin`select c."userId" as owner, exists (
@@ -262,7 +279,6 @@ async function proveEnrollmentRace({ admin, runtime, peer }: Connection, race: E
     assert.deepEqual(await readEnrollment(admin), active);
   };
   await assertUnchanged();
-
   await assert.rejects(
     restricted(runtime, async tx => {
       await setActor(tx);
@@ -278,7 +294,7 @@ export async function proveEnrollmentSnapshot(connections: Connection) {
     await proveEnrollmentRace(legacy, 'first enrollment');
     await proveEnrollmentRace(legacy, 'hidden staged activation');
   });
-  await runSequentially(['first enrollment', 'staged activation'] as const, race =>
+  await runSequentially(['first enrollment', 'hidden joined activation'] as const, race =>
     proveEnrollmentRace(connections, race)
   );
 }
