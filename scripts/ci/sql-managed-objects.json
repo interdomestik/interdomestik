@@ -37,6 +37,11 @@
       "migration": "0110_storage_path_canonical"
     },
     {
+      "key": "exclusion [\"public\",\"sponsor_contract_years\",\"sponsor_contract_years_agreement_window_excl\"]",
+      "value": "EXCLUDE USING gist (tenant_id WITH =, agreement_key WITH =, daterange(starts_on, ends_before, '[)'::text) WITH &&)",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "exclusion [\"public\",\"sponsor_terms\",\"sponsor_terms_no_overlap\"]",
       "value": "EXCLUDE USING gist (sponsor_id WITH =, tstzrange(term_start, term_end, '[)'::text) WITH &&)",
       "migration": "0099_acq3b_sponsor_seats"
@@ -97,6 +102,46 @@
       "migration": "0108_wp13a_legal_acceptance"
     },
     {
+      "key": "fk [\"public\",\"membership_import_lists\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"sponsor_id\",\"term_id\"],\"public\",\"sponsor_contract_years\",[\"tenant_id\",\"legal_entity_id\",\"id\",\"sponsor_id\",\"term_id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_import_rows\",[\"tenant_id\",\"legal_entity_id\",\"list_id\",\"contract_year_id\"],\"public\",\"membership_import_lists\",[\"tenant_id\",\"legal_entity_id\",\"id\",\"contract_year_id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_import_rows\",[\"tenant_id\",\"legal_entity_id\",\"list_id\",\"origin\"],\"public\",\"membership_import_lists\",[\"tenant_id\",\"legal_entity_id\",\"id\",\"origin\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_notice_obligations\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"exit_event_id\",\"employee_exit_seat_id\"],\"public\",\"sponsor_exit_events\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\",\"employee_seat_id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_notice_obligations\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"exit_event_id\",\"exit_kind\"],\"public\",\"sponsor_exit_events\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\",\"kind\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_notice_obligations\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"seat_id\",\"import_row_id\"],\"public\",\"sponsor_contract_year_seats\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\",\"import_row_id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_notice_obligations\",[\"tenant_id\",\"legal_entity_id\",\"import_row_id\"],\"public\",\"membership_import_rows\",[\"tenant_id\",\"legal_entity_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"membership_opt_out_tokens\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"seat_id\"],\"public\",\"sponsor_contract_year_seats\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "fk [\"public\",\"membership_sales\",[\"tenant_id\",\"plan_version_id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"plan_tier\",\"plan_members_included\"],\"public\",\"membership_plan_versions\",[\"tenant_id\",\"id\",\"plan_id\",\"legal_entity_id\",\"list_price_minor\",\"price_currency\",\"tier\",\"members_included\"]]",
       "value": "delete=no action update=no action match=s",
       "migration": "0102_wp07_membership_sales"
@@ -120,6 +165,26 @@
       "key": "fk [\"public\",\"notification_preview_restrictions\",[\"tenant_id\",\"notification_id\"],\"public\",\"notifications\",[\"tenant_id\",\"id\"]]",
       "value": "delete=cascade update=no action match=s",
       "migration": "0105_wp11_notification_deliveries"
+    },
+    {
+      "key": "fk [\"public\",\"sponsor_contract_year_seats\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"import_row_id\"],\"public\",\"membership_import_rows\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"sponsor_contract_year_seats\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"year_current_limit\"],\"public\",\"sponsor_contract_years\",[\"tenant_id\",\"legal_entity_id\",\"id\",\"current_limit\"]]",
+      "value": "delete=no action update=cascade match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"sponsor_exit_events\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"agreement_key\"],\"public\",\"sponsor_contract_years\",[\"tenant_id\",\"legal_entity_id\",\"id\",\"agreement_key\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "fk [\"public\",\"sponsor_exit_events\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"employee_seat_id\"],\"public\",\"sponsor_contract_year_seats\",[\"tenant_id\",\"legal_entity_id\",\"contract_year_id\",\"id\"]]",
+      "value": "delete=no action update=no action match=s",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "fk [\"public\",\"support_handoff_first_responses\",[\"tenant_id\",\"handoff_id\"],\"public\",\"support_handoffs\",[\"tenant_id\",\"id\"]]",
@@ -287,6 +352,11 @@
       "migration": "0102_wp07_membership_sales"
     },
     {
+      "key": "function [\"public\",\"membership_import_list_complete_guard()\"]",
+      "value": "eadcdcfc7f2a4bb8225032a0734dcafc",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "function [\"public\",\"membership_individual_sale_guard_fn()\"]",
       "value": "5f4f551a12be11642dfc88431dac2162",
       "migration": "0102_wp07_membership_sales"
@@ -375,6 +445,11 @@
       "key": "function [\"public\",\"sponsor_terms_guard_fn()\"]",
       "value": "0df49e20782ee8b487f420972ab1593c",
       "migration": "0099_acq3b_sponsor_seats"
+    },
+    {
+      "key": "function [\"public\",\"wp09_update_scope_guard()\"]",
+      "value": "afa6d1c7a29194db13abd735ba08fcaa",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "index [\"public\",\"agent_settings\",\"idx_agent_settings_tenant_id\"]",
@@ -487,9 +562,29 @@
       "migration": "0008_add_multitenant"
     },
     {
+      "key": "index [\"public\",\"membership_import_rows\",\"membership_import_rows_active_alias_uq\"]",
+      "value": "unique btree (tenant_id, email_alias_key) WHERE ((identity_released_at IS NULL) AND (email_alias_key IS NOT NULL))",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "index [\"public\",\"membership_import_rows\",\"membership_import_rows_active_member_uq\"]",
+      "value": "unique btree (tenant_id, member_user_id) WHERE ((identity_released_at IS NULL) AND (member_user_id IS NOT NULL))",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "index [\"public\",\"membership_import_rows\",\"membership_import_rows_active_stable_uq\"]",
+      "value": "unique btree (tenant_id, stable_identity_namespace, stable_identity_key) WHERE ((identity_released_at IS NULL) AND (stable_identity_key IS NOT NULL))",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "index [\"public\",\"membership_ledger_entries\",\"membership_ledger_entries_charge_uq\"]",
       "value": "unique btree (tenant_id, sale_id) WHERE (kind = 'charge'::text)",
       "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "index [\"public\",\"membership_notice_obligations\",\"membership_notice_obligations_individual_uq\"]",
+      "value": "unique btree (tenant_id, import_row_id) WHERE (purpose = 'individual_notice'::text)",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "index [\"public\",\"membership_plans\",\"idx_membership_plans_tenant_id\"]",
@@ -560,6 +655,11 @@
       "key": "index [\"public\",\"service_usage\",\"idx_service_usage_tenant_id\"]",
       "value": "btree (tenant_id)",
       "migration": "0008_add_multitenant"
+    },
+    {
+      "key": "index [\"public\",\"sponsor_terms\",\"sponsor_terms_wp09_scope_uq\"]",
+      "value": "unique btree (tenant_id, id, sponsor_id, legal_entity_id)",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "index [\"public\",\"subscriptions\",\"idx_subscriptions_tenant_id\"]",
@@ -1647,9 +1747,34 @@
       "migration": "0108_wp13a_legal_acceptance"
     },
     {
+      "key": "rls-force [\"public\",\"membership_import_assignments\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_import_lists\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_import_rows\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "rls-force [\"public\",\"membership_ledger_entries\"]",
       "value": "forced",
       "migration": "0102_wp07_membership_sales"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_notice_obligations\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "rls-force [\"public\",\"membership_opt_out_tokens\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "rls-force [\"public\",\"membership_plan_versions\"]",
@@ -1685,6 +1810,21 @@
       "key": "rls-force [\"public\",\"notification_preview_restrictions\"]",
       "value": "forced",
       "migration": "0105_wp11_notification_deliveries"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_contract_year_seats\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_contract_years\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "rls-force [\"public\",\"sponsor_exit_events\"]",
+      "value": "forced",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "rls-force [\"public\",\"sponsor_handover_cancel_attempts\"]",
@@ -1912,6 +2052,21 @@
       "migration": "0097_member_leads_consent"
     },
     {
+      "key": "trigger [\"public\",\"membership_import_assignments\",\"membership_import_assignments_update_scope\"]",
+      "value": "CREATE TRIGGER membership_import_assignments_update_scope BEFORE UPDATE ON public.membership_import_assignments FOR EACH ROW EXECUTE FUNCTION wp09_update_scope_guard('revoked_at', 'revoked_by')",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_import_lists\",\"membership_import_lists_complete\"]",
+      "value": "CREATE CONSTRAINT TRIGGER membership_import_lists_complete AFTER INSERT ON public.membership_import_lists DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION membership_import_list_complete_guard()",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
+      "key": "trigger [\"public\",\"membership_import_lists\",\"membership_import_lists_update_scope\"]",
+      "value": "CREATE TRIGGER membership_import_lists_update_scope BEFORE UPDATE ON public.membership_import_lists FOR EACH ROW EXECUTE FUNCTION wp09_update_scope_guard('decision', 'decided_by', 'decided_at', 'decided_digest')",
+      "migration": "0114_wp09_import_assignment_capacity"
+    },
+    {
       "key": "trigger [\"public\",\"membership_ledger_entries\",\"membership_ledger_entries_append_only\"]",
       "value": "CREATE TRIGGER membership_ledger_entries_append_only BEFORE DELETE OR UPDATE OR TRUNCATE ON public.membership_ledger_entries FOR EACH STATEMENT EXECUTE FUNCTION membership_port_reject_mutation_fn()",
       "migration": "0102_wp07_membership_sales"
@@ -1975,6 +2130,11 @@
       "key": "trigger [\"public\",\"membership_sales\",\"membership_sales_z_rate_verification_age\"]",
       "value": "CREATE TRIGGER membership_sales_z_rate_verification_age BEFORE INSERT ON public.membership_sales FOR EACH ROW WHEN ((new.kind = 'individual'::text)) EXECUTE FUNCTION membership_sale_rate_verification_age_fn()",
       "migration": "0104_wp07_rate_verification_age"
+    },
+    {
+      "key": "trigger [\"public\",\"sponsor_contract_years\",\"sponsor_contract_years_update_scope\"]",
+      "value": "CREATE TRIGGER sponsor_contract_years_update_scope BEFORE UPDATE ON public.sponsor_contract_years FOR EACH ROW EXECUTE FUNCTION wp09_update_scope_guard('current_limit')",
+      "migration": "0114_wp09_import_assignment_capacity"
     },
     {
       "key": "trigger [\"public\",\"sponsor_handover_cancel_attempts\",\"sponsor_handover_cancel_attempts_guard\"]",
