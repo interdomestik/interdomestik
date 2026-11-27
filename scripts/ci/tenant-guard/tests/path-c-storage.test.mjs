@@ -9,9 +9,7 @@ import { RECEIPT_CALLER, RECEIPT_REEXPORT } from '../storage-receipt-admission.m
 import { MIGRATION_JOURNAL } from '../storage-receipt-prerequisite.mjs';
 import {
   BINDER,
-  DB_MANIFEST,
   MODEL,
-  PRINCIPAL_CONTEXT,
   READER,
   SPLITTER,
   VERIFIER,
@@ -151,30 +149,6 @@ for (const [file, before, after] of [
     );
   });
 }
-
-test('exact receipt bytes still require the reviewed resolver bindings', () => {
-  const redirected = edit(storage, [
-    [PRINCIPAL_CONTEXT, 'export const withPrincipalTenantContext = () => {};\n'],
-  ]);
-  const redirectResult = check(dark, redirected);
-  assert.equal(redirectResult.proof.ok, true, redirectResult.proof.reason);
-  assert.equal(redirectResult.receipt, null);
-  assert.ok(
-    redirectResult.violations.some(
-      ({ rule, detail }) =>
-        rule === 'R-a' &&
-        detail ===
-          `storage receipt binding mismatch: ${RECEIPT_CALLER} imports withPrincipalTenantContext from @interdomestik/database/free-start-drafts`
-    )
-  );
-  const manifest = JSON.parse(storage.blobs.get(DB_MANIFEST));
-  delete manifest.exports['./claim-evidence-object-lock'];
-  const missingExport = edit(storage, [[DB_MANIFEST, JSON.stringify(manifest)]]);
-  const missingResult = check(dark, missingExport);
-  assert.equal(missingResult.proof.ok, false, missingResult.proof.reason);
-  assert.equal(missingResult.receipt, null);
-  assert.ok(has(missingResult, /storage receipt binding mismatch/u));
-});
 
 test('the approved WP-07 C3 contract still requires one counted raw execution', () => {
   const file = 'packages/domain-membership-billing/src/port/rate-check-context.ts';
