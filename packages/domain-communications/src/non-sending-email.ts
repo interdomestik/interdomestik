@@ -1,4 +1,9 @@
 import addressparser from 'nodemailer/lib/addressparser';
+import {
+  allowListRefusal,
+  recipientAllowListActive,
+  recordAllowListRefusal,
+} from './recipient-allow-list';
 
 export type EmailRecipients = string | readonly string[];
 export const suppressedEmailResult = {
@@ -44,7 +49,16 @@ export function selectEmailRecipients(
   const recipients = values
     .flatMap(value => addressparser(value, { flatten: true }))
     .map(mailbox => mailbox.address)
-    .filter(mailbox => mailbox && (catcherAllowed || !isNonSendingEmail(mailbox)));
+    .filter(mailbox => {
+      if (!mailbox) return false;
+      // The staging allow-list applies on top of the reserved-domain rule, which the automated
+      // catcher never lifts where the allow-list is active.
+      const allowList = recipientAllowListActive();
+      if ((allowList || !catcherAllowed) && isNonSendingEmail(mailbox)) return false;
+      const refusal = allowList ? allowListRefusal(mailbox) : null;
+      if (refusal) recordAllowListRefusal(refusal);
+      return !refusal;
+    });
   return recipients.length > 1 ? recipients : (recipients[0] ?? '');
 }
 
