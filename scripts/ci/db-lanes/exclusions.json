@@ -144,6 +144,18 @@
     "removeWhen": "A standalone proof can exercise the database behavior with the disposable PG16 fixture."
   },
   {
+    "file": "apps/web/e2e/gate/claim-correspondence-cutover.spec.ts",
+    "reason": "The MK Playwright activation proof requires WP12_1_M5_CUTOVER=1, seeded actors and real local storage to verify provider credential expiry.",
+    "owner": "Web E2E",
+    "removeWhen": "An inventoried lane runs the same MK provider-expiry proof with real storage."
+  },
+  {
+    "file": "apps/web/e2e/gate/claim-correspondence-inbound.spec.ts",
+    "reason": "The MK Playwright activation proof requires WP12_1_M5_PRECHECK=1, seeded actors, restricted PostgreSQL and real local storage to verify receipt, ownership and rollback.",
+    "owner": "Web E2E",
+    "removeWhen": "An inventoried lane runs the same MK receipt, ownership and rollback proofs with real storage."
+  },
+  {
     "file": "apps/web/e2e/gate/claim-correspondence.spec.ts",
     "reason": "The Playwright gate creates a case with seeded Kosovo staff and member actors and exercises PDF uploads and correspondence in the browser.",
     "owner": "Web E2E",

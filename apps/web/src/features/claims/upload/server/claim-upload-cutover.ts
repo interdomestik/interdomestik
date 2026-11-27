@@ -1,5 +1,5 @@
-import 'server-only';
-
+// No 'server-only' marker: the Node-importable upload cores (and their Playwright specs) load
+// this module, like the other modules those cores import. Every importer is server code.
 import type { TenantAuthority } from '@interdomestik/database/tenant-authority';
 import { readClaimUploadPaused } from '@interdomestik/domain-claims/claims/inbound-upload';
 import { parameterFreeFailure } from '@/actions/staff-claims/register-failure';
