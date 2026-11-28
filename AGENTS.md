@@ -1,22 +1,23 @@
 # AGENTS.md — Interdomestik
 
-Rules for every agent; `CLAUDE.md`, `code_review.md`, guides and skills point here. In `docs/engineering/`: `RULES.md` (reasons; binding only where a rule here names it), `DIRECTION.md`, `REUSE-CATALOG.md` and `RULES-MAPPING.md`, whose `UNREVIEWED` old rules stay in force.
+For all agents. `CLAUDE.md`, `code_review.md`, guides and skills point here. In `docs/engineering/`: `RULES.md` (rationale; binds only as named), `DIRECTION.md`, `REUSE-CATALOG.md` and `RULES-MAPPING.md` (`UNREVIEWED` old rules still bind).
 
 E = enforced by the named check (`*`: not live yet; follow it); E~ = in part. A = advisory: no machine checks it.
 
 ## 1. Work, roles, review
 
-- R-29 Work comes only from the ordered packages of `DIRECTION.md` or the owner's explicit request; ledgers are history. No standing approval unless stated here. No refactor of routing, auth, tenancy, domain boundaries, schema or billing that neither asked for. A.
-- R-01 Claude Code implements and owns integration. Codex reviews independently (`gpt-6.2-sol`, `xhigh`); the lead (definition, routing, merging: `RULES.md`, R-01) may give it a bounded part with disjoint files in its own worktree, which Claude then reviews. No model approves its own work. A change merges only with the other model's verdict on the exact head (skips: R-02) and no open finding; the record names head, model served and tier. The owner releases. E: CHK-01*.
-- A review is read-only: findings first, by severity, with file and line: `blocker`, `hardening` (fix, or defer with a reason, before merge), `optional`, `rejected` (with evidence). A doubt or a blocked reviewer is no approval: for T1–T3 the lead names another; HIGH work waits, goes to the owner or to R-02's stand-in. No paid API as fallback.
-- R-02 Astra (high effort or above; bar, skips: `RULES.md`, R-02) only for: each HIGH round (T4–T6), fixes too, YES on the exact head before push; a concrete unresolved security, gate, concurrency, data-loss or architecture ambiguity. E~: CHK-01*.
-- R-03 Rules live only here and in the passages they name. No active instruction file may require or auto-trigger a retired program, runner or command, state another routing than R-01, or repeat a fact the repository holds. E: CHK-02*, HOOK-05*.
+- R-29 Work only on ordered `DIRECTION.md` packages or explicit owner requests. Ledgers are history. Standing approval only as stated here. Refactor routing, auth, tenancy, domain boundaries, schema or billing only if either asks. A.
+- R-01 Sol (`gpt-6.2-sol`, `ultra`) codes, writes tests that can fail and self-reviews in fresh context until clean. No model approves its own work. Run M5 to `PREPUSH-OK`, get R-02 YES, push. With hosted CI green and zero Sonar/CodeQL findings, the Claude lead reviews and runs M4 on the exact head, merges and records (`RULES.md`, R-01: procedure, merging by the lead). Only `GATE-EVIDENCE` counts for M4. The owner releases. E: CHK-01*.
+- Read-only reviews. Severity first with file:line: `blocker`, `hardening` (fix or justify deferral before merge), `optional`, `rejected` (evidence). Doubt or block bars YES. Stop after three consecutive NOs and refer to the owner. No paid API fallback. A.
+- R-02 Astra (`gpt-6.2-astra`, high+) reviews the exact local head once pre-push, then deltas. HIGH needs Sol design, early Astra approval and R-37 authorization before code, plus focused lead review before push (`RULES.md`, R-02: review bar, skips). E~: CHK-01*.
+- Debate. Outside routine PRs, tests, copy and mechanical fixes, GPT vs Claude only for Astra/lead disagreement on a HIGH PR, a HIGH design with real alternatives, or two consecutive NOs on the same point. Green approves, including R-37 authorization. Unresolved Debates go to the owner with both positions and the lead's recommendation. R-24/R-25 owner operations excluded (`RULES.md`, R-02: Debate). A.
+- R-03 Rules live only here and in named passages. No active instruction file may require or auto-trigger retired programs, runners or commands, state routing other than R-01's or repeat a fact the repository holds. E: CHK-02*, HOOK-05*.
 
 ## 2. Before you start
 
 - R-19 New module, new table or changed public API: update that package's `MODULE.md` first. E~: CHK-19*.
 - R-20 Before writing a helper, type, validator or query, search `REUSE-CATALOG.md` and the package exports. No second action result type or context, format helper, role predicate, page-size clamp or response type; parse a response body, never cast it. E~: CHK-20*.
-- R-21 List in the PR the paths the change may edit; give a reason for anything outside. A: CHK-21* reports.
+- R-21 List allowed paths in the PR. Justify edits elsewhere. A: CHK-21* reports.
 - R-22 One bounded unit per session: implement, verify, record, stop. A.
 - R-28 One bounded protected PR per change holds its scope, acceptance, implementation and tests and is its record: no program, tracker or ledger edits, no bookkeeping-only PR. A.
 - R-31 Never revert, delete, stash or clean up work you did not create; report it. A.
@@ -50,7 +51,7 @@ Local verification: T4–T6 run, on the macOS machine (marker, pre-check rule, n
 
 ## 5. Boundaries
 
-- R-37 Boundary stop. A change that touches or can alter an auth, session, database, tenancy, storage or billing boundary (trust, role or tenant scope, visibility, security behaviour, the task's acceptance there), or any sign of a failure at one, inside or outside the task: stop and report to the owner with file and line. Go on only after the independent security reviewer (Astra, R-02) has reviewed it and approved going on, before the code goes further, and the owner has explicitly authorized it. The PR holds the record: approval, authorization, the exception with its security rationale, tests, evidence, migration notes, rollback plan. Record and signs are lists of `RULES.md`, R-37, and bind as written. Never weaken or bypass a check there. A.
+- R-37 Boundary stop. A change touching or able to alter an auth, session, database, tenancy, storage or billing boundary (trust, role or tenant scope, visibility, security behaviour or the task's acceptance), or any sign of failure there: stop and report to the owner with file:line, even outside the task. Go on only after Astra's independent review and approval (R-02) and authorization by the owner's explicit words or a green Debate verdict. Record in the PR per `RULES.md`, R-37 (record and signs bind as written). Never weaken or bypass a boundary check. A.
 - R-34 `apps/web/src/proxy.ts` is the one entry for page requests. Never route around it (no `middleware`, second redirect layer or matcher change) and change it only with owner approval. It is not the tenant boundary and does not see `/api`: handlers and actions authorize themselves. Never rename or bypass `/member`, `/agent`, `/staff`, `/admin`; keep the `page-ready` markers. E~: the E2E gate, CHK-25*.
 - R-15 Layers: screens → actions and handlers → domain packages → `packages/database`. No upward import; no database import in a screen; packages only through their `exports`. E: `check:architecture-boundaries`, CHK-15*.
 - R-16 One owning package per table; other code calls its exported command, or its query for rows with a visibility rule. A business rule (role, precondition, visibility, notification) lives there, never in an entry point. E~: CHK-16*.

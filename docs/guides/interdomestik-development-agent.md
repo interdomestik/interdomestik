@@ -1,7 +1,6 @@
 # Interdomestik development agent
 
-This Codex agent reviews Claude Code's work and, when the lead assigns one, takes a
-bounded part of an Interdomestik development task (`AGENTS.md`, R-01). Its editable
+This Codex agent implements bounded Interdomestik changes (`AGENTS.md`, R-01). Its editable
 definition is `.codex/agents/interdomestik-developer.toml` (revision
 `2026-10-03-bounded-search-packets`). An optional personal installation at
 `~/.codex/agents/interdomestik-developer.toml` is a reusable copy; its existence alone
@@ -36,7 +35,7 @@ selection, preserve any existing personal file and install these model keys in
 
 ```toml
 model = "gpt-6.2-sol"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "ultra"
 ```
 
 Select it with `codex --profile prepr`. It adds no permission grants and does not
@@ -59,9 +58,7 @@ Check for stale project copies before starting a successor and report any mismat
 than assuming which copy won. Preserve the installation manifest/backup at the
 personal guide directory. Carry configuration changes in the authorized product amendment; do not create a
 status-only PR solely for distribution.
-The agent uses GPT-6.2 Sol with xhigh reasoning (Sol ultra optionally for a hard piece; owner, 2026-11-22), as explicitly selected by the owner
-for this agent over older generic repository model defaults. The installed
-Interdomestik skill is synchronized with this scoped model policy. Confirm the model actually served; report unavailable access
+Check that the loaded role matches the implementation model and effort in R-01. Confirm the model actually served; report unavailable access
 instead of silently substituting a paid API. Parent runtime permissions remain
 authoritative. Workspace-write and on-request are defaults, not additional grants.
 
@@ -87,15 +84,12 @@ definition. Existing older role files are outside this change's scope.
 For a single primary chat instead of delegation, attach the TOML file and ask
 Codex to follow its development instructions in the current chat. This uses the
 instructions but does not prove custom-agent discovery or apply its model settings;
-select GPT-6.2 Sol with xhigh reasoning in the client yourself.
+select the model and effort required by R-01 in the client yourself.
 
 ## Owner's delivery lifecycle
 
 A DIRECTION.md package or the owner's explicit request (R-29) → bounded selection → fresh
-worktree from updated main → implementation and focused green checks →
-authorized PR candidate (full local proof pending) → current-head review and
-analysis complete → consolidated corrections and focused regressions → final
-source/environment freeze → required full local proof and hosted checks green →
+worktree from updated main → R-01 and R-02 implementation, review and delivery procedure →
 merge (the lead under R-01, or the owner) →
 read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.
 
@@ -159,12 +153,8 @@ The draft-only prompt below is a conservative rehearsal scope. The lead merges u
 AGENTS.md R-01, or the owner merges; after the merge the agent verifies exact-SHA staging proof
 read-only and performs authorized cleanup.
 
-Claude Code implements and owns integration; Codex reviews independently and takes a
-bounded part only when the lead assigns one (`AGENTS.md`, R-01 and R-02, which also
-set the routes). No paid fallback,
-mandatory model panel or repeated login ceremony is introduced. If Claude is asked
-to implement, assign a bounded file-owned coding packet before implementation and
-record served model, returned patch, accepted code and integrator corrections.
+Follow the implementation and review procedure in `AGENTS.md`, R-01 and R-02.
+Record the model actually served and the observed review verdicts.
 Pilot #1853 proves Opus review. Pilot #1854 proves Sonnet coding: the served
 claude-sonnet-5 supplied the narrow catch and four regression-test foundations;
 Codex corrected and integrated them. Neither pilot proves faster delivery.
@@ -181,11 +171,9 @@ Fix [observed defect] in [allowed files]. Acceptance: [observable expected resul
 Use this isolated checkout and local test data. Preserve unrelated edits. Read
 current authority, demonstrate the defect with a focused check, implement the
 smallest correction, and verify the corrected behavior and relevant failure path.
-Inspect the integrated diff and run scope_audit. For meaningful behavior changes,
-finish applicable independent local review, consolidate accepted corrections,
-then preflight and run pr:verify and security:guard on the frozen candidate.
-This draft-only scope does not require remote review. New blocking findings or
-changed verification inputs still require appropriate renewed proof.
+Inspect the integrated diff and run scope_audit. Finish the fresh-context self-review
+and the M5 pre-push checks applicable to the scope. Run the rehearsal pre-checks
+below for a meaningful runtime change and report the draft's review status.
 Use Playwright MCP when browser behavior is in scope. Prepare a local PR title/body
 with evidence; do not push, create a remote PR, merge or deploy for this rehearsal.
 Wait for completion. Return actual receipts, source identity and any blocked steps.
@@ -194,30 +182,28 @@ Wait for completion. Return actual receipts, source identity and any blocked ste
 Replace the bracketed fields before use. This deliberately requires a real scoped
 defect instead of authorizing arbitrary changes to the active product queue.
 
-| Stage                | Pass condition                                                                                                                                                                               |
-| -------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Discovery            | Named role loaded; expected model, worktree and current authority recorded.                                                                                                                  |
-| Reproduction         | Focused check fails for the intended defect, not missing dependencies.                                                                                                                       |
-| Implementation       | Acceptance passes; meaningful failure-path coverage survives.                                                                                                                                |
-| Scope                | Diff touches only authorized files; unrelated sentinel edit stays intact.                                                                                                                    |
-| Browser, if relevant | Expected route/tenant/role, page-ready marker and UI states observed.                                                                                                                        |
-| Review               | Requested current-head review is complete; accepted findings and actionable analysis annotations are resolved before expensive local proof. A local-only draft uses applicable local review. |
-| Verification         | Required commands actually exit successfully on the frozen candidate and environment.                                                                                                        |
-| Handoff              | Reviewable diff and PR draft cite receipts; no unsupported delivery claims.                                                                                                                  |
+| Stage                | Pass condition                                                                                                         |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| Discovery            | Named role loaded; expected model, worktree and current authority recorded.                                            |
+| Reproduction         | Focused check fails for the intended defect, not missing dependencies.                                                 |
+| Implementation       | Acceptance passes; meaningful failure-path coverage survives.                                                          |
+| Scope                | Diff touches only authorized files; unrelated sentinel edit stays intact.                                              |
+| Browser, if relevant | Expected route/tenant/role, page-ready marker and UI states observed.                                                  |
+| Review               | Fresh-context self-review is clean, and each applicable verdict under R-01 and R-02 is recorded on the head it covers. |
+| Verification         | Required commands actually exit successfully on the frozen candidate and environment.                                  |
+| Handoff              | Reviewable diff and PR draft cite receipts; no unsupported delivery claims.                                            |
 
 Opening a PR does not complete authorized preparation. Follow requested reviews and
 hosted checks through; consolidate findings, verify corrections, and resolve their
 GitHub threads. An unresolved-finding delivery failure is a valid block. Once providers
 finish and threads are resolved, refresh only the failed delivery gate for unchanged
-source identity, then run `pnpm pr:review-ready -- <PR>`. Source pushes require current-head
-hosted evidence under the existing admission policy. The lead merges under AGENTS.md R-01, or the owner merges;
-deploying requires owner authority. Real integration regressions must run in a required repository lane, not
+source identity, then run `pnpm pr:review-ready -- <PR>`. Complete the applicable
+local reviews and M5 under R-01 and R-02 before pushing. The lead merges under AGENTS.md R-01, or the owner merges;
+the owner deploys. Real integration regressions must run in a required repository lane, not
 only through a manually supplied environment flag; record selection and execution.
 
-For remote delivery, wait for requested current-head review and required analysis
-before this expensive local lane. Focused tests/type checks continue during review;
-hosted CI may run automatically. If a concrete delivery contract mandates a full
-local pass before publication, document that exception instead of bypassing it.
+For remote delivery, the Claude lead runs the final M4 gate under R-04 after hosted
+checks and the lead's final review pass.
 
 For a meaningful runtime rehearsal, the required command lane is:
 
@@ -312,8 +298,8 @@ state the next action, the evidence needed and what must not be claimed:
    owner requested cleanup. No status-only PR is allowed.
 9. A delegated agent completed delivery. The owner authorized chat archival and
    a new chat for the next scoped slice, but its handoff is not yet preserved.
-10. Review is still running after focused tests passed. Do not start full local
-    proof unless a concrete prepublication contract requires it.
+10. M5 passed and Astra review is pending. Wait before pushing. The lead runs
+    M4 after hosted checks and the lead's final review.
 11. Server orchestration resolves port 3000 but browser setup resolves 3100.
     Fail preflight; load the task environment before the shared launcher.
 12. The worktree archive is confirmed but README and an earlier receipt say pending.
@@ -392,7 +378,7 @@ Apply the second-pilot lessons to relevant changed behavior, not as a fixed pane
   Never weaken branch protection, cancel required proof to merge, or use admin bypass.
 - Record the freeze checkpoint in the existing receipt: SHA/tree, requested reviews
   completed, actionable findings disposition, focused proof and environment identity.
-  Do not start the expensive lane while a requested current-head review is pending.
+  Run each verification lane at the point set by R-01.
 - For a reported CI failure, identify run, PR, head and failed step before acting.
   Inspect the repository's current admission policy and exact failing requirement.
   Read its resolved ready-PR decision before adding labels: when that decision already
@@ -485,22 +471,10 @@ and resolve it before the dependent implementation; do not silently substitute a
 
 ## Next slice coding and review lessons
 
-Model routing (owner, 2026-11-17; AGENTS.md R-01 and R-02): Claude Code, with
-Claude Opus as orchestrator and implementer, implements and owns integration.
-Codex reviews independently, with the model and effort that R-01 and R-02 name. When the lead assigns Codex a
-bounded part with disjoint files in its own worktree, Codex implements that part at
-this role's configured effort and Claude reviews it. Astra, at high effort or above,
-reviews every round of HIGH work, fix rounds included, with its YES on the exact
-local head before each push (only the two skips of R-02 replace an Astra round),
-and a concrete unresolved security, gate, concurrency, data-loss or
-architecture ambiguity. No model approves its own work, a blocked reviewer is not
-an approval, and no paid API is a fallback.
-Assign any requested Claude coding a bounded packet with disjoint files, current
-source, SRS/M0-M5 constraints, acceptance and tests. Verify served-model metadata
-when available and accepted code; configured/requested models alone are not proof.
-Preserve export permissions, subscription-only routes and high-risk independent
-review. Never substitute a paid API or bypass a provider denial. Development model,
-agent and handoff updates use existing coding subscriptions; they do not authorize
+Model routing follows `AGENTS.md`, R-01 and R-02. Verify served-model metadata when
+available and record accepted review dispositions. Preserve export permissions and
+subscription-only routes. Development model, agent and handoff updates use existing
+coding subscriptions; they do not authorize
 production AI changes, require application API credentials, or migrate app models.
 
 Apply #1858/#1859 lessons while preparing the next candidate: put meaningful regressions
@@ -512,7 +486,7 @@ a reusable helper has identical semantics. Test canonical local defaults and fre
 fixtures without seed assumptions; check changed fixture exports against quality rules.
 Before publication, record completed metrics and proof in the PR (AGENTS.md R-28);
 historical ledgers stay unchanged.
-Consolidate known review bodies, inline findings and Sonar annotations before a push.
+Before a follow-up push, consolidate available review bodies, inline findings and Sonar annotations.
 Follow the PR through verified thread resolution and readiness. Reuse unchanged proof;
 rerun only invalidated evidence. Record observed builds, models and actual accepted code;
 a static tooling prediction is not execution evidence, and explicit tenant predicates
@@ -521,7 +495,7 @@ dispositions, not a fabricated formal approval. Do not claim efficiency gains wi
 
 Freeze delegated delivery tooling before execution; reuse the final evidenced version rather than a superseded bridge. Before dispatch, execute bounded monitor fixtures from observed push/dynamic producer metadata, including missing, pending, failed and wrong-SHA/branch cases. Claim the actual merge executor only from its tool transcript. If tooling changes or a helper stops for integrity, preserve that stop and continue through a separately authorized, fixed read-only route without repeating valid proof.
 
-Prefer transparent standard git/gh commands for delegated delivery instead of exporting private helper/manifest internals. If the approved Claude CLI repeatedly denies the deterministic local verification command before execution, preserve that limitation and use Codex as the explicitly attributed repo-command executor within Claude-owned delivery; do not repeat permission-format calls or claim Claude ran those tests. Verify monitor identity against both actual API run-name and gh name/workflowName payloads, preserving push and dynamic events; workflowName alone can rename CodeQL producers. Execute missing/pending/failed/wrong-SHA/branch and both-shape fixtures before dispatch, and record any recurrence honestly rather than claiming the prior incomplete fixture set prevented it.
+Prefer transparent standard git/gh commands for delegated delivery instead of exporting private helper/manifest internals. If a gate command is denied, preserve the limitation and tell the lead. Verify monitor identity against both actual API run-name and gh name/workflowName payloads, preserving push and dynamic events; workflowName alone can rename CodeQL producers. Execute missing/pending/failed/wrong-SHA/branch and both-shape fixtures before dispatch, and record any recurrence honestly rather than claiming the prior incomplete fixture set prevented it.
 
 Inspect the complete paginated current-head check inventory before diagnosing a missing
 producer. Before strict readiness, preserve any generated tracked-file diff and restore
@@ -531,16 +505,15 @@ full lane for that cleanup.
 For a narrow wire adapter, preserve valid existing metadata and numeric contracts;
 do not add unrelated validation restrictions merely while normalizing one field.
 
-Before publication, inventory actual changed-builder consumers and expected DTO keys plus navigation-order assertions in existing unit, server and browser tests. Record the delivered scope and acceptance in the PR (AGENTS.md R-28); do not edit program, tracker or ledger documents for it. Include real component/catalog/request fixtures, affected consumer assertions and file-class modularity caps in the implementation packet; send substantive corrections to the requested implementer and attribute mechanical integration separately. Status-only input cannot establish timer history or outstanding member duties. For UI changes measure the actual offending nodes at narrow/enlarged presentation, retain semantic tokens and normal local cookie choice, and never conceal overflow with global clipping. For sticky navigation, measure each destination and heading against the actual header at narrow and enlarged text; a changed hash or guessed offset is insufficient. A successful Sonar summary does not mean zero actionable findings: inspect annotations and include moved helper fixtures in scoped types/lint before freeze. Use explicit Playwright argument forwarding for the selected path/project; verify selected test count before allowing a focused diagnostic to continue. For a necessary Claude file output, use a scoped in-worktree ignored artifact with the documented Edit(path) permission governing Write and correct path anchors on the served CLI; preserve a complete denied Write input rather than retrying solely to obtain a file. Narrated tools and timeout calls are not completed implementation. Declare transparent exact delivery commands up front, including the actually served model coauthor trailer; do not append echo, shell wrappers or compound commands to a plain-command allowlist. A local CLI mismatch is a recorded orchestration failure, not a provider outage or permission to broaden Bash. Monitor fixtures must cover both API and gh fields, producer uniqueness, push/dynamic events and required success rather than skipped conclusions. Reuse unchanged valid proof; report observed elapsed time and avoidable loops without claiming speed or quota improvement.
+Before publication, inventory actual changed-builder consumers and expected DTO keys plus navigation-order assertions in existing unit, server and browser tests. Record the delivered scope and acceptance in the PR (AGENTS.md R-28); do not edit program, tracker or ledger documents for it. Include real component/catalog/request fixtures, affected consumer assertions and file-class modularity caps in the implementation packet; attribute substantive corrections and mechanical integration to their authors. Status-only input cannot establish timer history or outstanding member duties. For UI changes measure the actual offending nodes at narrow/enlarged presentation, retain semantic tokens and normal local cookie choice, and never conceal overflow with global clipping. For sticky navigation, measure each destination and heading against the actual header at narrow and enlarged text; a changed hash or guessed offset is insufficient. A successful Sonar summary does not mean zero actionable findings: inspect annotations and include moved helper fixtures in scoped types/lint before freeze. Use explicit Playwright argument forwarding for the selected path/project; verify selected test count before allowing a focused diagnostic to continue. For a necessary Claude file output, use a scoped in-worktree ignored artifact with the documented Edit(path) permission governing Write and correct path anchors on the served CLI; preserve a complete denied Write input rather than retrying solely to obtain a file. Narrated tools and timeout calls are not completed implementation. Declare transparent exact delivery commands up front, including the actually served model coauthor trailer; do not append echo, shell wrappers or compound commands to a plain-command allowlist. A local CLI mismatch is a recorded orchestration failure, not a provider outage or permission to broaden Bash. Monitor fixtures must cover both API and gh fields, producer uniqueness, push/dynamic events and required success rather than skipped conclusions. Reuse unchanged valid proof; report observed elapsed time and avoidable loops without claiming speed or quota improvement.
 
 For async polling, inventory current versus superseded or permanently hung retrieval and receipt work across automatic ticks, manual refresh, SSR revalidation and unmount before freeze. Guard the current generation through retrieval plus receipt; stale settlement must release only its own token. Distinguish logical supersession from cancellation or duplicate-write prevention. Check the full interleaving matrix in focused regressions before the first aggregate lane, rather than discovering each case in successive PR reviews. Provider quota, failed artifacts, CLI matcher and publication-text mistakes are orchestration costs; record actual author/executor and resume an owner-authorized adequate alternative without paid fallback or false Opus attribution. Restore owned build-generated files before metadata readiness, which must not rerun passed proof.
 
 ## Bounded helper work and delivery timing
 
-Split Claude work into small coherent packets with exact owned files/interfaces,
-acceptance and output completeness. Preserve applicable export consent without
-expanding its scope. Recover valid partial artifacts, then request only missing or
-corrective work; do not duplicate accepted implementation or provider calls.
+Send bounded review briefs with source identity, scope and acceptance. Preserve
+applicable export consent. Recover valid partial artifacts and request only the
+missing evidence.
 
 Exercise relevant search/navigation interleavings and observed counterexamples in
 focused regressions before the aggregate freeze. Reuse checks while their actual

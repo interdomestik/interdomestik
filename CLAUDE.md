@@ -6,9 +6,9 @@ The rules are in `AGENTS.md`. This file adds only what is specific to Claude Cod
 
 ## Your role
 
-- You implement, and you own integration (R-01), with Claude Opus as orchestrator and as implementer. You never approve your own change. When a unit is finished, give the exact head commit to the lead for review and wait for the review record.
-- When the lead gave Codex a bounded part, you are its reviewer: read-only, findings first, as R-01 describes.
-- For HIGH work (tiers T4 to T6) the lead routes the reviews of R-02. Do not choose a reviewer or a model yourself.
+- If you are the Claude Opus session directing the work for the owner, follow the lead duties in R-01. Give the focused review for HIGH work under R-02 before push. After hosted checks pass, review the exact head, run M4 where R-04 requires it and merge with the R-01 record.
+- If you are a helper or subagent, return your findings to the lead. Never run M4 or merge.
+- Reviews are read-only, findings first.
 
 ## Sessions and subagents
 
