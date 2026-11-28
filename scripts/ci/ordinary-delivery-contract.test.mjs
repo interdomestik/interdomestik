@@ -84,20 +84,25 @@ test('Astra approves the exact local head before push', () => {
   );
 });
 
-test('Debate retains its three triggers, owner escalation and owner-only operations', () => {
+test('Debate retains its triggers, approval, owner escalation and owner-only operations', () => {
   const agentsDebate = agents.match(/^- Debate\. .+$/mu)?.[0];
   const rulesDebate = section(rules, '### R-02 — When Astra is used').match(
     /- \*\*Debate\*\* .*?(?= - \*\*|$)/u
   )?.[0];
+  const exclusions = 'Outside routine PRs, tests, copy and mechanical fixes,';
+  const greenApproval =
+    'A green verdict requires Astra and the Claude lead to independently approve the same scope and, for PR review, the same head.';
+  const ownerEscalation =
+    "Unresolved Debates go to the owner with both positions and the lead's recommendation";
   const contracts = [
     {
       file: 'AGENTS.md',
       passage: agentsDebate,
       clauses: [
-        'only for Astra/lead disagreement on a HIGH PR',
+        `${exclusions} GPT vs Claude only for Astra/lead disagreement on a HIGH PR`,
         'a HIGH design with real alternatives',
-        'two consecutive NOs on one point',
-        'Unresolved boundary disputes go to the owner',
+        'two consecutive NOs on the same point',
+        ownerEscalation,
         'R-24/R-25 owner operations excluded',
       ],
     },
@@ -105,10 +110,11 @@ test('Debate retains its three triggers, owner escalation and owner-only operati
       file: 'RULES.md',
       passage: rulesDebate,
       clauses: [
-        'only for disagreement between Astra and the Claude lead on a HIGH PR',
+        `${exclusions} run a GPT-vs-Claude debate only for disagreement between Astra and the Claude lead on a HIGH PR`,
         'a HIGH design with real alternatives',
         'two consecutive NOs on the same point',
-        "Send an unresolved boundary disagreement to the owner with both positions and the lead's recommendation",
+        greenApproval,
+        ownerEscalation,
         'Repins, staging and production writes, secrets, imports and invitations remain owner operations under R-24 and R-25 and are excluded from Debate approval',
       ],
     },
@@ -123,7 +129,9 @@ test('Debate retains its three triggers, owner escalation and owner-only operati
 
     assertClauses(passage);
     for (const clause of clauses) {
-      const mutant = passage.replace(clause, '');
+      const replacement =
+        clause === greenApproval ? 'A green verdict requires only the Claude lead to approve.' : '';
+      const mutant = passage.replace(clause, replacement);
       assert.throws(() => assertClauses(mutant), {
         message: `${file} Debate must retain: ${clause}`,
       });
