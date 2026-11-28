@@ -120,6 +120,7 @@ export function buildControlsProps(href: string): ControlsProps {
     }),
     pendingFilterLabel: 'Updating filters...',
     pendingSearchLabel: 'Searching claims...',
+    searchInputLabel: 'Search claims',
     searchLabel: 'Search',
     searchPlaceholder: 'Search claim, member, company, or number',
     statusFilterLabel: 'Status filter',

@@ -20,9 +20,15 @@
       "staff_queue": {
         "subtitle": "Was heute bearbeitet werden muss.",
         "results_count": "{count, plural, one {# Fall} other {# Fälle}}",
+        "results_count_search": "{count, plural, one {# Fall} other {# Fälle}} für „{search}“",
+        "results_filters_one": "Filter: {first}",
+        "results_filters_two": "Filter: {first} und {second}",
+        "results_filters_three": "Filter: {first}, {second} und {third}",
+        "search_label": "Fallsuche",
         "search_placeholder": "Fall, Mitglied, Unternehmen oder Nummer suchen",
         "search": "Suchen",
         "clear_search": "Zurücksetzen",
+        "clear_filters": "Filter zurücksetzen",
         "pending_search": "Fälle werden gesucht...",
         "pending_filter": "Filter werden aktualisiert...",
         "assignment_filter_label": "Filter nach Zuweisung",
@@ -62,14 +68,18 @@
           "diaspora": "Diaspora / Grüne Karte"
         },
         "table": {
+          "reference": "Fallreferenz",
           "claim": "Fall",
           "member": "Mitglied",
           "status_stage": "Status + Phase",
           "updated": "Aktualisiert",
+          "assignment": "Zuweisung",
+          "next_step": "Nächster Schritt",
           "action": "Aktion",
           "no_claim_number": "Keine Fallnummer",
           "no_company": "Kein Unternehmen angegeben",
-          "no_member_number": "Keine Mitgliedsnummer"
+          "no_member_number": "Keine Mitgliedsnummer",
+          "unavailable": "Nicht verfügbar"
         },
         "origin_badge": "Diaspora / Grüne Karte"
       },
