@@ -1,4 +1,10 @@
 [
+  "apps/web/src/app/[locale]/(staff)/staff/claims/_core.entry.tsx",
+  "apps/web/src/app/[locale]/(staff)/staff/claims/staff-claims-controls.tsx",
+  "apps/web/src/app/[locale]/(staff)/staff/claims/staff-claims-filter-group.tsx",
+  "apps/web/src/app/[locale]/(staff)/staff/claims/staff-claims-queue.tsx",
+  "apps/web/src/app/[locale]/(staff)/staff/claims/staff-claims-results-summary.ts",
+  "apps/web/src/app/[locale]/(staff)/staff/claims/staff-claims-row.tsx",
   "apps/web/src/components/dashboard/case-summary/accident-case-summary.tsx",
   "apps/web/src/components/dashboard/case-summary/generic-case-summary.tsx",
   "apps/web/src/components/dashboard/claims/claims-filters.tsx",

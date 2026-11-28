@@ -9,9 +9,10 @@ import {
 } from '@interdomestik/domain-claims';
 import { getTranslations, setRequestLocale } from 'next-intl/server';
 import { notFound } from 'next/navigation';
-import { Fragment } from 'react';
 
 import { StaffClaimsControls } from './staff-claims-controls';
+import { StaffClaimsQueue } from './staff-claims-queue';
+import { buildResultsSummary } from './staff-claims-results-summary';
 import { StaffClaimsRow } from './staff-claims-row';
 import { getSingleParam, parseStaffAssignmentFilter, buildStaffClaimsHref } from './_claims-href';
 
@@ -203,21 +204,29 @@ export default async function StaffClaimsPage({
     },
   ];
 
+  const { resultsCount, resultsFilters } = buildResultsSummary({
+    count: claims.length,
+    filterOptions: [...assignmentFilterOptions, ...statusFilterOptions, ...diasporaFilterOptions],
+    search: currentSearch,
+    tClaims,
+  });
+
   return (
-    <div className="space-y-6" data-testid="staff-page-ready">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight" data-testid="page-title">
+    <div className="min-w-0 space-y-6 [overflow-wrap:anywhere]" data-testid="staff-page-ready">
+      <header className="space-y-2">
+        <h1
+          className="text-3xl font-bold tracking-tight"
+          data-testid="page-title"
+          id="staff-claims-title"
+        >
           {tClaims('claims_queue')}
         </h1>
-
         <p className="text-muted-foreground">{tClaims('staff_queue.subtitle')}</p>
-        <p
-          className="mt-2 text-sm font-medium text-slate-700"
-          data-testid="staff-claims-results-count"
-        >
-          {tClaims('staff_queue.results_count', { count: claims.length })}
-        </p>
-      </div>
+        <output className="block text-sm font-medium" data-testid="staff-claims-results-count">
+          {resultsCount}
+          {resultsFilters && <> {resultsFilters}</>}
+        </output>
+      </header>
 
       <StaffClaimsControls
         assignmentFilterLabel={tClaims('staff_queue.assignment_filter_label')}
@@ -231,61 +240,35 @@ export default async function StaffClaimsPage({
         hiddenFields={hiddenFields}
         pendingFilterLabel={tClaims('staff_queue.pending_filter')}
         pendingSearchLabel={tClaims('staff_queue.pending_search')}
+        searchInputLabel={tClaims('staff_queue.search_label')}
         searchLabel={tClaims('staff_queue.search')}
         searchPlaceholder={tClaims('staff_queue.search_placeholder')}
         statusFilterLabel={tClaims('staff_queue.status_filter_label')}
         statusOptions={statusFilterOptions}
       />
 
-      <div className="rounded-lg border bg-white shadow-sm" data-testid="staff-claims-queue">
-        <div className="grid grid-cols-1 gap-4 border-b px-4 py-3 text-sm font-medium text-muted-foreground md:grid-cols-5">
-          <span>{tClaims('staff_queue.table.claim')}</span>
-          <span>{tClaims('staff_queue.table.member')}</span>
-          <span>{tClaims('staff_queue.table.status_stage')}</span>
-          <span>{tClaims('staff_queue.table.updated')}</span>
-          <span className="text-right">{tClaims('staff_queue.table.action')}</span>
-        </div>
-        <div className="divide-y" data-testid="staff-claims-list">
-          {displayedClaims.map((claim, index) => (
-            <Fragment key={claim.id}>
-              {queueGroup(claim) &&
-              (index === 0 || queueGroup(displayedClaims[index - 1]) !== queueGroup(claim)) ? (
-                <h2
-                  className="bg-slate-50 px-4 py-2 text-sm font-semibold text-slate-900"
-                  data-testid={`staff-claims-group-${queueGroup(claim)}`}
-                >
-                  {tClaims(`staff_queue.attention.group.${queueGroup(claim)}`)}
-                </h2>
-              ) : null}
-              <StaffClaimsRow
-                claim={claim}
-                currentStaffId={session.user.id}
-                locale={locale}
-                attention={
-                  session.user.role === 'staff' && claim.staffId === session.user.id
-                    ? (attention[claim.id] ?? {
-                        nextActor: 'untracked',
-                        overdueFollowUpDueAt: null,
-                      })
-                    : null
-                }
-                tClaims={tClaims}
-                tStatus={tStatus}
-              />
-            </Fragment>
-          ))}
-          {claims.length === 0 && (
-            <div
-              className="px-4 py-10 text-center text-muted-foreground"
-              data-testid="staff-claims-empty"
-            >
-              {hasActiveFilters
-                ? tClaims('staff_queue.empty_filtered')
-                : tClaims('staff_queue.empty_default')}
-            </div>
-          )}
-        </div>
-      </div>
+      <StaffClaimsQueue
+        claims={displayedClaims}
+        getGroup={queueGroup}
+        hasActiveFilters={hasActiveFilters}
+        locale={locale}
+        renderRow={(claim, heading) => (
+          <StaffClaimsRow
+            key={claim.id}
+            claim={claim}
+            currentStaffId={session.user.id}
+            heading={heading}
+            locale={locale}
+            attention={
+              session.user.role === 'staff' && claim.staffId === session.user.id
+                ? (attention[claim.id] ?? { nextActor: 'untracked', overdueFollowUpDueAt: null })
+                : null
+            }
+            tClaims={tClaims}
+          />
+        )}
+        tClaims={tClaims}
+      />
     </div>
   );
 }

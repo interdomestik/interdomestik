@@ -1,4 +1,4 @@
-import { act, fireEvent, screen } from '@testing-library/react';
+import { act, fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { StaffClaimsControls } from './staff-claims-controls';
@@ -29,16 +29,89 @@ describe('StaffClaimsControls', () => {
     vi.useRealTimers();
   });
 
-  it('keeps search and clear labels on one line while the input can shrink', () => {
+  it('lets search controls wrap while keeping their touch targets', () => {
     renderControls();
     const submit = screen.getByTestId('staff-claims-search-submit');
-    expect(submit).toHaveClass('shrink-0', '!whitespace-nowrap', '[overflow-wrap:normal]');
-    expect(screen.getByRole('link', { name: 'Clear' })).toHaveClass(
-      'shrink-0',
-      '!whitespace-nowrap'
+    expect(submit).toHaveClass('min-h-11', 'min-w-11', '[overflow-wrap:anywhere]');
+    expect(screen.getByRole('link', { name: 'Clear' })).toHaveClass('min-h-11', 'min-w-11');
+    expect(submit.parentElement).toHaveClass('flex-wrap');
+    expect(screen.getByTestId('staff-claims-search-input').parentElement).toHaveClass(
+      'flex-col',
+      'md:flex-row'
     );
-    expect(submit.parentElement).toHaveClass('shrink-0', 'flex-wrap');
-    expect(screen.getByTestId('staff-claims-search-form')).toHaveClass('flex-col', 'md:flex-row');
+  });
+
+  it('binds the visible search label to the search input', () => {
+    renderControls();
+
+    const label = screen.getByText('Search claims', { selector: 'label' });
+    const input = screen.getByTestId('staff-claims-search-input');
+    expect(label).toBeVisible();
+    expect(label).toHaveAttribute('for', input.id);
+    expect(screen.getByLabelText('Search claims')).toBe(input);
+  });
+
+  it('labels all three filter groups from their visible text', () => {
+    renderControls();
+
+    for (const [group, label] of [
+      ['assignment', 'Assignment filter'],
+      ['status', 'Status filter'],
+      ['diaspora', 'Origin filter'],
+    ]) {
+      const region = screen.getByTestId(`staff-claims-${group}-filters`);
+      const legend = within(region).getByText(label, { selector: 'legend' });
+      expect(legend).toBeVisible();
+      expect(region.tagName).toBe('FIELDSET');
+      expect(screen.getByRole('group', { name: label })).toBe(region);
+    }
+  });
+
+  it('marks only the active option in each filter group as current', () => {
+    renderControls();
+
+    for (const [group, activeOption] of [
+      ['Assignment filter', 'Unassigned'],
+      ['Status filter', 'Verification'],
+      ['Origin filter', 'Diaspora / Green Card'],
+    ]) {
+      const region = within(screen.getByRole('group', { name: group }));
+      const activeLink = region.getByRole('link', { name: activeOption });
+      expect(activeLink).toHaveAttribute('aria-current', 'true');
+      expect(region.getAllByRole('link').filter(link => link.hasAttribute('aria-current'))).toEqual(
+        [activeLink]
+      );
+    }
+  });
+
+  it('moves focus to the search input when Clear search is activated', async () => {
+    renderControls();
+    const clearSearch = screen.getByRole('link', { name: 'Clear' });
+    const input = screen.getByTestId('staff-claims-search-input');
+    clearSearch.focus();
+    expect(clearSearch).toHaveFocus();
+
+    await clickLink(clearSearch);
+
+    expect(input).toHaveFocus();
+    await completeNavigation(
+      '/staff/claims?assigned=unassigned&status=verification&diaspora=diaspora'
+    );
+    expect(clearSearch).not.toBeInTheDocument();
+    expect(input).toHaveFocus();
+  });
+
+  it('empties a typed search when Clear search commits', async () => {
+    renderControls();
+    const input = screen.getByTestId('staff-claims-search-input');
+    typeSearch('Acme edited');
+
+    await clickLink(screen.getByRole('link', { name: 'Clear' }));
+    await completeNavigation(
+      '/staff/claims?assigned=unassigned&status=verification&diaspora=diaspora'
+    );
+
+    expect(input).toHaveValue('');
   });
 
   it('submits trimmed search while preserving active staff claim filters', async () => {
@@ -78,7 +151,11 @@ describe('StaffClaimsControls', () => {
     expect(routerPushMock).toHaveBeenCalledWith(
       '/staff/claims?assigned=unassigned&diaspora=diaspora&search=Acme'
     );
-    expect(screen.getByTestId('staff-claims-pending')).toHaveTextContent('Updating filters...');
+    const filters = screen.getByTestId('staff-claims-filters');
+    const pending = within(filters).getByRole('status');
+    expect(filters).toHaveAttribute('aria-busy', 'true');
+    expect(pending).toBe(screen.getByTestId('staff-claims-pending'));
+    expect(pending).toHaveTextContent('Updating filters...');
     expect(screen.getByTestId('staff-claims-assigned-filter-all')).toHaveAttribute(
       'aria-disabled',
       'true'

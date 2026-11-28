@@ -20,9 +20,15 @@
       "staff_queue": {
         "subtitle": "Што бара дејство денес.",
         "results_count": "{count, plural, one {# барање} other {# барања}}",
+        "results_count_search": "{count, plural, one {# барање} other {# барања}} за „{search}“",
+        "results_filters_one": "Филтри: {first}",
+        "results_filters_two": "Филтри: {first} и {second}",
+        "results_filters_three": "Филтри: {first}, {second} и {third}",
+        "search_label": "Пребарување барања",
         "search_placeholder": "Пребарај барање, член, компанија или број",
         "search": "Барај",
         "clear_search": "Исчисти",
+        "clear_filters": "Исчисти ги филтрите",
         "pending_search": "Се пребаруваат барањата...",
         "pending_filter": "Се ажурираат филтрите...",
         "assignment_filter_label": "Филтер за доделување",
@@ -62,14 +68,18 @@
           "diaspora": "Дијаспора / Зелен картон"
         },
         "table": {
+          "reference": "Референца на барањето",
           "claim": "Барање",
           "member": "Член",
           "status_stage": "Статус + фаза",
           "updated": "Ажурирано",
+          "assignment": "Доделување",
+          "next_step": "Следен чекор",
           "action": "Дејство",
           "no_claim_number": "Нема број на барање",
           "no_company": "Нема наведена компанија",
-          "no_member_number": "Нема членски број"
+          "no_member_number": "Нема членски број",
+          "unavailable": "Недостапно"
         },
         "origin_badge": "Дијаспора / Зелен картон"
       },
