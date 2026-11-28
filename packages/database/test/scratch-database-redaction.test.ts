@@ -49,6 +49,7 @@ test('scratch and release fixtures redact refused admin URLs', async t => {
     );
   `;
   const env: NodeJS.ProcessEnv = { ...process.env, DATABASE_URL: malformedUrl };
+  delete env.RELEASE_PHASE_CI_DATABASE_URL;
   delete env.NODE_TEST_CONTEXT;
   const result = spawnSync(
     process.execPath,

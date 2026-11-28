@@ -22,6 +22,11 @@
       "reason": "Applies a journal folder with the application's migrator to a guarded client it is given; it imports Drizzle's adapter and migrator only, calls the adapter only on that client, and cannot open a connection."
     },
     {
+      "path": "packages/database/test/pg16/release-foreign-owner-cluster.fixture.ts",
+      "kind": "guarded",
+      "reason": "Opens maintenance and runtime clients through withDisposableClient and delegates scratch database setup to withReleaseDatabase. The 0114 ownership proof requires an exclusive disposable PG16 server on loopback before creating fixture roles."
+    },
+    {
       "path": "packages/database/test/pg16/release-migration-fixture.ts",
       "kind": "guarded",
       "reason": "Sets up the PG16 release rehearsal role and database using withDisposableClient and the guarded scratch fixture, and passes that loopback database to the release CLI in test mode."

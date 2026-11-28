@@ -10,6 +10,7 @@ import {
   assertLedger,
   assertRefusal,
   releaseFixture,
+  releasePhaseDatabaseUrl,
   scratchOptions,
   withReleaseDatabase,
 } from './release-migration-fixture';
@@ -182,7 +183,7 @@ async function assertOldWriter(client: ScratchClient) {
 }
 
 test('PG16 synthetic CLI stops at expand, refuses bad approvals and verifies recovery', async t => {
-  const missing = scratchServerMissing(requireDatabase);
+  const missing = scratchServerMissing(requireDatabase, releasePhaseDatabaseUrl());
   if (missing) return t.skip(missing);
   const { dir, registry } = makeJournal(t);
   await withReleaseDatabase(
@@ -232,7 +233,7 @@ test('PG16 synthetic CLI stops at expand, refuses bad approvals and verifies rec
 });
 
 test('PG16 CLI rolls back a failed contract and refuses divergent ordered history and ACLs', async t => {
-  const missing = scratchServerMissing(requireDatabase);
+  const missing = scratchServerMissing(requireDatabase, releasePhaseDatabaseUrl());
   if (missing) return t.skip(missing);
   const { dir, registry } = makeJournal(t, {
     contract:

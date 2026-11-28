@@ -20,6 +20,11 @@ const marker = 'scratch-release-phase';
 const aliasHostname = 'staging.interdomestik.com';
 export const scratchOptions = { loopbackOnly: true, requirePg16: true };
 
+export function releasePhaseDatabaseUrl() {
+  // The CLI checks ownership across the cluster. CI's main database has already applied 0114.
+  return process.env.RELEASE_PHASE_CI_DATABASE_URL ?? process.env.DATABASE_URL;
+}
+
 type ReleaseFixtureInputs = {
   t: TestContext;
   dir: string;
@@ -34,7 +39,7 @@ export async function withReleaseDatabase<T>(
   inputs: ReleaseFixtureInputs,
   work: (client: ScratchClient, fixture: ReturnType<typeof releaseFixture>) => Promise<T>
 ): Promise<T> {
-  const rawAdminUrl = process.env.DATABASE_URL ?? '';
+  const rawAdminUrl = releasePhaseDatabaseUrl() ?? '';
   return withDisposableClient(
     rawAdminUrl,
     { applicationName: 'release_phase_setup' },
@@ -72,7 +77,7 @@ export async function withReleaseDatabase<T>(
               );
               return work(client, releaseFixture(runnerUrl, inputs));
             },
-            { ...scratchOptions, owner }
+            { ...scratchOptions, adminUrl: rawAdminUrl, owner }
           ),
         async () => {
           await admin.unsafe(`DROP ROLE ${role}`);
