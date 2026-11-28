@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import type { TestContext } from 'node:test';
+import { runSequentially } from '../in-order';
 import { quoteIdentifier } from '../rls-test-connection';
 import {
   attempts,
@@ -167,7 +168,7 @@ export async function proveDrift(
     ]);
   }
 
-  for (const [name, apply, restore, reason = codes.owner] of cases) {
+  await runSequentially(cases, async ([name, apply, restore, reason = codes.owner]) => {
     await t.test(name, async () => {
       await fixture.expand();
       await client.begin(async tx => {
@@ -181,7 +182,7 @@ export async function proveDrift(
         });
       }
     });
-  }
+  });
 
   await t.test('incoming admin-only edge with the correct member and wrong grantor', async () => {
     await fixture.expand();

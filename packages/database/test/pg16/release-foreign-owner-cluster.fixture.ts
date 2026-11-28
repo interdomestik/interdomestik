@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { withDisposableCleanup, withDisposableClient } from '../../src/disposable-client';
+import { runSequentially } from '../in-order';
 import { quoteIdentifier } from '../rls-test-connection';
 import { dedicated, presentRoles, runtime } from './release-foreign-owner.fixture';
 import { releasePhaseDatabaseUrl, withReleaseDatabase } from './release-migration-fixture';
@@ -138,8 +139,9 @@ export async function proveRuntimeDenials(url: URL) {
         current_user, 'public.claim_inbound_object_verifications', 'SELECT'
       ) AS can_read`;
       assert.equal(receipt.can_read, true, '0114 grants read access to the enrolled runtime role');
-      for (const owner of dedicated)
-        await assert.rejects(sql.unsafe(`SET ROLE ${owner}`), { code: '42501' });
+      await runSequentially(dedicated, owner =>
+        assert.rejects(sql.unsafe(`SET ROLE ${owner}`), { code: '42501' })
+      );
       await assert.rejects(
         sql`SELECT public.record_claim_inbound_object_verification(
           '00000000-0000-0000-0000-000000000001'::uuid, 'synthetic', 'synthetic', 1, 'synthetic'

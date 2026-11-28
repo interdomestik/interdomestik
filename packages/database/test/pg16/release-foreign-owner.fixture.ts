@@ -3,6 +3,7 @@ import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type { TestContext } from 'node:test';
 import { readReleaseJournal, sha256 } from '../../src/release-migrations';
+import { runSequentially } from '../in-order';
 import { quoteIdentifier } from '../rls-test-connection';
 import { assertLedger, assertRefusal, type withReleaseDatabase } from './release-migration-fixture';
 import { folder, policy, workspace } from './release-migration-journal.fixture';
@@ -122,7 +123,9 @@ export async function restoreEarlyCatalog(client: ScratchClient) {
   const owner = await enrolledOwner(client);
   await client.begin(async tx => {
     await tx.unsafe(`SET LOCAL ROLE ${owner}`);
-    for (const sql of source114().split('--> statement-breakpoint')) await tx.unsafe(sql).simple();
+    await runSequentially(source114().split('--> statement-breakpoint'), async sql => {
+      await tx.unsafe(sql).simple();
+    });
   });
 }
 
@@ -162,6 +165,12 @@ export async function assertCatalog(client: ScratchClient) {
     );
     assert.ok(original, `Missing 0114 source declaration for ${row.name}`);
     assert.equal(sha256(row.body), sha256(original.split('$$')[1]), row.name);
+    let expectedArguments: string[] | null = null;
+    if (recorded) {
+      expectedArguments = ['p_decision_id', 'p_bucket', 'p_path', 'p_file_size', 'p_sha256'];
+    } else if (branch) {
+      expectedArguments = ['p_tenant', 'p_branch'];
+    }
     assert.deepEqual(
       {
         owner: row.owner,
@@ -187,11 +196,7 @@ export async function assertCatalog(client: ScratchClient) {
         volatility: 'v',
         parallel: 'u',
         ordinaryOptions: true,
-        arguments: recorded
-          ? ['p_decision_id', 'p_bucket', 'p_path', 'p_file_size', 'p_sha256']
-          : branch
-            ? ['p_tenant', 'p_branch']
-            : null,
+        arguments: expectedArguments,
       },
       row.name
     );
@@ -215,7 +220,7 @@ export async function assert0115(client: ScratchClient) {
   const sql = readFileSync(join(folder, `${tag0115}.sql`), 'utf8');
   const expected = [...sql.matchAll(/\bVALIDATE CONSTRAINT (\w+)/gu)]
     .map(([, name]) => name)
-    .sort();
+    .sort((a, b) => Number(a > b) - Number(a < b));
   assert.equal(expected.length, 14);
   const rows = await client`
     SELECT conname::text AS name FROM pg_catalog.pg_constraint
