@@ -69,8 +69,8 @@ export function repin(fixture: Fixture, dir: string) {
 }
 
 export async function presentRoles(client: ScratchClient) {
-  const rows = await client<{ name: string }[]>`
-    SELECT rolname::text AS name FROM pg_catalog.pg_roles
+  const rows = await client<{ name: string; oid: string }[]>`
+    SELECT rolname::text AS name, oid::text AS oid FROM pg_catalog.pg_roles
     WHERE rolname IN ${client(fixtureRoles)} ORDER BY rolname
   `;
   return [...rows];

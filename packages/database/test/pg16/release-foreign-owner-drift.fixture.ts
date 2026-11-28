@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import type { TestContext } from 'node:test';
+import { quoteIdentifier } from '../rls-test-connection';
 import {
   attempts,
   codes,
@@ -33,9 +34,13 @@ export async function proveDrift(
   originalManifest: { RELEASE_PHASE_MANIFEST: string }
 ) {
   const owner = await enrolledOwner(client);
-  const createAdminOnly = (member: string, by = 'postgres') =>
+  const [bootstrap] = await client<{ name: string }[]>`
+    SELECT rolname::text AS name FROM pg_catalog.pg_roles WHERE oid = 10
+  `;
+  const bootstrapRole = quoteIdentifier(bootstrap.name);
+  const createAdminOnly = (member: string, by = bootstrapRole) =>
     `GRANT ${guard} TO ${member} WITH ADMIN TRUE, INHERIT FALSE, SET FALSE GRANTED BY ${by}`;
-  const revoke = (member: string, by = 'postgres') =>
+  const revoke = (member: string, by = bootstrapRole) =>
     `REVOKE ${guard} FROM ${member} GRANTED BY ${by}`;
   await client.unsafe(`CREATE ROLE ${grantor} NOLOGIN SUPERUSER`);
   // prettier-ignore
@@ -50,7 +55,7 @@ export async function proveDrift(
       `ALTER FUNCTION ${lock} OWNER TO ${writer}`,
       `ALTER FUNCTION ${lock} OWNER TO ${guard}`],
     ['pinned routine owned by an unrelated role',
-      `ALTER FUNCTION ${lock} OWNER TO postgres`,
+      `ALTER FUNCTION ${lock} OWNER TO ${bootstrapRole}`,
       `ALTER FUNCTION ${lock} OWNER TO ${guard}`],
     ['pinned routine owned by the migration login',
       `ALTER FUNCTION ${lock} OWNER TO ${owner}`,
@@ -137,7 +142,7 @@ export async function proveDrift(
     ['direct public CREATE violates base schema authority',
       `GRANT CREATE ON SCHEMA public TO ${guard}`,
       `REVOKE CREATE ON SCHEMA public FROM ${guard}`, codes.public],
-    ['wrong public schema owner', 'ALTER SCHEMA public OWNER TO postgres',
+    ['wrong public schema owner', `ALTER SCHEMA public OWNER TO ${bootstrapRole}`,
       `ALTER SCHEMA public OWNER TO ${owner}`, codes.public],
     ['unsafe PUBLIC schema CREATE', 'GRANT CREATE ON SCHEMA public TO PUBLIC',
       'REVOKE CREATE ON SCHEMA public FROM PUBLIC', codes.public],

@@ -1,101 +1,47 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
-import { existsSync } from 'node:fs';
-import { createServer } from 'node:net';
-import { join } from 'node:path';
-import type { TestContext } from 'node:test';
 import { withDisposableCleanup, withDisposableClient } from '../../src/disposable-client';
 import { quoteIdentifier } from '../rls-test-connection';
 import { dedicated, presentRoles, runtime } from './release-foreign-owner.fixture';
 import { withReleaseDatabase } from './release-migration-fixture';
-import { policy, workspace } from './release-migration-journal.fixture';
+import { policy } from './release-migration-journal.fixture';
 import type { ScratchClient } from './scratch-database';
 
-function serverBin() {
-  const configured = process.env.RELEASE_PHASE_PG16_BIN;
-  const candidates = configured
-    ? [configured]
-    : [
-        '/usr/lib/postgresql/16/bin',
-        '/opt/homebrew/opt/postgresql@16/bin',
-        '/usr/local/opt/postgresql@16/bin',
-      ];
-  const bin = candidates.find(dir => existsSync(join(dir, 'initdb')));
-  assert.ok(bin, 'Set RELEASE_PHASE_PG16_BIN to the disposable PostgreSQL 16 server bin directory');
-  const version = execFileSync(join(bin, 'postgres'), ['--version'], { encoding: 'utf8' });
-  assert.match(version, /^postgres \(PostgreSQL\) 16\./u);
-  return bin;
-}
-
-async function loopbackPort() {
-  const server = createServer();
-  const port = await new Promise<number>((resolve, reject) => {
-    server.once('error', reject);
-    server.listen(0, '127.0.0.1', () => {
-      const address = server.address();
-      assert.ok(address && typeof address === 'object');
-      resolve(address.port);
-    });
-  });
-  await new Promise<void>((resolve, reject) => {
-    server.close(error => (error ? reject(error) : resolve()));
-  });
-  return port;
-}
-
-// The journal-parity service can already contain the fixed roles from db:migrate.
-// A private cluster makes the fresh-creator cases independent of every other lane.
-export async function withForeignOwnerCluster(t: TestContext, work: () => Promise<void>) {
-  const bin = serverBin();
-  const dir = workspace(t);
-  const data = join(dir, 'data');
-  const port = await loopbackPort();
-  const password = randomBytes(24).toString('hex');
-  // Node's stdio can be a socket. Reopen a POSIX pipe as /dev/stdin without a password file.
-  execFileSync(
-    '/bin/sh',
-    [
-      '-c',
-      '/bin/cat | "$@"',
-      'initdb-password-pipe',
-      join(bin, 'initdb'),
-      '-D',
-      data,
-      '--username=postgres',
-      '--auth=scram-sha-256',
-      '--pwfile=/dev/stdin',
-      '--encoding=UTF8',
-      '--locale=C',
-    ],
-    { input: password + '\n', stdio: 'pipe' }
+export async function withForeignOwnerCluster(work: () => Promise<void>) {
+  assert.ok(
+    process.env.RELEASE_PHASE_DISPOSABLE_CLUSTER === '1',
+    'The 0114 ownership suite creates cluster roles. Set RELEASE_PHASE_DISPOSABLE_CLUSTER=1 only for an exclusively assigned disposable PostgreSQL 16 server.'
   );
-
   const originalUrl = process.env.DATABASE_URL;
-  await withDisposableCleanup(
-    async () => {
-      const settings =
-        `-h 127.0.0.1 -p ${port} -c unix_socket_directories=` +
-        ' -c log_min_error_statement=panic -c autovacuum=off';
-      execFileSync(
-        join(bin, 'pg_ctl'),
-        ['-D', data, '-l', join(dir, 'server.log'), '-w', '-t', '30', '-o', settings, 'start'],
-        { stdio: 'pipe' }
-      );
-      process.env.DATABASE_URL = `postgresql://postgres:${password}@127.0.0.1:${port}/postgres`;
+  // CI's E2E database has already applied 0114. Only this test uses the fresh service.
+  const url = process.env.RELEASE_PHASE_CI_DATABASE_URL ?? originalUrl;
+  assert.ok(url, 'DATABASE_URL must name the disposable PostgreSQL 16 superuser endpoint');
+
+  await withDisposableClient(url, { applicationName: 'foreign_owner_cluster' }, async admin => {
+    const { hostname, port, search, hash } = new URL(url);
+    if (hostname !== '127.0.0.1' || !port || search || hash)
+      throw new Error('The 0114 ownership suite requires an explicit loopback PostgreSQL endpoint');
+
+    const [{ server_version_num: version }] = await admin`SHOW server_version_num`;
+    assert.match(version, /^16\d{4}$/u, 'The 0114 ownership suite requires PostgreSQL 16');
+    const [role] =
+      await admin`SELECT rolsuper FROM pg_catalog.pg_roles WHERE rolname = session_user`;
+    assert.equal(role.rolsuper, true, 'The 0114 ownership suite requires a superuser login');
+    // The maintenance session holds the lock until all cases and their cleanup finish.
+    const [lock] = await admin`SELECT pg_catalog.pg_try_advisory_lock(
+      pg_catalog.hashtextextended('interdomestik:0114-ownership-fixture', 0)
+    ) AS acquired`;
+    assert.equal(lock.acquired, true, 'The 0114 ownership suite already uses this server');
+    assert.deepEqual(await presentRoles(admin), [], 'Fixture roles must be absent on this server');
+
+    process.env.DATABASE_URL = url;
+    try {
       await work();
-    },
-    async () => {
+    } finally {
       if (originalUrl === undefined) delete process.env.DATABASE_URL;
       else process.env.DATABASE_URL = originalUrl;
-      if (existsSync(join(data, 'postmaster.pid'))) {
-        execFileSync(join(bin, 'pg_ctl'), ['-D', data, '-w', '-t', '30', '-m', 'fast', 'stop'], {
-          stdio: 'pipe',
-        });
-      }
-    },
-    'Foreign-owner journal proof and disposable cluster shutdown both failed'
-  );
+    }
+  });
 }
 
 type Inputs = Parameters<typeof withReleaseDatabase>[1];
@@ -115,6 +61,7 @@ export async function withCapabilityDatabase(
         'fixture roles must be absent before creation'
       );
       let database: string | undefined;
+      let roles: Awaited<ReturnType<typeof presentRoles>> = [];
       return withDisposableCleanup(
         () =>
           withReleaseDatabase(
@@ -125,7 +72,15 @@ export async function withCapabilityDatabase(
                 SELECT current_database() AS name
               `;
               database = identity.name;
-              return work(client, fixture);
+              return withDisposableCleanup(
+                () => work(client, fixture),
+                async () => {
+                  // The exclusive cluster started without these names. Record the roles this case
+                  // left behind even if an assertion failed, before its scratch database is removed.
+                  roles = await presentRoles(admin);
+                },
+                'Foreign owner proof and role inventory both failed'
+              );
             }
           ),
         async () => {
@@ -139,8 +94,20 @@ export async function withCapabilityDatabase(
               'remove fixture roles only after the database is gone'
             );
           }
-          for (const { name } of await presentRoles(admin))
-            await admin.unsafe(`DROP ROLE ${quoteIdentifier(name)}`);
+          assert.deepEqual(
+            await presentRoles(admin),
+            roles,
+            'Refusing to drop fixture roles whose identities changed during database teardown'
+          );
+          if (roles.length > 0) {
+            const names = roles.map(({ name }) => quoteIdentifier(name)).join(', ');
+            await admin.unsafe(`DROP ROLE ${names}`);
+          }
+          assert.deepEqual(
+            await presentRoles(admin),
+            [],
+            'Fixture roles must be gone after cleanup'
+          );
         },
         'Foreign owner proof and role cleanup both failed'
       );

@@ -95,12 +95,12 @@ pnpm exec tsx scripts/ci/migration-phase/run.mjs "$candidate_drizzle" recover
 
 ## Guarded PG16 rehearsal
 
-Use a disposable loopback PostgreSQL 16 instance and set `DATABASE_URL` for it. The `0114` ownership suite starts a private loopback cluster for its fixed role names. Set `RELEASE_PHASE_PG16_BIN` to the PostgreSQL 16 server binary directory if it is outside the standard Homebrew or Debian installation paths. Rehearse from the independently reviewed runner checkout on M5. Run the WP-07 rehearsal against the exact #2161 candidate export containing the renumbered pair. Keep the candidate commit, `inspect` output and test result together.
+Use a fresh, exclusively assigned PostgreSQL 16 cluster and set `DATABASE_URL` to its superuser connection at `127.0.0.1` with an explicit port. Set `RELEASE_PHASE_DISPOSABLE_CLUSTER=1` to authorize fixture role creation and cleanup. The `0114` ownership suite runs first because a full journal build creates the same fixed roles. CI supplies a separate fresh service for the ownership suite because it migrates the E2E database before running journal parity. Rehearse from the independently reviewed runner checkout on M5. Run the WP-07 rehearsal against the exact #2161 candidate export containing the renumbered pair. Keep the candidate commit, `inspect` output and test result together.
 
 ```sh
 mac_job=/Users/arbenlila/development/rc31-scratch/verify-scripts/mac-job
 runner_head=$(git rev-parse HEAD)
-REQUIRE_JOURNAL_SCHEMA_PARITY=1 REQUIRE_RELEASE_PHASE_WP07=1 \
+REQUIRE_JOURNAL_SCHEMA_PARITY=1 REQUIRE_RELEASE_PHASE_WP07=1 RELEASE_PHASE_DISPOSABLE_CLUSTER=1 \
   RELEASE_PHASE_CANDIDATE_ROOT="$candidate_export" \
   RELEASE_PHASE_WP07_CANDIDATE="$candidate_drizzle" RELEASE_PHASE_WP07_COMMIT="$candidate_commit" \
   "$mac_job" run pre-check release-phase-pg16 "$PWD" "$runner_head" -- pnpm db:journal:parity

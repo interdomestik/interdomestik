@@ -185,6 +185,16 @@ jobs:
           --health-interval=10s
           --health-timeout=5s
           --health-retries=10
+      release-phase-postgres:
+        image: docker.io/library/postgres:16@sha256:ca0bd484cb98bf4b24eb1010e73fb3fcbd6714d240fbc1a10eea5b7dbecb641d
+        env: { POSTGRES_USER: postgres, POSTGRES_PASSWORD: postgres }
+        ports:
+          - 127.0.0.1:55432:5432
+        options: >-
+          --health-cmd="pg_isready -h 127.0.0.1 -U postgres -d postgres"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
     env:
       # This job owns the synthetic service; never inherit a remote database secret.
       DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:5432/interdomestik_test
@@ -207,6 +217,9 @@ jobs:
         # refusals, and the read-only pilot report (R-13).
         env:
           REQUIRE_JOURNAL_SCHEMA_PARITY: '1'
+          # The E2E database has applied 0114. The ownership proof needs a fresh role namespace.
+          RELEASE_PHASE_DISPOSABLE_CLUSTER: '1'
+          RELEASE_PHASE_CI_DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:55432/postgres
         run: |
           pnpm db:migrate
           if [[ "${{ github.event_name }}" != "pull_request" ]]; then

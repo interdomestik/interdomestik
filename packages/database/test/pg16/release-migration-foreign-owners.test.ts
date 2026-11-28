@@ -37,13 +37,9 @@ import {
 } from './release-foreign-owner.fixture';
 import { assertLedger, assertRefusal } from './release-migration-fixture';
 import { folder, makeJournal } from './release-migration-journal.fixture';
-import { scratchServerMissing } from './scratch-database';
 
 test('PG16 real release CLI enforces the seven 0114 function owners', async t => {
-  const missing = scratchServerMissing('REQUIRE_JOURNAL_SCHEMA_PARITY');
-  if (missing) return t.skip(missing);
-
-  await withForeignOwnerCluster(t, async () => {
+  await withForeignOwnerCluster(async () => {
     await t.test(
       'superuser creator admits the exact 0114–0115 suffix and preserves 0113 recovery',
       async caseTest => {
