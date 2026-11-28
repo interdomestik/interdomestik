@@ -105,11 +105,6 @@ export async function proveDrift(
       lockDefinition().replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION')
         .replace('RETURN FOUND;', 'RETURN false;'),
       lockDefinition().replace('CREATE FUNCTION', 'CREATE OR REPLACE FUNCTION'), codes.definition],
-    ['same routine identity and owner with procedure kind',
-      `${dropLock}; SET LOCAL check_function_bodies = off;
-       ${lockDefinition().replace('CREATE FUNCTION', 'CREATE PROCEDURE').replace(' RETURNS boolean', '')};
-       ALTER PROCEDURE ${lock} OWNER TO ${guard}`,
-      `DROP PROCEDURE ${lock}; ${restoreLock}`, codes.definition],
     ['result drift with the original function body',
       `${dropLock}; SET LOCAL check_function_bodies = off;
        ${lockDefinition().replace(' RETURNS boolean', ' RETURNS text')};
@@ -182,6 +177,34 @@ export async function proveDrift(
         });
       }
     });
+  });
+
+  await t.test('same routine identity and owner with procedure kind', async () => {
+    assert.equal((await fixture.expand()).expandCount, 116);
+    const [{ oid }] = await client<{ oid: string }[]>`
+      SELECT ${lock}::regprocedure::oid::text AS oid
+    `;
+    const readLock = () => client`
+      SELECT p.prokind AS kind, to_jsonb(p) - 'prokind' AS attributes
+      FROM pg_catalog.pg_proc p WHERE p.oid = ${oid}::oid
+    `;
+    const setKind = (from: 'f' | 'p', to: 'f' | 'p') => client`
+      UPDATE pg_catalog.pg_proc SET prokind = ${to}::"char"
+      WHERE oid = ${oid}::oid AND prokind = ${from}::"char"
+    `;
+    const [original] = await readLock();
+    assert.equal(original?.kind, 'f');
+    // Procedure DDL also changes the result type. Edit only the kind in this disposable database.
+    const changed = await setKind('f', 'p');
+    try {
+      assert.equal(changed.count, 1);
+      const [drifted] = await readLock();
+      assert.deepEqual(drifted, { ...original, kind: 'p' });
+      await refuseExpandUnchanged(client, fixture, codes.definition, 116);
+    } finally {
+      assert.equal((await setKind('p', 'f')).count, 1);
+    }
+    assert.equal((await fixture.expand()).expandCount, 116);
   });
 
   await t.test('incoming admin-only edge with the correct member and wrong grantor', async () => {

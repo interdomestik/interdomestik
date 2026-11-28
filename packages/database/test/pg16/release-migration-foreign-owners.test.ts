@@ -267,31 +267,34 @@ test('PG16 real release CLI enforces the seven 0114 function owners', async t =>
       }
     );
 
-    await t.test(
-      '0110 still atomically refuses a populated invalid legacy storage path',
-      async caseTest => {
-        const { dir } = candidate(caseTest);
-        await withCapabilityDatabase(
-          {
-            t: caseTest,
-            dir,
-            prepare: runner =>
-              migrateJournalThrough(runner, folder, '0109_wp19_claim_documents_access_claim_id'),
-          },
-          async (client, fixture) => {
-            await assertLedger(client, fixture.journal, 110);
-            await seedActors(client);
-            const claim = await insertClaim(client);
-            const id = await insertPath(client, 'claim_documents', claim, '/legacy');
-            const row = () => client`SELECT file_path, xmin::text AS row_version
-              FROM public.claim_documents WHERE id = ${id}`;
-            const before = await row();
-            assert.equal(before[0]?.file_path, '/legacy');
-            await refuseExpandUnchanged(client, fixture, 'MIGRATION_SQL_FAILED', 110);
-            assert.deepEqual(await row(), before);
-          }
-        );
-      }
-    );
+    await t.test('0110 atomically rejects an invalid legacy path and retries', async caseTest => {
+      const { dir } = candidate(caseTest);
+      await withCapabilityDatabase(
+        {
+          t: caseTest,
+          dir,
+          prepare: runner =>
+            migrateJournalThrough(runner, folder, '0109_wp19_claim_documents_access_claim_id'),
+        },
+        async (client, fixture) => {
+          await assertLedger(client, fixture.journal, 110);
+          await seedActors(client);
+          const claim = await insertClaim(client);
+          const id = await insertPath(client, 'claim_documents', claim, '/legacy');
+          const row = () => client`SELECT file_path, xmin::text AS row_version
+            FROM public.claim_documents WHERE id = ${id}`;
+          const before = await row();
+          assert.equal(before[0]?.file_path, '/legacy');
+          await refuseExpandUnchanged(client, fixture, 'MIGRATION_SQL_FAILED', 110);
+          assert.deepEqual(await row(), before);
+          const updated = await client`
+            UPDATE public.claim_documents SET file_path = 'legacy' WHERE id = ${id}
+          `;
+          assert.equal(updated.count, 1);
+          assert.equal((await fixture.expand()).expand.tag, '0112_wp07_rate_check_expand');
+          await assertLedger(client, fixture.journal, 113);
+        }
+      );
+    });
   });
 });
