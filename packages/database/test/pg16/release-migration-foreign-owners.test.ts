@@ -266,13 +266,11 @@ test('PG16 real release CLI enforces the seven 0114 function owners', async t =>
         });
       }
     );
-
     await t.test('0110 atomically rejects an invalid legacy path and retries', async caseTest => {
-      const { dir } = candidate(caseTest);
       await withCapabilityDatabase(
         {
           t: caseTest,
-          dir,
+          dir: candidate(caseTest).dir,
           prepare: runner =>
             migrateJournalThrough(runner, folder, '0109_wp19_claim_documents_access_claim_id'),
         },
@@ -287,10 +285,12 @@ test('PG16 real release CLI enforces the seven 0114 function owners', async t =>
           assert.equal(before[0]?.file_path, '/legacy');
           await refuseExpandUnchanged(client, fixture, 'MIGRATION_SQL_FAILED', 110);
           assert.deepEqual(await row(), before);
-          const updated = await client`
-            UPDATE public.claim_documents SET file_path = 'legacy' WHERE id = ${id}
+          const replaced = await client`
+            WITH removed AS (DELETE FROM public.claim_documents WHERE id = ${id} RETURNING claim_documents)
+            INSERT INTO public.claim_documents
+            SELECT (jsonb_populate_record(claim_documents, '{"file_path": "legacy"}')).* FROM removed
           `;
-          assert.equal(updated.count, 1);
+          assert.equal(replaced.count, 1);
           assert.equal((await fixture.expand()).expand.tag, '0112_wp07_rate_check_expand');
           await assertLedger(client, fixture.journal, 113);
         }
