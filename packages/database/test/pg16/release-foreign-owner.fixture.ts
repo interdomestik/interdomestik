@@ -151,14 +151,16 @@ export async function assertCatalog(client: ScratchClient) {
     ORDER BY p.proname
   `;
   assert.equal(rows.length, signatures.length);
-  const statements = source114().split('--> statement-breakpoint');
+  const statements = source114()
+    .split('--> statement-breakpoint')
+    .map(part => part.trimStart().replace(/^(?:--[^\n]*\n\s*)+/u, ''));
   for (const row of rows) {
     const recorded = row.name === 'record_claim_inbound_object_verification';
     const branch = row.name === 'claim_inbound_lock_staff_branch';
     const original = statements.find(part =>
-      part.trimStart().startsWith(`CREATE FUNCTION public.${row.name}(`)
+      part.startsWith(`CREATE FUNCTION public.${row.name}(`)
     );
-    assert.ok(original);
+    assert.ok(original, `Missing 0114 source declaration for ${row.name}`);
     assert.equal(sha256(row.body), sha256(original.split('$$')[1]), row.name);
     assert.deepEqual(
       {

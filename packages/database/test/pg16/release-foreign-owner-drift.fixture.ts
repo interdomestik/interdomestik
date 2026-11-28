@@ -38,11 +38,10 @@ export async function proveDrift(
     SELECT rolname::text AS name FROM pg_catalog.pg_roles WHERE oid = 10
   `;
   const bootstrapRole = quoteIdentifier(bootstrap.name);
-  const createAdminOnly = (member: string, by = bootstrapRole) =>
-    `GRANT ${guard} TO ${member} WITH ADMIN TRUE, INHERIT FALSE, SET FALSE GRANTED BY ${by}`;
-  const revoke = (member: string, by = bootstrapRole) =>
-    `REVOKE ${guard} FROM ${member} GRANTED BY ${by}`;
-  await client.unsafe(`CREATE ROLE ${grantor} NOLOGIN SUPERUSER`);
+  const createAdminOnly = (member: string) =>
+    `GRANT ${guard} TO ${member} WITH ADMIN TRUE, INHERIT FALSE, SET FALSE GRANTED BY ${bootstrapRole}`;
+  const revoke = (member: string) => `REVOKE ${guard} FROM ${member} GRANTED BY ${bootstrapRole}`;
+  await client.unsafe(`CREATE ROLE ${grantor} NOLOGIN`);
   // prettier-ignore
   const cases: Drift[] = [
     ['unlisted foreign function',
@@ -186,10 +185,20 @@ export async function proveDrift(
 
   await t.test('incoming admin-only edge with the correct member and wrong grantor', async () => {
     await fixture.expand();
-    await client.unsafe(createAdminOnly(owner, grantor));
+    const setGrantor = (from: string, to: string) => client`
+      UPDATE pg_catalog.pg_auth_members SET grantor = ${to}::regrole
+      WHERE roleid = ${guard}::regrole AND member = ${owner}::regrole
+        AND grantor = ${from}::regrole
+    `;
+    await client.unsafe(createAdminOnly(owner));
     try {
+      await fixture.expand();
+      // PG16 requires ADMIN for a non-bootstrap grantor. On this disposable cluster, change
+      // just the grantor so a second incoming membership cannot also trigger the refusal.
+      const updated = await setGrantor(bootstrapRole, grantor);
+      assert.equal(updated.count, 1);
       const [wrongGrantor] =
-        await client`SELECT oid::int AS oid FROM pg_roles WHERE rolname = ${grantor}`;
+        await client`SELECT oid::int AS oid FROM pg_catalog.pg_roles WHERE rolname = ${grantor}`;
       assert.deepEqual(await memberships(client), [
         {
           owner: guard,
@@ -202,7 +211,9 @@ export async function proveDrift(
       ]);
       await refuseExpandUnchanged(client, fixture, codes.role, 116);
     } finally {
-      await client.unsafe(revoke(owner, grantor));
+      await setGrantor(grantor, bootstrapRole);
+      await client.unsafe(revoke(owner));
+      assert.deepEqual(await memberships(client), []);
     }
   });
 
