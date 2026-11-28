@@ -9,7 +9,12 @@ import {
   sponsorTrailingTag,
 } from '../../src/release-sponsor-checkpoint';
 import type { SponsorExpandOptions } from '../../src/release-sponsor-expand';
-import { assertLedger, assertRefusal, withReleaseDatabase } from './release-migration-fixture';
+import {
+  assertLedger,
+  assertRefusal,
+  releasePhaseDatabaseUrl,
+  withReleaseDatabase,
+} from './release-migration-fixture';
 import { folder, policy, workspace } from './release-migration-journal.fixture';
 import { prefix, stageJournal, withGrantsRole } from './wp16-1-runtime-grants.test-support';
 
@@ -77,7 +82,7 @@ function assertCheckpoint(records: EvidenceRecord[]) {
 }
 
 test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidence', async t => {
-  await withGrantsRole(t, async () => {
+  async function checkOwnerExpand() {
     await t.test(
       'fresh target supplies missing 0105 grants at the verified checkpoint',
       async t => {
@@ -199,5 +204,7 @@ test('PG16 owner expand runs the WP-16.1 checkpoint and retains rollback evidenc
         }
       );
     }
-  });
+  }
+
+  await withGrantsRole(t, checkOwnerExpand, releasePhaseDatabaseUrl());
 });

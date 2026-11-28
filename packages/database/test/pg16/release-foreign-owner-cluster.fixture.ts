@@ -3,7 +3,7 @@ import { randomBytes } from 'node:crypto';
 import { withDisposableCleanup, withDisposableClient } from '../../src/disposable-client';
 import { quoteIdentifier } from '../rls-test-connection';
 import { dedicated, presentRoles, runtime } from './release-foreign-owner.fixture';
-import { withReleaseDatabase } from './release-migration-fixture';
+import { releasePhaseDatabaseUrl, withReleaseDatabase } from './release-migration-fixture';
 import { policy } from './release-migration-journal.fixture';
 import type { ScratchClient } from './scratch-database';
 
@@ -13,8 +13,7 @@ export async function withForeignOwnerCluster(work: () => Promise<void>) {
     'The 0114 ownership suite creates cluster roles. Set RELEASE_PHASE_DISPOSABLE_CLUSTER=1 only for an exclusively assigned disposable PostgreSQL 16 server.'
   );
   const originalUrl = process.env.DATABASE_URL;
-  // CI's E2E database has already applied 0114. Only this test uses the fresh service.
-  const url = process.env.RELEASE_PHASE_CI_DATABASE_URL ?? originalUrl;
+  const url = releasePhaseDatabaseUrl();
   assert.ok(url, 'DATABASE_URL must name the disposable PostgreSQL 16 superuser endpoint');
 
   await withDisposableClient(url, { applicationName: 'foreign_owner_cluster' }, async admin => {
