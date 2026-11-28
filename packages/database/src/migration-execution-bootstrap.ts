@@ -4,31 +4,19 @@ import {
   MigrationExecutionFault,
   type MigrationExecutionSql,
 } from './migration-execution-contracts';
-type PublicProbe = Readonly<{
+
+export type PublicProbe = Readonly<{
   pid: number;
   public_count: number;
   owner_ok: boolean | null;
   acl_ok: boolean | null;
-  foreign_owner_count: number;
+  foreign_nonroutine_count: number;
+  foreign_routine_count: number;
   collision_count: number;
 }>;
 
-function validPublic(row: PublicProbe | undefined, expectedPid: number): boolean {
-  return Boolean(
-    row?.pid === expectedPid &&
-    row.public_count === 1 &&
-    row.owner_ok === true &&
-    row.acl_ok === true &&
-    row.foreign_owner_count === 0 &&
-    row.collision_count === 0
-  );
-}
-
-export async function validatePublicSchema(
-  sql: MigrationExecutionSql,
-  expectedPid: number
-): Promise<void> {
-  const rows = await sql<PublicProbe[]>`
+export function queryPublicSchema(sql: MigrationExecutionSql) {
+  return sql<PublicProbe[]>`
     WITH public_schema AS MATERIALIZED (
       SELECT n.oid FROM pg_catalog.pg_namespace n WHERE n.nspname = 'public'
     ), migration_role AS MATERIALIZED (
@@ -38,8 +26,6 @@ export async function validatePublicSchema(
         WHERE o.relnamespace = s.oid AND o.relowner <> r.oid
       UNION ALL SELECT o.oid FROM pg_catalog.pg_type o, public_schema s, migration_role r
         WHERE o.typnamespace = s.oid AND o.typowner <> r.oid
-      UNION ALL SELECT o.oid FROM pg_catalog.pg_proc o, public_schema s, migration_role r
-        WHERE o.pronamespace = s.oid AND o.proowner <> r.oid
       UNION ALL SELECT o.oid FROM pg_catalog.pg_operator o, public_schema s, migration_role r
         WHERE o.oprnamespace = s.oid AND o.oprowner <> r.oid
       UNION ALL SELECT o.oid FROM pg_catalog.pg_collation o, public_schema s, migration_role r
@@ -57,54 +43,42 @@ export async function validatePublicSchema(
     ), collisions(object_oid) AS (
       SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_class p ON p.relnamespace = s.oid
         JOIN pg_catalog.pg_class c ON c.relname = p.relname
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.relnamespace AND n.nspname = 'pg_catalog'
       UNION ALL SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_type p ON p.typnamespace = s.oid
         JOIN pg_catalog.pg_type c ON c.typname = p.typname
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.typnamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.typnamespace AND n.nspname = 'pg_catalog'
       UNION ALL SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_proc p ON p.pronamespace = s.oid
         JOIN pg_catalog.pg_proc c ON c.proname = p.proname AND c.proargtypes = p.proargtypes
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.pronamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.pronamespace AND n.nspname = 'pg_catalog'
       UNION ALL SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_operator p ON p.oprnamespace = s.oid
         JOIN pg_catalog.pg_operator c ON c.oprname = p.oprname
           AND c.oprleft = p.oprleft AND c.oprright = p.oprright
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.oprnamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.oprnamespace AND n.nspname = 'pg_catalog'
       UNION ALL SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_collation p ON p.collnamespace = s.oid
         JOIN pg_catalog.pg_collation c ON c.collname = p.collname
           AND c.collencoding = p.collencoding
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.collnamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.collnamespace AND n.nspname = 'pg_catalog'
       UNION ALL SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_conversion p ON p.connamespace = s.oid
         JOIN pg_catalog.pg_conversion c ON c.conname = p.conname
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.connamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.connamespace AND n.nspname = 'pg_catalog'
       UNION ALL SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_opclass p ON p.opcnamespace = s.oid
         JOIN pg_catalog.pg_opclass c ON c.opcname = p.opcname AND c.opcmethod = p.opcmethod
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.opcnamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.opcnamespace AND n.nspname = 'pg_catalog'
       UNION ALL SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_opfamily p ON p.opfnamespace = s.oid
         JOIN pg_catalog.pg_opfamily c ON c.opfname = p.opfname AND c.opfmethod = p.opfmethod
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.opfnamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.opfnamespace AND n.nspname = 'pg_catalog'
       UNION ALL SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_ts_config p ON p.cfgnamespace = s.oid
         JOIN pg_catalog.pg_ts_config c ON c.cfgname = p.cfgname
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.cfgnamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.cfgnamespace AND n.nspname = 'pg_catalog'
       UNION ALL SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_ts_dict p ON p.dictnamespace = s.oid
         JOIN pg_catalog.pg_ts_dict c ON c.dictname = p.dictname
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.dictnamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.dictnamespace AND n.nspname = 'pg_catalog'
       UNION ALL SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_ts_parser p ON p.prsnamespace = s.oid
         JOIN pg_catalog.pg_ts_parser c ON c.prsname = p.prsname
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.prsnamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.prsnamespace AND n.nspname = 'pg_catalog'
       UNION ALL SELECT p.oid FROM public_schema s JOIN pg_catalog.pg_ts_template p ON p.tmplnamespace = s.oid
         JOIN pg_catalog.pg_ts_template c ON c.tmplname = p.tmplname
-        JOIN pg_catalog.pg_namespace n ON n.oid = c.tmplnamespace
-        WHERE n.nspname = 'pg_catalog'
+        JOIN pg_catalog.pg_namespace n ON n.oid = c.tmplnamespace AND n.nspname = 'pg_catalog'
     )
     SELECT pg_catalog.pg_backend_pid()::int AS pid,
       count(*)::int AS public_count,
@@ -122,11 +96,37 @@ export async function validatePublicSchema(
             ELSE pg_catalog.pg_has_role(r.oid, n.nspowner, 'MEMBER') END IS NOT TRUE
           AND pg_catalog.has_schema_privilege(r.oid, n.oid, 'CREATE') IS NOT FALSE
       )) AS acl_ok,
-      (SELECT count(*)::int FROM foreign_owned) AS foreign_owner_count,
+      (SELECT count(*)::int FROM foreign_owned) AS foreign_nonroutine_count,
+      (SELECT count(*)::int FROM pg_catalog.pg_proc p, public_schema s, migration_role r
+        WHERE p.pronamespace = s.oid AND p.proowner <> r.oid) AS foreign_routine_count,
       (SELECT count(*)::int FROM collisions) AS collision_count
     FROM pg_catalog.pg_namespace n WHERE n.nspname = 'public'
   `;
-  if (!validPublic(rows[0], expectedPid))
+}
+
+export function requirePublicSchema<Row extends PublicProbe>(
+  rows: readonly Row[],
+  expectedPid: number
+) {
+  const [row] = rows;
+  if (
+    rows.length !== 1 ||
+    row?.pid !== expectedPid ||
+    row.public_count !== 1 ||
+    row.owner_ok !== true ||
+    row.acl_ok !== true ||
+    ![row.foreign_nonroutine_count, row.foreign_routine_count].every(
+      count => Number.isSafeInteger(count) && count >= 0
+    ) ||
+    row.collision_count !== 0
+  )
+    throw new MigrationExecutionFault('MIGRATION_EXECUTION_PUBLIC_SCHEMA_REJECTED');
+  return row;
+}
+
+export async function validatePublicSchema(sql: MigrationExecutionSql, expectedPid: number) {
+  const row = requirePublicSchema(await queryPublicSchema(sql), expectedPid);
+  if (row.foreign_nonroutine_count !== 0 || row.foreign_routine_count !== 0)
     throw new MigrationExecutionFault('MIGRATION_EXECUTION_PUBLIC_SCHEMA_REJECTED');
 }
 
