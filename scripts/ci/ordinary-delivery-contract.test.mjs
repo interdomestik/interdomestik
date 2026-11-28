@@ -69,19 +69,66 @@ test('ordinary delivery does not require ritual companion PRs or collapse delive
   const r01 = r01Lines.slice(0, r01EndLine).join('\n');
   assert.ok(
     r01.includes(
-      '- **Merging by the lead** (owner, 2026-11-21: "Bej ti merging" ["You do the merging"]; procedure updated 2026-11-28). The lead may merge only when the PR is up to date with `main` and its exact head has every required check green, including `delivery-gate`, the required YES verdicts with no open finding, and the tier\'s recorded local verification under R-04. The PR records who merged, the head, each reviewer and model actually served, the tier and the evidence. The owner may merge. No other agent merges. No agent bypasses a ruleset or force-pushes. Releases, deploys, repins, boundary authorizations and staging and production writes stay with the owner (R-24, R-37).\n'
+      '- **Merging by the lead** (owner, 2026-11-21: "Bej ti merging" ["You do the merging"]; procedure updated 2026-11-28). The lead may merge only when the PR is up to date with `main` and its exact head has every required check green, including `delivery-gate`, the required YES verdicts with no open finding, and the tier\'s recorded local verification under R-04. The PR records who merged, the head, each reviewer and model actually served, the tier and the evidence. The owner may merge. No other agent merges. No agent bypasses a ruleset or force-pushes. Releases, deploys, repins and writes to staging or production stay with the owner (R-24). Boundary authorization follows R-37.\n'
     )
   );
   assert.match(tracker, /No deployment, product readiness or user-acceptance claim/u);
 });
 
 test('Astra approves the exact local head before push', () => {
-  assert.match(agents, /^- R-01 .*`PREPUSH-OK`\), get R-02 YES, push\./mu);
+  assert.match(agents, /^- R-01 .*Run M5 to `PREPUSH-OK`, get R-02 YES, push\./mu);
   assert.match(agents, /^- R-02 .*reviews the exact local head once pre-push, then deltas\./mu);
   assert.match(
     section(rules, '### R-01 — Who implements, who reviews'),
     / 4\. Obtain one Astra YES on the exact local head before any push, subject to R-02's skips\. Later changes get an Astra delta review under R-02\. 5\. Push\b/u
   );
+});
+
+test('Debate retains its three triggers, owner escalation and owner-only operations', () => {
+  const agentsDebate = agents.match(/^- Debate\. .+$/mu)?.[0];
+  const rulesDebate = section(rules, '### R-02 — When Astra is used').match(
+    /- \*\*Debate\*\* .*?(?= - \*\*|$)/u
+  )?.[0];
+  const contracts = [
+    {
+      file: 'AGENTS.md',
+      passage: agentsDebate,
+      clauses: [
+        'only for Astra/lead disagreement on a HIGH PR',
+        'a HIGH design with real alternatives',
+        'two consecutive NOs on one point',
+        'Unresolved boundary disputes go to the owner',
+        'R-24/R-25 owner operations excluded',
+      ],
+    },
+    {
+      file: 'RULES.md',
+      passage: rulesDebate,
+      clauses: [
+        'only for disagreement between Astra and the Claude lead on a HIGH PR',
+        'a HIGH design with real alternatives',
+        'two consecutive NOs on the same point',
+        "Send an unresolved boundary disagreement to the owner with both positions and the lead's recommendation",
+        'Repins, staging and production writes, secrets, imports and invitations remain owner operations under R-24 and R-25 and are excluded from Debate approval',
+      ],
+    },
+  ];
+  for (const { file, passage, clauses } of contracts) {
+    assert.ok(passage, `Missing Debate passage in ${file}`);
+    const assertClauses = text => {
+      for (const clause of clauses) {
+        assert.ok(text.includes(clause), `${file} Debate must retain: ${clause}`);
+      }
+    };
+
+    assertClauses(passage);
+    for (const clause of clauses) {
+      const mutant = passage.replace(clause, '');
+      assert.throws(() => assertClauses(mutant), {
+        message: `${file} Debate must retain: ${clause}`,
+      });
+    }
+  }
 });
 
 test('ordinary governance reduction preserves required verification and security boundaries', () => {
