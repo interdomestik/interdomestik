@@ -11,6 +11,7 @@ const section = (text, heading) => {
 };
 
 const agents = read('AGENTS.md');
+const rules = read('docs/engineering/RULES.md');
 const program = read('docs/plans/current-program.md');
 const tracker = read('docs/plans/current-tracker.md');
 // AGENTS.md holds the Definition of Done (R-04) in section 3 and the size policy (R-10) in section 6; the program
@@ -55,7 +56,6 @@ test('ordinary delivery does not require ritual companion PRs or collapse delive
   assert.doesNotMatch(agents, /\b(?:agents?|tools?) (?:may|can) merge/iu);
   // The conditions under which the lead merges bind as written in R-01's passage "Merging by the lead" (RULES.md,
   // named by AGENTS.md R-01): the whole passage is pinned inside R-01, so moving or trimming it fails.
-  const rules = read('docs/engineering/RULES.md');
   const r01Start = rules.indexOf('### R-01 ');
   assert.notEqual(r01Start, -1, 'RULES.md must hold R-01');
   // R-01 ends at the next Markdown heading of the same or a higher level: an ATX heading of one to three
@@ -73,6 +73,15 @@ test('ordinary delivery does not require ritual companion PRs or collapse delive
     )
   );
   assert.match(tracker, /No deployment, product readiness or user-acceptance claim/u);
+});
+
+test('Astra approves the exact local head before push', () => {
+  assert.match(agents, /^- R-01 .*`PREPUSH-OK`\), get R-02 YES, push\./mu);
+  assert.match(agents, /^- R-02 .*reviews the exact local head once pre-push, then deltas\./mu);
+  assert.match(
+    section(rules, '### R-01 — Who implements, who reviews'),
+    / 4\. Obtain one Astra YES on the exact local head before any push, subject to R-02's skips\. Later changes get an Astra delta review under R-02\. 5\. Push\b/u
+  );
 });
 
 test('ordinary governance reduction preserves required verification and security boundaries', () => {

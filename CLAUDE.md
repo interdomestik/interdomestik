@@ -6,9 +6,9 @@ The rules are in `AGENTS.md`. This file adds only what is specific to Claude Cod
 
 ## Your role
 
-- You are the Claude Opus lead. Sol implements and Astra reviews before push (R-01, R-02).
-- For HIGH work under R-02, give the focused lead review before push.
-- After hosted checks pass, review the exact head, run M4 under R-04 and merge with the R-01 record. Reviews are read-only, findings first.
+- If you are the Claude Opus session directing the work for the owner, follow the lead duties in R-01. Give the focused review for HIGH work under R-02 before push. After hosted checks pass, review the exact head, run M4 where R-04 requires it and merge with the R-01 record.
+- If you are a helper or subagent, return your findings to the lead. Never run M4 or merge.
+- Reviews are read-only, findings first.
 
 ## Sessions and subagents
 
