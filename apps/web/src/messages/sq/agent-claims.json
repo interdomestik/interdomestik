@@ -20,9 +20,15 @@
       "staff_queue": {
         "subtitle": "Çfarë ka nevojë për veprim sot.",
         "results_count": "{count, plural, one {# rast} other {# raste}}",
+        "results_count_search": "{count, plural, one {# rast} other {# raste}} për “{search}”",
+        "results_filters_one": "Filtrat: {first}",
+        "results_filters_two": "Filtrat: {first} dhe {second}",
+        "results_filters_three": "Filtrat: {first}, {second} dhe {third}",
+        "search_label": "Kërkimi i rasteve",
         "search_placeholder": "Kërko rast, anëtar, kompani ose numër",
         "search": "Kërko",
         "clear_search": "Pastro",
+        "clear_filters": "Hiqi filtrat",
         "pending_search": "Duke kërkuar rastet...",
         "pending_filter": "Duke përditësuar filtrat...",
         "assignment_filter_label": "Filtri i caktimit",
@@ -62,14 +68,18 @@
           "diaspora": "Diaspora / Kartoni i Gjelbër"
         },
         "table": {
+          "reference": "Referenca e rastit",
           "claim": "Rasti",
           "member": "Anëtari",
           "status_stage": "Statusi + faza",
           "updated": "Përditësuar",
+          "assignment": "Caktimi",
+          "next_step": "Hapi i radhës",
           "action": "Veprimi",
           "no_claim_number": "Pa numër rasti",
           "no_company": "Nuk ka kompani të dhënë",
-          "no_member_number": "Pa numër anëtarësie"
+          "no_member_number": "Pa numër anëtarësie",
+          "unavailable": "Nuk disponohet"
         },
         "origin_badge": "Diaspora / Kartoni i Gjelbër"
       },

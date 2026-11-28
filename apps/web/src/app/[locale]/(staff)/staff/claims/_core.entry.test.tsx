@@ -108,7 +108,7 @@ vi.mock('next-intl/server', () => ({
           catalog?.['agent-claims'].claims
         );
       return typeof value === 'string'
-        ? value.replace(/\{(name|date)\}/g, (_, field: string) => String(values?.[field] ?? ''))
+        ? value.replace(/\{(\w+)\}/g, (_, field: string) => String(values?.[field] ?? ''))
         : key;
     }
   ),
@@ -165,6 +165,7 @@ describe('StaffClaimsPage', () => {
         .authority
     ).toBe(authority);
     expect(screen.getByTestId('staff-page-ready')).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent(/Acme.*Unassigned/);
     expect(hoisted.getAssignedStaffClaimAttentionMock).not.toHaveBeenCalled();
   });
 
