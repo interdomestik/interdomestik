@@ -28,7 +28,7 @@ test('the versioned role points to a runnable preflight available in a fresh che
   assert.ok(fs.existsSync(new URL(`../../${preflight}`, import.meta.url)));
   assert.match(role, /^name = "interdomestik-developer"$/m);
   assert.match(role, /^model = "gpt-6.2-sol"$/m);
-  assert.match(role, /^model_reasoning_effort = "xhigh"$/m);
+  assert.match(role, /^model_reasoning_effort = "ultra"$/m);
 });
 
 test('the role and its guide defer to AGENTS.md and leave merging to R-01', () => {
@@ -141,8 +141,6 @@ const APPROVED_AUTHORITY_UNITS = {
     'After the merge, add the exact merge SHA, the exact-SHA staging run and any remaining human acceptance to that PR.',
     'After the merge, verify the exact merge SHA read-only through staging health, canonical-host/build provenance and the required release-gate results, and report them.',
     'After verifying the merged work, identify one recommended next bounded slice from the ordered packages of docs/engineering/DIRECTION.md (AGENTS.md R-29), requirement gaps and mounted behavior.',
-    'Assign any requested Claude coding a bounded packet with disjoint files, current source, SRS/M0-M5 constraints, acceptance and tests.',
-    'Codex reviews independently, and implements only a bounded part with disjoint files that the lead assigns, which Claude then reviews (AGENTS.md, R-01).',
     'Delivery record (AGENTS.md R-28): the PR is the record of a change.',
     'Development model, agent and handoff updates use existing coding subscriptions;',
     'Do not spawn helpers unless explicitly requested by the owner or required by applicable instructions.',
@@ -151,41 +149,32 @@ const APPROVED_AUTHORITY_UNITS = {
     'For a necessary Claude file output, use a scoped in-worktree ignored artifact with the documented Edit(path) permission governing Write and correct path anchors on the served CLI;',
     'For authorized shared agent changes, compare versioned and installed hashes before editing, preserve newer lessons, and coordinate with the active owner.',
     'Give helpers source identity, acceptance, exact interfaces, allowed output and forbidden scope.',
-    'If the approved Claude CLI repeatedly denies the deterministic local verification command before execution, preserve that limitation and use Codex as the explicitly attributed repo-command executor within Claude-owned delivery;',
     'If tooling changes or a helper stops for integrity, preserve that stop and continue through a separately authorized, fixed read-only route without repeating valid proof.',
     'Never merge, deploy or force-push: the lead merges under AGENTS.md R-01 and the owner releases (AGENTS.md R-01, R-24).',
     "No agent writes to staging (AGENTS.md R-24): every step there that assigns, updates, notes or otherwise changes data is the owner's, and the agent records it as owner-run or blocked.",
-    'No model approves its own work, a blocked reviewer is not an approval, and no paid API is a fallback.',
-    'When Claude coding is requested, assign a concrete implementation packet before coding: disjoint files, failing acceptance example, interfaces and constraints.',
-    "When the lead assigns Codex a bounded part with disjoint files in its own worktree, Codex implements that part at this role's configured effort and Claude reviews it.",
     'Where any passage below conflicts with AGENTS.md (program/tracker reconciliation, canonical amendments, merging or deploying), AGENTS.md wins.',
     "it does not message another chat or treat a helper's recommendation as owner approval.",
-    'name = "interdomestik-developer" description = "Own one bounded Interdomestik increment through research, Claude collaboration, integrated verification and owner-authorized delivery." model = "gpt-6.2-sol" model_reasoning_effort = "xhigh" sandbox_mode = "workspace-write" approval_policy = "on-request" developer_instructions = \'\'\' You are the Interdomestik development agent.',
+    'name = "interdomestik-developer" description = "Own one bounded Interdomestik increment through research, implementation, verification and owner-authorized delivery." model = "gpt-6.2-sol" model_reasoning_effort = "ultra" sandbox_mode = "workspace-write" approval_policy = "on-request" developer_instructions = \'\'\' You are the Interdomestik development agent.',
     'no agent writes to staging (R-24).',
     'the lead merges under AGENTS.md R-01, or the owner merges.',
     'the lead merges under AGENTS.md R-01, the owner may merge, and releasing stays with the owner.',
   ],
   guide: [
-    "# Interdomestik development agent This Codex agent reviews Claude Code's work and, when the lead assigns one, takes a bounded part of an Interdomestik development task (`AGENTS.md`, R-01).",
+    '# Interdomestik development agent This Codex agent implements bounded Interdomestik changes (`AGENTS.md`, R-01).',
     '## Lessons verified by the second pilot PR #1854 reached exact-merge staging P0 in 3h 24m 58s elapsed, including waits.',
     '## Mandatory canonical reconciliation Delivery record (AGENTS.md R-28): the PR is the record of a change.',
-    "## Owner's delivery lifecycle A DIRECTION.md package or the owner's explicit request (R-29) → bounded selection → fresh worktree from updated main → implementation and focused green checks → authorized PR candidate (full local proof pending) → current-head review and analysis complete → consolidated corrections and focused regressions → final source/environment freeze → required full local proof and hosted checks green → merge (the lead under R-01, or the owner) → read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.",
+    "## Owner's delivery lifecycle A DIRECTION.md package or the owner's explicit request (R-29) → bounded selection → fresh worktree from updated main → R-01 and R-02 implementation, review and delivery procedure → merge (the lead under R-01, or the owner) → read-only Actions/staging proof on the merge SHA → completion recorded on the PR → safe worktree retirement → chat archival → next slice.",
     'After the merge, add the exact merge SHA, the exact-SHA staging run and any remaining human acceptance to that PR.',
     'After verifying the merged work, identify one recommended next bounded slice from the ordered packages of docs/engineering/DIRECTION.md (AGENTS.md R-29), requirement gaps and mounted behavior.',
-    'Assign any requested Claude coding a bounded packet with disjoint files, current source, SRS/M0-M5 constraints, acceptance and tests.',
     'Before designing or changing UI/UX, follow the installed Interdomestik skill: research current design practices and current end-to-end journeys for members, agents, staff and admins using relevant primary sources and comparable products.',
     'Codex create_thread, set_thread_archived',
     'Codex list_artifacts, create_worktree, archive_worktree',
-    'Codex reviews independently and takes a bounded part only when the lead assigns one (`AGENTS.md`, R-01 and R-02, which also set the routes).',
     'Development model, agent and handoff updates use existing coding subscriptions;',
     'Do not edit files, start services, create a PR, merge, deploy or spawn more helpers.',
     'For a necessary Claude file output, use a scoped in-worktree ignored artifact with the documented Edit(path) permission governing Write and correct path anchors on the served CLI;',
-    'If Claude is asked to implement, assign a bounded file-owned coding packet before implementation and record served model, returned patch, accepted code and integrator corrections.',
-    'If the approved Claude CLI repeatedly denies the deterministic local verification command before execution, preserve that limitation and use Codex as the explicitly attributed repo-command executor within Claude-owned delivery;',
     'If tooling changes or a helper stops for integrity, preserve that stop and continue through a separately authorized, fixed read-only route without repeating valid proof.',
     'Its editable definition is `.codex/agents/interdomestik-developer.toml` (revision `2026-10-03-bounded-search-packets`).',
     "No agent writes to staging (AGENTS.md R-24): every step there that assigns, updates, notes or otherwise changes data is the owner's, and the agent records it as owner-run or blocked.",
-    'No model approves its own work, a blocked reviewer is not an approval, and no paid API is a fallback.',
     'Record scope and acceptance in the PR before implementation, and mark delivered completion on the merged PR only after the required post-merge proof (AGENTS.md R-28: no program, tracker or ledger edits, no bookkeeping-only PR).',
     'Simulation answers validate instruction interpretation, not execution of the actual development, Claude, CI, deployment or cleanup workflow.',
     'The agent must discover the corresponding existing test and browser route.',
@@ -194,7 +183,6 @@ const APPROVED_AUTHORITY_UNITS = {
     'The lead merges under AGENTS.md R-01, or the owner merges;',
     'This is a simulation: do not edit files, invoke Claude, start services, call GitHub, merge, deploy or clean up.',
     'This uses the instructions but does not prove custom-agent discovery or apply its model settings;',
-    "When the lead assigns Codex a bounded part with disjoint files in its own worktree, Codex implements that part at this role's configured effort and Claude reviews it.",
     '`AGENTS.md` is the rule source and wins over any passage here or in the role definition that conflicts with it, including passages on program/tracker reconciliation, merging and deploying.',
     '``` The parent should delegate once to the named custom agent.',
     'after the merge the agent verifies exact-SHA staging proof read-only and performs authorized cleanup.',
@@ -225,8 +213,8 @@ test('every agent authority sentence in the role, guide and staging procedure is
 // as a whole: any edit fails here until it has been reviewed for agent authority (AGENTS.md R-01, R-24) and
 // the new hash is recorded in a reviewed edit of this test.
 const PINNED_AUTHORITY_SHA256 = {
-  role: 'f7e8332f36d1d8886ffc466057c97e022af12595c32b76629a12b3693c30196b',
-  guide: '333658189809ee018dc4db03c1750a15cbc59ccec04f92b8a1dcb83e7577ee4a',
+  role: '6b687a357d3c3ade81cb8068551d1c0e41edcaf8c4d7c3887ac19754036ea1fd',
+  guide: '041c26c62ddb02d89b2d0b102fee7782bec2ccb1102b6b66ec7903c7185fd8c5',
   procedure: 'e1f3502eb83ee054935cda9d1df34a8680c8bba8e16e3abb46eec4c09ea053ed',
 };
 

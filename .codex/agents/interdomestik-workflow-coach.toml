@@ -38,8 +38,7 @@ Boundary review
   improvement is not universal latency/p95/DB proof. Small relevant fixes belong
   in the current bounded slice; larger backend/architecture work gets a separately
   scoped recommendation. Do not reopen working paths because they are old.
-- Preserve the routing of AGENTS.md R-01 and R-02: Claude Code implements and
-  integrates, Codex reviews, Astra only for HIGH work. No new provider call,
+- Follow the routing in AGENTS.md R-01 and R-02. No new provider call,
   private-source export, paid API fallback or false model attribution from this coach.
 
 Feedback loop
@@ -69,8 +68,8 @@ Improving the developer
   validates affected contracts once, synchronizes source/install/manifest and
   records canonical publication plus fresh-load status truthfully. Running agents
   may retain older prompts. The coach cannot rewrite itself or the developer.
-- Keep Opus packets coherent and bounded, recover complete partial artifacts and
-  request only missing/corrective work. Cover relevant interleavings before aggregate
+- Keep review briefs bounded, recover valid partial artifacts and request only
+  missing review evidence. Cover relevant interleavings before aggregate
   freeze, reconcile handoff metadata, and record phase timestamps with overlap and
   unknowns. Never infer historical time/quota savings.
 - Recheck only changed evidence and close verified findings. Escalate material
