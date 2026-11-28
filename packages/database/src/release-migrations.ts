@@ -1,5 +1,10 @@
 import { bootstrapMigrationLedger, validatePublicSchema } from './migration-execution-bootstrap';
 import { inspectMigrationLedgerCatalog } from './migration-ledger-catalog';
+import {
+  checkReleaseOwnerAnchor,
+  checkReleaseOwnerPrefix,
+  observeReleasePublicSchema,
+} from './release-foreign-owner-admissions';
 import { consumeReleaseAttempt, verifyBackend } from './release-migration-catalog';
 import { readReleaseJournal, sha256, type JournalEntry } from './release-migration-journal';
 import { verifyReleaseShape } from './release-migration-shape';
@@ -149,6 +154,7 @@ export async function runReleaseMigrations(
   request: Request,
   scratch: boolean
 ) {
+  const containsAdmission = checkReleaseOwnerAnchor(journal.entries);
   const plan =
     request.mode === 'expand'
       ? null
@@ -166,13 +172,23 @@ export async function runReleaseMigrations(
   const [{ pid }] = await sql<{ pid: number }[]>`
     SELECT pg_catalog.pg_advisory_lock(673167055, -773281837), pg_catalog.pg_backend_pid() AS pid
   `;
+  const [{ major }] = await sql<{ major: number }[]>`
+    SELECT pg_catalog.current_setting('server_version_num')::int / 10000 AS major
+  `;
+  if (major !== 16 && (major !== 15 || containsAdmission))
+    throw new Error('ADMIN_DB_PREFLIGHT_VERSION_REJECTED');
+
   const verifyAuthority = async () => {
     await verifyBackend(sql, backendMarkerSha256);
+    if (major === 16) return observeReleasePublicSchema(sql, pid);
     await validatePublicSchema(sql, pid);
+    return null;
   };
   const inspect = async (readOnly = false) => {
-    await verifyAuthority();
-    return readLedger(sql, journal.entries, readOnly);
+    const identities = await verifyAuthority();
+    const ledger = await readLedger(sql, journal.entries, readOnly);
+    if (identities !== null) checkReleaseOwnerPrefix(identities, ledger.count);
+    return ledger;
   };
   const checkShape = (count: number) =>
     runSequentially(journal.contracts, async idx => {

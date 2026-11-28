@@ -22,6 +22,8 @@ The release runner's internal `scripts/ci/migration-phase/safe-codes.json` lists
 
 The internal `src/release-migration-journal.ts` reads and validates the candidate journal against the pinned phase registry. `src/release-migrations.ts` re-exports the journal reader and coordinates phase execution. The journal-parity lane runs the synthetic phase and WP-07 candidate suites using shared journal, CLI and approval fixtures.
 
+The internal `src/release-foreign-owner-admissions.ts` pins the exact `0114` entry and its seven function definitions. On the qualified PG16 owner CLI path, the public catalog probe checks the two dedicated owners, their memberships and cluster-wide ownership dependencies. The runner requires zero of the pinned identities through `0113` and all seven once the verified ledger includes `0114`. The generic migration kernel and pre-boundary PG15 release candidates retain the zero-foreign-owner probe. No package export or migration supplies admission policy.
+
 The internal `src/release-migration-path.mts` confines journal and runner inputs to their declared roots after resolving symlinks. Contract deployment attestation uses the exact immutable HTTPS hostnames pinned in the owner configuration and refuses redirects.
 
 ## Public API

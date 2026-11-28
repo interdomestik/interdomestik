@@ -135,13 +135,14 @@ export async function stageJournal(
 
 export async function withGrantsRole(
   t: TestContext,
-  work: (maintenance: DisposableClient) => Promise<void>
+  work: (maintenance: DisposableClient) => Promise<void>,
+  adminUrl = process.env.DATABASE_URL ?? ''
 ): Promise<void> {
-  const missing = scratchServerMissing('REQUIRE_JOURNAL_SCHEMA_PARITY');
+  const missing = scratchServerMissing('REQUIRE_JOURNAL_SCHEMA_PARITY', adminUrl);
   if (missing) return t.skip(missing);
 
   await withDisposableClient(
-    process.env.DATABASE_URL!,
+    adminUrl,
     { applicationName: 'wp16_grants_role' },
     async maintenance => {
       // Other journal-parity files run serially and must have a role-less cluster. Never drop a

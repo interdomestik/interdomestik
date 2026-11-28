@@ -198,12 +198,12 @@ export const PINNED_ADAPTERS = Object.freeze({
   'packages/database/test/pg16/wp16-1-runtime-grants-rollback.ts':
     '6258d2d74249ef7d2ded720aed02a4d00b4d5cf5f29721f67b3cd53726b4a2ce',
 });
-
+// The WP-16.1 role fixture accepts the dedicated PG16 release endpoint through the same guard.
 const PINNED_GUARDED = Object.freeze({
   'packages/database/test/pg16/wp16-1-runtime-grants-opt-out.ts':
     '0696b586fb32ff7921edce55a8c8924e3129c78b4070aa0f48e3b5101bd038b0',
   'packages/database/test/pg16/wp16-1-runtime-grants.test-support.ts':
-    '8c76eb956bee26eddcfe88e409e6bb6813cbb3656d09b37ba6e21b8b6b4fdb39',
+    '8c4beff8123e1c8b80ace10eeb3492c6285bd08a8731ac17b15cfda75ff54c2c',
 });
 // The release entry point applies journaled migrations through admin connection preflight.
 const PINNED_RELEASE_MIGRATIONS = Object.freeze({

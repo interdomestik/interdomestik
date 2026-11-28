@@ -15,8 +15,11 @@ export type ScratchClient = DisposableClient;
 export { migrateJournal } from './journal-migrator';
 
 /** Why the suite must skip; undefined with a server; throws when the run requires one. */
-export function scratchServerMissing(requiredBy: string): string | undefined {
-  if (process.env.DATABASE_URL) return undefined; // an admin URL of a loopback or CI-container server
+export function scratchServerMissing(
+  requiredBy: string,
+  adminUrl = process.env.DATABASE_URL
+): string | undefined {
+  if (adminUrl) return undefined; // an admin URL of a loopback or CI-container server
   if (process.env[requiredBy] === '1')
     throw new Error(`DATABASE_URL is required when ${requiredBy}=1`);
   return 'DATABASE_URL names no disposable server';
@@ -26,18 +29,19 @@ export async function withScratchDatabase<T>(
   prefix: string,
   work: (client: ScratchClient, maintenance: ScratchClient, scratchUrl: URL) => Promise<T>,
   {
+    adminUrl = process.env.DATABASE_URL ?? '',
     loopbackOnly,
     maxConnections,
     owner,
     requirePg16,
   }: {
+    adminUrl?: string;
     loopbackOnly?: boolean;
     maxConnections?: number;
     owner?: string;
     requirePg16?: boolean;
   } = {}
 ): Promise<T> {
-  const adminUrl = process.env.DATABASE_URL ?? '';
   if (loopbackOnly) {
     // Without CI confirmation the target guard admits only loopback.
     const { PGHOST, PGHOSTADDR, PGUSER, PGUSERNAME } = process.env;
