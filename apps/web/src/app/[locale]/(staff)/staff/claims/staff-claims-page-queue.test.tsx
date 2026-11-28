@@ -51,8 +51,10 @@ vi.mock('next-intl/server', async () => {
   const messages = { ...agentClaimsCatalog, ...claimsTrackingCatalog };
   return {
     setRequestLocale: vi.fn(),
-    getTranslations: vi.fn(async (args: Readonly<{ locale: string; namespace: string }>) =>
-      createTranslator({ locale: 'en', messages, namespace: args.namespace as never })
+    getTranslations: vi.fn((args: Readonly<{ locale: string; namespace: string }>) =>
+      Promise.resolve(
+        createTranslator({ locale: 'en', messages, namespace: args.namespace as never })
+      )
     ),
   };
 });
