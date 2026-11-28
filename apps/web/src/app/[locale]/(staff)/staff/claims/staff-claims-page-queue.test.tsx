@@ -151,8 +151,8 @@ describe('StaffClaimsPage queue wiring', () => {
       status: 'verification',
     });
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      '0 claims for “Acme” Filters: Unassigned, Verification, Diaspora / Green Card'
+    expect(screen.getByRole('status').textContent).toBe(
+      '0 claims for “Acme” Filters: Unassigned, Verification and Diaspora / Green Card'
     );
   });
 });

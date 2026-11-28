@@ -19,13 +19,6 @@ function translatorFor(locale: keyof typeof catalogs) {
   }) as unknown as (key: string, values?: Record<string, string | number>) => string;
 }
 
-const options = [
-  { isActive: true, label: 'My queue + unassigned', value: 'all' },
-  { isActive: true, label: 'Verification', value: 'verification' },
-  { isActive: true, label: 'Diaspora / Green Card', value: 'diaspora' },
-  { isActive: false, label: 'Court', value: 'court' },
-];
-
 describe('buildResultsSummary', () => {
   it('names the committed search, so equal counts still change the settled status', () => {
     const tClaims = translatorFor('en');
@@ -37,33 +30,44 @@ describe('buildResultsSummary', () => {
     expect(summary('Beta').resultsCount).toBe('0 claims for “Beta”');
   });
 
-  it('lists only the active non-default filters', () => {
+  it('names one active filter and skips default and inactive options', () => {
     const summary = buildResultsSummary({
       count: 1,
-      filterOptions: options,
+      filterOptions: [
+        { isActive: true, label: 'My queue + unassigned', value: 'all' },
+        { isActive: true, label: 'Verification', value: 'verification' },
+        { isActive: false, label: 'Court', value: 'court' },
+      ],
       tClaims: translatorFor('en'),
     });
 
     expect(summary).toEqual({
       resultsCount: '1 claim',
-      resultsFilters: 'Filters: Verification, Diaspora / Green Card',
+      resultsFilters: 'Filters: Verification',
     });
   });
 
-  it.each(Object.keys(catalogs) as Array<keyof typeof catalogs>)(
-    'renders the search and filters in %s',
-    locale => {
+  it.each([
+    ['de', '2 Fälle für „Acme“', 'Filter: Nicht zugewiesen und Diaspora / Grüne Karte'],
+    ['en', '2 claims for “Acme”', 'Filters: Unassigned and Diaspora / Green Card'],
+    ['mk', '2 барања за „Acme“', 'Филтри: Недоделено и Дијаспора / Зелен картон'],
+    ['sq', '2 raste për “Acme”', 'Filtrat: Pa përgjegjës dhe Diaspora / Kartoni i Gjelbër'],
+    ['sr', '2 zahteva za „Acme“', 'Filteri: Nedodeljeno i Dijaspora / Zeleni karton'],
+  ] as const)(
+    'renders the search and two filters in %s',
+    (locale, resultsCount, resultsFilters) => {
+      const queue = catalogs[locale]['agent-claims'].claims.staff_queue;
       const summary = buildResultsSummary({
         count: 2,
-        filterOptions: options,
+        filterOptions: [
+          { isActive: true, label: queue.assignment_state.unassigned, value: 'unassigned' },
+          { isActive: true, label: queue.diaspora_filter.diaspora, value: 'diaspora' },
+        ],
         search: 'Acme',
         tClaims: translatorFor(locale),
       });
 
-      expect(summary.resultsCount).toContain('2');
-      expect(summary.resultsCount).toContain('Acme');
-      expect(summary.resultsFilters).toContain('Verification');
-      expect(summary.resultsFilters).toContain('Diaspora / Green Card');
+      expect(summary).toEqual({ resultsCount, resultsFilters });
     }
   );
 });

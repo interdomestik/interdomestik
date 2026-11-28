@@ -9,14 +9,24 @@ export function buildResultsSummary(args: {
   const resultsCount = search
     ? tClaims('staff_queue.results_count_search', { count, search })
     : tClaims('staff_queue.results_count', { count });
-  const activeFilterLabels = filterOptions
+  const [first, second, third] = filterOptions
     .filter(option => option.isActive && option.value !== 'all')
     .map(option => option.label);
-  const resultsFilters =
-    activeFilterLabels.length > 0
-      ? tClaims('staff_queue.results_filters', {
-          filters: activeFilterLabels.join(tClaims('staff_queue.results_filter_separator')),
-        })
-      : null;
-  return { resultsCount, resultsFilters };
+
+  if (first === undefined) {
+    return { resultsCount, resultsFilters: null };
+  }
+  if (second === undefined) {
+    return { resultsCount, resultsFilters: tClaims('staff_queue.results_filters_one', { first }) };
+  }
+  if (third === undefined) {
+    return {
+      resultsCount,
+      resultsFilters: tClaims('staff_queue.results_filters_two', { first, second }),
+    };
+  }
+  return {
+    resultsCount,
+    resultsFilters: tClaims('staff_queue.results_filters_three', { first, second, third }),
+  };
 }
