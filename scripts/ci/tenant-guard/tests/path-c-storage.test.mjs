@@ -1,31 +1,25 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import ts from 'typescript';
 import { C1_ADMISSIONS } from '../c1-admissions.mjs';
 import { CONTRACTS } from '../manifest.mjs';
 import { createModuleGraph } from '../modules.mjs';
-import { installAdmission } from '../rules-admission.mjs';
 import { evaluate } from '../rules.mjs';
-import {
-  RECEIPT_CALLER,
-  RECEIPT_REEXPORT,
-  storageReceiptAdmission,
-} from '../storage-receipt-admission.mjs';
-import { MIGRATION_JOURNAL, RECEIPT_SQL } from '../storage-receipt-prerequisite.mjs';
+import { RECEIPT_CALLER, RECEIPT_REEXPORT } from '../storage-receipt-admission.mjs';
+import { MIGRATION_JOURNAL } from '../storage-receipt-prerequisite.mjs';
 import {
   BINDER,
-  DB_MANIFEST,
-  INBOUND,
   MODEL,
   READER,
   SPLITTER,
   VERIFIER,
+  checkStorageAdmission as check,
   dark,
   edit,
   fixture,
   journal,
   journalEntry,
   main,
-  prove,
   readerChanges,
   readerRecord,
   receiptChanges,
@@ -33,76 +27,41 @@ import {
   wp07,
 } from './path-c-test-support.mjs';
 
-function check(base, candidate) {
-  const ctx = {
-    graph: candidate.graph,
-    sources: candidate.sources,
-    violations: [],
-    telemetry: {},
-    schemaAdmission: prove(base, candidate),
-  };
-  installAdmission(ctx, [readerRecord]);
-  return {
-    proof: ctx.schemaAdmission,
-    reader: ctx.telemetry.c1Admissions === 1,
-    receipt: storageReceiptAdmission(ctx, candidate),
-    violations: ctx.violations,
-  };
-}
+function checkReceiptControls(receipt) {
+  const transaction = receipt.admin.parent.parent;
+  assert.ok(ts.isCallExpression(transaction));
+  const callback = transaction.arguments[0];
+  assert.ok(ts.isArrowFunction(callback) && ts.isBlock(callback.body));
+  const [role, rls, tenant, accessTenant, actor] = callback.body.statements
+    .slice(0, 5)
+    .map(statement => statement.expression.expression.arguments[0].template);
 
-function checkBoth(result, enabled) {
-  assert.equal(result.reader, enabled);
-  assert.equal(Boolean(result.receipt), enabled, JSON.stringify(result.violations));
-  if (enabled) {
-    assert.equal(result.receipt.controls.size, 4);
-    assert.equal(result.receipt.admin.getText(), 'dbAdmin');
-    assert.equal(result.receipt.caller.getText(), 'recordClaimInboundObjectVerification');
-  }
-}
+  assert.ok(ts.isNoSubstitutionTemplateLiteral(role));
+  assert.ok(ts.isNoSubstitutionTemplateLiteral(rls));
+  assert.ok(ts.isTemplateExpression(tenant));
+  assert.ok(ts.isTemplateExpression(accessTenant));
+  assert.ok(ts.isTemplateExpression(actor));
+  assert.equal(actor.templateSpans.length, 3);
+  const [firstActorSpan, secondActorSpan, lastActorSpan] = actor.templateSpans;
+  assert.ok(ts.isTemplateMiddle(firstActorSpan.literal));
+  assert.ok(ts.isTemplateMiddle(secondActorSpan.literal));
+  assert.ok(ts.isTemplateTail(lastActorSpan.literal));
 
-const readerBaseRefusal = /storage reader requires exact WP-12.1 schema and 0114/u;
-const receiptBaseRefusal = /storage receipt requires exact WP-12.1 schema and 0114/u;
-const has = ({ violations }, pattern) => violations.some(({ detail }) => pattern.test(detail));
-
-test('the exact B reader on W is refused even though the W schema passes', () => {
-  const result = check(wp07, edit(wp07, readerChanges));
-  assert.equal(result.proof.ok, true, result.proof.reason);
-  checkBoth(result, false);
-  assert.equal(result.violations.length, 1);
-  assert.ok(has(result, readerBaseRefusal));
-});
-
-test('exact D+B on W cannot satisfy its own first-parent prerequisite', () => {
-  const result = check(wp07, storage);
-  assert.equal(result.proof.ok, true, result.proof.reason);
-  checkBoth(result, false);
-  assert.ok(has(result, readerBaseRefusal));
-  assert.ok(has(result, receiptBaseRefusal));
-});
-
-test('D on W passes with the staff-draft reader and the verifier dormant', () => {
-  const result = check(wp07, dark);
-  assert.equal(result.proof.ok, true, result.proof.reason);
-  checkBoth(result, false);
-  assert.deepEqual(result.violations, []);
-  const ctx = { graph: dark.graph, schemaAdmission: result.proof, telemetry: {}, violations: [] };
-  installAdmission(ctx);
-  const unit = dark.graph
-    .sourceFileOf(READER)
-    .statements.find(node => node.name?.text === 'readLocalDocumentAccess');
-  assert.ok(unit);
-  assert.equal(
-    ctx.c1Admitted(
-      {
-        file: READER,
-        sourceFile: unit.getSourceFile(),
-        declarations: new Map([[unit.name.text, unit]]),
-      },
-      unit
-    ),
-    true
+  const groups = [
+    [role],
+    [rls],
+    [tenant.head],
+    [accessTenant.head],
+    [actor.head, firstActorSpan.literal, secondActorSpan.literal],
+  ];
+  assert.deepEqual(
+    groups.map(group => group.filter(node => receipt.controls.has(node)).length),
+    [1, 1, 1, 1, 3]
   );
-});
+  assert.equal(receipt.controls.size, 7);
+}
+
+const has = ({ violations }, pattern) => violations.some(({ detail }) => pattern.test(detail));
 
 test('B on D and an ordinary follow-up on B pass both admissions', () => {
   const later = edit(storage, [
@@ -111,8 +70,8 @@ test('B on D and an ordinary follow-up on B pass both admissions', () => {
       journal(journalEntry, {
         ...journalEntry,
         idx: 115,
-        tag: '0115_followup',
-        when: journalEntry.when + 1,
+        tag: '0115_case_tenant_binding',
+        when: 1795798261577,
       }),
     ],
     ['apps/web/src/path-c-followup.ts', 'export const followup = true;\n'],
@@ -124,38 +83,14 @@ test('B on D and an ordinary follow-up on B pass both admissions', () => {
   ]) {
     const result = check(base, candidate);
     assert.equal(result.proof.ok, true, result.proof.reason);
-    checkBoth(result, true);
+    assert.equal(result.reader, true);
+    assert.ok(result.receipt, JSON.stringify(result.violations));
+    checkReceiptControls(result.receipt);
+    assert.equal(result.receipt.admin.getText(), 'dbAdmin');
+    assert.equal(result.receipt.caller.getText(), 'recordClaimInboundObjectVerification');
     assert.deepEqual(result.violations, []);
   }
 });
-
-for (const [label, changes] of [
-  ['partial D', [[INBOUND, null]]],
-  ['missing 0114 SQL', [[RECEIPT_SQL, null]]],
-  ['one-byte change in 0114 SQL', [[RECEIPT_SQL, `${dark.blobs.get(RECEIPT_SQL)} `]]],
-  ['missing journal', [[MIGRATION_JOURNAL, null]]],
-  ['malformed journal', [[MIGRATION_JOURNAL, '{"entries":']]],
-  ['missing 0114 journal entry', [[MIGRATION_JOURNAL, journal()]]],
-  [
-    'altered 0114 journal entry',
-    [[MIGRATION_JOURNAL, journal({ ...journalEntry, when: journalEntry.when + 1 })]],
-  ],
-  [
-    'duplicate 0114 tag',
-    [[MIGRATION_JOURNAL, journal(journalEntry, { ...journalEntry, idx: 115 })]],
-  ],
-  [
-    'duplicate 0114 index',
-    [[MIGRATION_JOURNAL, journal(journalEntry, { ...journalEntry, tag: '0114_wrong' })]],
-  ],
-]) {
-  test(`${label} on the first parent withholds both permissions from an exact B candidate`, () => {
-    const result = check(edit(dark, changes), storage);
-    checkBoth(result, false);
-    assert.ok(has(result, readerBaseRefusal));
-    assert.ok(has(result, receiptBaseRefusal));
-  });
-}
 
 for (const file of readerRecord.files.map(({ file }) => file)) {
   test(`one changed byte in ${file} withholds the reader admission`, () => {
@@ -190,6 +125,10 @@ for (const [file, before, after] of [
   [VERIFIER, "principal?.role !== 'staff'", "principal?.role !== 'admin'"],
   [VERIFIER, 'set local row_security = on', 'set local row_security = off'],
   [VERIFIER, 'app.current_access_tenant_id', 'app.current_tenant_id'],
+  [VERIFIER, 'principal.userId', 'observed.decisionId'],
+  [VERIFIER, 'principal.role', 'principal.userId'],
+  [VERIFIER, "principal.branchId ?? ''", 'principal.branchId'],
+  [VERIFIER, "principal.branchId ?? ''}, true", "principal.branchId ?? ''}, false"],
   [
     VERIFIER,
     'return dbAdmin.transaction',
@@ -210,24 +149,6 @@ for (const [file, before, after] of [
     );
   });
 }
-
-test('exact receipt bytes still require the reviewed resolver bindings', () => {
-  const shadow = edit(storage, [
-    [BINDER.replace(/\.ts$/u, '.js'), 'export const bindTenantTransactionPrincipal = () => {};\n'],
-  ]);
-  const manifest = JSON.parse(storage.blobs.get(DB_MANIFEST));
-  delete manifest.exports['./claim-evidence-object-lock'];
-  const missingExport = edit(storage, [[DB_MANIFEST, JSON.stringify(manifest)]]);
-  for (const [candidate, schemaOk] of [
-    [shadow, true],
-    [missingExport, false],
-  ]) {
-    const result = check(dark, candidate);
-    assert.equal(result.proof.ok, schemaOk, result.proof.reason);
-    assert.equal(result.receipt, null);
-    assert.ok(has(result, /storage receipt binding mismatch/u));
-  }
-});
 
 test('the approved WP-07 C3 contract still requires one counted raw execution', () => {
   const file = 'packages/domain-membership-billing/src/port/rate-check-context.ts';

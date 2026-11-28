@@ -1,5 +1,6 @@
 'use client';
 
+import { InboundEvidenceUploadForm } from '@/features/claims/components/InboundEvidenceUploadForm';
 import { AdminClaimEvidenceUploadDialog } from '@/features/admin/claims/components/ops/AdminClaimEvidenceUploadDialog';
 import { deniesClaimDocumentContent } from '@/app/api/documents/branch-manager-document-boundary';
 import type { ClaimDocumentSummary } from '../../document-summary';
@@ -20,6 +21,7 @@ interface EvidencePanelProps {
   readonly docs: EvidenceDoc[];
   readonly readOnly?: boolean;
   readonly viewerRole?: string | null;
+  readonly inboundPilot?: boolean;
   readonly documentSummary?: ClaimDocumentSummary;
 }
 
@@ -29,6 +31,7 @@ export function EvidencePanel({
   readOnly = false,
   viewerRole,
   documentSummary,
+  inboundPilot = false,
 }: EvidencePanelProps) {
   const t = useTranslations('admin.claims_page.evidence');
   const tCommon = useTranslations('common');
@@ -49,30 +52,35 @@ export function EvidencePanel({
   }));
 
   return (
-    <OpsDocumentsPanel
-      title={t('title')}
-      documents={mappedDocs}
-      unavailableLabel={t('file_unavailable')}
-      emptyLabel={t('no_docs')}
-      viewLabel={tCommon('view')}
-      headerActions={
-        readOnly ? null : (
-          <AdminClaimEvidenceUploadDialog
-            claimId={claimId}
-            trigger={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="h-6 w-6"
-                title={t('upload_button')}
-                aria-label={t('upload_button')}
-              >
-                <UploadCloud className="w-4 h-4" />
-              </Button>
-            }
-          />
-        )
-      }
-    />
+    <>
+      {inboundPilot && viewerRole === 'tenant_admin' && (
+        <InboundEvidenceUploadForm claimId={claimId} mode="tenant_admin" />
+      )}
+      <OpsDocumentsPanel
+        title={t('title')}
+        documents={mappedDocs}
+        unavailableLabel={t('file_unavailable')}
+        emptyLabel={t('no_docs')}
+        viewLabel={tCommon('view')}
+        headerActions={
+          readOnly || inboundPilot ? null : (
+            <AdminClaimEvidenceUploadDialog
+              claimId={claimId}
+              trigger={
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-6 w-6"
+                  title={t('upload_button')}
+                  aria-label={t('upload_button')}
+                >
+                  <UploadCloud className="w-4 h-4" />
+                </Button>
+              }
+            />
+          )
+        }
+      />
+    </>
   );
 }

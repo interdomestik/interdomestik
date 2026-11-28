@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { z } from 'zod';
 
 import { assertEvidenceStoragePath } from './storage-path';
 
@@ -130,4 +131,48 @@ export function verifyClaimUploadIntentToken(
   }
 
   return { success: true };
+}
+
+type InboundIntentBinding = {
+  decisionId: string;
+  claimId: string;
+  fingerprint: string;
+  expiresAt: number;
+};
+
+export function createInboundUploadIntent(binding: InboundIntentBinding): string {
+  const encoded = Buffer.from(
+    JSON.stringify({
+      ...binding,
+      purpose: 'inbound-received-pdf',
+    })
+  ).toString('base64url');
+  return `${encoded}.${signUploadIntentPayload(encoded)}`;
+}
+
+const inboundIntentPayload = z.strictObject({
+  decisionId: z.uuid(),
+  claimId: z.string().min(1).max(128),
+  fingerprint: z.string().regex(/^[a-f0-9]{64}$/),
+  purpose: z.literal('inbound-received-pdf'),
+  expiresAt: z.number().int(),
+});
+
+// Authenticate the binding. The publication action checks expiry after looking for a committed replay.
+export function readInboundUploadIntent(token: string, claimId: string) {
+  const parts = token.split('.');
+  if (parts.length !== 2) return null;
+  const [encoded, signature] = parts;
+  if (!safeCompare(signature, signUploadIntentPayload(encoded))) return null;
+  try {
+    const result = inboundIntentPayload.safeParse(
+      JSON.parse(Buffer.from(encoded, 'base64url').toString())
+    );
+    if (!result.success || result.data.claimId !== claimId) {
+      return null;
+    }
+    return result.data;
+  } catch {
+    return null;
+  }
 }

@@ -18,6 +18,10 @@ const hoisted = vi.hoisted(() => ({
 }));
 export const evidenceUploadMocks = hoisted;
 
+vi.mock('@interdomestik/domain-claims/claims/inbound-upload', () => ({
+  isInboundPilotCase: () => Promise.resolve(false),
+  readClaimUploadPaused: () => Promise.resolve(false),
+}));
 vi.mock('@/lib/tenant-authority.server', () => ({
   authorizeSessionTenant: () =>
     hoisted.getSession().then(

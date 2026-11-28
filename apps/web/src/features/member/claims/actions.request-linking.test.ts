@@ -17,6 +17,9 @@ const hoisted = vi.hoisted(() => ({
   revalidatePath: vi.fn(),
 }));
 
+vi.mock('@/features/claims/upload/server/claim-upload-cutover', () => ({
+  isClaimUploadPaused: () => Promise.resolve(false),
+}));
 vi.mock('@/lib/auth', () => ({
   auth: { api: { getSession: hoisted.authGetSession } },
 }));

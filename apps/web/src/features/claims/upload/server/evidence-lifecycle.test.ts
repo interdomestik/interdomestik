@@ -14,7 +14,11 @@ vi.mock('@/lib/storage/service-role', () => ({
   listTenantObjectsForSingleFile: m.list,
 }));
 const fake = getReplayFixture();
-const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
+const authority = mintTestTenantAuthority('tenant-1', {
+  userId: 'member-1',
+  role: 'member',
+  purpose: 'session',
+});
 const doc = {
   authority,
   actorRole: 'member',

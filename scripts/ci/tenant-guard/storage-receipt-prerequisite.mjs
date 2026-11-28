@@ -3,7 +3,7 @@ import { sha256 } from './rules-digest.mjs';
 const TAG = '0114_wp12_1_inbound_documents';
 export const RECEIPT_SQL = `packages/database/drizzle/${TAG}.sql`;
 export const MIGRATION_JOURNAL = 'packages/database/drizzle/meta/_journal.json';
-const SQL_SHA256 = '23a5749235d0a82d5d337762bc715e5ebe23181ec5cf256b3d16b59bee18042a';
+const SQL_SHA256 = 'd0516c13878ef0be2ba4a3ba46580bd49bbd24c05b18a65a329633886a5e9336';
 const ENTRY = Object.freeze({
   idx: 114,
   version: '7',

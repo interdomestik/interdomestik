@@ -41,25 +41,34 @@ async function proveCitations(t: TestContext, connections: Connection) {
     await assert.rejects(runtime`set session_replication_role = replica`, { code: '42501' });
   });
 
-  await t.test('the freeze is an enabled AFTER UPDATE row trigger on claim_documents', async () => {
-    const triggers = await admin`
+  await t.test(
+    'claim document guards are enabled AFTER ROW triggers for the expected events',
+    async () => {
+      const triggers = await admin`
       select tgname, tgenabled, (tgtype & 2) = 0 as after_trigger, (tgtype & 1) = 1 as row_trigger,
-        (tgtype & 16) = 16 as on_update
+        (tgtype & 4) = 4 as on_insert, (tgtype & 16) = 16 as on_update
       from pg_trigger
-      where tgrelid = 'public.claim_documents'::regclass and not tgisinternal`;
-    assert.deepEqual(
-      [...triggers],
-      [
-        {
-          tgname: 'claim_documents_coordinates_frozen',
-          tgenabled: 'O',
-          after_trigger: true,
-          row_trigger: true,
-          on_update: true,
-        },
-      ]
-    );
-  });
+      where tgrelid = 'public.claim_documents'::regclass and not tgisinternal
+      order by tgname`;
+      assert.deepEqual(
+        triggers.map(row => [
+          row.tgname,
+          row.tgenabled,
+          row.after_trigger,
+          row.row_trigger,
+          row.on_insert,
+          row.on_update,
+        ]),
+        [
+          ['claim_documents_coordinates_frozen', 'O', true, true, false, true],
+          ['claim_inbound_document_home_guard', 'O', true, true, true, false],
+          ['claim_inbound_document_publication_guard', 'O', true, true, true, false],
+          ['claim_inbound_document_scope_guard', 'O', true, true, false, true],
+          ['claim_inbound_staff_scope_guard', 'O', true, true, true, false],
+        ]
+      );
+    }
+  );
 
   await proveFreeze(t, connections);
   await proveRestrictedIdentity(t, connections);
@@ -115,6 +124,32 @@ async function proveFreeze(t: TestContext, { admin, runtime }: Connection) {
     }
   );
 
+  await t.test('uncited tenant updates exercise the home FK and the freeze', async () => {
+    const claim = await insertClaim(admin);
+    const uncited = await restricted(runtime, tx => insertDocument(tx, documentInput(claim)));
+
+    await assert.rejects(
+      admin`update claim_documents set tenant_id = ${foreignTenant} where id = ${uncited.id}`,
+      foreignKey('claim_documents_case_home_fk'),
+      'tenant change that breaks the home binding'
+    );
+
+    // Move the claim in the same statement so the home FK sees a matching pair when it checks.
+    // The only document coordinate that changes is tenant_id.
+    await assert.rejects(
+      admin`with moved_claim as (
+        update claim set tenant_id = ${foreignTenant} where id = ${claim.id}
+        returning id, tenant_id
+      )
+      update claim_documents as document
+      set tenant_id = moved_claim.tenant_id
+      from moved_claim
+      where document.id = ${uncited.id} and document.claim_id = moved_claim.id`,
+      frozen,
+      'tenant change that preserves the home binding'
+    );
+  });
+
   await t.test(
     'identity changes are refused: by the freeze, or by RESTRICT when cited',
     async () => {
@@ -128,11 +163,6 @@ async function proveFreeze(t: TestContext, { admin, runtime }: Connection) {
         return { evidence, uncited };
       });
       // The owner bypasses RLS, so only the trigger and the keys can refuse these updates.
-      await assert.rejects(
-        admin`update claim_documents set tenant_id = ${foreignTenant} where id = ${uncited.id}`,
-        frozen,
-        'uncited tenant_id only'
-      );
       for (const patch of [
         { claim_id: otherClaim.id },
         { tenant_id: foreignTenant, claim_id: foreignClaim.id },

@@ -1,3 +1,5 @@
+import type { TenantTransaction } from '@interdomestik/database';
+import { withPrincipalTenantContext } from '@interdomestik/database/free-start-drafts';
 import {
   readTenantAuthority,
   type TenantAuthority,
@@ -81,7 +83,7 @@ export async function persistClaimDocumentMetadata(
     throw new ClaimDocumentUploadConflictError();
   }
 
-  return withTenantAuthority(authority, async tx => {
+  const write = async (tx: TenantTransaction) => {
     const verifiedScope = await lockClaimForEvidence(tx, {
       authority,
       claimId,
@@ -120,5 +122,8 @@ export async function persistClaimDocumentMetadata(
       return false;
     }
     throw new ClaimDocumentUploadConflictError();
-  });
+  };
+  return memberSurface && !replayOnly
+    ? withPrincipalTenantContext(authority, write)
+    : withTenantAuthority(authority, write);
 }

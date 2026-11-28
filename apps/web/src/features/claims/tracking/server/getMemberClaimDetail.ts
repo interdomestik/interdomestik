@@ -31,7 +31,12 @@ import {
   sanitizeMemberRecoveryTimeline,
   verifiedRecoveryDecisionAt,
 } from './member-recovery-timeline';
-import { getMemberVaultConsentDisplay } from './getMemberVaultConsentDisplay';
+import {
+  completeMemberVaultConsentDisplay,
+  openMemberVaultConsentDisplay,
+  type GetMemberVaultConsentDisplayParams,
+} from './getMemberVaultConsentDisplay';
+import { readCurrentMemberVaultEvidence } from '@interdomestik/domain-documents/claim-evidence';
 import { withTenantAuthority } from '@interdomestik/database/tenant-authority-context';
 
 export async function getMemberClaimDetail(
@@ -131,15 +136,29 @@ export async function getMemberClaimDetail(
           },
           db
         );
-        const vaultConsentDisplay = await getMemberVaultConsentDisplay(
-          {
-            memberId,
-            claimId: claim.id,
-            claimCategory: claim.category ?? '',
-            piiStatus,
-          },
-          db
-        );
+        const vaultParams: GetMemberVaultConsentDisplayParams = {
+          memberId,
+          claimId: claim.id,
+          claimCategory: claim.category ?? '',
+          piiStatus,
+        };
+        // Gate before any document read; read the viewer's current evidence only when open.
+        const vaultGate = await openMemberVaultConsentDisplay(vaultParams);
+        let vaultConsentDisplay = vaultGate.display;
+        if (vaultGate.open) {
+          const vaultEvidence = await readCurrentMemberVaultEvidence(
+            db,
+            vaultGate.tenantId,
+            claim.id,
+            vaultGate.viewerId
+          );
+          vaultConsentDisplay = await completeMemberVaultConsentDisplay(
+            vaultParams,
+            vaultGate,
+            db,
+            vaultEvidence
+          );
+        }
         // Read status notes before the current decision, so a concurrent sensitive write
         // cannot add a note after the decision snapshot used to classify it.
         const recoveryDecisionRows = await recoveryDecisionQuery;

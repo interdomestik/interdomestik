@@ -52,3 +52,7 @@ Live: member and staff evidence upload, the download route, the access decision,
 ## Open findings
 
 TEN-03, TEN-04 (`A/modules/tenancy.md:217-220`), POPS-01, POPS-02, POPS-06, POPS-09 (`A/modules/pilot-privacy-recovery.md:268-276`), DATA-06, lead CASE-L1 (the upload URL's expiry). Work packages: WP-13 (privacy: stored consent, deletion and export, retention), WP-12, and WP-17, which carries the phase-0 proof that storage works by service role and signed URL alone (DB-24, `docs/engineering/DB-BASELINE.md:218`); the exact numbers for this area were not confirmed in this unit.
+
+## WP-12.1 pilot evidence
+
+The guarded form writes a reserved key create-only in the private claim-evidence bucket. Before pilot enrollment, Storage PR B must supply the application verifier that records the decision-bound receipt under the fixed PostgreSQL verifier role after readback confirms the exact stored bytes. The browser receives the application intent. Before enrolling a case, pause predecessor issuers, drain in-flight work and establish every legacy provider credential's expiry, invalidation or documented absence.

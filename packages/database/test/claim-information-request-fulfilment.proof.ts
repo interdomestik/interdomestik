@@ -172,7 +172,11 @@ export async function assertFulfilmentAndEvidenceBoundary({
       storagePath: `pii/tenants/tenant_ks/claims/${claimId}/late-estimate.pdf`,
       tenantId: 'tenant_ks',
       userId: member,
-      authority: mintTestTenantAuthority('tenant_ks', { userId: member, role: 'member' }),
+      authority: mintTestTenantAuthority('tenant_ks', {
+        userId: member,
+        role: 'member',
+        purpose: 'session',
+      }),
     }),
     /Information request changed/
   );

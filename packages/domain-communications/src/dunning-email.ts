@@ -17,7 +17,7 @@ export async function sendPaymentFailedEmail(
   }
 ): Promise<EmailResult> {
   if (!to) return { success: false, error: 'Missing recipient email' };
-  console.log(`[Dunning] Sending Day 0 email to ${to}`);
+  console.log('[Dunning] Sending Day 0 email');
   return sendEmail(to, renderPaymentFailedEmail(params));
 }
 

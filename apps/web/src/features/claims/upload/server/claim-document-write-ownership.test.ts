@@ -8,7 +8,11 @@ import {
 } from './claim-document-write';
 
 const fake = getReplayFixture();
-const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
+const authority = mintTestTenantAuthority('tenant-1', {
+  userId: 'member-1',
+  role: 'member',
+  purpose: 'session',
+});
 const params = {
   authority,
   actorRole: 'member',

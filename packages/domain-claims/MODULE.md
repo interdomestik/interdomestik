@@ -126,3 +126,26 @@ The register access module re-exports input validation and normalization from `c
 ## Open findings
 
 CASE-01…CASE-12 (`A/modules/case-handoff.md:252-265`), DATA-06, DATA-09. Work packages: WP-11 (claim rules and notifications in the shared command; a delivery record) and WP-12 (case fields for scope B; the correspondence register). WP-12 needs WP-02 (the wrapper) and WP-05 (the checks of the screen contract) first; the deletion of what the register stores about a contact person waits for WP-13.
+
+## WP-12.1 inbound received documents
+
+Design v4, Astra rounds 3–7, and the owner's November 26 authorization govern this pilot. A case-home visibility decision reserves the exact PDF, recipient, assigned uploader, document ID and object key before upload. Assigned staff can record intended-for-member; a home tenant administrator can record approved-to-show. Received links cite approved ordinary documents and use an immutable per-entry seal for the exact received set. They confer no sharing authority.
+
+The correspondence API exports `hasUniqueReceivedDocumentIds` so the staff action can reject duplicate IDs before reading the case's upload-pause state. The domain command applies the same check before querying the case.
+
+Replaying an inbound entry with stored received-document links requires current staff and branch access. The command checks that access in the session-bound transaction before comparing the requested and stored document sets.
+
+Staff writes intersect the branch on the staff row with any branch restriction carried by the session. The upload action reads back the approved private object and checks its byte count and digest. Publication in the restricted tenant transaction requires the database receipt.
+
+**Activation preconditions**
+
+Keep pilot enrollment empty until all four prerequisites have landed and passed their release proofs. Before the first case is enrolled, storage-path PR B must deliver its read-side checks and a tenant- and principal-bound PostgreSQL receipt verifier that works with the Supabase Data API disabled. The guard admission must explicitly cover both uses, receive independent R-37 review and have explicit owner authorization. After server readback of the exact private bucket and key, the verifier may record a receipt only when the stored byte count and SHA-256 match the immutable decision. PostgreSQL must refuse first publication without the receipt for that decision. The restricted writer must be unable to create or alter a receipt or assume the verifier role. Prove refusal for a missing or mismatched receipt under the actual restricted role and successful publication through the actual verifier with the Data API disabled. Keep the release-controlled issuance pause, drain and per-case legacy-credential disposition before enrollment.
+
+1. Durable-grant authority and the case-tenant foreign key.
+2. Assignment and agent-link write integrity.
+3. The WP-19 documents boundary.
+4. Storage-path canonicalization, authorized separately by the owner on November 26 after Astra round 8. WP-12.1 reserves the exact approved coordinates and detects aliases of reserved filenames. The prerequisite adds canonical-path checks to both document tables.
+
+Each case also requires recorded legacy-credential disposition after the release-controlled issuance pause and drain. Keep uncertain, refused or oversize files in approved office custody. The assigned handler records the opaque receipt reference, received and hold times, and responsible role in the office record until approved release or disposition. During rollback retain reservations, publication guards, ordinary reads and legacy staff upload closure for enrolled cases.
+
+Enrollment and pause changes serialize on the case row. The case lock protects ordinary publication across activation and received links across rollback. During a pre-enrollment pause all legacy issuers and confirmations are closed for the case. During an enrolled rollback pause authorized member and agent self-supply continues. Only enrolled cases create receipt seals. Each approval gives one 15-minute upload window measured from its database decision time. Reissuing an intent uses the same deadline. The current assigned handler can replay a committed publication after that window to recover the original document ID.

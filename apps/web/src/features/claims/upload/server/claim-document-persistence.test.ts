@@ -18,6 +18,7 @@ vi.mock('@/lib/ai/claim-workflows', () => ({
 
 vi.mock('@interdomestik/database', () => {
   const tenantTx = () => ({
+    execute: () => Promise.resolve([]),
     insert: hoisted.insert,
     select: () => ({
       from: () => ({
@@ -77,7 +78,11 @@ const EXISTING_ROW = {
   uploadedBy: 'member-1',
 };
 
-const authority = mintTestTenantAuthority('tenant-1', { userId: 'member-1', role: 'member' });
+const authority = mintTestTenantAuthority('tenant-1', {
+  userId: 'member-1',
+  role: 'member',
+  purpose: 'session',
+});
 
 function baseParams() {
   return {

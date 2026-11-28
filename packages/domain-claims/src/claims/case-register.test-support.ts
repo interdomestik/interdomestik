@@ -116,7 +116,12 @@ export const claimId = 'claim-1';
 export const actorId = 'staff-1';
 export const branchId = 'branch-1';
 export const admitted = [{ id: claimId }];
-export const authority: TenantAuthority = mintTestTenantAuthority(tenantId);
+export const authority: TenantAuthority = mintTestTenantAuthority(tenantId, {
+  purpose: 'session',
+  userId: actorId,
+  role: 'staff',
+  branchId,
+});
 
 export function caller(
   role = 'staff',
@@ -137,6 +142,7 @@ export function caller(
 beforeEach(() => {
   db.transaction.mockReset().mockImplementation((_authority, run) =>
     run({
+      execute: () => Promise.resolve([]),
       select: () => statement({ kind: 'select' }),
       selectDistinct: () => statement({ kind: 'selectDistinct' }),
       update: (table: unknown) => statement({ kind: 'update', table }),

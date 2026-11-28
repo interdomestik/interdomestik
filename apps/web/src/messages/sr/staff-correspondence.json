@@ -136,6 +136,22 @@
       "title": "Pregled prepiske",
       "total": "Unosi prepiske • {total}",
       "latest": "Prikazani su najnoviji datumi: {shown} od {total}"
+    },
+    "inbound": {
+      "received": "Primljena dokumenta",
+      "selection": "Izabrana dokumenta",
+      "empty": "Nema dostupnih odobrenih PDF datoteka.",
+      "find": "Pronađi odobrene PDF datoteke",
+      "unavailable": "Dokument nije dostupan",
+      "title": "Vidljivost PDF dokumenta osiguravača",
+      "custody": "Zadržano — čeka se odluka o vidljivosti za člana. Čuvajte datoteku u kancelariji do odobrenja.",
+      "file": "PDF datoteka",
+      "oversize": "Ova datoteka je veća od 1 MiB. Čuvajte je u kancelariji.",
+      "officeRef": "Referenca prijema u kancelariji",
+      "intended": "Evidentiraj odluku „namenjeno članu”",
+      "approved": "Evidentiraj odluku „odobreno za prikaz”",
+      "decisionRef": "Referenca odluke o vidljivosti",
+      "upload": "Otpremi odobreni PDF"
     }
   }
 }

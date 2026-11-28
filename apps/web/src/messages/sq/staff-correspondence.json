@@ -136,6 +136,22 @@
       "title": "Përmbledhja e korrespondencës",
       "total": "Zëra të korrespondencës • {total}",
       "latest": "Shfaqen datat më të fundit: {shown} nga {total}"
+    },
+    "inbound": {
+      "received": "Dokumentet e pranuara",
+      "selection": "Dokumentet e zgjedhura",
+      "empty": "Nuk ka skedarë PDF të miratuar.",
+      "find": "Gjej skedarët PDF të miratuar",
+      "unavailable": "Dokumenti nuk është i disponueshëm",
+      "title": "Dukshmëria e PDF-së së siguruesit",
+      "custody": "Në ruajtje — në pritje të vendimit për dukshmërinë për anëtarin. Mbajeni skedarin në zyrë derisa të miratohet.",
+      "file": "Skedari PDF",
+      "oversize": "Ky skedar është më i madh se 1 MiB. Mbajeni në zyrë.",
+      "officeRef": "Referenca e pranimit në zyrë",
+      "intended": "Regjistro vendimin «i destinuar për anëtarin»",
+      "approved": "Regjistro vendimin «i miratuar për shfaqje»",
+      "decisionRef": "Referenca e vendimit për dukshmërinë",
+      "upload": "Ngarko PDF-në e miratuar"
     }
   }
 }

@@ -49,7 +49,6 @@ export async function insertFreeStartDraftAudit(
   });
 }
 
-/** Binds the transaction-local actor settings to an authenticated session principal. */
 export async function withPrincipalTenantContext<T>(
   authority: TenantAuthority,
   action: (tx: TenantTransaction) => Promise<T>
@@ -58,11 +57,12 @@ export async function withPrincipalTenantContext<T>(
   if (purpose !== 'session' || !principal?.role) {
     throw new Error('Session principal required');
   }
-  const { userId, role } = principal;
+  const { userId, role, branchId } = principal;
   return withTenantAuthority(authority, async tx => {
     await tx.execute(sql`
       select set_config('app.current_actor_id', ${userId}, true),
-             set_config('app.current_actor_role', ${role}, true)
+             set_config('app.current_actor_role', ${role}, true),
+             set_config('app.current_actor_branch_id', ${branchId ?? ''}, true)
     `);
     return action(tx);
   });

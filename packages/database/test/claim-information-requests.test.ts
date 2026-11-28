@@ -7,8 +7,10 @@ import {
   assertOpenRequestProjection,
   withSessionAuthority,
 } from './claim-information-request-fulfilment.proof';
+import { assertRequestTenantIsolation } from './claim-information-request-rls.proof';
 import {
   applyRlsTestConnectionEnv,
+  grantInboundDocumentPathCheck,
   quoteIdentifier,
   quoteSqlLiteral,
   TEST_DB_PASSWORD,
@@ -41,6 +43,7 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
     await admin.unsafe(
       `grant select, insert, update, delete on "claim_information_requests", "claim_information_request_evidence", "claim_documents", "audit_log", "claim" to ${quoteIdentifier(TEST_DB_ROLE)}`
     );
+    await admin.unsafe(grantInboundDocumentPathCheck);
     await admin`insert into "user" (id, tenant_id, name, email, "emailVerified", role, "createdAt", "updatedAt")
       select value, 'tenant_ks', 'S4 fixture', value || '@example.test', true, 'staff', now(), now() from unnest(${ids}::text[]) as value`;
     for (const [id, tenantId, owner] of [
@@ -137,37 +140,7 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
       await getInformationRequests(actor(member, 'member', 'tenant_mk'), claimId),
       []
     );
-    assert.equal(
-      (await rls`select id from claim_information_requests where claim_id = ${claimId}`).length,
-      0,
-      'missing tenant context fails closed'
-    );
-    await rls.begin(async tx => {
-      await tx`select set_config('app.current_tenant_id', 'tenant_mk', true)`;
-      assert.equal(
-        (await tx`select id from claim_information_requests where claim_id = ${claimId}`).length,
-        0
-      );
-      assert.equal(
-        (
-          await tx`update claim_information_requests set requested_information = 'leak' where claim_id = ${claimId} returning id`
-        ).length,
-        0
-      );
-      assert.equal(
-        (await tx`delete from claim_information_requests where claim_id = ${claimId} returning id`)
-          .length,
-        0
-      );
-    });
-    await assert.rejects(
-      rls.begin(async tx => {
-        await tx`select set_config('app.current_tenant_id', 'tenant_ks', true)`;
-        await tx`insert into claim_information_requests (tenant_id, claim_id, correlation_id, requested_information, explanation_for_member, due_at, responsible_staff_id, created_by_staff_id, sla_posture)
-        values ('tenant_ks', ${foreignClaim}, ${randomUUID()}, 'Forbidden', 'Forbidden', now(), ${staff}, ${staff}, 'incomplete')`;
-      }),
-      /row-level security/
-    );
+    await assertRequestTenantIsolation(rls, claimId, foreignClaim, staff);
     const documentId = `s4_${randomUUID()}`;
     await persistClaimDocumentMetadata({
       category: 'evidence',
@@ -182,7 +155,11 @@ test('S4 real request command, concurrency, projection and tenant RLS', async t 
       storagePath: `pii/tenants/tenant_ks/claims/${claimId}/${documentId}.pdf`,
       tenantId: 'tenant_ks',
       userId: member,
-      authority: mintTestTenantAuthority('tenant_ks', { userId: member, role: 'member' }),
+      authority: mintTestTenantAuthority('tenant_ks', {
+        userId: member,
+        role: 'member',
+        purpose: 'session',
+      }),
     });
     assert.equal(
       (

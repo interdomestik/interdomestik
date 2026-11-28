@@ -16,6 +16,7 @@ import { randomUUID } from 'node:crypto';
 import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 import { loadSyntheticMessagePasswords } from './agent-message-credentials.fixture';
 import { cleanupAgentMessageFixture } from './agent-message-cleanup.fixture';
+import { expectCaseHomeRefusal } from './case-home-refusal';
 import {
   planProfileChildren,
   seedProfileChildren,
@@ -218,8 +219,14 @@ export async function withAgentMessageFixture<T>(
         message(deniedIds[0], 'S1 foreign claim secret', 11, { tenantId: foreignTenantId }),
         message(deniedIds[1], 'S1 inactive assignment secret', 12),
         message(deniedIds[2], 'S1 unassigned secret', 13),
-        message(claimIds[0], 'S1 foreign message secret', 14, { tenantId: foreignTenantId }),
+        message(deniedIds[0], 'S1 foreign message secret', 14, { tenantId: foreignTenantId }),
       ]);
+    await expectCaseHomeRefusal(
+      dbAdmin
+        .insert(claimMessages)
+        .values(message(claimIds[0], 'S1 cross-home message', 15, { tenantId: foreignTenantId })),
+      'claim_messages_case_home_fk'
+    );
     await dbAdmin.insert(memberNotes).values([
       note(0, memberIds[0], 'S8 pinned internal old note', { isPinned: true, isInternal: true }),
       note(1, memberIds[0], 'S8 recent public note', { isPinned: false, isInternal: false }),

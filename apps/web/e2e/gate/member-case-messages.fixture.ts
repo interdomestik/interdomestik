@@ -14,6 +14,7 @@ import { and, eq, inArray } from 'drizzle-orm';
 import { randomUUID } from 'node:crypto';
 import { fixtureLegalAcceptance } from '../fixtures/legal-acceptance.fixture';
 import { resolveSeededClaimContext } from '../utils/seeded-claim-context';
+import { expectCaseHomeRefusal } from './case-home-refusal';
 import { inSequence } from './in-sequence';
 
 export async function withMemberMessageFixture<T>(
@@ -68,12 +69,23 @@ export async function withMemberMessageFixture<T>(
     await db.insert(claimMessages).values(
       messageIds.map((id, index) => ({
         id,
-        claimId: index === 4 ? claimIds[1] : claimIds[0],
+        claimId: [claimIds[0], claimIds[0], claimIds[0], claimIds[2], claimIds[1]][index],
         tenantId: index === 3 ? foreignTenant : seed.tenantId,
         senderId: seed.staffId,
         content: index === 0 ? 'Your case update is available.' : `Private sentinel ${id}`,
         isInternal: [false, true, null, false, false][index],
       }))
+    );
+    await expectCaseHomeRefusal(
+      db.insert(claimMessages).values({
+        id: `${prefix}-cross-home`,
+        claimId: claimIds[0],
+        tenantId: foreignTenant,
+        senderId: seed.staffId,
+        content: 'Private sentinel cross-home',
+        isInternal: false,
+      }),
+      'claim_messages_case_home_fk'
     );
     return await run({ ...seed, claimId: claimIds[0], deniedIds: claimIds.slice(1), messageIds });
   } finally {
